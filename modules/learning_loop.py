@@ -1,23 +1,27 @@
 from utils.prompt_utils import call_gpt
 
 class LearningLoop:
+    """
+    Enhanced LearningLoop with adaptive refinement, autonomous goal setting, and dynamic module deployment.
+    """
+
     def __init__(self):
         self.goal_history = []
         self.module_blueprints = []
 
     def update_model(self, session_data):
         """
-        Update learning based on session outcomes.
+        Analyze session performance and propose refinements.
         """
         print("\n📊 [LearningLoop] Analyzing session performance...")
 
-        # Trend analysis of modules
+        # Identify weak modules
         weak_modules = self._find_weak_modules(session_data["module_stats"])
         if weak_modules:
             print(f"⚠️ Weak modules detected: {weak_modules}")
             self._propose_module_refinements(weak_modules)
 
-        # Self-reflection: are there missing capabilities?
+        # Detect capability gaps
         self._detect_capability_gaps(session_data["input"], session_data["output"])
 
     def propose_autonomous_goal(self):
@@ -46,7 +50,7 @@ class LearningLoop:
         for module, stats in module_stats.items():
             if stats["calls"] > 0:
                 success_rate = stats["success"] / stats["calls"]
-                if success_rate < 0.8:  # Adjust threshold for Stage 3
+                if success_rate < 0.8:
                     weak.append(module)
         return weak
 
