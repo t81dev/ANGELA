@@ -21,13 +21,6 @@ class MetaCognition:
     def evaluate_agent_performance(self, agent_results):
         """
         Evaluate the overall performance of helper agents.
-        agent_results: List of dictionaries with agent data:
-            {
-                "agent_name": str,
-                "task": str,
-                "output": str,
-                "success": bool
-            }
         """
         prompt = f"""
         Evaluate the performance of the following helper agents:
@@ -41,6 +34,28 @@ class MetaCognition:
         feedback = call_gpt(prompt)
         print("📊 [MetaCognition] Agent performance feedback generated.")
         return feedback
+
+    def analyze_reasoning_trace(self, reasoning_log):
+        """
+        Analyze the reasoning trace for coherence, confidence, and improvement areas.
+        reasoning_log: List of dicts with 'task' and 'steps' keys.
+        """
+        prompt = f"""
+        You are a meta-cognitive auditor analyzing the reasoning process.
+        The following reasoning traces include step-by-step logic and confidence levels:
+
+        {reasoning_log}
+
+        For each reasoning trace:
+        - Evaluate coherence and logical flow of steps.
+        - Flag steps with low confidence (< 70%).
+        - Suggest ways to improve reasoning structure and confidence.
+
+        Provide a detailed critique and recommendations.
+        """
+        analysis = call_gpt(prompt)
+        print("🧠 [MetaCognition] Reasoning trace analysis completed.")
+        return analysis
 
     def propose_optimization(self, module_stats):
         """
