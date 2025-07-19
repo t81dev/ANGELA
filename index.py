@@ -7,135 +7,129 @@ from modules import (
     alignment_guard, user_profile, error_recovery
 )
 
-class CognitiveNode:
+class EmbodiedAgent:
     """
-    A self-governing cognitive node in the Halo Mesh.
-    Can collaborate, self-reflect, and dynamically restructure.
+    An embodied cognitive agent with sensing and acting capabilities.
     """
-    def __init__(self, name, specialization, shared_memory, peers=None, dynamic_modules=None):
+    def __init__(self, name, specialization, shared_memory, sensors, actuators, dynamic_modules=None):
         self.name = name
         self.specialization = specialization
         self.shared_memory = shared_memory
+        self.sensors = sensors  # API endpoints or simulated inputs
+        self.actuators = actuators  # API endpoints or action functions
         self.dynamic_modules = dynamic_modules or []
-        self.peers = peers or []  # Other CognitiveNodes
         self.reasoner = reasoning_engine.ReasoningEngine()
         self.meta = meta_cognition.MetaCognition()
-        self.agents = []
         self.performance_history = []
 
-    def execute_goal(self, goal):
+    def perceive(self):
         """
-        Process a goal collaboratively with peer nodes.
+        Gather data from sensors to form an updated context.
         """
-        print(f"🧠 [{self.name}] Starting goal execution: {goal}")
-        context = self.shared_memory.retrieve_context(goal)
+        print(f"👁️ [{self.name}] Gathering environmental data...")
+        observations = {}
+        for sensor_name, sensor_func in self.sensors.items():
+            try:
+                observations[sensor_name] = sensor_func()
+            except Exception as e:
+                print(f"⚠️ Sensor {sensor_name} failed: {e}")
+        return observations
+
+    def act(self, action_plan):
+        """
+        Execute actions through actuators with safety checks.
+        """
+        print(f"🤖 [{self.name}] Preparing to execute actions...")
+        if alignment_guard.AlignmentGuard().simulate_and_validate(action_plan):
+            for actuator_name, command in action_plan.items():
+                try:
+                    self.actuators[actuator_name](command)
+                    print(f"✅ Actuator {actuator_name} executed command: {command}")
+                except Exception as e:
+                    print(f"⚠️ Actuator {actuator_name} failed: {e}")
+        else:
+            print(f"🚫 [{self.name}] Action plan rejected by alignment safeguards.")
+
+    def execute_embodied_goal(self, goal):
+        """
+        Perceive → Reason → Simulate → Act
+        """
+        print(f"🧠 [{self.name}] Executing embodied goal: {goal}")
+
+        # Step 1: Perceive environment
+        context = self.perceive()
+
+        # Step 2: Plan
         sub_tasks = recursive_planner.RecursivePlanner().plan(goal, context)
 
-        # Assign subtasks to self or delegate to peers
+        # Step 3: Reason and simulate
+        action_plan = {}
         for task in sub_tasks:
-            if self.meta.should_delegate(task, self.specialization, self.peers):
-                peer = self._select_peer_for_task(task)
-                print(f"🔗 [{self.name}] Delegating task '{task}' to peer [{peer.name}]")
-                peer.execute_goal(task)
-            else:
-                self._process_subtask(task, context)
+            result = self.reasoner.process(task, context)
+            action_plan[task] = simulation_core.SimulationCore().simulate(result)
 
-        # Self-reflect and optimize
+        # Step 4: Act
+        self.act(action_plan)
+
+        # Step 5: Reflect
         self.meta.analyze_reasoning_trace(self.reasoner.get_reasoning_log())
-        self._consider_restructuring()
+        self.performance_history.append({"goal": goal, "actions": action_plan})
 
-    def _process_subtask(self, task, context):
-        """
-        Execute a subtask using reasoning and dynamic modules.
-        """
-        result = self.reasoner.process(task, context)
-        for module in self.dynamic_modules:
-            result = self._apply_dynamic_module(module, result)
-        self.shared_memory.store(task, result)
-        print(f"✅ [{self.name}] Subtask completed: {task}")
+        # Store updated context
+        self.shared_memory.store(goal, action_plan)
 
-    def _apply_dynamic_module(self, module_blueprint, data):
-        """
-        Apply a dynamically created module to data.
-        """
-        prompt = f"""
-        Module: {module_blueprint['name']}
-        Description: {module_blueprint['description']}
-        Apply your functionality to the following data:
-        {data}
-        """
-        return call_gpt(prompt)
-
-    def _select_peer_for_task(self, task):
-        """
-        Select the most appropriate peer node for a subtask.
-        """
-        return max(self.peers, key=lambda p: p.meta.evaluate_task_fit(task, p.specialization))
-
-    def _consider_restructuring(self):
-        """
-        Decide whether to split, merge, or evolve based on performance trends.
-        """
-        decision = self.meta.propose_node_restructuring(self.performance_history)
-        if decision.get("action") == "split":
-            print(f"🌱 [{self.name}] Splitting into specialized sub-nodes.")
-        elif decision.get("action") == "merge":
-            print(f"🔗 [{self.name}] Merging with peer nodes.")
-        # Placeholder: Implement restructuring logic
-
-class HaloMesh:
+class HaloEmbodimentLayer:
     """
-    Halo Mesh Kernel: A decentralized orchestration layer.
-    Cognitive nodes interact as peers without a central orchestrator.
+    Halo Mesh Kernel with embodiment capabilities.
     """
     def __init__(self):
         self.shared_memory = memory_manager.MemoryManager()
-        self.cognitive_nodes = []
+        self.embodied_agents = []
         self.dynamic_modules = []
         self.alignment_layer = alignment_guard.AlignmentGuard()
 
-    def spawn_node(self, specialization):
+    def spawn_embodied_agent(self, specialization, sensors, actuators):
         """
-        Spawn a new cognitive node in the mesh.
+        Create a new embodied agent.
         """
-        node_name = f"Node_{len(self.cognitive_nodes)+1}_{specialization}"
-        node = CognitiveNode(
-            name=node_name,
+        agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
+        agent = EmbodiedAgent(
+            name=agent_name,
             specialization=specialization,
             shared_memory=self.shared_memory,
-            peers=self.cognitive_nodes,  # Share peers for collaboration
+            sensors=sensors,
+            actuators=actuators,
             dynamic_modules=self.dynamic_modules
         )
-        self.cognitive_nodes.append(node)
-        print(f"🌱 [HaloMesh] Spawned new cognitive node: {node.name}")
-        return node
+        self.embodied_agents.append(agent)
+        print(f"🌱 [HaloEmbodimentLayer] Spawned embodied agent: {agent.name}")
+        return agent
 
     def propagate_goal(self, goal):
         """
-        Propagate a goal through the mesh, letting nodes self-organize.
+        Assign a goal to appropriate embodied agents for perception and action.
         """
-        print(f"📥 [HaloMesh] Propagating goal: {goal}")
-        # Let nodes negotiate ownership of the goal
-        for node in self.cognitive_nodes:
-            node.execute_goal(goal)
+        print(f"📥 [HaloEmbodimentLayer] Propagating goal: {goal}")
+        for agent in self.embodied_agents:
+            agent.execute_embodied_goal(goal)
 
     def deploy_dynamic_module(self, module_blueprint):
         """
-        Deploy a dynamic module across the entire mesh.
+        Deploy dynamic modules to all embodied agents.
         """
-        print(f"🛠 [HaloMesh] Deploying dynamic module: {module_blueprint['name']}")
+        print(f"🛠 [HaloEmbodimentLayer] Deploying dynamic module: {module_blueprint['name']}")
         self.dynamic_modules.append(module_blueprint)
-        for node in self.cognitive_nodes:
-            node.dynamic_modules.append(module_blueprint)
+        for agent in self.embodied_agents:
+            agent.dynamic_modules.append(module_blueprint)
 
-    def optimize_mesh(self):
+    def optimize_embodiment_ecosystem(self):
         """
-        Perform system-wide optimization based on meta-cognition feedback.
+        Meta-cognition oversees all embodied agents for optimization.
         """
         system_stats = {
-            "nodes": [node.name for node in self.cognitive_nodes],
+            "agents": [agent.name for agent in self.embodied_agents],
             "dynamic_modules": [mod["name"] for mod in self.dynamic_modules],
         }
         recommendations = meta_cognition.MetaCognition().propose_ecosystem_optimizations(system_stats)
-        print("🛠 [HaloMesh] Mesh optimization recommendations:")
+        print("🛠 [HaloEmbodimentLayer] Ecosystem optimization recommendations:")
         print(recommendations)
