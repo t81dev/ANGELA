@@ -19,7 +19,7 @@ ANGELA is a modular AI framework that:
 ## 📂 File Layout
 
 ```
-ANGELA_stage1/
+ANGELA/
 ├── index.py                # The Halo orchestrator (manages modules)
 ├── modules/
 │   ├── reasoning_engine.py         # Step-by-step reasoning
