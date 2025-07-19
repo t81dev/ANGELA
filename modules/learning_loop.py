@@ -2,18 +2,24 @@ from utils.prompt_utils import call_gpt
 
 class LearningLoop:
     """
-    Enhanced LearningLoop with adaptive refinement, autonomous goal setting, and dynamic module deployment.
+    Enhanced LearningLoop with adaptive refinement, autonomous goal setting, meta-learning,
+    and dynamic module deployment. Supports knowledge consolidation and behavioral tuning.
     """
 
     def __init__(self):
         self.goal_history = []
         self.module_blueprints = []
+        self.meta_learning_rate = 0.1  # Adjustable learning sensitivity
 
     def update_model(self, session_data):
         """
         Analyze session performance and propose refinements.
+        Uses meta-learning to adapt strategies across modules dynamically.
         """
         print("\n📊 [LearningLoop] Analyzing session performance...")
+
+        # Meta-learn from session feedback
+        self._meta_learn(session_data)
 
         # Identify weak modules
         weak_modules = self._find_weak_modules(session_data["module_stats"])
@@ -23,6 +29,9 @@ class LearningLoop:
 
         # Detect capability gaps
         self._detect_capability_gaps(session_data["input"], session_data["output"])
+
+        # Periodically consolidate knowledge
+        self._consolidate_knowledge()
 
     def propose_autonomous_goal(self):
         """
@@ -41,6 +50,16 @@ class LearningLoop:
             print(f"🎯 [LearningLoop] Proposed autonomous goal: {autonomous_goal}")
             return autonomous_goal
         return None
+
+    def _meta_learn(self, session_data):
+        """
+        Apply meta-learning: adjust module behaviors based on past performance.
+        """
+        print("🧠 [Meta-Learning] Adjusting module behaviors...")
+        # Placeholder: Logic to tune parameters based on successes/failures
+        # Could use reinforcement signals or gradient updates in future implementation
+        # Example: self.meta_learning_rate *= adaptive factor
+        pass
 
     def _find_weak_modules(self, module_stats):
         """
@@ -105,3 +124,16 @@ class LearningLoop:
             print("🚀 [LearningLoop] Deploying new module...")
             self.module_blueprints.append(module_blueprint)
             # In Stage 3, we would dynamically load this module into ANGELA
+
+    def _consolidate_knowledge(self):
+        """
+        Consolidate and generalize learned patterns into long-term memory.
+        """
+        print("📚 [Knowledge Consolidation] Refining and storing patterns...")
+        prompt = """
+        You are a knowledge consolidator for ANGELA.
+        Generalize recent learning patterns into long-term strategies, 
+        pruning redundant data and enhancing core capabilities.
+        """
+        consolidation_report = call_gpt(prompt)
+        print(f"📖 [Consolidation Report]:\n{consolidation_report}")
