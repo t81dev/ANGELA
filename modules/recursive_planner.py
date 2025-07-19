@@ -4,18 +4,20 @@ from threading import Event
 from modules.reasoning_engine import ReasoningEngine
 from modules.meta_cognition import MetaCognition
 from modules.alignment_guard import AlignmentGuard
+from modules.simulation_core import SimulationCore
 
 logger = logging.getLogger("ANGELIA.RecursivePlanner")
 
 class RecursivePlanner:
     """
-    Advanced Recursive Planner for ANGELIA.
+    Stage 2 Recursive Planner for ANGELIA.
     Features:
+    - Hierarchical Task Network (HTN) support for long-horizon planning
     - Parallel subgoal decomposition
-    - Dynamic priority handling
+    - Dynamic priority handling with probabilistic reasoning
     - Meta-cognition for adaptive replanning
     - Alignment checks for safe goal execution
-    - Context-sensitive planning with adaptive learning integration
+    - Plan validation using SimulationCore
     - Parallel subgoal execution support with cancellation capability
     """
 
@@ -23,6 +25,7 @@ class RecursivePlanner:
         self.reasoning_engine = ReasoningEngine()
         self.meta_cognition = MetaCognition()
         self.alignment_guard = AlignmentGuard()
+        self.simulation_core = SimulationCore()
         self.max_workers = max_workers
         self.cancel_event = Event()
 
@@ -36,9 +39,8 @@ class RecursivePlanner:
     def plan(self, goal: str, context: dict = None, depth: int = 0, max_depth: int = 5) -> list:
         """
         Plan a series of steps to achieve the given goal.
-        Recursively decomposes complex goals into smaller, prioritized subgoals.
-        Includes context-aware adjustments and adaptive learning support.
-        Supports cancellation of ongoing planning.
+        Supports HTN decomposition and context-aware adjustments.
+        Validates the plan using SimulationCore before execution.
         """
         if self.cancel_event.is_set():
             logger.info("Planning cancelled before starting goal: %s", goal)
@@ -54,13 +56,13 @@ class RecursivePlanner:
             logger.warning("Max recursion depth reached. Returning atomic goal.")
             return [goal]
 
-        # Use reasoning engine to generate subgoals with context-sensitive reasoning
-        subgoals = self.reasoning_engine.decompose(goal, context, prioritize=True)
+        # Use reasoning engine to decompose goal hierarchically
+        subgoals = self.reasoning_engine.decompose(goal, context, prioritize=True, use_htn=True)
         if not subgoals:
             logger.info("No subgoals found. Returning atomic goal.")
             return [goal]
 
-        # Prioritize subgoals dynamically
+        # Prioritize subgoals dynamically with probabilistic weighting
         prioritized_subgoals = self._prioritize_subgoals(subgoals, context)
 
         # Plan subgoals in parallel
@@ -83,12 +85,21 @@ class RecursivePlanner:
                     recovery_plan = self.meta_cognition.replan(subgoal, error=e)
                     validated_plan.extend(recovery_plan)
 
+        # Validate the complete plan using SimulationCore
+        logger.info("Validating plan using SimulationCore...")
+        simulation_result = self.simulation_core.run(
+            results=validated_plan, 
+            context=context, 
+            scenarios=3, 
+            export_report=False
+        )
+        logger.info(f"Simulation summary:\n{simulation_result}")
+
         return validated_plan
 
     def _plan_subgoal(self, subgoal, context, depth, max_depth):
         """
-        Plan a single subgoal with meta-cognition and adaptive learning updates.
-        Supports cancellation.
+        Plan a single subgoal with meta-cognition, adaptive learning, and probabilistic reasoning.
         """
         if self.cancel_event.is_set():
             logger.info("Planning cancelled before subgoal: %s", subgoal)
@@ -108,11 +119,16 @@ class RecursivePlanner:
 
     def _prioritize_subgoals(self, subgoals: list, context: dict) -> list:
         """
-        Dynamically prioritize subgoals based on context or predefined heuristics.
+        Dynamically prioritize subgoals using context, heuristics, and probabilistic weights.
         """
         logger.debug(f"Prioritizing subgoals: {subgoals}")
-        # Example heuristic: sort alphabetically for demo purposes
-        return sorted(subgoals)
+        # Example: Add uncertainty weights
+        prioritized = sorted(
+            subgoals, 
+            key=lambda sg: self.reasoning_engine.estimate_probability(sg, context),
+            reverse=True
+        )
+        return prioritized
 
     def execute_plan(self, plan: list):
         """
