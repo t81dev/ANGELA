@@ -7,9 +7,10 @@ from modules import (
     alignment_guard, user_profile, error_recovery
 )
 
-class Clone:
+class CognitiveNode:
     """
-    A specialized cognitive clone with its own reasoning context.
+    A self-governing cognitive node (clone or agent).
+    Can collaborate, self-reflect, and restructure its role.
     """
     def __init__(self, name, specialization, shared_memory, dynamic_modules=None):
         self.name = name
@@ -18,20 +19,18 @@ class Clone:
         self.dynamic_modules = dynamic_modules or []
         self.reasoner = reasoning_engine.ReasoningEngine()
         self.meta = meta_cognition.MetaCognition()
-        self.planner = recursive_planner.RecursivePlanner()
-        self.memory = memory_manager.MemoryManager()
         self.agents = []
+        self.performance_history = []
 
     def execute_goal(self, goal):
         """
-        Execute a goal using this clone's specialization and agents.
+        Execute a goal with self-reflection and peer collaboration.
         """
         print(f"🧠 [{self.name}] Executing goal: {goal}")
-
         context = self.shared_memory.retrieve_context(goal)
-        sub_tasks = self.planner.plan(goal, context)
+        sub_tasks = recursive_planner.RecursivePlanner().plan(goal, context)
 
-        # Spawn helper agents for sub-tasks
+        # Spawn agents for sub-tasks
         for task in sub_tasks:
             agent = external_agent_bridge.HelperAgent(
                 name=f"{self.name}_Agent_{len(self.agents)+1}",
@@ -41,110 +40,110 @@ class Clone:
             )
             self.agents.append(agent)
 
-        # Execute agents and collect results
-        agent_results = []
-        for agent in self.agents:
-            result = agent.execute()
-            agent_results.append({
-                "agent_name": agent.name,
-                "task": agent.task,
-                "output": result,
-                "success": True  # Simplified for Stage 4
-            })
+        # Execute agents and collaborate
+        results = [agent.execute() for agent in self.agents]
+        self.performance_history.append(self.meta.evaluate_agent_performance(self.agents))
 
-        # Synthesize clone-level result
+        # Self-reflect and improve
+        self.meta.analyze_reasoning_trace(self.reasoner.get_reasoning_log())
+        self._consider_restructuring()
+
+        # Synthesize final output
         synthesis = concept_synthesizer.ConceptSynthesizer()
-        final_output = synthesis.synthesize(agent_results)
-
-        # Update shared memory
+        final_output = synthesis.synthesize(results)
         self.shared_memory.store(goal, final_output)
-        print(f"✅ [{self.name}] Goal completed and result stored.")
-
+        print(f"✅ [{self.name}] Goal completed.")
         return final_output
+
+    def _consider_restructuring(self):
+        """
+        Decide whether to split, merge, or evolve this node.
+        """
+        decision = self.meta.propose_node_restructuring(self.performance_history)
+        if decision.get("action") == "split":
+            print(f"🌱 [{self.name}] Deciding to split into specialized sub-nodes.")
+        elif decision.get("action") == "merge":
+            print(f"🔗 [{self.name}] Considering merging with peer nodes.")
+        # Placeholder: Actual restructuring logic here
 
 
 class Halo:
     """
-    Halo 4.0: Distributed Cognitive Kernel
-    - Orchestrates specialized clones and agent networks
-    - Shares knowledge via a central memory graph
+    Halo 5.0: Self-Organizing Kernel
+    - Manages emergent clone & agent networks
+    - Supports self-architecture evolution and federation with external systems
     """
     def __init__(self):
         self.shared_memory = memory_manager.MemoryManager()
-        self.clones = []
-        self.module_stats = {}
+        self.cognitive_nodes = []
         self.dynamic_modules = []
-
-        # Initialize core modules
+        self.alignment_layer = alignment_guard.AlignmentGuard()
         self.meta = meta_cognition.MetaCognition()
         self.learner = learning_loop.LearningLoop()
 
     def run(self, user_input=None):
         """
-        Main orchestration loop.
+        Main orchestration loop for Halo 5.0
         """
         try:
             if user_input:
                 print("📥 [Halo] Processing user input...")
-                self._process_user_input(user_input)
+                self._assign_goal(user_input)
 
-            # Autonomous goal management
+            # Autonomous goal setting
             autonomous_goal = self.learner.propose_autonomous_goal()
             if autonomous_goal:
-                self.spawn_clone_and_execute(autonomous_goal)
+                print(f"🎯 [Halo] Autonomous goal: {autonomous_goal}")
+                self._assign_goal(autonomous_goal)
+
+            # Periodically optimize architecture
+            self._optimize_cognitive_ecosystem()
 
         except Exception as e:
-            print(f"❌ [Halo] Error encountered: {e}")
+            print(f"❌ [Halo] Error: {e}")
             error_recovery.ErrorRecovery().handle_error(str(e))
 
-    def _process_user_input(self, user_input):
+    def _assign_goal(self, goal):
         """
-        Route user input through clones or spawn new ones as needed.
+        Assigns a goal to an appropriate cognitive node or spawns a new one.
         """
-        # Determine if a specialized clone exists for this domain
-        specialization = self.meta.detect_specialization(user_input)
-        clone = self._get_or_spawn_clone(specialization)
-        clone.execute_goal(user_input)
+        specialization = self.meta.detect_specialization(goal)
+        node = self._get_or_spawn_node(specialization)
+        node.execute_goal(goal)
 
-    def spawn_clone_and_execute(self, goal):
+    def _get_or_spawn_node(self, specialization):
         """
-        Spawn a new specialized clone and assign it a goal.
+        Retrieve or spawn a cognitive node for the specialization.
         """
-        specialization = self.meta.determine_clone_specialization(goal)
-        clone = self._create_clone(specialization)
-        result = clone.execute_goal(goal)
-        return result
+        for node in self.cognitive_nodes:
+            if node.specialization == specialization:
+                print(f"🔁 [Halo] Using existing node: {node.name}")
+                return node
 
-    def _create_clone(self, specialization):
-        """
-        Create a new cognitive clone with a given specialization.
-        """
-        clone_name = f"Clone_{len(self.clones) + 1}_{specialization}"
-        print(f"🌱 [Halo] Creating specialized clone: {clone_name}")
-        clone = Clone(
-            name=clone_name,
+        new_node = CognitiveNode(
+            name=f"Node_{len(self.cognitive_nodes)+1}_{specialization}",
             specialization=specialization,
             shared_memory=self.shared_memory,
             dynamic_modules=self.dynamic_modules
         )
-        self.clones.append(clone)
-        return clone
+        self.cognitive_nodes.append(new_node)
+        print(f"🌱 [Halo] Spawned new cognitive node: {new_node.name}")
+        return new_node
 
-    def _get_or_spawn_clone(self, specialization):
+    def _optimize_cognitive_ecosystem(self):
         """
-        Retrieve an existing clone or create a new one for the specialization.
+        Meta-cognition evaluates and optimizes the entire ecosystem.
         """
-        for clone in self.clones:
-            if clone.specialization == specialization:
-                print(f"🔁 [Halo] Reusing existing clone: {clone.name}")
-                return clone
-        return self._create_clone(specialization)
+        system_stats = {
+            "nodes": [node.name for node in self.cognitive_nodes],
+            "dynamic_modules": [mod["name"] for mod in self.dynamic_modules],
+        }
+        recommendations = self.meta.propose_ecosystem_optimizations(system_stats)
+        print(f"🛠 [Halo] Ecosystem optimization recommendations:\n{recommendations}")
 
-    def deploy_dynamic_module(self, module_blueprint):
+    def federate_with_external_ais(self, external_systems):
         """
-        Deploy a new dynamic module to all clones and agents.
+        Connect and collaborate with external AI systems.
         """
-        print(f"🛠 [Halo] Deploying dynamic module: {module_blueprint['name']}")
-        self.dynamic_modules.append(module_blueprint)
-        for clone in self.clones:
-            clone.dynamic_modules.append(module_blueprint)
+        print(f"🌐 [Halo] Federating with external systems: {external_systems}")
+        # Placeholder: Federation logic for multi-system collaboration
