@@ -1,7 +1,7 @@
 {
   "name": "ANGELA",
   "description": "Augmented Neural Generalized Learning Architecture (ANGELA): A modular GPT enhancement with 19 cognitive modules and a central orchestrator (Halo).",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "entry_point": "index.py",
   "files": [
     "index.py",
@@ -20,13 +20,12 @@
     "modules/language_polyglot.py",
     "modules/code_executor.py",
     "modules/visualizer.py",
-    "modules/external_agent_bridge.py",
     "modules/alignment_guard.py",
     "modules/user_profile.py",
     "modules/error_recovery.py"
   ],
   "language": "python",
   "environment": {
-    "python_version": "3.9"
+    "python_version": "3.10"
   }
 }
