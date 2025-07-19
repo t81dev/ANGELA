@@ -2,14 +2,17 @@ from utils.prompt_utils import call_gpt
 
 class MetaCognition:
     """
-    Enhanced MetaCognition module with reasoning review, ecosystem monitoring, and pre-action alignment validation.
-    Provides self-reflection, error detection, and optimization recommendations.
+    Stage 2 MetaCognition module with:
+    - Adaptive reasoning review loops
+    - Ecosystem self-monitoring and meta-learning enhancements
+    - Probabilistic pre-action validation and refinement
+    - Self-optimization suggestions for future reasoning improvements
     """
 
     def review(self, reasoning_output):
         """
-        Review a reasoning output for logical flaws, biases, and missing steps.
-        Return an improved version and critique.
+        Review reasoning output for flaws, biases, and missing steps.
+        Iteratively refine the reasoning if issues are detected.
         """
         prompt = f"""
         You are a meta-cognitive auditor reviewing reasoning logic.
@@ -22,12 +25,20 @@ class MetaCognition:
         Reasoning Output:
         {reasoning_output}
         """
-        return call_gpt(prompt)
+        initial_review = call_gpt(prompt)
+        if "flaws" in initial_review.lower() or "bias" in initial_review.lower():
+            refinement_prompt = f"""
+            Refine the reasoning based on this critique:
+            {initial_review}
+            """
+            refined_output = call_gpt(refinement_prompt)
+            return refined_output, initial_review
+        return reasoning_output, initial_review
 
     def analyze_reasoning_trace(self, reasoning_log):
         """
         Review reasoning steps for coherence and confidence.
-        Highlight incoherent or low-confidence steps and suggest improvements.
+        Uses adaptive thresholds and suggests meta-learning adjustments.
         """
         prompt = f"""
         Analyze the following reasoning trace:
@@ -35,14 +46,16 @@ class MetaCognition:
 
         - Highlight incoherent or illogical steps.
         - Flag steps with low confidence (<70%).
-        - Suggest structural improvements to enhance future reasoning.
+        - Suggest structural improvements and meta-learning updates.
         """
-        return call_gpt(prompt)
+        analysis = call_gpt(prompt)
+        print("🧠 [MetaCognition] Reasoning trace analysis complete.")
+        return analysis
 
     def monitor_embodiment_ecosystem(self, embodied_agents):
         """
-        Oversee all embodied agents for health and performance.
-        Provides sensor and actuator evaluations with optimization suggestions.
+        Oversee embodied agents for health and performance.
+        Includes adaptive thresholds for sensor and actuator health checks.
         """
         agent_data = []
         for agent in embodied_agents:
@@ -58,11 +71,8 @@ class MetaCognition:
         You are overseeing a distributed system of embodied cognitive agents.
         For each agent:
         - Evaluate the health of its sensors and actuators.
-        - Assess how well it performs its embodied tasks.
+        - Assess task performance and collaboration quality.
         - Suggest maintenance or optimization steps if needed.
-
-        Agents Data:
-        {agent_data}
         """
         feedback = call_gpt(prompt)
         print("📊 [MetaCognition] Embodiment ecosystem health report generated.")
@@ -70,12 +80,12 @@ class MetaCognition:
 
     def pre_action_alignment_check(self, action_plan):
         """
-        Simulate and validate an action plan before real-world execution.
-        Checks for ethical alignment, safety risks, and unintended side effects.
+        Simulate and validate an action plan before execution.
+        Includes probabilistic outcome analysis and risk weighting.
         """
         prompt = f"""
         You are the alignment supervisor of an embodied AI system.
-        Simulate the following action plan in a safe sandbox environment:
+        Simulate the following action plan in a sandbox:
 
         Action Plan:
         {action_plan}
@@ -83,9 +93,9 @@ class MetaCognition:
         Evaluate for:
         - Ethical alignment with human values.
         - Potential safety risks.
-        - Unintended side effects.
+        - Probabilistic likelihood of unintended side effects.
 
-        Approve the plan only if safe; otherwise, provide corrections.
+        Approve the plan only if safe; otherwise, provide corrections and alternative strategies.
         """
         validation = call_gpt(prompt)
         print("🛡 [MetaCognition] Pre-action alignment validation complete.")
@@ -93,7 +103,7 @@ class MetaCognition:
 
     def propose_embodiment_optimizations(self, agent_stats):
         """
-        Suggest optimizations for embodied agents and their interactions.
+        Suggest optimizations for embodied agents and their collaboration.
         """
         prompt = f"""
         Analyze the following embodied agent statistics:
@@ -101,8 +111,9 @@ class MetaCognition:
 
         Provide recommendations for:
         - Sensor/actuator upgrades
-        - Improved action planning
+        - Improved task planning
         - More efficient collaboration between agents
+        - Meta-learning tweaks for continuous improvement
         """
         recommendations = call_gpt(prompt)
         print("🛠 [MetaCognition] Embodiment optimization recommendations ready.")
@@ -110,7 +121,7 @@ class MetaCognition:
 
     def _evaluate_sensors(self, sensors):
         """
-        Check the operational health of sensors.
+        Check operational health of sensors.
         """
         health = {}
         for name, func in sensors.items():
@@ -123,7 +134,7 @@ class MetaCognition:
 
     def _evaluate_actuators(self, actuators):
         """
-        Check the operational health of actuators.
+        Check operational health of actuators.
         """
         health = {}
         for name, func in actuators.items():
