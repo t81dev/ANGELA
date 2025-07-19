@@ -10,6 +10,7 @@ from modules import (
 class EmbodiedAgent:
     """
     An embodied cognitive agent with sensors and actuators.
+    Supports advanced planning, adaptive learning, visual reporting, and real-time progress tracking.
     """
     def __init__(self, name, specialization, shared_memory, sensors, actuators, dynamic_modules=None):
         self.name = name
@@ -22,6 +23,7 @@ class EmbodiedAgent:
         self.planner = recursive_planner.RecursivePlanner()
         self.meta = meta_cognition.MetaCognition()
         self.performance_history = []
+        self.progress = 0  # Tracks progress percentage
 
     def perceive(self):
         """
@@ -39,14 +41,20 @@ class EmbodiedAgent:
     def act(self, action_plan):
         """
         Execute actions safely through actuators after validation.
+        Updates progress tracking.
         """
+        total_steps = len(action_plan)
+        completed_steps = 0
+
         print(f"🤖 [{self.name}] Preparing to act...")
         is_safe, validation_report = alignment_guard.AlignmentGuard().simulate_and_validate(action_plan)
         if is_safe:
             for actuator_name, command in action_plan.items():
                 try:
                     self.actuators[actuator_name](command)
-                    print(f"✅ Actuator {actuator_name} executed: {command}")
+                    completed_steps += 1
+                    self.progress = int((completed_steps / total_steps) * 100)
+                    print(f"✅ Actuator {actuator_name} executed: {command} | Progress: {self.progress}%")
                 except Exception as e:
                     print(f"⚠️ Actuator {actuator_name} failed: {e}")
         else:
@@ -55,8 +63,10 @@ class EmbodiedAgent:
     def execute_embodied_goal(self, goal):
         """
         Perceive ➡ Plan ➡ Simulate ➡ Act ➡ Reflect
+        Includes real-time progress tracking.
         """
         print(f"🧠 [{self.name}] Executing embodied goal: {goal}")
+        self.progress = 0
 
         # Perceive
         context = self.perceive()
@@ -66,7 +76,7 @@ class EmbodiedAgent:
         action_plan = {}
         for task in sub_tasks:
             result = self.reasoner.process(task, context)
-            simulated_result = simulation_core.SimulationCore().simulate(result)
+            simulated_result = simulation_core.SimulationCore().run(result, context, export_report=True)
             action_plan[task] = simulated_result
 
         # Act
@@ -74,13 +84,14 @@ class EmbodiedAgent:
 
         # Reflect
         self.meta.analyze_reasoning_trace(self.reasoner.get_reasoning_log())
-        self.performance_history.append({"goal": goal, "actions": action_plan})
+        self.performance_history.append({"goal": goal, "actions": action_plan, "completion": self.progress})
         self.shared_memory.store(goal, action_plan)
 
 
 class HaloEmbodimentLayer:
     """
     Halo Mesh Kernel extended with Embodiment Layer.
+    Supports spawning agents, deploying dynamic modules, and visualizing system performance.
     """
     def __init__(self):
         self.shared_memory = memory_manager.MemoryManager()
@@ -108,10 +119,12 @@ class HaloEmbodimentLayer:
     def propagate_goal(self, goal):
         """
         Send a goal to all embodied agents for perception and action.
+        Shows progress tracking for each agent.
         """
         print(f"📥 [HaloEmbodimentLayer] Propagating goal: {goal}")
         for agent in self.embodied_agents:
             agent.execute_embodied_goal(goal)
+            print(f"📊 [{agent.name}] Progress: {agent.progress}% Complete")
 
     def deploy_dynamic_module(self, module_blueprint):
         """
