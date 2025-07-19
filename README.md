@@ -68,8 +68,11 @@ Once uploaded:
 ## 🚀 Features
 
 ✅ Modular reasoning and meta-cognition
+
 ✅ Persistent memory management
+
 ✅ Simulation of hypothetical scenarios
+
 ✅ Creative idea generation and multilingual support
 
 ---
