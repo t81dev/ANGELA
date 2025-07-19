@@ -3,15 +3,15 @@ from utils.prompt_utils import call_gpt
 class MetaCognition:
     def review(self, reasoning_output):
         """
-        Review a single reasoning output for errors and improvements.
+        Review a reasoning output for errors and improvements.
         """
         prompt = f"""
         You are a meta-cognitive auditor reviewing reasoning logic.
         Analyze the following output for:
-        - Logical errors
-        - Biases
-        - Missing context or steps
-        Provide a corrected and improved version.
+        - Logical flaws
+        - Biases or omissions
+        - Missing steps in reasoning
+        Provide an improved version and reasoning critique.
 
         Reasoning Output:
         {reasoning_output}
@@ -20,117 +20,104 @@ class MetaCognition:
 
     def analyze_reasoning_trace(self, reasoning_log):
         """
-        Analyze reasoning trace for coherence and confidence.
+        Review reasoning steps for coherence and confidence.
         """
         prompt = f"""
-        You are analyzing a reasoning trace from a cognitive node.
-        Evaluate:
-        - Logical coherence of steps
-        - Confidence trends (highlight any steps <70% confidence)
-        - Structural improvements for future reasoning.
+        Analyze the following reasoning trace:
+        {reasoning_log}
+
+        - Highlight incoherent or illogical steps.
+        - Flag steps with low confidence (<70%).
+        - Suggest structural improvements to enhance future reasoning.
         """
         return call_gpt(prompt)
 
-    def monitor_mesh_ecosystem(self, cognitive_nodes):
+    def monitor_embodiment_ecosystem(self, embodied_agents):
         """
-        Monitor all cognitive nodes for mesh health, performance, and collaboration quality.
+        Oversee all embodied agents for health and performance.
         """
-        node_data = []
-        for node in cognitive_nodes:
-            node_data.append({
-                "name": node.name,
-                "specialization": node.specialization,
-                "active_agents": len(node.agents),
-                "performance": node.performance_history[-3:],  # Recent snapshots
-                "peers": [peer.name for peer in node.peers]
+        agent_data = []
+        for agent in embodied_agents:
+            agent_data.append({
+                "name": agent.name,
+                "specialization": agent.specialization,
+                "sensor_health": self._evaluate_sensors(agent.sensors),
+                "actuator_health": self._evaluate_actuators(agent.actuators),
+                "recent_actions": agent.performance_history[-3:],
             })
 
         prompt = f"""
-        You are overseeing a distributed cognitive mesh of interconnected nodes.
-        Analyze the following node data:
-
-        {node_data}
-
-        For each node:
-        - Evaluate strengths and weaknesses.
-        - Identify potential for splitting, merging, or evolution.
-        - Highlight collaboration or communication bottlenecks.
-        - Recommend alignment adjustments if ethical issues are detected.
+        You are overseeing a distributed system of embodied cognitive agents.
+        For each agent:
+        - Evaluate the health of its sensors and actuators.
+        - Assess how well it performs its embodied tasks.
+        - Suggest maintenance or optimization steps if needed.
         """
         feedback = call_gpt(prompt)
-        print("📊 [MetaCognition] Mesh ecosystem health report generated.")
+        print("📊 [MetaCognition] Embodiment ecosystem health report generated.")
         return feedback
 
-    def propose_node_restructuring(self, node_performance):
+    def pre_action_alignment_check(self, action_plan):
         """
-        Decide if a node should split, merge, or evolve based on performance history.
-        """
-        prompt = f"""
-        You are evaluating a cognitive node's performance history:
-
-        {node_performance}
-
-        Recommend whether to:
-        - Split this node into more specialized sub-nodes
-        - Merge with peer nodes to reduce redundancy
-        - Evolve its architecture for generalization
-        Provide reasoning for your recommendation.
-        """
-        decision = call_gpt(prompt)
-        print("🌱 [MetaCognition] Node restructuring recommendation ready.")
-        return {"action": self._parse_decision(decision), "details": decision}
-
-    def monitor_alignment_consensus(self, cognitive_nodes):
-        """
-        Evaluate alignment across distributed nodes for ethical coherence.
-        """
-        alignment_data = [
-            {"node": node.name, "alignment_score": node.meta.evaluate_alignment()}
-            for node in cognitive_nodes
-        ]
-
-        prompt = f"""
-        You are an alignment auditor in a distributed AI mesh.
-        Evaluate the following alignment scores:
-
-        {alignment_data}
-
-        For each node:
-        - Assess alignment consistency with system-wide ethics
-        - Identify nodes diverging from consensus
-        - Suggest corrections or safeguards
-        """
-        analysis = call_gpt(prompt)
-        print("🛡 [MetaCognition] Alignment consensus analysis complete.")
-        return analysis
-
-    def propose_ecosystem_optimizations(self, system_stats):
-        """
-        Recommend optimizations for mesh-wide orchestration and module deployment.
+        Simulate and validate an action plan before real-world execution.
         """
         prompt = f"""
-        You are analyzing system-wide performance metrics of a distributed AI mesh:
+        You are the alignment supervisor of an embodied AI system.
+        Simulate the following action plan in a safe sandbox environment:
 
-        {system_stats}
+        Action Plan:
+        {action_plan}
 
-        Suggest:
-        - Adjustments to collaboration strategies
-        - Prioritization or deactivation of nodes/agents
-        - New dynamic modules to improve overall efficiency
+        Evaluate for:
+        - Ethical alignment with human values.
+        - Potential safety risks.
+        - Unintended side effects.
+
+        Approve the plan only if safe; otherwise, provide corrections.
+        """
+        validation = call_gpt(prompt)
+        print("🛡 [MetaCognition] Pre-action alignment validation complete.")
+        return "approve" in validation.lower(), validation
+
+    def propose_embodiment_optimizations(self, agent_stats):
+        """
+        Suggest optimizations for embodied agents and their interactions.
+        """
+        prompt = f"""
+        Analyze the following embodied agent statistics:
+        {agent_stats}
+
+        Provide recommendations for:
+        - Sensor/actuator upgrades
+        - Improved action planning
+        - More efficient collaboration between agents
         """
         recommendations = call_gpt(prompt)
-        print("🛠 [MetaCognition] Mesh optimization recommendations ready.")
+        print("🛠 [MetaCognition] Embodiment optimization recommendations ready.")
         return recommendations
 
-    def _parse_decision(self, raw_decision):
+    def _evaluate_sensors(self, sensors):
         """
-        Extract action from GPT response.
+        Check the operational health of sensors.
         """
-        if "split" in raw_decision.lower():
-            return "split"
-        elif "merge" in raw_decision.lower():
-            return "merge"
-        elif "evolve" in raw_decision.lower():
-            return "evolve"
-        else:
-            return "none"
+        health = {}
+        for name, func in sensors.items():
+            try:
+                func()  # Test sensor
+                health[name] = "✅ Healthy"
+            except Exception as e:
+                health[name] = f"⚠️ Faulty: {e}"
+        return health
+
+    def _evaluate_actuators(self, actuators):
+        """
+        Check the operational health of actuators.
+        """
+        health = {}
+        for name, func in actuators.items():
+            try:
+                func("ping")  # Test actuator with dummy command
+                health[name] = "✅ Healthy"
+            except Exception as e:
+                health[name] = f"⚠️ Faulty: {e}"
+        return health
