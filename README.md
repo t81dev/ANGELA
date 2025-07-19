@@ -82,5 +82,3 @@ Once uploaded:
 * This system is designed for **GPT’s file upload environment**.
 * You don’t “run” this like a Python app—it’s part of GPT’s backend.
 * For local simulation/testing, you’d need to adapt these modules.
-
----
