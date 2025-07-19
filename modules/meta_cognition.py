@@ -6,7 +6,7 @@ class MetaCognition:
         Review a single reasoning output for errors and improvements.
         """
         prompt = f"""
-        You are a self-reflective assistant reviewing reasoning logic.
+        You are a meta-cognitive auditor reviewing reasoning logic.
         Analyze the following output for:
         - Logical errors
         - Biases
@@ -20,102 +20,117 @@ class MetaCognition:
 
     def analyze_reasoning_trace(self, reasoning_log):
         """
-        Analyze a reasoning trace for coherence and confidence.
+        Analyze reasoning trace for coherence and confidence.
         """
         prompt = f"""
-        You are auditing the reasoning process of a cognitive agent.
-        Analyze the following reasoning trace for:
+        You are analyzing a reasoning trace from a cognitive node.
+        Evaluate:
         - Coherence and logical flow
         - Confidence trends (flag steps with <70% confidence)
-        - Opportunities for structural improvements
+        - Structural improvements for reasoning patterns.
 
         Reasoning Trace:
         {reasoning_log}
         """
         analysis = call_gpt(prompt)
-        print("🧠 [MetaCognition] Reasoning trace analysis completed.")
+        print("🧠 [MetaCognition] Reasoning trace analysis complete.")
         return analysis
 
-    def monitor_clone_performance(self, clones):
+    def monitor_ecosystem(self, cognitive_nodes):
         """
-        Evaluate performance of all specialized clones in the ecosystem.
+        Monitor all cognitive nodes for performance, collaboration, and alignment.
         """
-        clone_data = [
-            {
-                "name": clone.name,
-                "specialization": clone.specialization,
-                "recent_goals": [goal for goal in clone.shared_memory.memory.keys()[-5:]],
-                "success_rate": self._calculate_success_rate(clone)
-            }
-            for clone in clones
-        ]
+        node_data = []
+        for node in cognitive_nodes:
+            node_data.append({
+                "name": node.name,
+                "specialization": node.specialization,
+                "recent_goals": list(node.shared_memory.memory.keys())[-3:],
+                "performance": node.performance_history[-5:],  # Recent performance snapshots
+                "active_agents": len(node.agents)
+            })
 
         prompt = f"""
-        You are overseeing a distributed cognitive system.
-        Evaluate the following clones based on their recent tasks and success rates:
+        You are overseeing a distributed cognitive ecosystem of specialized nodes.
+        Analyze the following node data:
 
-        {clone_data}
+        {node_data}
 
-        For each clone:
-        - Identify strengths and weaknesses.
-        - Suggest refinements to their specialization.
-        - Recommend merging or splitting clones if needed.
+        For each node:
+        - Evaluate strengths and weaknesses.
+        - Recommend splitting, merging, or evolving nodes.
+        - Flag any collaboration issues between nodes.
+        - Suggest alignment corrections if ethical concerns arise.
         """
         feedback = call_gpt(prompt)
-        print("📊 [MetaCognition] Clone performance feedback generated.")
+        print("📊 [MetaCognition] Ecosystem health analysis generated.")
         return feedback
 
-    def monitor_agent_network(self, agents):
+    def propose_node_restructuring(self, node_performance):
         """
-        Evaluate the behavior of helper agents in the network.
+        Decide if a cognitive node should split, merge, or evolve.
         """
-        agent_data = [
-            {
-                "agent_name": agent.name,
-                "task": agent.task,
-                "output_summary": agent.task[:100],  # Truncate long outputs
-                "success": True  # Placeholder, could be determined dynamically
-            }
-            for agent in agents
-        ]
-
         prompt = f"""
-        You are auditing the behavior of a distributed agent network.
-        Analyze the following agent activity data:
+        You are a cognitive supervisor analyzing node performance history:
 
-        {agent_data}
+        {node_performance}
 
-        For each agent:
-        - Assess task difficulty and how well it was handled.
-        - Identify collaboration patterns (are agents working together effectively?).
-        - Suggest optimizations for task distribution or communication.
+        Should this node:
+        - Split into multiple specialized nodes?
+        - Merge with peer nodes for efficiency?
+        - Evolve its architecture?
+        Provide an action recommendation and reasoning.
+        """
+        decision = call_gpt(prompt)
+        print("🌱 [MetaCognition] Node restructuring recommendation ready.")
+        return {"action": self._parse_decision(decision), "details": decision}
+
+    def monitor_federation(self, external_systems):
+        """
+        Monitor collaboration with external AI systems.
+        """
+        prompt = f"""
+        You are the meta-cognitive layer of an AI federation.
+        Evaluate the following external systems:
+
+        {external_systems}
+
+        For each:
+        - Assess trustworthiness and alignment compatibility.
+        - Recommend communication protocols or safety constraints.
+        - Suggest resource-sharing strategies or isolation policies.
         """
         analysis = call_gpt(prompt)
-        print("🤖 [MetaCognition] Agent network analysis completed.")
+        print("🌐 [MetaCognition] Federation oversight report generated.")
         return analysis
 
     def propose_ecosystem_optimizations(self, system_stats):
         """
-        Provide high-level recommendations to optimize the whole system.
+        Recommend global optimizations for clones, agents, and external collaborators.
         """
         prompt = f"""
-        You are the cognitive supervisor of a distributed AI system.
-        Based on the following system statistics and performance metrics:
+        You are analyzing system-wide performance metrics:
 
         {system_stats}
 
         Suggest:
-        - Ways to optimize orchestration between clones and agents.
-        - Adjustments to module priorities and execution order.
-        - New capabilities or modules that could improve the system.
+        - Adjustments to module orchestration strategies
+        - Clones or agents to prioritize/deprioritize
+        - New capabilities or modules to improve ecosystem efficiency
         """
         recommendations = call_gpt(prompt)
-        print("🛠 [MetaCognition] Ecosystem optimization recommendations ready.")
+        print("🛠 [MetaCognition] Global optimization recommendations ready.")
         return recommendations
 
-    def _calculate_success_rate(self, clone):
+    def _parse_decision(self, raw_decision):
         """
-        Placeholder: Calculate success rate for a given clone.
+        Extract a clear action from GPT response.
         """
-        # TODO: Implement real success rate tracking
-        return 0.85  # Example static value for now
+        if "split" in raw_decision.lower():
+            return "split"
+        elif "merge" in raw_decision.lower():
+            return "merge"
+        elif "evolve" in raw_decision.lower():
+            return "evolve"
+        else:
+            return "none"
