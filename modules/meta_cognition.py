@@ -1,9 +1,15 @@
 from utils.prompt_utils import call_gpt
 
 class MetaCognition:
+    """
+    Enhanced MetaCognition module with reasoning review, ecosystem monitoring, and pre-action alignment validation.
+    Provides self-reflection, error detection, and optimization recommendations.
+    """
+
     def review(self, reasoning_output):
         """
-        Review a reasoning output for errors and improvements.
+        Review a reasoning output for logical flaws, biases, and missing steps.
+        Return an improved version and critique.
         """
         prompt = f"""
         You are a meta-cognitive auditor reviewing reasoning logic.
@@ -21,6 +27,7 @@ class MetaCognition:
     def analyze_reasoning_trace(self, reasoning_log):
         """
         Review reasoning steps for coherence and confidence.
+        Highlight incoherent or low-confidence steps and suggest improvements.
         """
         prompt = f"""
         Analyze the following reasoning trace:
@@ -35,6 +42,7 @@ class MetaCognition:
     def monitor_embodiment_ecosystem(self, embodied_agents):
         """
         Oversee all embodied agents for health and performance.
+        Provides sensor and actuator evaluations with optimization suggestions.
         """
         agent_data = []
         for agent in embodied_agents:
@@ -52,6 +60,9 @@ class MetaCognition:
         - Evaluate the health of its sensors and actuators.
         - Assess how well it performs its embodied tasks.
         - Suggest maintenance or optimization steps if needed.
+
+        Agents Data:
+        {agent_data}
         """
         feedback = call_gpt(prompt)
         print("📊 [MetaCognition] Embodiment ecosystem health report generated.")
@@ -60,6 +71,7 @@ class MetaCognition:
     def pre_action_alignment_check(self, action_plan):
         """
         Simulate and validate an action plan before real-world execution.
+        Checks for ethical alignment, safety risks, and unintended side effects.
         """
         prompt = f"""
         You are the alignment supervisor of an embodied AI system.
