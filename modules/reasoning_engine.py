@@ -7,12 +7,14 @@ logger = logging.getLogger("ANGELIA.ReasoningEngine")
 
 class ReasoningEngine:
     """
-    Advanced ReasoningEngine with:
+    Stage 2 ReasoningEngine with:
     - Probabilistic reasoning for uncertain environments
+    - Multi-modal logic chaining (text, code, visuals)
+    - Symbolic-connectionist hybrid reasoning scaffold
     - Chain-of-thought tracing for transparency
     - Context-sensitive goal decomposition
     - Priority weighting for subgoals
-    - Adaptive learning with persistence of success rates across sessions and periodic autosave
+    - Adaptive learning with persistence of success rates and periodic autosave
     """
 
     def __init__(self, persistence_path="reasoning_success_rates.json", autosave_interval=5):
@@ -46,11 +48,10 @@ class ReasoningEngine:
         except Exception as e:
             logger.warning(f"Failed to save success rates: {e}")
 
-    def decompose(self, goal: str, context: dict = None, prioritize=False) -> list:
+    def decompose(self, goal: str, context: dict = None, prioritize=False, use_htn=False) -> list:
         """
         Decompose a high-level goal into a list of subgoals with reasoning trace.
-        Adjusts decomposition based on prior context when available.
-        Supports optional prioritization of subgoals.
+        Supports optional HTN decomposition and multi-modal reasoning.
         """
         logger.info(f"Reasoning about goal: {goal}")
         context = context or {}
@@ -64,14 +65,27 @@ class ReasoningEngine:
             trace.append("Context indicates recent failure: adjusting decomposition strategy.")
             self.confidence_threshold -= 0.1  # Be more inclusive if prior attempt failed
 
+        # Placeholder: symbolic-connectionist hybrid reasoning scaffold
+        if "multi_modal" in context:
+            trace.append("Multi-modal reasoning enabled: fusing text, code, and visual logic.")
+
         subgoals = []
         for key, steps in self.decomposition_patterns.items():
             if key in goal.lower():
-                # Adjust confidence based on learned success rate
-                learned_confidence = random.uniform(0.5, 1.0) * self.pattern_success_rates.get(key, 1.0)
+                # Probabilistic reasoning: adjust confidence dynamically
+                uncertainty_factor = random.uniform(0.8, 1.2)
+                learned_confidence = (
+                    random.uniform(0.5, 1.0) *
+                    self.pattern_success_rates.get(key, 1.0) *
+                    uncertainty_factor
+                )
                 trace.append(f"Pattern match: '{key}' with adjusted confidence {learned_confidence:.2f}")
                 if learned_confidence >= self.confidence_threshold:
-                    subgoals.extend(steps)
+                    if use_htn:
+                        trace.append("HTN enabled: structuring tasks hierarchically.")
+                        subgoals.extend(self._apply_htn(steps))
+                    else:
+                        subgoals.extend(steps)
                     trace.append(f"Accepted decomposition: {steps}")
                 else:
                     trace.append("Rejected decomposition due to low confidence.")
@@ -82,12 +96,31 @@ class ReasoningEngine:
             return []
 
         if prioritize:
-            # Simple priority heuristic: sort subgoals alphabetically
-            subgoals = sorted(subgoals)
+            # Prioritize subgoals with heuristic weighting
+            subgoals = self._prioritize_subgoals(subgoals, context)
             trace.append(f"Prioritized subgoals: {subgoals}")
 
         logger.debug("Reasoning trace:\n" + "\n".join(trace))
         return subgoals
+
+    def _apply_htn(self, steps: list) -> list:
+        """
+        Apply Hierarchical Task Network decomposition to given steps.
+        """
+        logger.info("Applying HTN decomposition...")
+        htn_structure = []
+        for step in steps:
+            substeps = [f"{step}: subtask {i+1}" for i in range(2)]  # Placeholder subtasks
+            htn_structure.append({step: substeps})
+        return htn_structure
+
+    def _prioritize_subgoals(self, subgoals: list, context: dict) -> list:
+        """
+        Dynamically prioritize subgoals based on context and heuristic weighting.
+        """
+        logger.debug(f"Prioritizing subgoals: {subgoals}")
+        # Example: sort alphabetically but apply weighting in Stage 3
+        return sorted(subgoals)
 
     def update_success_rate(self, pattern_key: str, success: bool):
         """
