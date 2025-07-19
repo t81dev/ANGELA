@@ -5,7 +5,7 @@
   "entry_point": "index.py",
   "files": [
     "index.py",
-    "main.py",
+    "modules/external_agent_bridge.py",
     "modules/reasoning_engine.py",
     "modules/meta_cognition.py",
     "modules/recursive_planner.py",
