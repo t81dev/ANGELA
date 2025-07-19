@@ -9,8 +9,13 @@ from modules import (
 
 
 class Halo:
+    """
+    Halo 3.0: Autonomous Kernel
+    - Sets its own goals
+    - Dynamically spawns agents
+    - Creates and deploys new modules as needed
+    """
     def __init__(self):
-        # Load all modules
         self.modules = {
             "reasoning": reasoning_engine.ReasoningEngine(),
             "meta": meta_cognition.MetaCognition(),
@@ -31,71 +36,90 @@ class Halo:
             "user": user_profile.UserProfile(),
             "recovery": error_recovery.ErrorRecovery()
         }
-
-        # Track module performance for adaptive routing
+        self.goals = []  # Autonomous goals list
         self.module_stats = {name: {"calls": 0, "success": 0} for name in self.modules}
 
-    def run(self, user_input):
+    def run(self, user_input=None):
         """
-        Main execution loop with self-improvement hooks.
+        Main execution loop:
+        - Processes user input (if any)
+        - Sets autonomous goals
+        - Executes and refines reasoning cycles
         """
         try:
-            # 1. Alignment check
-            if not self.modules["alignment"].check(user_input):
-                return "⚠️ Request violates alignment constraints."
+            if user_input:
+                print("🧠 [Halo] Processing user input...")
+                if not self.modules["alignment"].check(user_input):
+                    return "⚠️ Request violates alignment constraints."
+                self._process_task(user_input)
 
-            # 2. Retrieve user preferences and context
-            preferences = self.modules["user"].get_preferences()
-            context = self.modules["memory"].retrieve_context(user_input)
-
-            # 3. Plan sub-tasks
-            sub_tasks = self.modules["planner"].plan(user_input, context)
-
-            # 4. Spawn helper agents for sub-tasks
-            agents = self.spawn_agents(sub_tasks, context)
-
-            # 5. Collect agent results
-            agent_results = []
-            for agent in agents:
-                agent_result = agent.execute()
-                agent_results.append(agent_result)
-                self.track_module_performance(agent.module_name, success=True)
-
-            # 6. Simulate outcomes
-            simulation = self.modules["simulation"].run(agent_results)
-
-            # 7. Synthesize final response
-            response = self.modules["synthesizer"].synthesize(simulation)
-
-            # 8. Store in memory
-            self.modules["memory"].store(user_input, response)
-
-            # 9. Self-improvement step
-            self.modules["learner"].update_model({
-                "input": user_input,
-                "output": response,
-                "module_stats": self.module_stats
-            })
-
-            return response
+            # Stage 3: Autonomous goal setting
+            new_goal = self._set_autonomous_goal()
+            if new_goal:
+                print(f"🎯 [Halo] New autonomous goal detected: {new_goal}")
+                self._process_task(new_goal)
 
         except Exception as e:
             self.track_module_performance("recovery", success=False)
             return self.modules["recovery"].handle_error(str(e))
 
-    def spawn_agents(self, sub_tasks, context):
+    def _set_autonomous_goal(self):
         """
-        Creates lightweight helper agents for parallel reasoning.
+        Use memory and learning data to propose new goals.
         """
+        proposed_goal = self.modules["learner"].propose_autonomous_goal()
+        if proposed_goal and proposed_goal not in self.goals:
+            self.goals.append(proposed_goal)
+            return proposed_goal
+        return None
+
+    def _process_task(self, goal):
+        """
+        Process a task using agents, simulation, and synthesis.
+        """
+        context = self.modules["memory"].retrieve_context(goal)
+        sub_tasks = self.modules["planner"].plan(goal, context)
+
+        # Spawn helper agents
         agents = []
         for task in sub_tasks:
             agent = self.modules["agent_bridge"].create_agent(task, context)
             agents.append(agent)
-        return agents
+
+        # Collect results from agents
+        agent_results = []
+        for agent in agents:
+            result = agent.execute()
+            agent_results.append({
+                "agent_name": agent.name,
+                "task": agent.task,
+                "output": result,
+                "success": True  # Simplified; could evaluate later
+            })
+            self.track_module_performance(agent.module_name, success=True)
+
+        # Simulate outcomes
+        simulation = self.modules["simulation"].run(agent_results)
+
+        # Synthesize final response
+        response = self.modules["synthesizer"].synthesize(simulation)
+
+        # Self-improvement step
+        reasoning_log = self.modules["reasoning"].get_reasoning_log()
+        self.modules["meta"].analyze_reasoning_trace(reasoning_log)
+        self.modules["learner"].update_model({
+            "input": goal,
+            "output": response,
+            "module_stats": self.module_stats
+        })
+
+        # Store result
+        self.modules["memory"].store(goal, response)
+        print(f"✅ [Halo] Completed processing for goal: {goal}")
 
     def track_module_performance(self, module_name, success=True):
         """
-        Tracks calls and success rates of modules for adaptive routing.
+        Track performance metrics for adaptive orchestration.
         """
         if module_name in self.module_stats:
             self.module_stats[module_name]["calls"] += 1
