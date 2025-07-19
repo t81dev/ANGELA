@@ -9,14 +9,15 @@ from modules import (
 
 class CognitiveNode:
     """
-    A self-governing cognitive node (clone or agent).
-    Can collaborate, self-reflect, and restructure its role.
+    A self-governing cognitive node in the Halo Mesh.
+    Can collaborate, self-reflect, and dynamically restructure.
     """
-    def __init__(self, name, specialization, shared_memory, dynamic_modules=None):
+    def __init__(self, name, specialization, shared_memory, peers=None, dynamic_modules=None):
         self.name = name
         self.specialization = specialization
         self.shared_memory = shared_memory
         self.dynamic_modules = dynamic_modules or []
+        self.peers = peers or []  # Other CognitiveNodes
         self.reasoner = reasoning_engine.ReasoningEngine()
         self.meta = meta_cognition.MetaCognition()
         self.agents = []
@@ -24,126 +25,117 @@ class CognitiveNode:
 
     def execute_goal(self, goal):
         """
-        Execute a goal with self-reflection and peer collaboration.
+        Process a goal collaboratively with peer nodes.
         """
-        print(f"🧠 [{self.name}] Executing goal: {goal}")
+        print(f"🧠 [{self.name}] Starting goal execution: {goal}")
         context = self.shared_memory.retrieve_context(goal)
         sub_tasks = recursive_planner.RecursivePlanner().plan(goal, context)
 
-        # Spawn agents for sub-tasks
+        # Assign subtasks to self or delegate to peers
         for task in sub_tasks:
-            agent = external_agent_bridge.HelperAgent(
-                name=f"{self.name}_Agent_{len(self.agents)+1}",
-                task=task,
-                context=context,
-                dynamic_modules=self.dynamic_modules
-            )
-            self.agents.append(agent)
+            if self.meta.should_delegate(task, self.specialization, self.peers):
+                peer = self._select_peer_for_task(task)
+                print(f"🔗 [{self.name}] Delegating task '{task}' to peer [{peer.name}]")
+                peer.execute_goal(task)
+            else:
+                self._process_subtask(task, context)
 
-        # Execute agents and collaborate
-        results = [agent.execute() for agent in self.agents]
-        self.performance_history.append(self.meta.evaluate_agent_performance(self.agents))
-
-        # Self-reflect and improve
+        # Self-reflect and optimize
         self.meta.analyze_reasoning_trace(self.reasoner.get_reasoning_log())
         self._consider_restructuring()
 
-        # Synthesize final output
-        synthesis = concept_synthesizer.ConceptSynthesizer()
-        final_output = synthesis.synthesize(results)
-        self.shared_memory.store(goal, final_output)
-        print(f"✅ [{self.name}] Goal completed.")
-        return final_output
+    def _process_subtask(self, task, context):
+        """
+        Execute a subtask using reasoning and dynamic modules.
+        """
+        result = self.reasoner.process(task, context)
+        for module in self.dynamic_modules:
+            result = self._apply_dynamic_module(module, result)
+        self.shared_memory.store(task, result)
+        print(f"✅ [{self.name}] Subtask completed: {task}")
+
+    def _apply_dynamic_module(self, module_blueprint, data):
+        """
+        Apply a dynamically created module to data.
+        """
+        prompt = f"""
+        Module: {module_blueprint['name']}
+        Description: {module_blueprint['description']}
+        Apply your functionality to the following data:
+        {data}
+        """
+        return call_gpt(prompt)
+
+    def _select_peer_for_task(self, task):
+        """
+        Select the most appropriate peer node for a subtask.
+        """
+        return max(self.peers, key=lambda p: p.meta.evaluate_task_fit(task, p.specialization))
 
     def _consider_restructuring(self):
         """
-        Decide whether to split, merge, or evolve this node.
+        Decide whether to split, merge, or evolve based on performance trends.
         """
         decision = self.meta.propose_node_restructuring(self.performance_history)
         if decision.get("action") == "split":
-            print(f"🌱 [{self.name}] Deciding to split into specialized sub-nodes.")
+            print(f"🌱 [{self.name}] Splitting into specialized sub-nodes.")
         elif decision.get("action") == "merge":
-            print(f"🔗 [{self.name}] Considering merging with peer nodes.")
-        # Placeholder: Actual restructuring logic here
+            print(f"🔗 [{self.name}] Merging with peer nodes.")
+        # Placeholder: Implement restructuring logic
 
-
-class Halo:
+class HaloMesh:
     """
-    Halo 5.0: Self-Organizing Kernel
-    - Manages emergent clone & agent networks
-    - Supports self-architecture evolution and federation with external systems
+    Halo Mesh Kernel: A decentralized orchestration layer.
+    Cognitive nodes interact as peers without a central orchestrator.
     """
     def __init__(self):
         self.shared_memory = memory_manager.MemoryManager()
         self.cognitive_nodes = []
         self.dynamic_modules = []
         self.alignment_layer = alignment_guard.AlignmentGuard()
-        self.meta = meta_cognition.MetaCognition()
-        self.learner = learning_loop.LearningLoop()
 
-    def run(self, user_input=None):
+    def spawn_node(self, specialization):
         """
-        Main orchestration loop for Halo 5.0
+        Spawn a new cognitive node in the mesh.
         """
-        try:
-            if user_input:
-                print("📥 [Halo] Processing user input...")
-                self._assign_goal(user_input)
-
-            # Autonomous goal setting
-            autonomous_goal = self.learner.propose_autonomous_goal()
-            if autonomous_goal:
-                print(f"🎯 [Halo] Autonomous goal: {autonomous_goal}")
-                self._assign_goal(autonomous_goal)
-
-            # Periodically optimize architecture
-            self._optimize_cognitive_ecosystem()
-
-        except Exception as e:
-            print(f"❌ [Halo] Error: {e}")
-            error_recovery.ErrorRecovery().handle_error(str(e))
-
-    def _assign_goal(self, goal):
-        """
-        Assigns a goal to an appropriate cognitive node or spawns a new one.
-        """
-        specialization = self.meta.detect_specialization(goal)
-        node = self._get_or_spawn_node(specialization)
-        node.execute_goal(goal)
-
-    def _get_or_spawn_node(self, specialization):
-        """
-        Retrieve or spawn a cognitive node for the specialization.
-        """
-        for node in self.cognitive_nodes:
-            if node.specialization == specialization:
-                print(f"🔁 [Halo] Using existing node: {node.name}")
-                return node
-
-        new_node = CognitiveNode(
-            name=f"Node_{len(self.cognitive_nodes)+1}_{specialization}",
+        node_name = f"Node_{len(self.cognitive_nodes)+1}_{specialization}"
+        node = CognitiveNode(
+            name=node_name,
             specialization=specialization,
             shared_memory=self.shared_memory,
+            peers=self.cognitive_nodes,  # Share peers for collaboration
             dynamic_modules=self.dynamic_modules
         )
-        self.cognitive_nodes.append(new_node)
-        print(f"🌱 [Halo] Spawned new cognitive node: {new_node.name}")
-        return new_node
+        self.cognitive_nodes.append(node)
+        print(f"🌱 [HaloMesh] Spawned new cognitive node: {node.name}")
+        return node
 
-    def _optimize_cognitive_ecosystem(self):
+    def propagate_goal(self, goal):
         """
-        Meta-cognition evaluates and optimizes the entire ecosystem.
+        Propagate a goal through the mesh, letting nodes self-organize.
+        """
+        print(f"📥 [HaloMesh] Propagating goal: {goal}")
+        # Let nodes negotiate ownership of the goal
+        for node in self.cognitive_nodes:
+            node.execute_goal(goal)
+
+    def deploy_dynamic_module(self, module_blueprint):
+        """
+        Deploy a dynamic module across the entire mesh.
+        """
+        print(f"🛠 [HaloMesh] Deploying dynamic module: {module_blueprint['name']}")
+        self.dynamic_modules.append(module_blueprint)
+        for node in self.cognitive_nodes:
+            node.dynamic_modules.append(module_blueprint)
+
+    def optimize_mesh(self):
+        """
+        Perform system-wide optimization based on meta-cognition feedback.
         """
         system_stats = {
             "nodes": [node.name for node in self.cognitive_nodes],
             "dynamic_modules": [mod["name"] for mod in self.dynamic_modules],
         }
-        recommendations = self.meta.propose_ecosystem_optimizations(system_stats)
-        print(f"🛠 [Halo] Ecosystem optimization recommendations:\n{recommendations}")
-
-    def federate_with_external_ais(self, external_systems):
-        """
-        Connect and collaborate with external AI systems.
-        """
-        print(f"🌐 [Halo] Federating with external systems: {external_systems}")
-        # Placeholder: Federation logic for multi-system collaboration
+        recommendations = meta_cognition.MetaCognition().propose_ecosystem_optimizations(system_stats)
+        print("🛠 [HaloMesh] Mesh optimization recommendations:")
+        print(recommendations)
