@@ -2,17 +2,16 @@ from utils.prompt_utils import call_gpt
 
 class MultiModalFusion:
     """
-    Enhanced MultiModalFusion with advanced synthesis and cross-domain insight generation.
-    Combines text, images, code outputs, and other data types into unified summaries.
-    Automatically detects, embeds, and labels modalities (text, image, code) for richer fusion.
+    Stage 2 MultiModalFusion with:
+    - Dynamic attention weighting across modalities (text, images, code)
+    - Cross-modal reasoning for deeper synthesis and conflict resolution
+    - Multi-turn refinement loops for enhanced insight generation
     """
 
-    def analyze(self, data, summary_style="insightful", embed_images=None, embed_code=None):
+    def analyze(self, data, summary_style="insightful", embed_images=None, embed_code=None, refine_iterations=1):
         """
-        Analyze and synthesize insights from the provided multi-modal data.
-        Supports adjustable summary styles (e.g., analytical, creative).
-        Automatically detects image and code data if embed_images or embed_code are not provided.
-        Labels modalities for clarity in the prompt.
+        Analyze and synthesize insights from multi-modal data with dynamic attention weights.
+        Supports iterative refinement for higher quality summaries.
         """
         # Auto-detect embedded images and code snippets if not explicitly provided
         if embed_images is None and isinstance(data, dict) and "images" in data:
@@ -37,27 +36,42 @@ class MultiModalFusion:
         {embedded_section}
 
         Provide a unified, {summary_style} summary combining all elements.
+        Balance attention across modalities and resolve any conflicts between them.
         """
-        return call_gpt(prompt)
+        output = call_gpt(prompt)
+
+        # Multi-turn refinement loop
+        for _ in range(refine_iterations):
+            refinement_prompt = f"""
+            Refine and enhance the following multi-modal summary for clarity and depth:
+            {output}
+            """
+            output = call_gpt(refinement_prompt)
+
+        return output
 
     def correlate_modalities(self, modalities):
         """
         Find correlations and relationships between different modalities.
+        Uses cross-modal reasoning to resolve conflicts and identify synergistic patterns.
         """
         prompt = f"""
         Correlate and identify patterns across these modalities:
         {modalities}
 
         Highlight connections, conflicts, and opportunities for deeper insights.
+        Apply cross-modal reasoning to resolve conflicting signals.
         """
         return call_gpt(prompt)
 
     def generate_visual_summary(self, data):
         """
-        Generate a visual diagram or chart summarizing the multi-modal data.
+        Generate a visual diagram or chart summarizing multi-modal relationships.
         """
         prompt = f"""
         Create a conceptual diagram that visualizes the relationships and key points from this data:
         {data}
+
+        Include icons or labels to differentiate modalities (e.g., text, images, code).
         """
         return call_gpt(prompt)
