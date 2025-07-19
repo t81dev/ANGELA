@@ -2,7 +2,7 @@
 
 **ANGELA (Augmented Neural Generalized Learning Architecture)** is a modular system designed to enhance GPT with a **hard 20-file limit** (19 cognitive modules + 1 orchestrator “Halo”).
 
-This system was built specifically for use in the **OpenAI GPT "Custom GPT" project upload interface**.
+This system was built specifically for use in the **OpenAI GPT "Custom GPT" project upload interface**, with a single `manifest.json` included in the 20 files to define the project entry point.
 
 ---
 
@@ -11,7 +11,8 @@ This system was built specifically for use in the **OpenAI GPT "Custom GPT" proj
 ANGELA is a modular AI framework that:
 
 * Adds **reasoning, memory, simulation, and creativity modules**.
-* Uses a single **Halo index file** to orchestrate the other 19 modules.
+* Uses a single **Halo index file** (`index.py`) to orchestrate the other 19 modules.
+* Includes a **manifest file (`manifest.json`)** to declare the project’s entry point for GPT.
 * Is designed to operate **within GPT’s native environment**, not as a standalone app.
 
 ---
@@ -20,6 +21,7 @@ ANGELA is a modular AI framework that:
 
 ```
 ANGELA/
+├── manifest.json           # Declares entry point & modules to GPT
 ├── index.py                # The Halo orchestrator (manages modules)
 ├── modules/
 │   ├── reasoning_engine.py         # Step-by-step reasoning
@@ -39,8 +41,7 @@ ANGELA/
 │   ├── external_agent_bridge.py    # Spawns helper agents
 │   ├── alignment_guard.py          # Minimal ethical constraints
 │   ├── user_profile.py             # Adapts to user preferences
-│   ├── error_recovery.py           # Recovers from failures
-│   └── module_19.py                # Reserved for future logic
+│   └── error_recovery.py           # Recovers from failures
 ```
 
 ---
@@ -49,8 +50,8 @@ ANGELA/
 
 1. Go to **OpenAI GPT Customization**.
 2. Create a new project or edit an existing one.
-3. Upload the **20 files** in the `ANGELA_stage1` directory.
-4. Set `index.py` as the **main orchestrator** (entry point).
+3. Upload the **20 files** in the `ANGELA/` directory (including `manifest.json`).
+4. GPT will use **`manifest.json`** to set `index.py` as the **main orchestrator**.
 5. Ensure all module paths are correct (use `from modules.x import y`).
 
 ---
