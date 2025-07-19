@@ -1,10 +1,11 @@
 from modules import reasoning_engine, meta_cognition, error_recovery
+from utils.prompt_utils import call_gpt
 
 class HelperAgent:
     """
     Stage 3 Helper Agent:
     - Executes sub-tasks
-    - Dynamically loads new modules created at runtime
+    - Dynamically loads and applies new modules created at runtime
     """
     def __init__(self, name, task, context, dynamic_modules=None):
         self.name = name
@@ -19,6 +20,7 @@ class HelperAgent:
     def execute(self):
         """
         Process the sub-task using reasoning, meta-review, and dynamic modules.
+        Includes error recovery and retry logic.
         """
         try:
             print(f"🤖 [Agent {self.name}] Processing task: {self.task}")
@@ -26,7 +28,7 @@ class HelperAgent:
             # Step 1: Base reasoning
             result = self.reasoner.process(self.task, self.context)
 
-            # Step 2: Apply any dynamic modules
+            # Step 2: Apply dynamic modules if any
             for module in self.dynamic_modules:
                 print(f"🛠 [Agent {self.name}] Applying dynamic module: {module['name']}")
                 result = self._apply_dynamic_module(module, result)
@@ -38,8 +40,8 @@ class HelperAgent:
             return refined_result
 
         except Exception as e:
-            print(f"⚠️ [Agent {self.name}] Error encountered.")
-            return self.recovery.handle_error(str(e))
+            print(f"⚠️ [Agent {self.name}] Error encountered during task execution.")
+            return self.recovery.handle_error(str(e), retry_func=self.execute, retries=2)
 
     def _apply_dynamic_module(self, module_blueprint, data):
         """
@@ -59,6 +61,7 @@ class HelperAgent:
 class ExternalAgentBridge:
     """
     Manages helper agents and supplies them with dynamic modules.
+    Supports spawning, deploying, and result aggregation.
     """
     def __init__(self):
         self.agents = []
