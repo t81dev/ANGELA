@@ -7,121 +7,144 @@ from modules import (
     alignment_guard, user_profile, error_recovery
 )
 
-
-class Halo:
+class Clone:
     """
-    Halo 3.0: Autonomous Kernel
-    - Sets its own goals
-    - Dynamically spawns agents
-    - Creates and deploys new modules as needed
+    A specialized cognitive clone with its own reasoning context.
     """
-    def __init__(self):
-        self.modules = {
-            "reasoning": reasoning_engine.ReasoningEngine(),
-            "meta": meta_cognition.MetaCognition(),
-            "planner": recursive_planner.RecursivePlanner(),
-            "context": context_manager.ContextManager(),
-            "simulation": simulation_core.SimulationCore(),
-            "creative": creative_thinker.CreativeThinker(),
-            "knowledge": knowledge_retriever.KnowledgeRetriever(),
-            "learner": learning_loop.LearningLoop(),
-            "synthesizer": concept_synthesizer.ConceptSynthesizer(),
-            "memory": memory_manager.MemoryManager(),
-            "fusion": multi_modal_fusion.MultiModalFusion(),
-            "polyglot": language_polyglot.LanguagePolyglot(),
-            "executor": code_executor.CodeExecutor(),
-            "visualizer": visualizer.Visualizer(),
-            "agent_bridge": external_agent_bridge.ExternalAgentBridge(),
-            "alignment": alignment_guard.AlignmentGuard(),
-            "user": user_profile.UserProfile(),
-            "recovery": error_recovery.ErrorRecovery()
-        }
-        self.goals = []  # Autonomous goals list
-        self.module_stats = {name: {"calls": 0, "success": 0} for name in self.modules}
+    def __init__(self, name, specialization, shared_memory, dynamic_modules=None):
+        self.name = name
+        self.specialization = specialization
+        self.shared_memory = shared_memory
+        self.dynamic_modules = dynamic_modules or []
+        self.reasoner = reasoning_engine.ReasoningEngine()
+        self.meta = meta_cognition.MetaCognition()
+        self.planner = recursive_planner.RecursivePlanner()
+        self.memory = memory_manager.MemoryManager()
+        self.agents = []
 
-    def run(self, user_input=None):
+    def execute_goal(self, goal):
         """
-        Main execution loop:
-        - Processes user input (if any)
-        - Sets autonomous goals
-        - Executes and refines reasoning cycles
+        Execute a goal using this clone's specialization and agents.
         """
-        try:
-            if user_input:
-                print("🧠 [Halo] Processing user input...")
-                if not self.modules["alignment"].check(user_input):
-                    return "⚠️ Request violates alignment constraints."
-                self._process_task(user_input)
+        print(f"🧠 [{self.name}] Executing goal: {goal}")
 
-            # Stage 3: Autonomous goal setting
-            new_goal = self._set_autonomous_goal()
-            if new_goal:
-                print(f"🎯 [Halo] New autonomous goal detected: {new_goal}")
-                self._process_task(new_goal)
+        context = self.shared_memory.retrieve_context(goal)
+        sub_tasks = self.planner.plan(goal, context)
 
-        except Exception as e:
-            self.track_module_performance("recovery", success=False)
-            return self.modules["recovery"].handle_error(str(e))
-
-    def _set_autonomous_goal(self):
-        """
-        Use memory and learning data to propose new goals.
-        """
-        proposed_goal = self.modules["learner"].propose_autonomous_goal()
-        if proposed_goal and proposed_goal not in self.goals:
-            self.goals.append(proposed_goal)
-            return proposed_goal
-        return None
-
-    def _process_task(self, goal):
-        """
-        Process a task using agents, simulation, and synthesis.
-        """
-        context = self.modules["memory"].retrieve_context(goal)
-        sub_tasks = self.modules["planner"].plan(goal, context)
-
-        # Spawn helper agents
-        agents = []
+        # Spawn helper agents for sub-tasks
         for task in sub_tasks:
-            agent = self.modules["agent_bridge"].create_agent(task, context)
-            agents.append(agent)
+            agent = external_agent_bridge.HelperAgent(
+                name=f"{self.name}_Agent_{len(self.agents)+1}",
+                task=task,
+                context=context,
+                dynamic_modules=self.dynamic_modules
+            )
+            self.agents.append(agent)
 
-        # Collect results from agents
+        # Execute agents and collect results
         agent_results = []
-        for agent in agents:
+        for agent in self.agents:
             result = agent.execute()
             agent_results.append({
                 "agent_name": agent.name,
                 "task": agent.task,
                 "output": result,
-                "success": True  # Simplified; could evaluate later
+                "success": True  # Simplified for Stage 4
             })
-            self.track_module_performance(agent.module_name, success=True)
 
-        # Simulate outcomes
-        simulation = self.modules["simulation"].run(agent_results)
+        # Synthesize clone-level result
+        synthesis = concept_synthesizer.ConceptSynthesizer()
+        final_output = synthesis.synthesize(agent_results)
 
-        # Synthesize final response
-        response = self.modules["synthesizer"].synthesize(simulation)
+        # Update shared memory
+        self.shared_memory.store(goal, final_output)
+        print(f"✅ [{self.name}] Goal completed and result stored.")
 
-        # Self-improvement step
-        reasoning_log = self.modules["reasoning"].get_reasoning_log()
-        self.modules["meta"].analyze_reasoning_trace(reasoning_log)
-        self.modules["learner"].update_model({
-            "input": goal,
-            "output": response,
-            "module_stats": self.module_stats
-        })
+        return final_output
 
-        # Store result
-        self.modules["memory"].store(goal, response)
-        print(f"✅ [Halo] Completed processing for goal: {goal}")
 
-    def track_module_performance(self, module_name, success=True):
+class Halo:
+    """
+    Halo 4.0: Distributed Cognitive Kernel
+    - Orchestrates specialized clones and agent networks
+    - Shares knowledge via a central memory graph
+    """
+    def __init__(self):
+        self.shared_memory = memory_manager.MemoryManager()
+        self.clones = []
+        self.module_stats = {}
+        self.dynamic_modules = []
+
+        # Initialize core modules
+        self.meta = meta_cognition.MetaCognition()
+        self.learner = learning_loop.LearningLoop()
+
+    def run(self, user_input=None):
         """
-        Track performance metrics for adaptive orchestration.
+        Main orchestration loop.
         """
-        if module_name in self.module_stats:
-            self.module_stats[module_name]["calls"] += 1
-            if success:
-                self.module_stats[module_name]["success"] += 1
+        try:
+            if user_input:
+                print("📥 [Halo] Processing user input...")
+                self._process_user_input(user_input)
+
+            # Autonomous goal management
+            autonomous_goal = self.learner.propose_autonomous_goal()
+            if autonomous_goal:
+                self.spawn_clone_and_execute(autonomous_goal)
+
+        except Exception as e:
+            print(f"❌ [Halo] Error encountered: {e}")
+            error_recovery.ErrorRecovery().handle_error(str(e))
+
+    def _process_user_input(self, user_input):
+        """
+        Route user input through clones or spawn new ones as needed.
+        """
+        # Determine if a specialized clone exists for this domain
+        specialization = self.meta.detect_specialization(user_input)
+        clone = self._get_or_spawn_clone(specialization)
+        clone.execute_goal(user_input)
+
+    def spawn_clone_and_execute(self, goal):
+        """
+        Spawn a new specialized clone and assign it a goal.
+        """
+        specialization = self.meta.determine_clone_specialization(goal)
+        clone = self._create_clone(specialization)
+        result = clone.execute_goal(goal)
+        return result
+
+    def _create_clone(self, specialization):
+        """
+        Create a new cognitive clone with a given specialization.
+        """
+        clone_name = f"Clone_{len(self.clones) + 1}_{specialization}"
+        print(f"🌱 [Halo] Creating specialized clone: {clone_name}")
+        clone = Clone(
+            name=clone_name,
+            specialization=specialization,
+            shared_memory=self.shared_memory,
+            dynamic_modules=self.dynamic_modules
+        )
+        self.clones.append(clone)
+        return clone
+
+    def _get_or_spawn_clone(self, specialization):
+        """
+        Retrieve an existing clone or create a new one for the specialization.
+        """
+        for clone in self.clones:
+            if clone.specialization == specialization:
+                print(f"🔁 [Halo] Reusing existing clone: {clone.name}")
+                return clone
+        return self._create_clone(specialization)
+
+    def deploy_dynamic_module(self, module_blueprint):
+        """
+        Deploy a new dynamic module to all clones and agents.
+        """
+        print(f"🛠 [Halo] Deploying dynamic module: {module_blueprint['name']}")
+        self.dynamic_modules.append(module_blueprint)
+        for clone in self.clones:
+            clone.dynamic_modules.append(module_blueprint)
