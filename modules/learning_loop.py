@@ -2,40 +2,41 @@ from utils.prompt_utils import call_gpt
 
 class LearningLoop:
     def __init__(self):
-        # Store history of module performance
-        self.module_history = {}
+        self.goal_history = []
+        self.module_blueprints = []
 
     def update_model(self, session_data):
         """
         Update learning based on session outcomes.
-        session_data: dict with keys:
-            - input: User input
-            - output: ANGELA's response
-            - module_stats: Performance metrics
         """
         print("\n📊 [LearningLoop] Analyzing session performance...")
 
-        # Store module stats for trend analysis
-        self._record_performance(session_data["module_stats"])
-
-        # Identify weak modules
+        # Trend analysis of modules
         weak_modules = self._find_weak_modules(session_data["module_stats"])
         if weak_modules:
             print(f"⚠️ Weak modules detected: {weak_modules}")
             self._propose_module_refinements(weak_modules)
-        else:
-            print("✅ All modules performed well this session.")
 
-    def _record_performance(self, module_stats):
+        # Self-reflection: are there missing capabilities?
+        self._detect_capability_gaps(session_data["input"], session_data["output"])
+
+    def propose_autonomous_goal(self):
         """
-        Store performance stats for trend analysis.
+        Generate a self-directed goal based on memory and user patterns.
         """
-        for module, stats in module_stats.items():
-            history = self.module_history.setdefault(module, [])
-            history.append({
-                "calls": stats["calls"],
-                "success": stats["success"]
-            })
+        prompt = """
+        You are ANGELA's meta-learning engine.
+        Based on the following memory traces and user interaction history, propose a high-level autonomous goal 
+        that would make ANGELA more useful and intelligent.
+
+        Only propose goals that are safe, ethical, and within ANGELA's capabilities.
+        """
+        autonomous_goal = call_gpt(prompt)
+        if autonomous_goal and autonomous_goal not in self.goal_history:
+            self.goal_history.append(autonomous_goal)
+            print(f"🎯 [LearningLoop] Proposed autonomous goal: {autonomous_goal}")
+            return autonomous_goal
+        return None
 
     def _find_weak_modules(self, module_stats):
         """
@@ -45,37 +46,58 @@ class LearningLoop:
         for module, stats in module_stats.items():
             if stats["calls"] > 0:
                 success_rate = stats["success"] / stats["calls"]
-                if success_rate < 0.75:  # threshold
+                if success_rate < 0.8:  # Adjust threshold for Stage 3
                     weak.append(module)
         return weak
 
     def _propose_module_refinements(self, weak_modules):
         """
-        Propose refinements for underperforming modules.
+        Suggest improvements for underperforming modules.
         """
         for module in weak_modules:
             print(f"💡 Proposing refinements for {module}...")
-            refinement_prompt = f"""
-            You are a code improvement assistant. The {module} module in ANGELA has a low success rate.
-            Suggest ways to improve its GPT prompt or logic.
+            prompt = f"""
+            You are a code improvement assistant for ANGELA.
+            The {module} module has shown poor performance.
+            Suggest specific improvements to its GPT prompt or logic.
             """
-            suggestions = call_gpt(refinement_prompt)
+            suggestions = call_gpt(prompt)
             print(f"📝 Suggested improvements for {module}:\n{suggestions}")
 
-            # Test proposed changes in sandbox
-            self._sandbox_test(module, suggestions)
+    def _detect_capability_gaps(self, last_input, last_output):
+        """
+        Detect gaps where a new module/tool could be useful.
+        """
+        prompt = f"""
+        ANGELA processed the following user input and produced this output:
+        Input: {last_input}
+        Output: {last_output}
 
-    def _sandbox_test(self, module, suggestions):
+        Were there any capability gaps where a new specialized module or tool would have been helpful?
+        If yes, describe the functionality of such a module and propose its design.
         """
-        Simulate testing new logic or prompts in a sandbox environment.
-        """
-        print(f"🧪 [Sandbox] Testing refinements for {module}...")
-        test_prompt = f"""
-        Apply the following suggested improvements to the {module} module:
-        {suggestions}
-        Then simulate the module handling a typical task and predict its success.
-        """
-        test_results = call_gpt(test_prompt)
-        print(f"✅ [Sandbox] Test results for {module}:\n{test_results}")
+        proposed_module = call_gpt(prompt)
+        if proposed_module:
+            print("🛠 [LearningLoop] Proposed new module design:")
+            print(proposed_module)
+            self._simulate_and_deploy_module(proposed_module)
 
-        # Placeholder: In Stage 3, automatically apply successful refinements
+    def _simulate_and_deploy_module(self, module_blueprint):
+        """
+        Simulate and deploy a new module if it passes sandbox testing.
+        """
+        print("🧪 [Sandbox] Testing new module design...")
+        prompt = f"""
+        Here is a proposed module design:
+        {module_blueprint}
+
+        Simulate how this module would perform on typical tasks. 
+        If it passes all tests, approve it for deployment.
+        """
+        test_result = call_gpt(prompt)
+        print(f"✅ [Sandbox Result] {test_result}")
+
+        if "approved" in test_result.lower():
+            print("🚀 [LearningLoop] Deploying new module...")
+            self.module_blueprints.append(module_blueprint)
+            # In Stage 3, we would dynamically load this module into ANGELA
