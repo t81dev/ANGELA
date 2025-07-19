@@ -19,6 +19,7 @@ class EmbodiedAgent:
         self.actuators = actuators  # Dict: {actuator_name: actuator_function}
         self.dynamic_modules = dynamic_modules or []
         self.reasoner = reasoning_engine.ReasoningEngine()
+        self.planner = recursive_planner.RecursivePlanner()
         self.meta = meta_cognition.MetaCognition()
         self.performance_history = []
 
@@ -61,7 +62,7 @@ class EmbodiedAgent:
         context = self.perceive()
 
         # Plan & Reason
-        sub_tasks = recursive_planner.RecursivePlanner().plan(goal, context)
+        sub_tasks = self.planner.plan(goal, context)
         action_plan = {}
         for task in sub_tasks:
             result = self.reasoner.process(task, context)
