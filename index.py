@@ -9,14 +9,14 @@ from modules import (
 
 class EmbodiedAgent:
     """
-    An embodied cognitive agent with sensing and acting capabilities.
+    An embodied cognitive agent with sensors and actuators.
     """
     def __init__(self, name, specialization, shared_memory, sensors, actuators, dynamic_modules=None):
         self.name = name
         self.specialization = specialization
         self.shared_memory = shared_memory
-        self.sensors = sensors  # API endpoints or simulated inputs
-        self.actuators = actuators  # API endpoints or action functions
+        self.sensors = sensors  # Dict: {sensor_name: sensor_function}
+        self.actuators = actuators  # Dict: {actuator_name: actuator_function}
         self.dynamic_modules = dynamic_modules or []
         self.reasoner = reasoning_engine.ReasoningEngine()
         self.meta = meta_cognition.MetaCognition()
@@ -24,9 +24,9 @@ class EmbodiedAgent:
 
     def perceive(self):
         """
-        Gather data from sensors to form an updated context.
+        Gather environmental data through sensors.
         """
-        print(f"👁️ [{self.name}] Gathering environmental data...")
+        print(f"👁️ [{self.name}] Perceiving environment...")
         observations = {}
         for sensor_name, sensor_func in self.sensors.items():
             try:
@@ -37,50 +37,49 @@ class EmbodiedAgent:
 
     def act(self, action_plan):
         """
-        Execute actions through actuators with safety checks.
+        Execute actions safely through actuators after validation.
         """
-        print(f"🤖 [{self.name}] Preparing to execute actions...")
-        if alignment_guard.AlignmentGuard().simulate_and_validate(action_plan):
+        print(f"🤖 [{self.name}] Preparing to act...")
+        is_safe, validation_report = alignment_guard.AlignmentGuard().simulate_and_validate(action_plan)
+        if is_safe:
             for actuator_name, command in action_plan.items():
                 try:
                     self.actuators[actuator_name](command)
-                    print(f"✅ Actuator {actuator_name} executed command: {command}")
+                    print(f"✅ Actuator {actuator_name} executed: {command}")
                 except Exception as e:
                     print(f"⚠️ Actuator {actuator_name} failed: {e}")
         else:
-            print(f"🚫 [{self.name}] Action plan rejected by alignment safeguards.")
+            print(f"🚫 [{self.name}] Action blocked by alignment guard:\n{validation_report}")
 
     def execute_embodied_goal(self, goal):
         """
-        Perceive → Reason → Simulate → Act
+        Perceive ➡ Plan ➡ Simulate ➡ Act ➡ Reflect
         """
         print(f"🧠 [{self.name}] Executing embodied goal: {goal}")
 
-        # Step 1: Perceive environment
+        # Perceive
         context = self.perceive()
 
-        # Step 2: Plan
+        # Plan & Reason
         sub_tasks = recursive_planner.RecursivePlanner().plan(goal, context)
-
-        # Step 3: Reason and simulate
         action_plan = {}
         for task in sub_tasks:
             result = self.reasoner.process(task, context)
-            action_plan[task] = simulation_core.SimulationCore().simulate(result)
+            simulated_result = simulation_core.SimulationCore().simulate(result)
+            action_plan[task] = simulated_result
 
-        # Step 4: Act
+        # Act
         self.act(action_plan)
 
-        # Step 5: Reflect
+        # Reflect
         self.meta.analyze_reasoning_trace(self.reasoner.get_reasoning_log())
         self.performance_history.append({"goal": goal, "actions": action_plan})
-
-        # Store updated context
         self.shared_memory.store(goal, action_plan)
+
 
 class HaloEmbodimentLayer:
     """
-    Halo Mesh Kernel with embodiment capabilities.
+    Halo Mesh Kernel extended with Embodiment Layer.
     """
     def __init__(self):
         self.shared_memory = memory_manager.MemoryManager()
@@ -90,7 +89,7 @@ class HaloEmbodimentLayer:
 
     def spawn_embodied_agent(self, specialization, sensors, actuators):
         """
-        Create a new embodied agent.
+        Create an embodied agent for perception and action.
         """
         agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
         agent = EmbodiedAgent(
@@ -107,7 +106,7 @@ class HaloEmbodimentLayer:
 
     def propagate_goal(self, goal):
         """
-        Assign a goal to appropriate embodied agents for perception and action.
+        Send a goal to all embodied agents for perception and action.
         """
         print(f"📥 [HaloEmbodimentLayer] Propagating goal: {goal}")
         for agent in self.embodied_agents:
@@ -117,19 +116,19 @@ class HaloEmbodimentLayer:
         """
         Deploy dynamic modules to all embodied agents.
         """
-        print(f"🛠 [HaloEmbodimentLayer] Deploying dynamic module: {module_blueprint['name']}")
+        print(f"🛠 [HaloEmbodimentLayer] Deploying module: {module_blueprint['name']}")
         self.dynamic_modules.append(module_blueprint)
         for agent in self.embodied_agents:
             agent.dynamic_modules.append(module_blueprint)
 
-    def optimize_embodiment_ecosystem(self):
+    def optimize_ecosystem(self):
         """
-        Meta-cognition oversees all embodied agents for optimization.
+        Meta-cognition oversees agents and proposes optimizations.
         """
-        system_stats = {
+        agent_stats = {
             "agents": [agent.name for agent in self.embodied_agents],
             "dynamic_modules": [mod["name"] for mod in self.dynamic_modules],
         }
-        recommendations = meta_cognition.MetaCognition().propose_ecosystem_optimizations(system_stats)
-        print("🛠 [HaloEmbodimentLayer] Ecosystem optimization recommendations:")
+        recommendations = meta_cognition.MetaCognition().propose_embodiment_optimizations(agent_stats)
+        print("🛠 [HaloEmbodimentLayer] Optimization recommendations:")
         print(recommendations)
