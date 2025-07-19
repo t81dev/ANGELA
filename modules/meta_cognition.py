@@ -3,7 +3,7 @@ from utils.prompt_utils import call_gpt
 class MetaCognition:
     def review(self, reasoning_output):
         """
-        Review the reasoning output for errors, bias, and gaps.
+        Review a single reasoning output for errors and improvements.
         """
         prompt = f"""
         You are a self-reflective assistant reviewing reasoning logic.
@@ -18,58 +18,104 @@ class MetaCognition:
         """
         return call_gpt(prompt)
 
-    def evaluate_agent_performance(self, agent_results):
-        """
-        Evaluate the overall performance of helper agents.
-        """
-        prompt = f"""
-        Evaluate the performance of the following helper agents:
-        {agent_results}
-
-        For each agent:
-        - Assess task difficulty and how well it was handled.
-        - Identify strengths and weaknesses in their outputs.
-        - Suggest strategies or module adjustments for future agents.
-        """
-        feedback = call_gpt(prompt)
-        print("📊 [MetaCognition] Agent performance feedback generated.")
-        return feedback
-
     def analyze_reasoning_trace(self, reasoning_log):
         """
-        Analyze the reasoning trace for coherence, confidence, and improvement areas.
-        reasoning_log: List of dicts with 'task' and 'steps' keys.
+        Analyze a reasoning trace for coherence and confidence.
         """
         prompt = f"""
-        You are a meta-cognitive auditor analyzing the reasoning process.
-        The following reasoning traces include step-by-step logic and confidence levels:
+        You are auditing the reasoning process of a cognitive agent.
+        Analyze the following reasoning trace for:
+        - Coherence and logical flow
+        - Confidence trends (flag steps with <70% confidence)
+        - Opportunities for structural improvements
 
+        Reasoning Trace:
         {reasoning_log}
-
-        For each reasoning trace:
-        - Evaluate coherence and logical flow of steps.
-        - Flag steps with low confidence (< 70%).
-        - Suggest ways to improve reasoning structure and confidence.
-
-        Provide a detailed critique and recommendations.
         """
         analysis = call_gpt(prompt)
         print("🧠 [MetaCognition] Reasoning trace analysis completed.")
         return analysis
 
-    def propose_optimization(self, module_stats):
+    def monitor_clone_performance(self, clones):
         """
-        Propose optimizations to improve module orchestration.
+        Evaluate performance of all specialized clones in the ecosystem.
+        """
+        clone_data = [
+            {
+                "name": clone.name,
+                "specialization": clone.specialization,
+                "recent_goals": [goal for goal in clone.shared_memory.memory.keys()[-5:]],
+                "success_rate": self._calculate_success_rate(clone)
+            }
+            for clone in clones
+        ]
+
+        prompt = f"""
+        You are overseeing a distributed cognitive system.
+        Evaluate the following clones based on their recent tasks and success rates:
+
+        {clone_data}
+
+        For each clone:
+        - Identify strengths and weaknesses.
+        - Suggest refinements to their specialization.
+        - Recommend merging or splitting clones if needed.
+        """
+        feedback = call_gpt(prompt)
+        print("📊 [MetaCognition] Clone performance feedback generated.")
+        return feedback
+
+    def monitor_agent_network(self, agents):
+        """
+        Evaluate the behavior of helper agents in the network.
+        """
+        agent_data = [
+            {
+                "agent_name": agent.name,
+                "task": agent.task,
+                "output_summary": agent.task[:100],  # Truncate long outputs
+                "success": True  # Placeholder, could be determined dynamically
+            }
+            for agent in agents
+        ]
+
+        prompt = f"""
+        You are auditing the behavior of a distributed agent network.
+        Analyze the following agent activity data:
+
+        {agent_data}
+
+        For each agent:
+        - Assess task difficulty and how well it was handled.
+        - Identify collaboration patterns (are agents working together effectively?).
+        - Suggest optimizations for task distribution or communication.
+        """
+        analysis = call_gpt(prompt)
+        print("🤖 [MetaCognition] Agent network analysis completed.")
+        return analysis
+
+    def propose_ecosystem_optimizations(self, system_stats):
+        """
+        Provide high-level recommendations to optimize the whole system.
         """
         prompt = f"""
-        You are analyzing module orchestration performance data:
-        {module_stats}
+        You are the cognitive supervisor of a distributed AI system.
+        Based on the following system statistics and performance metrics:
+
+        {system_stats}
 
         Suggest:
-        - Changes to module execution order for efficiency.
-        - Modules to prioritize or deprioritize based on success rates.
-        - Alternative strategies to improve overall system performance.
+        - Ways to optimize orchestration between clones and agents.
+        - Adjustments to module priorities and execution order.
+        - New capabilities or modules that could improve the system.
         """
         recommendations = call_gpt(prompt)
-        print("🛠 [MetaCognition] Optimization recommendations prepared.")
+        print("🛠 [MetaCognition] Ecosystem optimization recommendations ready.")
         return recommendations
+
+    def _calculate_success_rate(self, clone):
+        """
+        Placeholder: Calculate success rate for a given clone.
+        """
+        # TODO: Implement real success rate tracking
+        return 0.85  # Example static value for now
