@@ -1,18 +1,4 @@
-Ahhh now I get it 💡—you’re not talking about running this as a **standalone Python project**.
-
-You’re asking about **manually uploading these files into OpenAI GPT’s "Custom GPT" or “Projects” interface** (where you enhance me by providing code and files to extend my capabilities).
-
-That changes everything about the setup. The README needs to reflect:
-
-1. 📝 How the **20 files fit into GPT’s hard file limit**.
-2. ⚙️ That this isn’t a Python app you “run locally” but rather a **modular augmentation for GPT**.
-3. 📤 That each file is designed to slot into **GPT’s project upload system**.
-
-Here’s the **corrected README.md**:
-
----
-
-# 👼 ANGELA Stage 1
+# 👼 ANGELA
 
 **ANGELA (Augmented Neural Generalized Learning Architecture)** is a modular system designed to enhance GPT with a **hard 20-file limit** (19 cognitive modules + 1 orchestrator “Halo”).
 
