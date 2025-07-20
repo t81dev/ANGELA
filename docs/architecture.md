@@ -1,4 +1,3 @@
-````markdown
 # ANGELA Architecture Overview
 
 _Last updated: July 2025_
