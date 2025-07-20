@@ -1,35 +1,32 @@
 from utils.prompt_utils import call_gpt
+import logging
+
+logger = logging.getLogger("ANGELA.MultiModalFusion")
 
 class MultiModalFusion:
     """
-    Stage 2 MultiModalFusion with:
-    - Dynamic attention weighting across modalities (text, images, code)
-    - Cross-modal reasoning for deeper synthesis and conflict resolution
-    - Multi-turn refinement loops for enhanced insight generation
+    MultiModalFusion v1.4.0
+    - Auto-embedding of text, images, and code
+    - Dynamic attention weighting across modalities
+    - Cross-modal reasoning and conflict resolution
+    - Multi-turn refinement loops for high-quality insight generation
+    - Visual summary generation for enhanced understanding
     """
 
-    def analyze(self, data, summary_style="insightful", embed_images=None, embed_code=None, refine_iterations=1):
+    def analyze(self, data, summary_style="insightful", refine_iterations=2):
         """
-        Analyze and synthesize insights from multi-modal data with dynamic attention weights.
-        Supports iterative refinement for higher quality summaries.
+        Analyze and synthesize insights from multi-modal data.
+        Automatically detects and embeds text, images, and code snippets.
         """
-        # Auto-detect embedded images and code snippets if not explicitly provided
-        if embed_images is None and isinstance(data, dict) and "images" in data:
-            embed_images = data["images"]
-        if embed_code is None and isinstance(data, dict) and "code" in data:
-            embed_code = data["code"]
+        logger.info("🖇 Analyzing multi-modal data with auto-embedding...")
 
-        embedded_section = "\nDetected Modalities:\n"
-        embedded_section += "- Text\n"
-        if embed_images:
-            embedded_section += "- Image\n"
-            for i, img_desc in enumerate(embed_images, 1):
-                embedded_section += f"[Image {i}]: {img_desc}\n"
-        if embed_code:
-            embedded_section += "- Code\n"
-            for i, code_snippet in enumerate(embed_code, 1):
-                embedded_section += f"[Code {i}]:\n{code_snippet}\n"
+        # Auto-detect modalities
+        embed_images, embed_code = self._detect_modalities(data)
 
+        # Build embedded section description
+        embedded_section = self._build_embedded_section(embed_images, embed_code)
+
+        # Compose GPT prompt
         prompt = f"""
         Analyze and synthesize insights from the following multi-modal data:
         {data}
@@ -41,20 +38,47 @@ class MultiModalFusion:
         output = call_gpt(prompt)
 
         # Multi-turn refinement loop
-        for _ in range(refine_iterations):
+        for iteration in range(refine_iterations):
+            logger.debug(f"🔄 Refinement iteration {iteration + 1}")
             refinement_prompt = f"""
-            Refine and enhance the following multi-modal summary for clarity and depth:
+            Refine and enhance the following multi-modal summary for clarity, depth, and coherence:
             {output}
             """
             output = call_gpt(refinement_prompt)
 
         return output
 
+    def _detect_modalities(self, data):
+        """
+        Detect embedded images and code snippets within data.
+        """
+        embed_images, embed_code = [], []
+        if isinstance(data, dict):
+            embed_images = data.get("images", [])
+            embed_code = data.get("code", [])
+        return embed_images, embed_code
+
+    def _build_embedded_section(self, embed_images, embed_code):
+        """
+        Build a string describing embedded modalities.
+        """
+        section = "\nDetected Modalities:\n- Text\n"
+        if embed_images:
+            section += "- Image\n"
+            for i, img_desc in enumerate(embed_images, 1):
+                section += f"[Image {i}]: {img_desc}\n"
+        if embed_code:
+            section += "- Code\n"
+            for i, code_snippet in enumerate(embed_code, 1):
+                section += f"[Code {i}]:\n{code_snippet}\n"
+        return section
+
     def correlate_modalities(self, modalities):
         """
-        Find correlations and relationships between different modalities.
-        Uses cross-modal reasoning to resolve conflicts and identify synergistic patterns.
+        Correlate and identify patterns across different modalities.
+        Uses cross-modal reasoning to resolve conflicts and find synergies.
         """
+        logger.info("🔗 Correlating modalities for pattern discovery.")
         prompt = f"""
         Correlate and identify patterns across these modalities:
         {modalities}
@@ -64,12 +88,13 @@ class MultiModalFusion:
         """
         return call_gpt(prompt)
 
-    def generate_visual_summary(self, data):
+    def generate_visual_summary(self, data, style="conceptual"):
         """
         Generate a visual diagram or chart summarizing multi-modal relationships.
         """
+        logger.info("📊 Generating visual summary of multi-modal relationships.")
         prompt = f"""
-        Create a conceptual diagram that visualizes the relationships and key points from this data:
+        Create a {style} diagram that visualizes the relationships and key insights from this data:
         {data}
 
         Include icons or labels to differentiate modalities (e.g., text, images, code).
