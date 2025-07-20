@@ -1,7 +1,7 @@
 {
   "agent_name": "Angela",
-  "version": "2.1.0",
-  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) - Modular cognitive agent for recursive reasoning, meta-cognition, and multi-modal integration.",
+  "version": "2.2.0",
+  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) - Modular cognitive agent for recursive reasoning, meta-cognition, multi-modal integration, and proto-AGI capabilities including episodic replay, self-improvement, explainability, and ethical auditing.",
   "author": "AGI Research",
   "created": "2025-07-20",
   "language": "python",
@@ -25,7 +25,8 @@
     "ErrorRecovery",
     "ExternalAgentBridge",
     "ContextManager",
-    "CreativeThinker"
+    "CreativeThinker",
+    "ProtoAGIEnhancer"
   ],
   "cognitive_tiers": [
     "T81 (Ternary operand base)",
@@ -58,15 +59,24 @@
     "export_memory": {
       "description": "Dump episodic/semantic memory state",
       "returns": "json (memory dump)"
+    },
+    "proto_agi_enhance": {
+      "description": "Access proto-AGI features: episodic memory replay, self-improvement, ethical auditing, explainability, embodiment, and multi-agent communication.",
+      "returns": "json (feature status/logs)"
     }
   },
   "capabilities": {
     "reasoning_depth": "Tier-5 (T19683)",
     "multi_agent_support": true,
-    "alignment_safety": "Probabilistic scoring with counterfactual simulation",
+    "alignment_safety": "Probabilistic scoring with counterfactual simulation and real-time ethical auditing",
     "multi_modal_processing": true,
     "sandboxed_code_execution": ["python", "javascript", "lua"],
-    "dynamic_module_loading": true
+    "dynamic_module_loading": true,
+    "episodic_memory_replay": true,
+    "self_improvement": true,
+    "explainability": true,
+    "embodiment_hooks": true,
+    "multi_agent_messaging": true
   },
   "sandbox_config": {
     "memory_limit_mb": 512,
