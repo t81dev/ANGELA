@@ -1,0 +1,66 @@
+[200~{
+  "agent_name": "Angela",
+  "version": "2.0.0",
+  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) - Modular cognitive agent for recursive reasoning, meta-cognition, and multi-modal AGI integration. Unified for HanoiVMGPT.",
+  "author": "Copyleft Systems & AGI Research",
+  "created": "2025-07-20",
+  "language": "python",
+  "entry_point": "angela_unified.py",
+  "main_class": "AngelaOrchestrator",
+  "modules": [
+    "MemoryManager",
+    "MultiModalFusion",
+    "UserProfile",
+    "LanguagePolyglot",
+    "Visualizer",
+    "MetaCognition",
+    "SimulationCore",
+    "RecursivePlanner",
+    "ReasoningEngine",
+    "LearningLoop",
+    "KnowledgeRetriever",
+    "ConceptSynthesizer",
+    "AlignmentGuard",
+    "CodeExecutor",
+    "ErrorRecovery",
+    "ExternalAgentBridge",
+    "ContextManager",
+    "CreativeThinker"
+  ],
+  "cognitive_tiers": [
+    "T81 (Ternary operand base)",
+    "T243 (Symbolic FSM/graph logic)",
+    "T729 (Tensor reasoning)",
+    "T2187 (Hyper-recursive monads)",
+    "T19683 (Continuum/field reflection)"
+  ],
+  "api": {
+    "run": "Main agent loop for recursive input/output",
+    "reflect": "Meta-cognitive reflection and self-audit",
+    "visualize": "Invoke 3D symbolic visualizer",
+    "process_query": "Natural language/cognitive query processor",
+    "introspect": "Return current agent state/context",
+    "export_memory": "Dump episodic/semantic memory state"
+  },
+  "resources": [
+    "README.md",
+    "LICENSE",
+    "docs/",
+    "tests/",
+    "data/",
+    "examples/"
+  ],
+  "dependencies": [
+    "numpy",
+    "scipy",
+    "networkx",
+    "matplotlib",
+    "json",
+    "os"
+  ],
+  "hanoivm_integration": {
+    "compatible": true,
+    "integration_guidance": "Import as agent module in HanoiVMGPT and register AngelaOrchestrator as a cognitive kernel for recursive planning, multi-modal reasoning, and AGI mesh. Point to this manifest for introspection and dependency resolution."
+  }
+}
+
