@@ -1,3 +1,8 @@
+Great choice! Here’s a **draft `architecture.md`** for ANGELA, explaining the high-level design, core modules, data flow, and guiding principles. This doc is meant for both new contributors and technically curious users.
+
+---
+
+````markdown
 # ANGELA Architecture Overview
 
 _Last updated: July 2025_
@@ -130,3 +135,7 @@ flowchart TD
 * `CONTRIBUTING.md`: For dev guidelines and extensibility
 
 ---
+
+*Questions? Open an issue or discuss on GitHub!*
+
+```
