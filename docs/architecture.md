@@ -1,3 +1,7 @@
+Absolutely! Here’s the **`architecture.md`** draft, reprinted cleanly for your use:
+
+---
+
 ````markdown
 # ANGELA Architecture Overview
 
@@ -129,5 +133,11 @@ flowchart TD
 * `/modules/README.md`: Detailed per-module docs
 * `roadmap.md`: Upcoming features and architecture evolution
 * `CONTRIBUTING.md`: For dev guidelines and extensibility
+
+---
+
+*Questions? Open an issue or discuss on GitHub!*
+
+```
 
 ---
