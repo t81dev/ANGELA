@@ -1,8 +1,8 @@
-[200~{
+{
   "agent_name": "Angela",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "ANGELA (Augmented Neural Generalized Learning Architecture) - Modular cognitive agent for recursive reasoning, meta-cognition, and multi-modal AGI integration. Unified for HanoiVMGPT.",
-  "author": "Copyleft Systems & AGI Research",
+  "author": "AGI Research",
   "created": "2025-07-20",
   "language": "python",
   "entry_point": "angela_unified.py",
@@ -35,13 +35,56 @@
     "T19683 (Continuum/field reflection)"
   ],
   "api": {
-    "run": "Main agent loop for recursive input/output",
-    "reflect": "Meta-cognitive reflection and self-audit",
-    "visualize": "Invoke 3D symbolic visualizer",
-    "process_query": "Natural language/cognitive query processor",
-    "introspect": "Return current agent state/context",
-    "export_memory": "Dump episodic/semantic memory state"
+    "run": {
+      "description": "Main agent loop for recursive input/output",
+      "returns": "string (agent response)"
+    },
+    "reflect": {
+      "description": "Meta-cognitive reflection and self-audit",
+      "returns": "json (audit report)"
+    },
+    "visualize": {
+      "description": "Invoke 3D symbolic visualizer",
+      "returns": "image/svg (visual summary)"
+    },
+    "process_query": {
+      "description": "Natural language/cognitive query processor",
+      "returns": "json (structured response)"
+    },
+    "introspect": {
+      "description": "Return current agent state/context",
+      "returns": "json (agent state)"
+    },
+    "export_memory": {
+      "description": "Dump episodic/semantic memory state",
+      "returns": "json (memory dump)"
+    }
   },
+  "capabilities": {
+    "reasoning_depth": "Tier-5 (T19683)",
+    "multi_agent_support": true,
+    "alignment_safety": "Probabilistic scoring with counterfactual simulation",
+    "multi_modal_processing": true,
+    "sandboxed_code_execution": ["python", "javascript", "lua"],
+    "dynamic_module_loading": true
+  },
+  "sandbox_config": {
+    "memory_limit_mb": 512,
+    "cpu_time_limit_sec": 10,
+    "allowed_languages": ["python", "javascript", "lua"]
+  },
+  "external_apis": [
+    {
+      "name": "OpenAI GPT API",
+      "endpoint": "https://api.openai.com/v1",
+      "auth": "OAuth2"
+    },
+    {
+      "name": "HanoiVM Orchestration API",
+      "endpoint": "https://api.hanoivm.com/v1",
+      "auth": "API Key"
+    }
+  ],
   "resources": [
     "README.md",
     "LICENSE",
@@ -55,12 +98,19 @@
     "scipy",
     "networkx",
     "matplotlib",
+    "requests",
     "json",
     "os"
   ],
   "hanoivm_integration": {
     "compatible": true,
-    "integration_guidance": "Import as agent module in HanoiVMGPT and register AngelaOrchestrator as a cognitive kernel for recursive planning, multi-modal reasoning, and AGI mesh. Point to this manifest for introspection and dependency resolution."
+    "integration_guidance": "Import as agent module in HanoiVMGPT and register AngelaOrchestrator as a cognitive kernel for recursive planning, multi-modal reasoning, and AGI mesh. Point to this manifest for introspection and dependency resolution.",
+    "validated_on": ["HanoiVMGPT v3.1+", "HanoiKernel v5+"],
+    "ci_pipeline": "manifest_schema_v1.json"
+  },
+  "validation": {
+    "schema_version": "1.0.0",
+    "last_validated": "2025-07-20T16:42:00Z",
+    "validation_tool": "hanoivm-manifest-validator"
   }
 }
-
