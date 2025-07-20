@@ -1,7 +1,7 @@
 {
   "name": "ANGELA",
   "description": "Augmented Neural Generalized Learning Architecture (ANGELA): A modular GPT enhancement with 19 cognitive modules and a central orchestrator (Halo). Now includes meta-learning, multi-agent simulation, cross-domain creativity, and probabilistic reasoning for advanced adaptive intelligence.",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "entry_point": "index.py",
   "files": [
     "index.py",
