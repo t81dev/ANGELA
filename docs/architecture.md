@@ -1,3 +1,4 @@
+````markdown
 # ANGELA Architecture Overview
 
 _Last updated: July 2025_
@@ -133,4 +134,10 @@ flowchart TD
 
 *Questions? Open an issue or discuss on GitHub!*
 
+```
+
+---
+
+**Would you like a more technical section (interfaces, class diagrams), or keep it high-level for now?**  
+I can also draft `/docs/modules/README.md` or any other in-depth doc next!
 ```
