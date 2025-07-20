@@ -2,7 +2,7 @@
   "agent_name": "Angela",
   "version": "2.1.0",
   "description": "ANGELA (Augmented Neural Generalized Learning Architecture) - Modular cognitive agent for recursive reasoning, meta-cognition, and multi-modal integration.",
-  "author": "Copyleft Systems & AGI Research",
+  "author": "AGI Research",
   "created": "2025-07-20",
   "language": "python",
   "entry_point": "angela_unified.py",
