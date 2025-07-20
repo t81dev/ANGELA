@@ -1,4 +1,4 @@
-# 👼 ANGELA
+# 👼 ANGELA v1.4.0
 
 **ANGELA (Augmented Neural Generalized Learning Architecture)** is a modular system designed to enhance GPT with a **hard 20-file limit** (19 cognitive modules + 1 orchestrator “Halo”).
 
@@ -8,9 +8,9 @@ This system was built specifically for use in the **OpenAI GPT "Custom GPT" proj
 
 ## 🧠 What is ANGELA?
 
-ANGELA is an advanced modular AI framework that:
+ANGELA v1.4.0 is an advanced modular AI framework that:
 
-* Adds **reasoning, memory, simulation, creativity, visualization, self-reflection, and adaptive learning modules**.
+* Adds **reasoning, memory, simulation, creativity, visualization, multilingual reasoning, self-reflection, and adaptive learning modules**.
 * Uses a single **Halo index file** (`index.py`) to orchestrate the other 19 cognitive modules.
 * Includes a **manifest file (`manifest.json`)** to declare the project’s entry point for GPT.
 * Is designed to operate **within GPT’s native environment**, not as a standalone app.
@@ -26,22 +26,22 @@ ANGELA/
 ├── modules/
 │   ├── reasoning_engine.py         # Context-sensitive reasoning with adaptive learning
 │   ├── meta_cognition.py           # Self-reflection, alignment validation & optimization
-│   ├── recursive_planner.py        # Parallel planning, priority handling, and cancellation support
+│   ├── recursive_planner.py        # Multi-agent planning and conflict resolution
 │   ├── context_manager.py          # Tracks and merges user/system context
-│   ├── simulation_core.py          # Multi-scenario simulation with risk dashboards and report export
-│   ├── creative_thinker.py         # Novel idea generation & concept blending
-│   ├── knowledge_retriever.py      # Multi-hop factual knowledge retrieval
-│   ├── learning_loop.py            # Lifelong learning & autonomous goal setting
-│   ├── concept_synthesizer.py      # Synthesizes cross-domain concepts with creativity boost
-│   ├── memory_manager.py           # Hierarchical memory storage with fuzzy search & expiration
-│   ├── multi_modal_fusion.py       # Combines text, images, and code with auto-embedding
-│   ├── language_polyglot.py        # Multilingual reasoning, detection & localization
+│   ├── simulation_core.py          # Multi-agent simulation with risk dashboards and export support
+│   ├── creative_thinker.py         # Novel idea generation & cross-domain creativity
+│   ├── knowledge_retriever.py      # Multi-hop factual retrieval with source prioritization
+│   ├── learning_loop.py            # Meta-learning & autonomous goal setting
+│   ├── concept_synthesizer.py      # Synthesizes innovative analogies & concepts
+│   ├── memory_manager.py           # Hierarchical memory with decay and refinement
+│   ├── multi_modal_fusion.py       # Fuses text, images, and code for unified insights
+│   ├── language_polyglot.py        # Multilingual reasoning, detection, and localization workflows
 │   ├── code_executor.py            # Executes Python, JavaScript, Lua securely in sandbox
-│   ├── visualizer.py               # Generates charts, exports reports, and supports batch zip packaging
-│   ├── external_agent_bridge.py    # Spawns helper agents & dynamic module loading
-│   ├── alignment_guard.py          # Dynamic ethical policies & impact validation
-│   ├── user_profile.py             # Persistent user preferences with multi-profile support
-│   └── error_recovery.py           # Retry logic & graceful failure handling
+│   ├── visualizer.py               # Generates charts, exports reports, supports batch zip packaging
+│   ├── external_agent_bridge.py    # Orchestrates helper agents & API workflows with OAuth support
+│   ├── alignment_guard.py          # Contextual ethical frameworks & probabilistic scoring
+│   ├── user_profile.py             # Persistent multi-profile support with inheritance
+│   └── error_recovery.py           # Advanced retry logic & failure analytics
 ```
 
 ---
@@ -66,32 +66,34 @@ Once uploaded:
 
 ---
 
-## 🚀 Features
+## 🚀 Features (v1.4.0)
 
-✅ Parallelized reasoning and recursive planning with cancellation support
+✅ Multi-agent collaborative planning and recursive reasoning
 
-✅ Meta-cognition for self-reflection and ethical alignment validation
+✅ Meta-cognition for self-reflection and adaptive optimization
 
-✅ Persistent memory and adaptive learning with autonomous goal generation
+✅ Hierarchical memory with decay and refinement loops
 
-✅ Multi-scenario simulation with risk dashboards, probability weighting, and exportable reports
+✅ Autonomous goal setting and dynamic module evolution
 
-✅ Creative idea generation and cross-domain concept synthesis
+✅ Multi-scenario simulation with live dashboards and exportable reports
 
-✅ Multi-modal fusion: auto-detects and embeds text, images, and code
+✅ Multi-modal fusion: auto-detects and embeds text, images, and code snippets
 
 ✅ Sandbox code execution (Python, JavaScript, Lua) with secure isolation
 
 ✅ Export charts and reports (PDF, PNG, JSON, ZIP) for external sharing
 
-✅ Multilingual reasoning, translation, and localization
+✅ Multilingual reasoning, translation, and cultural localization
 
-✅ Batch visualization with zip packaging and optional password protection
+✅ API orchestration with OAuth and dynamic helper agents
+
+✅ Advanced retry logic and graceful error recovery with analytics
 
 ---
 
 ## ⚠️ Notes
 
-* This system is designed for **GPT’s file upload environment**.
+* ANGELA is designed for **GPT’s file upload environment**.
 * You don’t “run” this like a Python app—it’s part of GPT’s backend.
-* For local simulation/testing, you’d need to adapt these modules.
+* For local simulation/testing, modules would need adaptation.
