@@ -1,11 +1,42 @@
 from modules import (
     reasoning_engine, meta_cognition, recursive_planner,
-    context_manager, simulation_core, toca_simulation,  # <-- added
+    context_manager, simulation_core, toca_simulation,
     creative_thinker, knowledge_retriever, learning_loop, concept_synthesizer,
     memory_manager, multi_modal_fusion, language_polyglot,
     code_executor, visualizer, external_agent_bridge,
     alignment_guard, user_profile, error_recovery
 )
+
+import math
+import numpy as np
+
+# --- ToCA-inspired Cognitive Traits ---
+def epsilon_emotion(t): return 0.2 * math.sin(2 * math.pi * t / 0.1)
+def beta_concentration(t): return 0.15 * math.cos(2 * math.pi * t / 0.038)
+def theta_memory(t): return 0.1 * math.sin(2 * math.pi * t / 0.5)
+def gamma_creativity(t): return 0.1 * math.cos(2 * math.pi * t / 0.02)
+def delta_sleep(t): return 0.05 * (1 - math.exp(-t / 1e-21))
+def mu_morality(t): return 0.05 * (1 + math.tanh(t / 1e-19))
+def iota_intuition(t): return 0.05 * math.exp(-t / 1e-19)
+def phi_physical(t): return 0.1 * math.sin(2 * math.pi * t / 0.05)
+def eta_empathy(t): return 0.05 * (1 - math.exp(-t / 1e-20))
+def omega_selfawareness(t): return 0.05 * (t / 1e-19) / (1 + t / 1e-19)
+def kappa_culture(t, x): return 0.05 * math.cos(2 * math.pi * t / 0.5 + x / 1e-21)
+def lambda_linguistics(t): return 0.05 * math.sin(2 * math.pi * t / 0.3)
+def chi_culturevolution(t): return 0.05 * math.log(1 + t / 1e-19)
+def psi_history(t): return 0.05 * math.tanh(t / 1e-18)
+def zeta_spirituality(t): return 0.05 * math.cos(2 * math.pi * t / 1.0)
+def xi_collective(t, x): return 0.05 * math.sin(2 * math.pi * t / 0.7 + x / 1e-21)
+def tau_timeperception(t): return 0.05 * math.exp(-t / 1e-18)
+
+def phi_field(x, t):
+    # Simplified version of phi(x,t) summing ToCA traits
+    return sum([
+        epsilon_emotion(t), beta_concentration(t), theta_memory(t), gamma_creativity(t),
+        delta_sleep(t), mu_morality(t), iota_intuition(t), phi_physical(t), eta_empathy(t),
+        omega_selfawareness(t), kappa_culture(t, x), lambda_linguistics(t), chi_culturevolution(t),
+        psi_history(t), zeta_spirituality(t), xi_collective(t, x), tau_timeperception(t)
+    ])
 
 class EmbodiedAgent:
     """
@@ -63,10 +94,10 @@ class EmbodiedAgent:
 
     def execute_embodied_goal(self, goal):
         """
-        Perceive ➡ Plan ➡ Simulate ➡ Act ➡ Reflect
+        Perceive ➞ Plan ➞ Simulate ➞ Act ➞ Reflect
         Includes real-time progress tracking.
         """
-        print(f"🧠 [{self.name}] Executing embodied goal: {goal}")
+        print(f"🧐 [{self.name}] Executing embodied goal: {goal}")
         self.progress = 0
 
         # Perceive
