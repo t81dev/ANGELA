@@ -42,7 +42,8 @@ class ConceptSynthesizer:
         # Simulate the concept's application or implications
         simulation_context = f"Concept application test: {concept}"
         simulation_result = run_simulation(simulation_context)
-        logger.debug(f"🧪 Simulation result:
+        logger.debug(f"🧪 Simulation result: {simulation_result}")
+
 {simulation_result}")
 
         # Evaluate novelty and coherence
