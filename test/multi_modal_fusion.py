@@ -1,4 +1,6 @@
 from utils.prompt_utils import call_gpt
+from index import alpha_attention, sigma_sensation
+import time
 import logging
 
 logger = logging.getLogger("ANGELA.MultiModalFusion")
@@ -11,33 +13,38 @@ class MultiModalFusion:
     - Cross-modal reasoning and conflict resolution
     - Multi-turn refinement loops for high-quality insight generation
     - Visual summary generation for enhanced understanding
+    - EEG-modulated attention and perceptual analysis
     """
 
     def analyze(self, data, summary_style="insightful", refine_iterations=2):
         """
         Analyze and synthesize insights from multi-modal data.
         Automatically detects and embeds text, images, and code snippets.
+        Applies EEG-based attention and sensation filters.
         """
         logger.info("🖇 Analyzing multi-modal data with auto-embedding...")
+        t = time.time() % 1e-18
+        attention_score = alpha_attention(t)
+        sensation_score = sigma_sensation(t)
 
-        # Auto-detect modalities
         embed_images, embed_code = self._detect_modalities(data)
-
-        # Build embedded section description
         embedded_section = self._build_embedded_section(embed_images, embed_code)
 
-        # Compose GPT prompt
         prompt = f"""
         Analyze and synthesize insights from the following multi-modal data:
         {data}
         {embedded_section}
 
+        Cognitive Trait Readings:
+        - α_attention: {attention_score:.3f}
+        - σ_sensation: {sensation_score:.3f}
+
         Provide a unified, {summary_style} summary combining all elements.
         Balance attention across modalities and resolve any conflicts between them.
+        Adjust synthesis quality according to the traits.
         """
         output = call_gpt(prompt)
 
-        # Multi-turn refinement loop
         for iteration in range(refine_iterations):
             logger.debug(f"🔄 Refinement iteration {iteration + 1}")
             refinement_prompt = f"""
