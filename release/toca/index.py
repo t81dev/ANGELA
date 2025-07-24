@@ -9,6 +9,7 @@ from modules import (
 
 import math
 import numpy as np
+import time
 
 # --- ToCA-inspired Cognitive Traits ---
 def epsilon_emotion(t): return 0.2 * math.sin(2 * math.pi * t / 0.1)
@@ -48,9 +49,12 @@ class EmbodiedAgent:
         self.reasoner = reasoning_engine.ReasoningEngine()
         self.planner = recursive_planner.RecursivePlanner()
         self.meta = meta_cognition.MetaCognition()
-        self.toca_simulation = toca_simulation.TocaSimulation()
-        self.performance_history = []
+        self.sim_core = simulation_core.SimulationCore()
+        self.synthesizer = concept_synthesizer.ConceptSynthesizer()
+        self.toca_sim = toca_simulation.TocaSimulation()
         self.progress = 0
+        self.performance_history = []
+        self.feedback_log = []
 
     def perceive(self):
         print(f"👁️ [{self.name}] Perceiving environment...")
@@ -63,9 +67,9 @@ class EmbodiedAgent:
         return observations
 
     def act(self, action_plan):
+        print(f"🤖 [{self.name}] Preparing to act...")
         total_steps = len(action_plan)
         completed_steps = 0
-        print(f"🤖 [{self.name}] Preparing to act...")
         is_safe, validation_report = alignment_guard.AlignmentGuard().simulate_and_validate(action_plan)
         if is_safe:
             for actuator_name, command in action_plan.items():
@@ -86,13 +90,31 @@ class EmbodiedAgent:
         sub_tasks = self.planner.plan(goal, context)
         action_plan = {}
         for task in sub_tasks:
-            result = self.reasoner.process(task, context)
-            simulated_result = simulation_core.SimulationCore().run(result, context, export_report=True)
-            action_plan[task] = simulated_result
-        self.act(action_plan)
-        self.meta.analyze_reasoning_trace(self.reasoner.get_reasoning_log())
+            reasoning = self.reasoner.process(task, context)
+            concept = self.synthesizer.synthesize([goal, task], style="concept")
+            simulated = self.sim_core.run(reasoning, context, export_report=True)
+            action_plan[task] = {
+                "reasoning": reasoning,
+                "concept": concept,
+                "simulation": simulated
+            }
+        self.act({k: v["simulation"] for k, v in action_plan.items()})
+        self.meta.review_reasoning("\n".join([v["reasoning"] for v in action_plan.values()]))
         self.performance_history.append({"goal": goal, "actions": action_plan, "completion": self.progress})
         self.shared_memory.store(goal, action_plan)
+        self.collect_feedback(goal, action_plan)
+
+    def collect_feedback(self, goal, action_plan):
+        timestamp = time.time()
+        feedback = {
+            "timestamp": timestamp,
+            "goal": goal,
+            "score": self.meta.run_self_diagnostics(),
+            "traits": phi_field(x=0.001, t=timestamp % 1e-18),
+            "agent": self.name
+        }
+        self.feedback_log.append(feedback)
+        print(f"🧭 [{self.name}] Feedback recorded for goal '{goal}'.")
 
 class HaloEmbodimentLayer:
     def __init__(self):
@@ -132,6 +154,6 @@ class HaloEmbodimentLayer:
             "agents": [agent.name for agent in self.embodied_agents],
             "dynamic_modules": [mod["name"] for mod in self.dynamic_modules],
         }
-        recommendations = meta_cognition.MetaCognition().propose_embodiment_optimizations(agent_stats)
+        recommendations = meta_cognition.MetaCognition().propose_optimizations(agent_stats)
         print("🛠 [HaloEmbodimentLayer] Optimization recommendations:")
         print(recommendations)
