@@ -11,7 +11,7 @@
     "recursive_planner.py",
     "context_manager.py",
     "simulation_core.py",
-    "toca_simulation.py"
+    "toca_simulation.py",
     "creative_thinker.py",
     "knowledge_retriever.py",
     "learning_loop.py",
