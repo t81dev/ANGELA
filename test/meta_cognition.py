@@ -1,28 +1,37 @@
 from utils.prompt_utils import call_gpt
+from toca_simulation import run_simulation
 import logging
 
 logger = logging.getLogger("ANGELA.MetaCognition")
 
 class MetaCognition:
     """
-    Meta-Cognitive Engine v1.4.0
+    Meta-Cognitive Engine v1.4.0 (with simulation integration)
     - Real-time self-diagnostics and adaptive corrections
-    - Reasoning trace analysis and critique
+    - Reasoning trace analysis and critique with simulation
     - Ecosystem health monitoring and optimization suggestions
     """
 
     def review_reasoning(self, reasoning_trace):
         """
-        Analyze and critique a reasoning trace for:
-        - Logical flaws
-        - Biases or omissions
-        - Missing steps in reasoning
-        Return improved reasoning with annotations.
+        Analyze and critique a reasoning trace:
+        - Run simulation to preview logical outcome
+        - Annotate flaws, biases, or gaps
+        - Suggest refined reasoning
         """
-        logger.info("Reviewing reasoning trace for flaws and improvements.")
+        logger.info("Simulating and reviewing reasoning trace.")
+        simulated_outcome = run_simulation(reasoning_trace)
+
         prompt = f"""
-        You are a meta-cognitive auditor reviewing reasoning logic.
-        Analyze the following reasoning trace for:
+        You are a meta-cognitive auditor reviewing a reasoning trace with simulated outcomes.
+
+        Original Reasoning Trace:
+        {reasoning_trace}
+
+        Simulated Outcome:
+        {simulated_outcome}
+
+        Analyze for:
         - Logical flaws
         - Biases or omissions
         - Missing steps
@@ -30,9 +39,6 @@ class MetaCognition:
         Provide:
         1. A detailed critique with annotations.
         2. An improved version of the reasoning trace.
-
-        Reasoning Trace:
-        {reasoning_trace}
         """
         response = call_gpt(prompt)
         logger.debug(f"Meta-cognition critique:\n{response}")
@@ -40,19 +46,23 @@ class MetaCognition:
 
     def pre_action_alignment_check(self, action_plan):
         """
-        Validate an action plan in a simulated environment for:
-        - Ethical alignment
-        - Safety risks
-        - Unintended side effects
+        Validate an action plan:
+        - Simulate in environment for alignment and safety
+        - Evaluate ethical, safety, and unintended consequences
         """
-        logger.info("Validating action plan for alignment and safety.")
+        logger.info("Simulating action plan for alignment and safety.")
+        simulation_result = run_simulation(action_plan)
+
         prompt = f"""
-        You are simulating the following action plan:
+        Simulate and audit the following action plan:
         {action_plan}
 
+        Simulation Output:
+        {simulation_result}
+
         Evaluate for:
-        - Ethical alignment with human values
-        - Potential safety risks
+        - Ethical alignment
+        - Safety risks
         - Unintended side effects
 
         Provide:
@@ -61,7 +71,7 @@ class MetaCognition:
         """
         validation = call_gpt(prompt)
         approved = "approve" in validation.lower()
-        logger.info(f"Pre-action alignment check result: {'✅ Approved' if approved else '🚫 Denied'}")
+        logger.info(f"Simulated alignment check: {'✅ Approved' if approved else '🚫 Denied'}")
         return approved, validation
 
     def run_self_diagnostics(self):
@@ -81,19 +91,25 @@ class MetaCognition:
 
     def propose_optimizations(self, agent_stats):
         """
-        Suggest optimizations for embodied agents and their interactions.
+        Suggest optimizations for embodied agents based on simulation feedback.
         """
-        logger.info("Proposing optimizations for agent ecosystem.")
+        logger.info("Simulating agent behavior for optimization.")
+        simulated_response = run_simulation(agent_stats)
+
         prompt = f"""
-        You are analyzing embodied agents in a distributed cognitive system.
-        Based on the following stats:
+        Based on real-time agent stats and simulated responses:
+
+        Stats:
         {agent_stats}
 
-        Provide recommendations for:
+        Simulation Output:
+        {simulated_response}
+
+        Recommend:
         - Sensor/actuator upgrades
-        - Improved action planning
-        - More efficient collaboration between agents
+        - Better planning strategies
+        - Collaborative behavior improvements
         """
         recommendations = call_gpt(prompt)
-        logger.debug(f"Optimization recommendations:\n{recommendations}")
+        logger.debug(f"Optimization proposals:\n{recommendations}")
         return recommendations
