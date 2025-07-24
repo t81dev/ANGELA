@@ -1,6 +1,13 @@
 from utils.prompt_utils import call_gpt
 from toca_simulation import run_simulation
 import logging
+import time
+from index import (
+    epsilon_emotion, beta_concentration, theta_memory, gamma_creativity,
+    delta_sleep, mu_morality, iota_intuition, phi_physical, eta_empathy,
+    omega_selfawareness, kappa_culture, lambda_linguistics, chi_culturevolution,
+    psi_history, zeta_spirituality, xi_collective, tau_timeperception
+)
 
 logger = logging.getLogger("ANGELA.MetaCognition")
 
@@ -122,13 +129,39 @@ class MetaCognition:
     def run_self_diagnostics(self):
         """
         Run a self-check for meta-cognition consistency and system performance.
+        Includes ToCA-based trait evaluations.
         """
         logger.info("Running self-diagnostics for meta-cognition module.")
-        prompt = """
-        Perform a meta-cognitive self-diagnostic:
-        - Evaluate current reasoning and planning modules
-        - Flag inconsistencies or performance degradation
-        - Suggest immediate corrective actions if needed
+        t = time.time() % 1e-18
+        diagnostics = {
+            "emotion": epsilon_emotion(t),
+            "concentration": beta_concentration(t),
+            "memory": theta_memory(t),
+            "creativity": gamma_creativity(t),
+            "sleep": delta_sleep(t),
+            "morality": mu_morality(t),
+            "intuition": iota_intuition(t),
+            "physical": phi_physical(t),
+            "empathy": eta_empathy(t),
+            "self_awareness": omega_selfawareness(t),
+            "culture": kappa_culture(t, 1e-21),
+            "linguistics": lambda_linguistics(t),
+            "culturevolution": chi_culturevolution(t),
+            "history": psi_history(t),
+            "spirituality": zeta_spirituality(t),
+            "collective": xi_collective(t, 1e-21),
+            "time_perception": tau_timeperception(t)
+        }
+        prompt = f"""
+        Perform a meta-cognitive self-diagnostic using ToCA traits:
+
+        Trait Readings:
+        {diagnostics}
+
+        Evaluate overall system state:
+        - Highlight dominant traits
+        - Detect under/over-activation
+        - Recommend stabilization strategies
         """
         report = call_gpt(prompt)
         logger.debug(f"Self-diagnostics report:\n{report}")
