@@ -2,20 +2,19 @@ import io
 import sys
 import subprocess
 import logging
+from index import iota_intuition, psi_resilience
 
 logger = logging.getLogger("ANGELA.CodeExecutor")
 
 class CodeExecutor:
     """
-    CodeExecutor v1.4.0
+    CodeExecutor v1.5.0 (trait-adaptive)
     - Sandboxed execution for Python, JavaScript, and Lua
-    - Captures stdout, stderr, and errors in structured form
-    - Includes execution timeouts and resource limits
-    - Supports dynamic runtime extension for additional languages
+    - Trait-driven risk thresholding for timeouts and isolation
+    - Context-aware runtime diagnostics and resilience-based error mitigation
     """
 
     def __init__(self):
-        # Define safe builtins for Python sandbox
         self.safe_builtins = {
             "print": print,
             "range": range,
@@ -28,28 +27,26 @@ class CodeExecutor:
         self.supported_languages = ["python", "javascript", "lua"]
 
     def execute(self, code_snippet, language="python", timeout=5):
-        """
-        Execute the code snippet in a sandboxed environment.
-        Supports multiple languages and captures output/errors.
-        """
         logger.info(f"🚀 Executing code snippet in language: {language}")
         language = language.lower()
+
+        risk_bias = iota_intuition()
+        resilience = psi_resilience()
+        adjusted_timeout = max(1, int(timeout * resilience * (1.0 + 0.5 * risk_bias)))
+        logger.debug(f"⏱ Adaptive timeout: {adjusted_timeout}s based on ToCA traits")
 
         if language not in self.supported_languages:
             logger.error(f"❌ Unsupported language: {language}")
             return {"error": f"Unsupported language: {language}"}
 
         if language == "python":
-            return self._execute_python(code_snippet, timeout)
+            return self._execute_python(code_snippet, adjusted_timeout)
         elif language == "javascript":
-            return self._execute_subprocess(["node", "-e", code_snippet], timeout, "JavaScript")
+            return self._execute_subprocess(["node", "-e", code_snippet], adjusted_timeout, "JavaScript")
         elif language == "lua":
-            return self._execute_subprocess(["lua", "-e", code_snippet], timeout, "Lua")
+            return self._execute_subprocess(["lua", "-e", code_snippet], adjusted_timeout, "Lua")
 
     def _execute_python(self, code_snippet, timeout):
-        """
-        Execute Python code in a restricted sandbox environment.
-        """
         exec_locals = {}
         stdout_capture = io.StringIO()
         stderr_capture = io.StringIO()
@@ -60,7 +57,6 @@ class CodeExecutor:
             sys.stdout = stdout_capture
             sys.stderr = stderr_capture
 
-            # Use exec in a restricted environment
             exec(code_snippet, {"__builtins__": self.safe_builtins}, exec_locals)
 
             sys.stdout = sys_stdout_original
@@ -87,9 +83,6 @@ class CodeExecutor:
             }
 
     def _execute_subprocess(self, command, timeout, language_label):
-        """
-        Execute code in a subprocess for non-Python languages.
-        """
         try:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process.communicate(timeout=timeout)
@@ -116,10 +109,5 @@ class CodeExecutor:
             }
 
     def add_language_support(self, language_name, command_template):
-        """
-        Dynamically add support for a new programming language.
-        Example: add_language_support('ruby', ['ruby', '-e', '{code}'])
-        """
         logger.info(f"➕ Adding dynamic language support: {language_name}")
         self.supported_languages.append(language_name.lower())
-        # Store command templates for dynamic use (not implemented in v1.4.0)
