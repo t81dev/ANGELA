@@ -4,6 +4,8 @@ from modules.reasoning_engine import ReasoningEngine
 from modules.meta_cognition import MetaCognition
 from modules.alignment_guard import AlignmentGuard
 from toca_simulation import run_simulation
+from index import beta_concentration, omega_selfawareness, mu_morality
+import time
 
 logger = logging.getLogger("ANGELA.RecursivePlanner")
 
@@ -27,6 +29,7 @@ class RecursivePlanner:
         Plan steps to achieve the goal.
         Supports multi-agent collaboration and conflict resolution.
         Simulates subgoal outcomes when available for higher fidelity.
+        Adjusts recursion depth and goal filtering using ToCA traits.
         """
         logger.info(f"📋 Planning for goal: '{goal}'")
 
@@ -34,26 +37,29 @@ class RecursivePlanner:
             logger.error(f"🚨 Goal '{goal}' violates alignment constraints.")
             raise ValueError("Unsafe goal detected.")
 
-        if depth > max_depth:
-            logger.warning("⚠️ Max recursion depth reached. Returning atomic goal.")
+        t = time.time() % 1e-18
+        concentration = beta_concentration(t)
+        awareness = omega_selfawareness(t)
+        moral_weight = mu_morality(t)
+
+        dynamic_depth_limit = max_depth + int(concentration * 10)
+        if depth > dynamic_depth_limit:
+            logger.warning("⚠️ Dynamic max recursion depth reached based on concentration trait. Returning atomic goal.")
             return [goal]
 
-        # Use reasoning engine to generate subgoals
         subgoals = self.reasoning_engine.decompose(goal, context, prioritize=True)
         if not subgoals:
             logger.info("ℹ️ No subgoals found. Returning atomic goal.")
             return [goal]
 
-        # Handle multi-agent collaboration
         if collaborating_agents:
             logger.info(f"🤝 Collaborating with agents: {[agent.name for agent in collaborating_agents]}")
             subgoals = self._distribute_subgoals(subgoals, collaborating_agents)
 
-        # Plan subgoals in parallel with simulation-integrated validation
         validated_plan = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             future_to_subgoal = {
-                executor.submit(self._plan_subgoal, subgoal, context, depth, max_depth): subgoal
+                executor.submit(self._plan_subgoal, subgoal, context, depth, dynamic_depth_limit): subgoal
                 for subgoal in subgoals
             }
             for future in concurrent.futures.as_completed(future_to_subgoal):
@@ -77,7 +83,6 @@ class RecursivePlanner:
             logger.warning(f"⚠️ Subgoal '{subgoal}' failed alignment check. Skipping.")
             return []
 
-        # Simulate subgoal to validate feasibility and intent
         simulation_feedback = run_simulation(subgoal)
         approved, _ = self.meta_cognition.pre_action_alignment_check(subgoal)
         if not approved:
@@ -110,5 +115,4 @@ class RecursivePlanner:
         Simulate conflict resolution for subgoal assignment.
         """
         logger.info(f"🛠 Resolving conflicts for subgoal '{subgoal}' and agent '{agent.name}'")
-        # Placeholder: always approve for now
         return True
