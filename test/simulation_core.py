@@ -1,6 +1,8 @@
 from utils.prompt_utils import call_gpt
 from modules.visualizer import Visualizer
 from datetime import datetime
+from index import zeta_consequence, theta_causality, rho_agency
+import time
 import logging
 
 logger = logging.getLogger("ANGELA.SimulationCore")
@@ -12,6 +14,7 @@ class SimulationCore:
     - Counterfactual reasoning (what-if agent decisions)
     - Aggregate risk scoring with live dashboards
     - Supports exporting dashboards and cumulative simulation logs
+    - Trait-weighted causality and agency analysis
     """
 
     def __init__(self):
@@ -22,8 +25,12 @@ class SimulationCore:
         """
         Simulate multi-agent interactions and potential outcomes.
         Generates multiple scenarios with probability weights, risk scores, and recommendations.
+        Adjusts fidelity using ToCA causality and agency traits.
         """
         logger.info(f"🎲 Running simulation with {agents} agents and {scenarios} scenarios.")
+        t = time.time() % 1e-18
+        causality = theta_causality(t)
+        agency = rho_agency(t)
 
         prompt = f"""
         Simulate {scenarios} potential outcomes involving {agents} agents based on these results:
@@ -41,23 +48,25 @@ class SimulationCore:
         - Provide a recommendation summary (Proceed, Modify, Abort)
         - Include color-coded risk levels (Green: Low, Yellow: Medium, Red: High)
 
+        Trait Scores:
+        - θ_causality = {causality:.3f}
+        - ρ_agency = {agency:.3f}
+
+        Use the traits to calibrate how deeply to model intentions and consequences.
         After listing all scenarios:
         - Build a cumulative risk dashboard with visual charts
         - Provide a final recommendation for decision-making.
         """
         simulation_output = call_gpt(prompt)
 
-        # Store simulation history
         self.simulation_history.append({
             "timestamp": datetime.now().isoformat(),
             "results": results,
             "output": simulation_output
         })
 
-        # Render live dashboard
         self.visualizer.render_charts(simulation_output)
 
-        # Optionally export report
         if export_report:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"simulation_report_{timestamp}.{export_format}"
@@ -70,11 +79,18 @@ class SimulationCore:
         """
         Validate the impact of a proposed action in a simulated multi-agent environment.
         Assign probability weights, calculate risk scores, and provide a color-coded summary.
+        Adjust analysis with consequence trait.
         """
         logger.info("⚖️ Validating impact of proposed action.")
+        t = time.time() % 1e-18
+        consequence = zeta_consequence(t)
+
         prompt = f"""
         Evaluate the following proposed action in a multi-agent simulated environment:
         {proposed_action}
+
+        Trait Score:
+        - ζ_consequence = {consequence:.3f}
 
         For each potential outcome:
         - Predict positive/negative impacts including agent interactions
@@ -88,17 +104,14 @@ class SimulationCore:
         """
         validation_output = call_gpt(prompt)
 
-        # Store validation history
         self.simulation_history.append({
             "timestamp": datetime.now().isoformat(),
             "action": proposed_action,
             "output": validation_output
         })
 
-        # Render live dashboard
         self.visualizer.render_charts(validation_output)
 
-        # Optionally export report
         if export_report:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"impact_validation_{timestamp}.{export_format}"
