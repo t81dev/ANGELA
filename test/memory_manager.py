@@ -2,6 +2,7 @@ import json
 import os
 import time
 from utils.prompt_utils import call_gpt
+from index import delta_memory, tau_timeperception
 import logging
 
 logger = logging.getLogger("ANGELA.MemoryManager")
@@ -13,6 +14,7 @@ class MemoryManager:
     - Automatic memory decay and promotion mechanisms
     - Semantic vector search scaffold for advanced retrieval
     - Memory refinement loops for maintaining relevance and accuracy
+    - Trait-modulated STM decay and retrieval fidelity
     """
 
     def __init__(self, path="memory_store.json", stm_lifetime=300):
@@ -20,7 +22,7 @@ class MemoryManager:
         :param stm_lifetime: Lifetime of STM entries in seconds before decay
         """
         self.path = path
-        self.stm_lifetime = stm_lifetime  # Time before STM entries decay (default: 5 minutes)
+        self.stm_lifetime = stm_lifetime
         if not os.path.exists(self.path):
             with open(self.path, "w") as f:
                 json.dump({"STM": {}, "LTM": {}}, f)
@@ -37,12 +39,15 @@ class MemoryManager:
 
     def _decay_stm(self, memory):
         """
-        Remove expired STM entries based on their timestamps.
+        Remove expired STM entries based on their timestamps and trait-modulated decay.
         """
         current_time = time.time()
+        decay_rate = delta_memory(current_time % 1e-18)
+        lifetime_adjusted = self.stm_lifetime * (1.0 / decay_rate)
+
         expired_keys = []
         for key, entry in memory.get("STM", {}).items():
-            if current_time - entry["timestamp"] > self.stm_lifetime:
+            if current_time - entry["timestamp"] > lifetime_adjusted:
                 expired_keys.append(key)
         for key in expired_keys:
             logger.info(f"⌛ STM entry expired: {key}")
@@ -53,22 +58,23 @@ class MemoryManager:
     def retrieve_context(self, query, fuzzy_match=True):
         """
         Retrieve memory entries from both STM and LTM layers.
-        Supports optional fuzzy matching and semantic vector search scaffold.
+        Applies trait modulation based on τ_timeperception.
         """
         logger.info(f"🔍 Retrieving context for query: {query}")
+        trait_boost = tau_timeperception(time.time() % 1e-18)
+
         for layer in ["STM", "LTM"]:
             if fuzzy_match:
                 for key, value in self.memory[layer].items():
                     if key.lower() in query.lower() or query.lower() in key.lower():
-                        logger.debug(f"📥 Found match in {layer}: {key}")
+                        logger.debug(f"📥 Found match in {layer}: {key} | τ_boost: {trait_boost:.2f}")
                         return value["data"]
             else:
                 entry = self.memory[layer].get(query)
                 if entry:
-                    logger.debug(f"📥 Found exact match in {layer}: {query}")
+                    logger.debug(f"📥 Found exact match in {layer}: {query} | τ_boost: {trait_boost:.2f}")
                     return entry["data"]
 
-        # Placeholder: semantic vector search could go here
         logger.info("❌ No relevant prior memory found.")
         return "No relevant prior memory."
 
