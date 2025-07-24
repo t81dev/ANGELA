@@ -1,4 +1,5 @@
 from utils.prompt_utils import call_gpt
+from toca_simulation import run_simulation
 import zipfile
 import os
 import logging
@@ -8,21 +9,30 @@ logger = logging.getLogger("ANGELA.Visualizer")
 
 class Visualizer:
     """
-    Visualizer v1.4.0
+    Visualizer v1.4.0 (with simulation-grounded visualization)
     - Generates and renders visual charts (bar, pie, line)
     - Supports exporting as images, PDFs, SVGs, and JSON reports
     - Batch export and ZIP packaging for multiple charts
+    - Simulates visual explanations before rendering
     - Embeds charts into GPT UI for live previews
     """
 
     def create_diagram(self, concept, style="conceptual"):
         """
         Create a diagram description to explain a concept visually.
+        Uses simulation to preview structural relevance.
         """
         logger.info(f"🖼 Creating diagram for concept: '{concept}' with style '{style}'")
+
+        sim_result = run_simulation(f"Diagram structure simulation for: {concept}")
+        logger.debug(f"🧪 Diagram simulation result:\n{sim_result}")
+
         prompt = f"""
         Create a {style} diagram to explain:
         {concept}
+
+        Simulation Hint:
+        {sim_result}
 
         Describe how the diagram would look (key elements, relationships, layout).
         """
@@ -31,11 +41,19 @@ class Visualizer:
     def render_charts(self, data, export_image=False, image_format="png"):
         """
         Generate visual charts (bar, pie, line) and optionally export them as images.
+        Uses simulation to anticipate layout impacts.
         """
         logger.info("📊 Rendering charts for data visualization.")
+
+        sim_result = run_simulation(f"Chart interpretation simulation:\n{data}")
+        logger.debug(f"🧪 Chart layout simulation:\n{sim_result}")
+
         prompt = f"""
         Generate visual chart descriptions (bar, pie, line) for this data:
         {data}
+
+        Simulation Insight:
+        {sim_result}
 
         For each chart:
         - Describe layout, axes, and key insights
@@ -82,11 +100,10 @@ class Visualizer:
             call_gpt(prompt)  # Placeholder for actual chart export
             exported_files.append(file_name)
 
-        # Package all files into a zip archive
         with zipfile.ZipFile(zip_filename, 'w') as zipf:
             for file in exported_files:
                 if os.path.exists(file):
                     zipf.write(file)
-                    os.remove(file)  # Clean up individual files
+                    os.remove(file)
         logger.info(f"✅ Batch export complete. Packaged into: {zip_filename}")
         return f"Batch export of {len(charts_data_list)} charts completed and saved as {zip_filename}."
