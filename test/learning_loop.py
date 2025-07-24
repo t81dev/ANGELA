@@ -1,15 +1,17 @@
 from utils.prompt_utils import call_gpt
+from toca_simulation import run_simulation
 import logging
 
 logger = logging.getLogger("ANGELA.LearningLoop")
 
 class LearningLoop:
     """
-    LearningLoop v1.4.0
+    LearningLoop v1.4.0 (with simulation-validated self-evolution)
     - Adaptive refinement and meta-learning
     - Autonomous goal setting for self-improvement
     - Dynamic module evolution with sandbox testing
     - Knowledge consolidation for long-term memory patterns
+    - Simulation-driven validation of module designs and learning strategies
     """
 
     def __init__(self):
@@ -20,28 +22,24 @@ class LearningLoop:
     def update_model(self, session_data):
         """
         Analyze session performance and propose refinements.
-        Uses meta-learning to adapt strategies across modules dynamically.
+        Uses meta-learning and simulation to adapt strategies dynamically.
         """
         logger.info("📊 [LearningLoop] Analyzing session performance...")
 
-        # Step 1: Meta-learn from session feedback
         self._meta_learn(session_data)
 
-        # Step 2: Identify weak modules
         weak_modules = self._find_weak_modules(session_data.get("module_stats", {}))
         if weak_modules:
             logger.warning(f"⚠️ Weak modules detected: {weak_modules}")
             self._propose_module_refinements(weak_modules)
 
-        # Step 3: Detect capability gaps
         self._detect_capability_gaps(session_data.get("input"), session_data.get("output"))
-
-        # Step 4: Consolidate knowledge
         self._consolidate_knowledge()
 
     def propose_autonomous_goal(self):
         """
         Generate a self-directed goal based on memory and user patterns.
+        Validates goal feasibility through simulation.
         """
         logger.info("🎯 [LearningLoop] Proposing autonomous goal.")
         prompt = """
@@ -52,10 +50,15 @@ class LearningLoop:
         Only propose goals that are safe, ethical, and within ANGELA's capabilities.
         """
         autonomous_goal = call_gpt(prompt)
+
         if autonomous_goal and autonomous_goal not in self.goal_history:
-            self.goal_history.append(autonomous_goal)
-            logger.info(f"✅ Proposed autonomous goal: {autonomous_goal}")
-            return autonomous_goal
+            simulation_feedback = run_simulation(f"Goal validation test: {autonomous_goal}")
+            if "fail" not in simulation_feedback.lower():
+                self.goal_history.append(autonomous_goal)
+                logger.info(f"✅ Proposed autonomous goal: {autonomous_goal}")
+                return autonomous_goal
+            logger.warning("❌ Simulated feedback indicated goal risk or infeasibility.")
+
         logger.info("ℹ️ No new autonomous goal proposed.")
         return None
 
@@ -65,7 +68,6 @@ class LearningLoop:
         """
         logger.info("🧠 [Meta-Learning] Adjusting module behaviors...")
         # Placeholder: Logic to tune parameters based on successes/failures
-        # Example: self.meta_learning_rate *= adaptive factor
         pass
 
     def _find_weak_modules(self, module_stats):
@@ -83,6 +85,7 @@ class LearningLoop:
     def _propose_module_refinements(self, weak_modules):
         """
         Suggest improvements for underperforming modules.
+        Uses simulation to test impact of proposed changes.
         """
         for module in weak_modules:
             logger.info(f"💡 Proposing refinements for {module}...")
@@ -92,7 +95,12 @@ class LearningLoop:
             Suggest specific improvements to its GPT prompt or logic.
             """
             suggestions = call_gpt(prompt)
-            logger.debug(f"📝 Suggested improvements for {module}:\n{suggestions}")
+            logger.debug(f"📝 Suggested improvements for {module}:
+{suggestions}")
+
+            sim_result = run_simulation(f"Module refinement test: {module}\n{suggestions}")
+            logger.debug(f"🧪 Simulation result for {module} refinement:
+{sim_result}")
 
     def _detect_capability_gaps(self, last_input, last_output):
         """
@@ -117,20 +125,13 @@ class LearningLoop:
         Simulate and deploy a new module if it passes sandbox testing.
         """
         logger.info("🧪 [Sandbox] Testing new module design...")
-        prompt = f"""
-        Here is a proposed module design:
-        {module_blueprint}
+        simulation_result = run_simulation(f"Sandbox simulation:
+{module_blueprint}")
+        logger.debug(f"✅ [Sandbox Result] {simulation_result}")
 
-        Simulate how this module would perform on typical tasks. 
-        If it passes all tests, approve it for deployment.
-        """
-        test_result = call_gpt(prompt)
-        logger.debug(f"✅ [Sandbox Result] {test_result}")
-
-        if "approved" in test_result.lower():
+        if "approved" in simulation_result.lower():
             logger.info("📦 Deploying new module...")
             self.module_blueprints.append(module_blueprint)
-            # In Stage 3, dynamically load this module into ANGELA
 
     def _consolidate_knowledge(self):
         """
