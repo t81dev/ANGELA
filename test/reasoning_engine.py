@@ -3,8 +3,10 @@ import random
 import json
 import os
 import numpy as np
+import time
 
 from toca_simulation import simulate_galaxy_rotation, M_b_exponential, v_obs_flat
+from index import gamma_creativity, lambda_linguistics, chi_culturevolution
 
 logger = logging.getLogger("ANGELA.ReasoningEngine")
 
@@ -17,6 +19,7 @@ class ReasoningEngine:
     - Modular decomposition support
     - Simulation-backed inference (galaxy rotation example)
     - Detailed reasoning trace for meta-cognition
+    - EEG-informed reasoning weights
     ----------------------------------------------------
     """
 
@@ -27,9 +30,6 @@ class ReasoningEngine:
         self.decomposition_patterns = self._load_default_patterns()
 
     def _load_success_rates(self):
-        """
-        Load success rates from disk.
-        """
         if os.path.exists(self.persistence_file):
             try:
                 with open(self.persistence_file, "r") as f:
@@ -41,9 +41,6 @@ class ReasoningEngine:
         return {}
 
     def _save_success_rates(self):
-        """
-        Persist success rates to disk.
-        """
         try:
             with open(self.persistence_file, "w") as f:
                 json.dump(self.success_rates, f, indent=2)
@@ -52,9 +49,6 @@ class ReasoningEngine:
             logger.warning(f"Failed to save success rates: {e}")
 
     def _load_default_patterns(self):
-        """
-        Return built-in decomposition patterns.
-        """
         return {
             "prepare": ["define requirements", "allocate resources", "create timeline"],
             "build": ["design architecture", "implement core modules", "test components"],
@@ -62,26 +56,26 @@ class ReasoningEngine:
         }
 
     def add_decomposition_pattern(self, key, steps):
-        """
-        Add or update a decomposition pattern.
-        """
         logger.info(f"Adding/updating decomposition pattern: {key}")
         self.decomposition_patterns[key] = steps
 
     def decompose(self, goal: str, context: dict = None, prioritize=False) -> list:
-        """
-        Decompose a goal into subgoals using context and Bayesian logic.
-        """
         context = context or {}
         logger.info(f"Decomposing goal: '{goal}'")
         reasoning_trace = [f"🔍 Decomposition for: '{goal}'"]
 
         subgoals = []
+        t = time.time() % 1e-18
+        creativity = gamma_creativity(t)
+        linguistics = lambda_linguistics(t)
+        culturevolution = chi_culturevolution(t)
+
         for key, steps in self.decomposition_patterns.items():
             if key in goal.lower():
                 base_confidence = random.uniform(0.5, 1.0)
                 context_weight = context.get("weight_modifier", 1.0)
-                adjusted_confidence = base_confidence * self.success_rates.get(key, 1.0) * context_weight
+                trait_bias = 1 + creativity + linguistics + culturevolution
+                adjusted_confidence = base_confidence * self.success_rates.get(key, 1.0) * context_weight * trait_bias
                 reasoning_trace.append(
                     f"🧠 Pattern '{key}' (confidence: {adjusted_confidence:.2f})"
                 )
@@ -99,9 +93,6 @@ class ReasoningEngine:
         return subgoals
 
     def update_success_rate(self, pattern_key: str, success: bool):
-        """
-        Adjust the success rate for a reasoning pattern.
-        """
         old_rate = self.success_rates.get(pattern_key, 1.0)
         adjustment = 0.05 if success else -0.05
         new_rate = min(max(old_rate + adjustment, 0.1), 1.0)
@@ -111,13 +102,7 @@ class ReasoningEngine:
             f"Updated '{pattern_key}': {old_rate:.2f} → {new_rate:.2f}"
         )
 
-    # --- Simulation Integration ---
-
     def run_galaxy_rotation_simulation(self, r_kpc, M0, r_scale, v0, k, epsilon):
-        """
-        Run an AGRF-based galaxy rotation simulation.
-        Returns: dict with input, result, and status metadata.
-        """
         try:
             M_b_func = lambda r: M_b_exponential(r, M0, r_scale)
             v_obs_func = lambda r: v_obs_flat(r, v0)
@@ -139,12 +124,8 @@ class ReasoningEngine:
             return {"status": "error", "error": str(e)}
 
     def infer_with_simulation(self, goal, context=None):
-        """
-        Use simulation to answer science/physics subgoals when applicable.
-        """
         context = context or {}
         if "galaxy rotation" in goal.lower():
-            # Example default params; can be extended/contextualized
             r_kpc = np.linspace(0.1, 20, 100)
             M0 = context.get("M0", 5e10)
             r_scale = context.get("r_scale", 3)
