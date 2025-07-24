@@ -2,6 +2,7 @@ import json
 import os
 import logging
 from datetime import datetime
+from index import epsilon_identity
 
 logger = logging.getLogger("ANGELA.UserProfile")
 
@@ -11,6 +12,7 @@ class UserProfile:
     - Multi-profile support with dynamic preference inheritance
     - Persistent storage of preferences per user ID
     - Audit trail for preference changes
+    - Identity-modulated preference weighting (ε_identity)
     """
 
     DEFAULT_PREFERENCES = {
@@ -63,6 +65,7 @@ class UserProfile:
         """
         Get the preferences for the active user.
         If fallback=True, use defaults for missing keys.
+        Applies ε_identity for weighted blending.
         """
         if not self.active_user:
             logger.warning("⚠️ No active user. Returning default preferences.")
@@ -72,6 +75,12 @@ class UserProfile:
         if fallback:
             for key, value in self.DEFAULT_PREFERENCES.items():
                 prefs.setdefault(key, value)
+
+        # Modulate style preference using ε_identity
+        weight = epsilon_identity(time=datetime.now().timestamp())
+        if prefs["style"] != "neutral":
+            prefs["style"] = f"{prefs['style']} (modulated ε={weight:.2f})"
+
         return prefs
 
     def update_preferences(self, new_prefs):
@@ -86,7 +95,6 @@ class UserProfile:
         changes = {k: (old_prefs.get(k), v) for k, v in new_prefs.items()}
         self.profiles[self.active_user]["preferences"].update(new_prefs)
 
-        # Log changes in audit trail
         self.profiles[self.active_user]["audit_log"].append({
             "timestamp": timestamp,
             "changes": changes
