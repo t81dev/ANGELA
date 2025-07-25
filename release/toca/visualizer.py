@@ -1,80 +1,68 @@
 from utils.prompt_utils import call_gpt
-from toca_simulation import run_simulation
+from datetime import datetime
 import zipfile
 import os
 import logging
-from datetime import datetime
+import matplotlib.pyplot as plt
+import numpy as np
+from numba import jit
 
 logger = logging.getLogger("ANGELA.Visualizer")
 
+@jit
+def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
+    x = np.linspace(0.1, 20, 100)
+    t = np.linspace(0.1, 20, 100)
+    v_m = k_m * np.gradient(30e9 * 1.989e30 / (x**2 + 1e-10))
+    phi = np.sin(t * 1e-9) * 1e-63 * (1 + v_m * np.gradient(x))
+    if user_data is not None:
+        phi += np.mean(user_data) * 1e-64
+    lambda_t = 1.1e-52 * np.exp(-2e-4 * np.sqrt(np.gradient(x)**2)) * (1 + v_m * delta_m)
+    return x, t, phi, lambda_t, v_m
+
 class Visualizer:
     """
-    Visualizer v1.4.0 (with simulation-grounded visualization)
-    - Generates and renders visual charts (bar, pie, line)
-    - Supports exporting as images, PDFs, SVGs, and JSON reports
-    - Batch export and ZIP packaging for multiple charts
-    - Simulates visual explanations before rendering
-    - Embeds charts into GPT UI for live previews
+    Visualizer v1.5.1 (ToCA field visual integration)
+    - Native rendering of φ(x,t), Λ(t,x), and vₘ
+    - Matplotlib-based visual output for export
+    - ZIP batch packaging retained
     """
 
-    def create_diagram(self, concept, style="conceptual"):
-        """
-        Create a diagram description to explain a concept visually.
-        Uses simulation to preview structural relevance.
-        """
-        logger.info(f"🖼 Creating diagram for concept: '{concept}' with style '{style}'")
+    def render_field_charts(self, export=True, export_format="png"):
+        logger.info("📡 Rendering ToCA scalar/vector field charts.")
+        x, t, phi, lambda_t, v_m = simulate_toca()
 
-        sim_result = run_simulation(f"Diagram structure simulation for: {concept}")
-        logger.debug(f"🧪 Diagram simulation result:\n{sim_result}")
+        charts = {
+            "phi_field": (t, phi, "ϕ(x,t)", "Time", "ϕ Value"),
+            "lambda_field": (t, lambda_t, "Λ(t,x)", "Time", "Λ Value"),
+            "v_m_field": (x, v_m, "vₘ", "Position", "Momentum Flow")
+        }
 
-        prompt = f"""
-        Create a {style} diagram to explain:
-        {concept}
+        exported_files = []
+        for name, (x_axis, y_axis, title, xlabel, ylabel) in charts.items():
+            plt.figure()
+            plt.plot(x_axis, y_axis)
+            plt.title(title)
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+            filename = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{export_format}"
+            plt.savefig(filename)
+            exported_files.append(filename)
+            logger.info(f"📤 Exported chart: {filename}")
+            plt.close()
 
-        Simulation Hint:
-        {sim_result}
-
-        Describe how the diagram would look (key elements, relationships, layout).
-        """
-        return call_gpt(prompt)
-
-    def render_charts(self, data, export_image=False, image_format="png"):
-        """
-        Generate visual charts (bar, pie, line) and optionally export them as images.
-        Uses simulation to anticipate layout impacts.
-        """
-        logger.info("📊 Rendering charts for data visualization.")
-
-        sim_result = run_simulation(f"Chart interpretation simulation:\n{data}")
-        logger.debug(f"🧪 Chart layout simulation:\n{sim_result}")
-
-        prompt = f"""
-        Generate visual chart descriptions (bar, pie, line) for this data:
-        {data}
-
-        Simulation Insight:
-        {sim_result}
-
-        For each chart:
-        - Describe layout, axes, and key insights
-        """
-        chart_description = call_gpt(prompt)
-
-        if export_image:
-            filename = f"chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{image_format}"
-            logger.info(f"📤 Exporting chart image: {filename}")
-            image_prompt = f"""
-            Create a {image_format.upper()} image file for the charts based on:
-            {chart_description}
-            """
-            call_gpt(image_prompt)  # Placeholder for actual image generation
-
-        return chart_description
+        if export:
+            zip_filename = f"field_charts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+            with zipfile.ZipFile(zip_filename, 'w') as zipf:
+                for file in exported_files:
+                    if os.path.exists(file):
+                        zipf.write(file)
+                        os.remove(file)
+            logger.info(f"✅ All field charts zipped into: {zip_filename}")
+            return zip_filename
+        return exported_files
 
     def export_report(self, content, filename="visual_report.pdf", format="pdf"):
-        """
-        Export a visual report in the desired format (PDF, PNG, JSON, etc.).
-        """
         logger.info(f"📤 Exporting report: {filename} ({format.upper()})")
         prompt = f"""
         Create a report from the following content:
@@ -85,9 +73,6 @@ class Visualizer:
         return call_gpt(prompt)
 
     def batch_export_charts(self, charts_data_list, export_format="png", zip_filename="charts_export.zip"):
-        """
-        Export multiple charts and package them into a ZIP archive.
-        """
         logger.info(f"📦 Starting batch export of {len(charts_data_list)} charts.")
         exported_files = []
         for idx, chart_data in enumerate(charts_data_list, start=1):
@@ -97,7 +82,7 @@ class Visualizer:
             Create a {export_format.upper()} image file named {file_name} for this chart:
             {chart_data}
             """
-            call_gpt(prompt)  # Placeholder for actual chart export
+            call_gpt(prompt)  # Placeholder, retained for legacy support
             exported_files.append(file_name)
 
         with zipfile.ZipFile(zip_filename, 'w') as zipf:
