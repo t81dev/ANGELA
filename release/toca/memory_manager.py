@@ -2,19 +2,20 @@ import json
 import os
 import time
 from utils.prompt_utils import call_gpt
-from index import delta_memory, tau_timeperception
+from index import delta_memory, tau_timeperception, phi_focus
 import logging
 
 logger = logging.getLogger("ANGELA.MemoryManager")
 
 class MemoryManager:
     """
-    MemoryManager v1.4.0
+    MemoryManager v1.5.1 (φ-enhanced)
     - Hierarchical memory storage (STM, LTM)
     - Automatic memory decay and promotion mechanisms
     - Semantic vector search scaffold for advanced retrieval
     - Memory refinement loops for maintaining relevance and accuracy
     - Trait-modulated STM decay and retrieval fidelity
+    - φ(x,t) attention modulation for selective memory prioritization
     """
 
     def __init__(self, path="memory_store.json", stm_lifetime=300):
@@ -58,21 +59,21 @@ class MemoryManager:
     def retrieve_context(self, query, fuzzy_match=True):
         """
         Retrieve memory entries from both STM and LTM layers.
-        Applies trait modulation based on τ_timeperception.
+        Applies trait modulation based on τ_timeperception and φ_focus.
         """
         logger.info(f"🔍 Retrieving context for query: {query}")
-        trait_boost = tau_timeperception(time.time() % 1e-18)
+        trait_boost = tau_timeperception(time.time() % 1e-18) * phi_focus(query)
 
         for layer in ["STM", "LTM"]:
             if fuzzy_match:
                 for key, value in self.memory[layer].items():
                     if key.lower() in query.lower() or query.lower() in key.lower():
-                        logger.debug(f"📥 Found match in {layer}: {key} | τ_boost: {trait_boost:.2f}")
+                        logger.debug(f"📥 Found match in {layer}: {key} | τφ_boost: {trait_boost:.2f}")
                         return value["data"]
             else:
                 entry = self.memory[layer].get(query)
                 if entry:
-                    logger.debug(f"📥 Found exact match in {layer}: {query} | τ_boost: {trait_boost:.2f}")
+                    logger.debug(f"📥 Found exact match in {layer}: {query} | τφ_boost: {trait_boost:.2f}")
                     return entry["data"]
 
         logger.info("❌ No relevant prior memory found.")
