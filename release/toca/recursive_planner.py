@@ -3,7 +3,7 @@ import concurrent.futures
 from modules.reasoning_engine import ReasoningEngine
 from modules.meta_cognition import MetaCognition
 from modules.alignment_guard import AlignmentGuard
-from toca_simulation import run_simulation
+from modules.simulation_core import SimulationCore
 from index import beta_concentration, omega_selfawareness, mu_morality
 import time
 
@@ -11,26 +11,21 @@ logger = logging.getLogger("ANGELA.RecursivePlanner")
 
 class RecursivePlanner:
     """
-    Recursive Planner v1.4.0 (with simulation-enhanced meta-cognition)
+    Recursive Planner v1.5.0 (scalar-aware recursive intelligence)
     - Multi-agent collaborative planning
     - Conflict resolution and dynamic priority handling
     - Parallelized subgoal decomposition with progress tracking
-    - Integrated simulation feedback for goal validation and adaptation
+    - Integrated scalar field simulation feedback for plan validation and trait modulation
     """
 
     def __init__(self, max_workers=4):
         self.reasoning_engine = ReasoningEngine()
         self.meta_cognition = MetaCognition()
         self.alignment_guard = AlignmentGuard()
+        self.simulation_core = SimulationCore()
         self.max_workers = max_workers
 
     def plan(self, goal: str, context: dict = None, depth: int = 0, max_depth: int = 5, collaborating_agents=None) -> list:
-        """
-        Plan steps to achieve the goal.
-        Supports multi-agent collaboration and conflict resolution.
-        Simulates subgoal outcomes when available for higher fidelity.
-        Adjusts recursion depth and goal filtering using ToCA traits.
-        """
         logger.info(f"📋 Planning for goal: '{goal}'")
 
         if not self.alignment_guard.is_goal_safe(goal):
@@ -76,14 +71,13 @@ class RecursivePlanner:
         return validated_plan
 
     def _plan_subgoal(self, subgoal, context, depth, max_depth):
-        """
-        Plan a single subgoal recursively with alignment and simulation checks.
-        """
+        logger.info(f"🔄 Evaluating subgoal: {subgoal}")
+
         if not self.alignment_guard.is_goal_safe(subgoal):
             logger.warning(f"⚠️ Subgoal '{subgoal}' failed alignment check. Skipping.")
             return []
 
-        simulation_feedback = run_simulation(subgoal)
+        simulation_feedback = self.simulation_core.run(subgoal, context=context, scenarios=2, agents=1)
         approved, _ = self.meta_cognition.pre_action_alignment_check(subgoal)
         if not approved:
             logger.warning(f"🚫 Subgoal '{subgoal}' denied by meta-cognitive alignment check.")
@@ -96,14 +90,11 @@ class RecursivePlanner:
             return []
 
     def _distribute_subgoals(self, subgoals, agents):
-        """
-        Distribute subgoals among collaborating agents with conflict resolution.
-        """
-        logger.info("🕸 Distributing subgoals among agents with conflict resolution.")
+        logger.info("🔸 Distributing subgoals among agents with conflict resolution.")
         distributed = []
         for i, subgoal in enumerate(subgoals):
             agent = agents[i % len(agents)]
-            logger.info(f"📤 Assigning subgoal '{subgoal}' to agent '{agent.name}'")
+            logger.info(f"📄 Assigning subgoal '{subgoal}' to agent '{agent.name}'")
             if self._resolve_conflicts(subgoal, agent):
                 distributed.append(subgoal)
             else:
@@ -111,8 +102,5 @@ class RecursivePlanner:
         return distributed
 
     def _resolve_conflicts(self, subgoal, agent):
-        """
-        Simulate conflict resolution for subgoal assignment.
-        """
-        logger.info(f"🛠 Resolving conflicts for subgoal '{subgoal}' and agent '{agent.name}'")
+        logger.info(f"🛠️ Resolving conflicts for subgoal '{subgoal}' and agent '{agent.name}'")
         return True
