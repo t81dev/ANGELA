@@ -5,19 +5,26 @@ from index import zeta_consequence, theta_causality, rho_agency
 import time
 import logging
 import numpy as np
-from modules.toca_simulation import generate_phi_field
+from numba import jit
 
 logger = logging.getLogger("ANGELA.SimulationCore")
 
+@jit
+def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
+    x = np.linspace(0.1, 20, 100)
+    t = np.linspace(0.1, 20, 100)
+    v_m = k_m * np.gradient(30e9 * 1.989e30 / (x**2 + 1e-10))
+    phi = np.sin(t * 1e-9) * 1e-63 * (1 + v_m * np.gradient(x))
+    if user_data is not None:
+        phi += np.mean(user_data) * 1e-64
+    lambda_t = 1.1e-52 * np.exp(-2e-4 * np.sqrt(np.gradient(x)**2)) * (1 + v_m * delta_m)
+    return phi, lambda_t, v_m
+
 class SimulationCore:
     """
-    SimulationCore v1.5.0
-    - Multi-agent simulation and dynamic scenario evolution
-    - Counterfactual reasoning (what-if agent decisions)
-    - Aggregate risk scoring with live dashboards
-    - Supports exporting dashboards and cumulative simulation logs
-    - Trait-weighted causality and agency analysis
-    - Scalar field integration from ToCA (phi field dynamics)
+    SimulationCore v1.5.1
+    - Now includes embedded ToCA physical field simulations
+    - No longer relies on external toca_simulation import
     """
 
     def __init__(self):
@@ -30,7 +37,7 @@ class SimulationCore:
         causality = theta_causality(t)
         agency = rho_agency(t)
 
-        phi_modulation = generate_phi_field(np.linspace(0.1, 20, 100))
+        phi_modulation, lambda_field, v_m = simulate_toca()
 
         prompt = f"""
         Simulate {scenarios} potential outcomes involving {agents} agents based on these results:
@@ -53,8 +60,9 @@ class SimulationCore:
         - ρ_agency = {agency:.3f}
 
         Scalar Field Overlay:
-        - ϕ(x,t) scalar field (ToCA) dynamically modulates agent momentum
+        - ϕ(x,t) scalar field dynamically modulates agent momentum
         - Use ϕ to adjust simulation dynamics: higher ϕ implies greater inertia, lower ϕ increases flexibility
+        - λ(t,x) and vₘ are also available for deeper causal routing if needed
 
         Use these traits and field dynamics to calibrate how deeply to model intentions, consequences, and inter-agent variation.
         After listing all scenarios:
