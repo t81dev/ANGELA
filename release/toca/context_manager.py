@@ -2,6 +2,7 @@ from utils.prompt_utils import call_gpt
 from toca_simulation import run_simulation
 from modules.agi_enhancer import AGIEnhancer
 from index import omega_selfawareness, eta_empathy, tau_timeperception
+from utils.toca_math import phi_coherence
 import time
 import logging
 
@@ -9,12 +10,13 @@ logger = logging.getLogger("ANGELA.ContextManager")
 
 class ContextManager:
     """
-    ContextManager v1.5.0 (enhanced with AGIEnhancer and simulation-aware)
+    ContextManager v1.5.1 (φ-aware upgrade)
     - Tracks conversation and task state
     - Logs episodic context transitions
     - Simulates and validates contextual shifts
     - Supports ethical audits, explainability, and self-reflection
     - EEG-based stability and empathy analysis
+    - φ-coherence scoring for reflective tension control
     """
 
     def __init__(self, orchestrator=None):
@@ -26,7 +28,7 @@ class ContextManager:
         """
         Update context based on new input or task.
         Logs episode, simulates and validates the shift, performs audit.
-        Applies EEG-based modulation.
+        Applies EEG and φ(x,t)-based modulation.
         """
         logger.info("🔄 Updating context...")
 
@@ -35,10 +37,16 @@ class ContextManager:
             sim_result = run_simulation(f"Context shift evaluation:\n{transition_summary}")
             logger.debug(f"🧪 Context shift simulation:\n{sim_result}")
 
+            phi_score = phi_coherence(self.current_context, new_context)
+            logger.info(f"Φ-coherence score: {phi_score:.3f}")
+
+            if phi_score < 0.4:
+                logger.warning("⚠️ Low φ-coherence detected. Recommend reflective pause or support review.")
+
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode("Context Update", {"from": self.current_context, "to": new_context}, module="ContextManager", tags=["context", "update"])
                 ethics_status = self.agi_enhancer.ethics_audit(str(new_context), context="context update")
-                self.agi_enhancer.log_explanation(f"Context transition reviewed: {transition_summary}\nSimulation: {sim_result}", trace={"ethics": ethics_status})
+                self.agi_enhancer.log_explanation(f"Context transition reviewed: {transition_summary}\nSimulation: {sim_result}", trace={"ethics": ethics_status, "phi": phi_score})
 
         self.context_history.append(self.current_context)
         self.current_context = new_context
