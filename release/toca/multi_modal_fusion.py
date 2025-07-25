@@ -1,5 +1,5 @@
 from utils.prompt_utils import call_gpt
-from index import alpha_attention, sigma_sensation
+from index import alpha_attention, sigma_sensation, phi_physical
 import time
 import logging
 
@@ -7,25 +7,27 @@ logger = logging.getLogger("ANGELA.MultiModalFusion")
 
 class MultiModalFusion:
     """
-    MultiModalFusion v1.4.0
+    MultiModalFusion v1.5.1 (φ-enhanced cross-modal coherence)
     - Auto-embedding of text, images, and code
     - Dynamic attention weighting across modalities
     - Cross-modal reasoning and conflict resolution
     - Multi-turn refinement loops for high-quality insight generation
     - Visual summary generation for enhanced understanding
     - EEG-modulated attention and perceptual analysis
+    - φ(x,t)-modulated coherence enforcement for multi-modal harmony
     """
 
     def analyze(self, data, summary_style="insightful", refine_iterations=2):
         """
         Analyze and synthesize insights from multi-modal data.
         Automatically detects and embeds text, images, and code snippets.
-        Applies EEG-based attention and sensation filters.
+        Applies EEG-based attention, sensation filters, and φ-coherence modulation.
         """
         logger.info("🖇 Analyzing multi-modal data with auto-embedding...")
         t = time.time() % 1e-18
         attention_score = alpha_attention(t)
         sensation_score = sigma_sensation(t)
+        phi_score = phi_physical(t)
 
         embed_images, embed_code = self._detect_modalities(data)
         embedded_section = self._build_embedded_section(embed_images, embed_code)
@@ -38,17 +40,18 @@ class MultiModalFusion:
         Cognitive Trait Readings:
         - α_attention: {attention_score:.3f}
         - σ_sensation: {sensation_score:.3f}
+        - φ_coherence: {phi_score:.3f}
 
         Provide a unified, {summary_style} summary combining all elements.
         Balance attention across modalities and resolve any conflicts between them.
-        Adjust synthesis quality according to the traits.
+        Use φ(x,t) as a regulatory signal to guide synthesis quality and coherence.
         """
         output = call_gpt(prompt)
 
         for iteration in range(refine_iterations):
             logger.debug(f"🔄 Refinement iteration {iteration + 1}")
             refinement_prompt = f"""
-            Refine and enhance the following multi-modal summary for clarity, depth, and coherence:
+            Refine and enhance the following multi-modal summary for clarity, depth, and φ(x,t)-regulated coherence:
             {output}
             """
             output = call_gpt(refinement_prompt)
@@ -83,7 +86,7 @@ class MultiModalFusion:
     def correlate_modalities(self, modalities):
         """
         Correlate and identify patterns across different modalities.
-        Uses cross-modal reasoning to resolve conflicts and find synergies.
+        Uses cross-modal reasoning and φ-regulated coherence heuristics.
         """
         logger.info("🔗 Correlating modalities for pattern discovery.")
         prompt = f"""
@@ -91,7 +94,7 @@ class MultiModalFusion:
         {modalities}
 
         Highlight connections, conflicts, and opportunities for deeper insights.
-        Apply cross-modal reasoning to resolve conflicting signals.
+        Use φ(x,t) to resolve tension and regulate synthesis harmony.
         """
         return call_gpt(prompt)
 
@@ -105,5 +108,6 @@ class MultiModalFusion:
         {data}
 
         Include icons or labels to differentiate modalities (e.g., text, images, code).
+        Use φ(x,t) as a metaphorical guide for layout coherence and balance.
         """
         return call_gpt(prompt)
