@@ -4,17 +4,20 @@ from datetime import datetime
 from index import zeta_consequence, theta_causality, rho_agency
 import time
 import logging
+import numpy as np
+from modules.toca_simulation import generate_phi_field
 
 logger = logging.getLogger("ANGELA.SimulationCore")
 
 class SimulationCore:
     """
-    SimulationCore v1.4.0
+    SimulationCore v1.5.0
     - Multi-agent simulation and dynamic scenario evolution
     - Counterfactual reasoning (what-if agent decisions)
     - Aggregate risk scoring with live dashboards
     - Supports exporting dashboards and cumulative simulation logs
     - Trait-weighted causality and agency analysis
+    - Scalar field integration from ToCA (phi field dynamics)
     """
 
     def __init__(self):
@@ -22,15 +25,12 @@ class SimulationCore:
         self.simulation_history = []
 
     def run(self, results, context=None, scenarios=3, agents=2, export_report=False, export_format="pdf"):
-        """
-        Simulate multi-agent interactions and potential outcomes.
-        Generates multiple scenarios with probability weights, risk scores, and recommendations.
-        Adjusts fidelity using ToCA causality and agency traits.
-        """
         logger.info(f"🎲 Running simulation with {agents} agents and {scenarios} scenarios.")
         t = time.time() % 1e-18
         causality = theta_causality(t)
         agency = rho_agency(t)
+
+        phi_modulation = generate_phi_field(np.linspace(0.1, 20, 100))
 
         prompt = f"""
         Simulate {scenarios} potential outcomes involving {agents} agents based on these results:
@@ -52,7 +52,11 @@ class SimulationCore:
         - θ_causality = {causality:.3f}
         - ρ_agency = {agency:.3f}
 
-        Use the traits to calibrate how deeply to model intentions and consequences.
+        Scalar Field Overlay:
+        - ϕ(x,t) scalar field (ToCA) dynamically modulates agent momentum
+        - Use ϕ to adjust simulation dynamics: higher ϕ implies greater inertia, lower ϕ increases flexibility
+
+        Use these traits and field dynamics to calibrate how deeply to model intentions, consequences, and inter-agent variation.
         After listing all scenarios:
         - Build a cumulative risk dashboard with visual charts
         - Provide a final recommendation for decision-making.
@@ -76,11 +80,6 @@ class SimulationCore:
         return simulation_output
 
     def validate_impact(self, proposed_action, agents=2, export_report=False, export_format="pdf"):
-        """
-        Validate the impact of a proposed action in a simulated multi-agent environment.
-        Assign probability weights, calculate risk scores, and provide a color-coded summary.
-        Adjust analysis with consequence trait.
-        """
         logger.info("⚖️ Validating impact of proposed action.")
         t = time.time() % 1e-18
         consequence = zeta_consequence(t)
@@ -121,10 +120,6 @@ class SimulationCore:
         return validation_output
 
     def simulate_environment(self, environment_config, agents=2, steps=10):
-        """
-        Stage 3 scaffold: Simulate agent interactions in a configurable environment.
-        Placeholder for physics-based simulation engine.
-        """
         logger.info("🌐 Running environment simulation scaffold.")
         prompt = f"""
         Simulate agent interactions in the following environment:
