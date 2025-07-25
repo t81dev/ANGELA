@@ -5,21 +5,21 @@ import os
 import numpy as np
 import time
 
-from toca_simulation import simulate_galaxy_rotation, M_b_exponential, v_obs_flat
-from index import gamma_creativity, lambda_linguistics, chi_culturevolution
+from toca_simulation import simulate_galaxy_rotation, M_b_exponential, v_obs_flat, generate_phi_field
+from index import gamma_creativity, lambda_linguistics, chi_culturevolution, phi_scalar
 
 logger = logging.getLogger("ANGELA.ReasoningEngine")
 
 class ReasoningEngine:
     """
-    Reasoning Engine v1.4.0 (with Simulation Integration)
+    Reasoning Engine v1.5.0 (φ-aware Simulation Integration)
     ----------------------------------------------------
     - Bayesian reasoning with context weighting
     - Adaptive pattern success learning
-    - Modular decomposition support
+    - Modular decomposition with φ-field modulation
     - Simulation-backed inference (galaxy rotation example)
     - Detailed reasoning trace for meta-cognition
-    - EEG-informed reasoning weights
+    - Trait-reactive logic modulation using φ(x,t)
     ----------------------------------------------------
     """
 
@@ -69,16 +69,16 @@ class ReasoningEngine:
         creativity = gamma_creativity(t)
         linguistics = lambda_linguistics(t)
         culturevolution = chi_culturevolution(t)
+        phi_field = phi_scalar(t)
 
         for key, steps in self.decomposition_patterns.items():
             if key in goal.lower():
                 base_confidence = random.uniform(0.5, 1.0)
                 context_weight = context.get("weight_modifier", 1.0)
                 trait_bias = 1 + creativity + linguistics + culturevolution
-                adjusted_confidence = base_confidence * self.success_rates.get(key, 1.0) * context_weight * trait_bias
-                reasoning_trace.append(
-                    f"🧠 Pattern '{key}' (confidence: {adjusted_confidence:.2f})"
-                )
+                modulation = 1 + (phi_field - 0.5)  # shift φ from [0,1] → [-0.5,0.5] and re-center
+                adjusted_confidence = base_confidence * self.success_rates.get(key, 1.0) * context_weight * trait_bias * modulation
+                reasoning_trace.append(f"🧠 Pattern '{key}' (confidence: {adjusted_confidence:.2f}, φ={phi_field:.2f})")
                 if adjusted_confidence >= self.confidence_threshold:
                     subgoals.extend(steps)
                     reasoning_trace.append(f"✅ Accepted: {steps}")
@@ -98,9 +98,7 @@ class ReasoningEngine:
         new_rate = min(max(old_rate + adjustment, 0.1), 1.0)
         self.success_rates[pattern_key] = new_rate
         self._save_success_rates()
-        logger.info(
-            f"Updated '{pattern_key}': {old_rate:.2f} → {new_rate:.2f}"
-        )
+        logger.info(f"Updated '{pattern_key}': {old_rate:.2f} → {new_rate:.2f}")
 
     def run_galaxy_rotation_simulation(self, r_kpc, M0, r_scale, v0, k, epsilon):
         try:
