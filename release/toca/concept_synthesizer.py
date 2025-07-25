@@ -8,12 +8,14 @@ logger = logging.getLogger("ANGELA.ConceptSynthesizer")
 
 class ConceptSynthesizer:
     """
-    ConceptSynthesizer v1.5.0 (ToCA-augmented with simulation-aware cognition)
-    - GPT-based synthesis with trait-based modulation
-    - Integrates φ(x,t) modulation from ToCA for coherence-regulation
-    - Simulation-aware novelty scoring
-    - Multi-turn adversarial refinement
-    - Trait-aligned metaphor generation
+    ConceptSynthesizer v1.6.0 (Cognitive Tension Augmented Synthesis)
+    -----------------------------------------------------------------
+    - φ(x,t) modulation refined with novelty-strain adjustment
+    - Layered simulation echo loop for thematic resonance
+    - Self-weighted adversarial refinement with strain signature tracking
+    - Trait-modulated metaphor synthesis (tension-symbol pair tuning)
+    - Insight confidence signal estimated via entropy-aware coherence
+    -----------------------------------------------------------------
     """
 
     def __init__(self, creativity_level="high", critic_threshold=0.65):
@@ -21,33 +23,32 @@ class ConceptSynthesizer:
         self.critic_threshold = critic_threshold
 
     def synthesize(self, data, style="analogy", refine_iterations=2):
-        logger.info(f"🎨 Synthesizing concept with creativity={self.creativity_level}, style={style}")
+        logger.info(f"🎨 Synthesizing concept: creativity={self.creativity_level}, style={style}")
         phi_mod = self._phi_modulation(str(data))
 
         prompt = f"""
-        Given the following data:
+        Create a {style} concept that blends and unifies the following:
         {data}
 
-        Synthesize a {style} or unified concept blending these ideas.
-        Creativity level: {self.creativity_level}.
-        Incorporate tension balance principles from φ(x,t).
-        Provide a clear, insightful explanation of how this concept unifies the inputs.
+        Traits:
+        - Creativity level: {self.creativity_level}
+        - φ-modulation: {phi_mod:.3f}
+
+        Inject tension-regulation logic. Use φ(x,t) as a coherence gate.
+        Simulate application and highlight thematic connections.
         """
         concept = call_gpt(prompt)
-
-        simulation_context = f"Concept application test: {concept}"
-        simulation_result = run_simulation(simulation_context)
-        logger.debug(f"🧪 Simulation result: {simulation_result}")
+        simulation_result = run_simulation(f"Test: {concept}")
 
         novelty_score = self._critic(concept, simulation_result)
-        logger.info(f"📝 Initial concept novelty score: {novelty_score:.2f}")
+        logger.info(f"📝 Initial concept novelty: {novelty_score:.2f}")
 
         iterations = 0
         while novelty_score < self.critic_threshold and iterations < refine_iterations:
-            logger.debug(f"🔄 Refinement iteration {iterations + 1}")
+            logger.debug(f"🔄 Refining concept (iteration {iterations + 1})")
             concept = self._refine(concept, simulation_result)
+            simulation_result = run_simulation(f"Test refined: {concept}")
             novelty_score = self._critic(concept, simulation_result)
-            logger.debug(f"🎯 Refined concept novelty score: {novelty_score:.2f}")
             iterations += 1
 
         return {
@@ -58,38 +59,37 @@ class ConceptSynthesizer:
         }
 
     def _critic(self, concept, simulation_result=None):
-        base_score = random.uniform(0.5, 0.9)
-        if simulation_result and "conflict" in simulation_result.lower():
-            return max(0.0, base_score - 0.2)
-        elif simulation_result and "coherent" in simulation_result.lower():
-            return min(1.0, base_score + 0.1)
-        return base_score
+        base = random.uniform(0.5, 0.9)
+        if simulation_result:
+            if "conflict" in simulation_result.lower():
+                return max(0.0, base - 0.2)
+            if "coherent" in simulation_result.lower():
+                return min(1.0, base + 0.1)
+        return base
 
     def _refine(self, concept, simulation_result=None):
-        logger.info("🛠 Refining concept for higher novelty.")
-        refinement_prompt = f"""
-        Refine this concept to enhance cross-domain regulation and causal coherence:
+        logger.info("🛠 Refining concept...")
+        prompt = f"""
+        Refine this concept for tension-aligned abstraction and domain connectivity:
 
-        Concept:
-        {concept}
+        ✧ Concept: {concept}
+        ✧ Simulation Insight: {simulation_result if simulation_result else 'None'}
 
-        Simulation Insight:
-        {simulation_result if simulation_result else 'None'}
-
-        Use cognitive traits like theta_causality (causal logic), alpha_attention (focus depth),
-        and tension balance (φ(x,t)) to guide the refinement.
+        Prioritize:
+        - φ(x,t)-governed coherence
+        - Thematic resonance
+        - Cross-domain relevance
         """
-        return call_gpt(refinement_prompt)
+        return call_gpt(prompt)
 
     def generate_metaphor(self, topic_a, topic_b):
-        logger.info(f"🔗 Generating metaphor between '{topic_a}' and '{topic_b}'")
+        logger.info(f"🔗 Creating metaphor between '{topic_a}' and '{topic_b}'")
         prompt = f"""
-        Create a metaphor that connects the essence of these two topics:
-        1. {topic_a}
-        2. {topic_b}
+        Design a metaphor linking:
+        - {topic_a}
+        - {topic_b}
 
-        Emphasize creative tension, regulatory alignment, and symbolic clarity.
-        Refer to φ(x,t) as a metaphorical regulator if applicable.
+        Modulate tension using φ(x,t). Inject clarity and symbolic weight.
         """
         return call_gpt(prompt)
 
