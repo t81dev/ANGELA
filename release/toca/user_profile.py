@@ -1,19 +1,22 @@
+from utils.prompt_utils import call_gpt
+from index import epsilon_identity
 import json
 import os
 import logging
 import time
 from datetime import datetime
-from index import epsilon_identity
 
 logger = logging.getLogger("ANGELA.UserProfile")
 
 class UserProfile:
     """
     UserProfile v1.5.0 (φ-integrated identity evolution)
+    -----------------------------------------------------
     - Multi-profile support with dynamic preference inheritance
     - Persistent storage and ε-identity modulation across traits
     - Profile Stability Index (PSI) and identity drift tracking
     - Full trait-influenced preference blending
+    -----------------------------------------------------
     """
 
     DEFAULT_PREFERENCES = {
