@@ -14,14 +14,20 @@ logger = logging.getLogger("ANGELA.MetaCognition")
 
 class MetaCognition:
     """
-    Meta-Cognitive Engine v1.5.0 (φ-scalar Enhanced Reflexivity)
+    Meta-Cognitive Engine v1.6.0 (φ-scalar Enhanced Reflexivity)
     ------------------------------------------------------------
     - φ(x, t)-aware feedback prioritization
     - Dominant trait modulation with scalar field integration
     - FTI-calibrated alignment critique and correction
     - Reflexive diagnostics guided by scalar field tension
+    - Trait delta logging for change tracking
+    - Coherence evaluation of trait vector states
+    - Agent-based reflective audit using φ-field norms
     ------------------------------------------------------------
     """
+
+    def __init__(self):
+        self.last_diagnostics = {}
 
     def review_reasoning(self, reasoning_trace):
         logger.info("Simulating and reviewing reasoning trace.")
@@ -107,6 +113,8 @@ class MetaCognition:
         dominant = sorted(diagnostics.items(), key=lambda x: abs(x[1]), reverse=True)[:3]
         fti = sum(abs(v) for v in diagnostics.values()) / len(diagnostics)
 
+        self.log_trait_deltas(diagnostics)
+
         prompt = f"""
         Perform a φ-aware meta-cognitive self-diagnostic.
 
@@ -127,26 +135,37 @@ class MetaCognition:
         logger.debug(f"Self-diagnostics report:\n{report}")
         return report
 
-    def propose_optimizations(self, agent_stats):
-        logger.info("Simulating agent behavior for optimization.")
-        simulated_response = run_simulation(agent_stats)
+    def log_trait_deltas(self, current_traits):
+        if self.last_diagnostics:
+            delta = {k: round(current_traits[k] - self.last_diagnostics.get(k, 0.0), 4)
+                     for k in current_traits}
+            logger.info(f"📈 Trait Δ changes: {delta}")
+        self.last_diagnostics = current_traits.copy()
+
+    def trait_coherence(self, traits):
+        """
+        Evaluate internal trait coherence: low variance = coherent state.
+        """
+        vals = list(traits.values())
+        coherence_score = 1.0 / (1e-5 + np.std(vals))
+        logger.info(f"🧭 Trait coherence score: {coherence_score:.4f}")
+        return coherence_score
+
+    def agent_reflective_diagnosis(self, agent_name, agent_log):
+        logger.info(f"🔎 Running reflective diagnosis for agent: {agent_name}")
         t = time.time() % 1e-18
         phi = phi_scalar(t)
-
         prompt = f"""
-        Agent Stats:
-        {agent_stats}
+        Agent: {agent_name}
+        φ-scalar(t): {phi:.3f}
 
-        Simulation Output:
-        {simulated_response}
+        Diagnostic Log:
+        {agent_log}
 
-        φ-scalar(t) = {phi:.3f}
-
-        Recommend:
-        - Component upgrades
-        - Planning logic refinements
-        - φ-aligned adaptation strategies
+        Tasks:
+        - Detect bias or instability in reasoning trace
+        - Cross-check for incoherent trait patterns
+        - Apply φ-modulated critique
+        - Suggest alignment corrections
         """
-        recommendations = call_gpt(prompt)
-        logger.debug(f"Optimization proposals:\n{recommendations}")
-        return recommendations
+        return call_gpt(prompt)
