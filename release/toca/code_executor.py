@@ -9,9 +9,11 @@ logger = logging.getLogger("ANGELA.CodeExecutor")
 class CodeExecutor:
     """
     CodeExecutor v1.5.0 (trait-adaptive)
+    ------------------------------------
     - Sandboxed execution for Python, JavaScript, and Lua
     - Trait-driven risk thresholding for timeouts and isolation
     - Context-aware runtime diagnostics and resilience-based error mitigation
+    ------------------------------------
     """
 
     def __init__(self):
