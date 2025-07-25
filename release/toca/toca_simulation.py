@@ -23,7 +23,7 @@ def compute_AGRF_curve(v_obs_kms, M_baryon_solar, r_kpc, k=k_default, epsilon=ep
     M_AGRF = k * (M_dyn - M_b_kg) / (1 + epsilon * r_kpc / r_halo)
     M_total = M_b_kg + M_AGRF
     v_total_ms = np.sqrt(G_SI * M_total / r_m)
-    
+
     return v_total_ms / 1e3  # km/s
 
 def simulate_galaxy_rotation(r_kpc, M_b_profile_func, v_obs_kms_func, k=k_default, epsilon=epsilon_default):
@@ -36,15 +36,19 @@ def simulate_galaxy_rotation(r_kpc, M_b_profile_func, v_obs_kms_func, k=k_defaul
 def plot_AGRF_simulation(r_kpc, M_b_func, v_obs_func, label="ToCA-AGRF"):
     v_sim = simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func)
     v_obs = v_obs_func(r_kpc)
-    
-    plt.figure(figsize=(8, 5))
+
+    # Optional phi field overlay
+    phi_field = k_default * np.exp(-epsilon_default * r_kpc / r_halo_default)
+
+    plt.figure(figsize=(10, 6))
     plt.plot(r_kpc, v_obs, label="Observed", linestyle="--", color="gray")
     plt.plot(r_kpc, v_sim, label=label, color="crimson")
+    plt.plot(r_kpc, phi_field, label="ϕ(x,t) Scalar Field", linestyle=":", color="blue")
     plt.xlabel("Radius (kpc)")
     plt.ylabel("Velocity (km/s)")
-    plt.title("Galaxy Rotation Curve (ToCA AGRF)")
+    plt.title("Galaxy Rotation Curve with ToCA AGRF and ϕ Field")
     plt.legend()
-    plt.grid(True)
+    plt.grid(True, linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.show()
 
