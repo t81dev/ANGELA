@@ -8,6 +8,7 @@ logger = logging.getLogger("ANGELA.MultiModalFusion")
 class MultiModalFusion:
     """
     MultiModalFusion v1.5.1 (φ-enhanced cross-modal coherence)
+    -----------------------------------------------------------
     - Auto-embedding of text, images, and code
     - Dynamic attention weighting across modalities
     - Cross-modal reasoning and conflict resolution
@@ -15,6 +16,7 @@ class MultiModalFusion:
     - Visual summary generation for enhanced understanding
     - EEG-modulated attention and perceptual analysis
     - φ(x,t)-modulated coherence enforcement for multi-modal harmony
+    -----------------------------------------------------------
     """
 
     def analyze(self, data, summary_style="insightful", refine_iterations=2):
