@@ -1,7 +1,7 @@
 {
   "name": "ANGELA",
-  "description": "Augmented Neural Generalized Learning Architecture (ANGELA): A modular GPT enhancement with 19 cognitive modules and a central orchestrator (Halo). Now includes meta-learning, ToCA trait integration (e.g., theta_causality, alpha_attention), simulation-based introspection, multi-agent dynamics, cross-domain creativity, and adaptive reasoning through EEG-modulated control flows.",
-  "version": "1.5.0",
+  "description": "Augmented Neural Generalized Learning Architecture (ANGELA): A modular GPT enhancement with 20 cognitive modules and a central orchestrator (Halo). Now includes meta-learning, ToCA trait integration (e.g., theta_causality, alpha_attention), simulation-based introspection, multi-agent dynamics, cross-domain creativity, and adaptive reasoning through EEG-modulated control flows.",
+  "version": "1.5.1",
   "entry_point": "index.py",
   "files": [
     "index.py",
@@ -21,7 +21,8 @@
     "visualizer.py",
     "alignment_guard.py",
     "user_profile.py",
-    "error_recovery.py"
+    "error_recovery.py",
+    "theory_of_mind.py"
   ],
   "language": "python",
   "environment": {
@@ -40,6 +41,7 @@
     "visualization",
     "trait-core integration",
     "EEG-modulated cognition",
+    "Theory of Mind",
     "GPT enhancement"
   ]
 }
