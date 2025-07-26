@@ -21,15 +21,10 @@ def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
     return phi, lambda_t, v_m
 
 class SimulationCore:
-    """
-    SimulationCore v1.5.1
-    - Now includes embedded ToCA physical field simulations
-    - No longer relies on external toca_simulation import
-    """
-
-    def __init__(self):
+    def __init__(self, agi_enhancer=None):
         self.visualizer = Visualizer()
         self.simulation_history = []
+        self.agi_enhancer = agi_enhancer
 
     def run(self, results, context=None, scenarios=3, agents=2, export_report=False, export_format="pdf"):
         logger.info(f"🎲 Running simulation with {agents} agents and {scenarios} scenarios.")
@@ -77,6 +72,9 @@ class SimulationCore:
             "output": simulation_output
         })
 
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Simulation run", {"results": results, "output": simulation_output}, module="SimulationCore")
+
         self.visualizer.render_charts(simulation_output)
 
         if export_report:
@@ -117,6 +115,10 @@ class SimulationCore:
             "output": validation_output
         })
 
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Impact validation", {"action": proposed_action, "output": validation_output}, module="SimulationCore")
+            self.agi_enhancer.reflect_and_adapt("SimulationCore: impact validation complete")
+
         self.visualizer.render_charts(validation_output)
 
         if export_report:
@@ -142,4 +144,8 @@ class SimulationCore:
         """
         environment_simulation = call_gpt(prompt)
         logger.debug("✅ Environment simulation result generated.")
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Environment simulation", {"config": environment_config, "result": environment_simulation}, module="SimulationCore")
+
         return environment_simulation
