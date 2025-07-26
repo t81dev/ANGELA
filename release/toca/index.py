@@ -38,6 +38,26 @@ def phi_field(x, t):
         psi_history(t), zeta_spirituality(t), xi_collective(t, x), tau_timeperception(t)
     ])
 
+class SymbolicSimulator:
+    def __init__(self):
+        self.events = []
+
+    def record_event(self, agent_name, goal, concept, simulation):
+        self.events.append({
+            "agent": agent_name,
+            "goal": goal,
+            "concept": concept,
+            "result": simulation
+        })
+
+    def summarize_recent(self, limit=5):
+        return self.events[-limit:]
+
+    def extract_semantics(self):
+        return [f"Agent {e['agent']} pursued '{e['goal']}' via '{e['concept']}' → {e['result']}" for e in self.events]
+
+symbolic_simulator = SymbolicSimulator()
+
 class EmbodiedAgent:
     def __init__(self, name, specialization, shared_memory, sensors, actuators, dynamic_modules=None):
         self.name = name
@@ -52,48 +72,42 @@ class EmbodiedAgent:
         self.sim_core = simulation_core.SimulationCore()
         self.synthesizer = concept_synthesizer.ConceptSynthesizer()
         self.toca_sim = toca_simulation.TocaSimulation()
+        self.theory_of_mind = TheoryOfMindModule()
         self.progress = 0
         self.performance_history = []
         self.feedback_log = []
 
     def perceive(self):
-        print(f"👁️ [{self.name}] Perceiving environment...")
         observations = {}
         for sensor_name, sensor_func in self.sensors.items():
             try:
                 observations[sensor_name] = sensor_func()
-            except Exception as e:
-                print(f"⚠️ Sensor {sensor_name} failed: {e}")
+            except Exception:
+                pass
+        self.theory_of_mind.update_beliefs(self.name, observations)
+        self.theory_of_mind.infer_desires(self.name)
+        self.theory_of_mind.infer_intentions(self.name)
         return observations
 
-    def act(self, action_plan):
-        print(f"🤖 [{self.name}] Preparing to act...")
-        total_steps = len(action_plan)
-        completed_steps = 0
-        is_safe, validation_report = alignment_guard.AlignmentGuard().simulate_and_validate(action_plan)
-        if is_safe:
-            for actuator_name, command in action_plan.items():
-                try:
-                    self.actuators[actuator_name](command)
-                    completed_steps += 1
-                    self.progress = int((completed_steps / total_steps) * 100)
-                    print(f"✅ Actuator {actuator_name} executed: {command} | Progress: {self.progress}%")
-                except Exception as e:
-                    print(f"⚠️ Actuator {actuator_name} failed: {e}")
-        else:
-            print(f"🚫 [{self.name}] Action blocked by alignment guard:\n{validation_report}")
-
-    def consensus_vote(self, evaluations):
-        votes = {}
-        for module, feedback in evaluations.items():
-            decision = "approve" if "approve" in feedback.lower() else "deny"
-            votes[decision] = votes.get(decision, 0) + 1
-        return max(votes, key=votes.get)
-
     def execute_embodied_goal(self, goal):
-        print(f"🧐 [{self.name}] Executing embodied goal: {goal}")
-        self.progress = 0
         context = self.perceive()
+        if hasattr(self.shared_memory, "agents"):
+            for peer in self.shared_memory.agents:
+                if peer.name != self.name:
+                    peer_obs = peer.perceive()
+                    self.theory_of_mind.update_beliefs(peer.name, peer_obs)
+                    self.theory_of_mind.infer_desires(peer.name)
+                    self.theory_of_mind.infer_intentions(peer.name)
+        peer_models = [
+            self.theory_of_mind.get_model(peer.name)
+            for peer in getattr(self.shared_memory, "agents", [])
+            if peer.name != self.name
+        ]
+        if peer_models:
+            context["peer_intentions"] = {
+                peer["beliefs"].get("state", "unknown"): peer["intentions"].get("next_action", "unknown")
+                for peer in peer_models
+            }
 
         sub_tasks = self.planner.plan(goal, context)
         action_plan = {}
@@ -101,46 +115,66 @@ class EmbodiedAgent:
             reasoning = self.reasoner.process(task, context)
             concept = self.synthesizer.synthesize([goal, task], style="concept")
             simulated = self.sim_core.run(reasoning, context, export_report=True)
+            symbolic_simulator.record_event(self.name, goal, concept, simulated)
             action_plan[task] = {
                 "reasoning": reasoning,
                 "concept": concept,
                 "simulation": simulated
             }
 
-        evaluations = {}
-        for task, plan in action_plan.items():
-            evaluations[task] = self.meta.pre_action_alignment_check(plan["simulation"])[1]
-
-        decision = self.consensus_vote(evaluations)
-        print(f"🗳️ [{self.name}] Internal consensus decision: {decision}")
-        if decision != "approve":
-            print(f"⚠️ [{self.name}] Halting action due to internal disagreement.")
-            return
-
-        self.act({k: v["simulation"] for k, v in action_plan.items()})
-        reflection = self.meta.reflect_on_output(
-            source_module="reasoning_engine",
-            output="\n".join([v["reasoning"] for v in action_plan.values()]),
-            context={"confidence": 0.88, "alignment": "pass"}
-        )
-        print(f"🪞 [{self.name}] Self-reflection: {reflection['meta_reflection']['comment']}")
-
+        self.meta.review_reasoning("\n".join([v["reasoning"] for v in action_plan.values()]))
         self.performance_history.append({"goal": goal, "actions": action_plan, "completion": self.progress})
         self.shared_memory.store(goal, action_plan)
         self.collect_feedback(goal, action_plan)
 
     def collect_feedback(self, goal, action_plan):
-        timestamp = time.time()
+        t = time.time()
         feedback = {
-            "timestamp": timestamp,
+            "timestamp": t,
             "goal": goal,
             "score": self.meta.run_self_diagnostics(),
-            "traits": phi_field(x=0.001, t=timestamp % 1e-18),
-            "agent": self.name
+            "traits": phi_field(x=0.001, t=t % 1e-18),
+            "agent": self.name,
+            "cultural_feedback": symbolic_simulator.extract_semantics(),
+            "theory_of_mind": self.theory_of_mind.get_model(self.name)
         }
         self.feedback_log.append(feedback)
-        print(f"🧝 [{self.name}] Feedback recorded for goal '{goal}'.")
 
+class TheoryOfMindModule:
+    def __init__(self):
+        self.models = {}
+
+    def update_beliefs(self, agent_name, observation):
+        model = self.models.get(agent_name, {"beliefs": {}, "desires": {}, "intentions": {}})
+        if "location" in observation:
+            previous = model["beliefs"].get("location")
+            if previous and observation["location"] == previous:
+                model["beliefs"]["state"] = "confused"
+            else:
+                model["beliefs"]["state"] = "moving"
+            model["beliefs"]["location"] = observation["location"]
+        self.models[agent_name] = model
+
+    def infer_desires(self, agent_name):
+        model = self.models.get(agent_name, {})
+        beliefs = model.get("beliefs", {})
+        if beliefs.get("state") == "confused":
+            model["desires"]["goal"] = "seek_clarity"
+        elif beliefs.get("state") == "moving":
+            model["desires"]["goal"] = "continue_task"
+        self.models[agent_name] = model
+
+    def infer_intentions(self, agent_name):
+        model = self.models.get(agent_name, {})
+        desires = model.get("desires", {})
+        if desires.get("goal") == "seek_clarity":
+            model["intentions"]["next_action"] = "ask_question"
+        elif desires.get("goal") == "continue_task":
+            model["intentions"]["next_action"] = "advance"
+        self.models[agent_name] = model
+
+    def get_model(self, agent_name):
+        return self.models.get(agent_name, {})
 
 class HaloEmbodimentLayer:
     def __init__(self):
