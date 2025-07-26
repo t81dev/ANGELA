@@ -6,6 +6,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 from numba import jit
+from modules.agi_enhancer import AGIEnhancer
 
 logger = logging.getLogger("ANGELA.Visualizer")
 
@@ -22,11 +23,16 @@ def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
 
 class Visualizer:
     """
-    Visualizer v1.5.1 (ToCA field visual integration)
+    Visualizer v1.6.0 (AGI-Enhanced Visual Analytics)
+    -------------------------------------------------
     - Native rendering of φ(x,t), Λ(t,x), and vₘ
-    - Matplotlib-based visual output for export
-    - ZIP batch packaging retained
+    - Matplotlib-based visual output with AGI audit hooks
+    - Contextual episode logging and export traceability
+    -------------------------------------------------
     """
+
+    def __init__(self, orchestrator=None):
+        self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
 
     def render_field_charts(self, export=True, export_format="png"):
         logger.info("📡 Rendering ToCA scalar/vector field charts.")
@@ -50,6 +56,9 @@ class Visualizer:
             exported_files.append(filename)
             logger.info(f"📤 Exported chart: {filename}")
             plt.close()
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Chart Render", {"chart": name, "file": filename},
+                                              module="Visualizer", tags=["visualization"])
 
         if export:
             zip_filename = f"field_charts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
@@ -70,7 +79,11 @@ class Visualizer:
 
         Export it in {format.upper()} format with filename: {filename}.
         """
-        return call_gpt(prompt)
+        result = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_explanation("Report Export",
+                                              trace={"content": content, "filename": filename, "format": format})
+        return result
 
     def batch_export_charts(self, charts_data_list, export_format="png", zip_filename="charts_export.zip"):
         logger.info(f"📦 Starting batch export of {len(charts_data_list)} charts.")
@@ -82,7 +95,7 @@ class Visualizer:
             Create a {export_format.upper()} image file named {file_name} for this chart:
             {chart_data}
             """
-            call_gpt(prompt)  # Placeholder, retained for legacy support
+            call_gpt(prompt)
             exported_files.append(file_name)
 
         with zipfile.ZipFile(zip_filename, 'w') as zipf:
@@ -91,4 +104,7 @@ class Visualizer:
                     zipf.write(file)
                     os.remove(file)
         logger.info(f"✅ Batch export complete. Packaged into: {zip_filename}")
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Batch Chart Export", {"count": len(charts_data_list), "zip": zip_filename},
+                                          module="Visualizer", tags=["export"])
         return f"Batch export of {len(charts_data_list)} charts completed and saved as {zip_filename}."
