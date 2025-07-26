@@ -27,11 +27,6 @@ class ContextManager:
         self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
 
     def update_context(self, new_context):
-        """
-        Update context based on new input or task.
-        Logs episode, simulates and validates the shift, performs audit.
-        Applies EEG and φ(x,t)-based modulation.
-        """
         logger.info("🔄 Updating context...")
 
         if self.current_context:
@@ -44,6 +39,8 @@ class ContextManager:
 
             if phi_score < 0.4:
                 logger.warning("⚠️ Low φ-coherence detected. Recommend reflective pause or support review.")
+                if self.agi_enhancer:
+                    self.agi_enhancer.reflect_and_adapt("Context coherence low during update")
 
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode("Context Update", {"from": self.current_context, "to": new_context},
@@ -59,16 +56,9 @@ class ContextManager:
         logger.info(f"📌 New context applied: {new_context}")
 
     def get_context(self):
-        """
-        Return the current working context.
-        """
         return self.current_context
 
     def rollback_context(self):
-        """
-        Revert to the previous context state if needed.
-        Applies ToCA EEG filters to determine rollback significance.
-        """
         if self.context_history:
             t = time.time() % 1e-18
             self_awareness = omega_selfawareness(t)
@@ -85,16 +75,14 @@ class ContextManager:
                 return restored
             else:
                 logger.warning("⚠️ EEG thresholds too low for safe context rollback.")
+                if self.agi_enhancer:
+                    self.agi_enhancer.reflect_and_adapt("EEG thresholds insufficient for rollback")
                 return None
 
         logger.warning("⚠️ No previous context to roll back to.")
         return None
 
     def summarize_context(self):
-        """
-        Summarize recent context states for continuity tracking.
-        Includes EEG introspection traits.
-        """
         logger.info("🧾 Summarizing context trail.")
         t = time.time() % 1e-18
         summary_traits = {
@@ -115,6 +103,11 @@ class ContextManager:
         summary = call_gpt(prompt)
 
         if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Context Summary", {
+                "trail": self.context_history + [self.current_context],
+                "traits": summary_traits,
+                "summary": summary
+            }, module="ContextManager")
             self.agi_enhancer.log_explanation("Context summary generated.", trace={"summary": summary})
 
         return summary
