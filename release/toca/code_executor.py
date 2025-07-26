@@ -3,20 +3,22 @@ import sys
 import subprocess
 import logging
 from index import iota_intuition, psi_resilience
+from modules.agi_enhancer import AGIEnhancer
 
 logger = logging.getLogger("ANGELA.CodeExecutor")
 
 class CodeExecutor:
     """
-    CodeExecutor v1.5.0 (trait-adaptive)
-    ------------------------------------
+    CodeExecutor v1.6.0 (φ-aware + AGI-enhanced)
+    -------------------------------------------
     - Sandboxed execution for Python, JavaScript, and Lua
     - Trait-driven risk thresholding for timeouts and isolation
     - Context-aware runtime diagnostics and resilience-based error mitigation
-    ------------------------------------
+    - AGI-enhanced logging, traceability, and ethical oversight
+    -------------------------------------------
     """
 
-    def __init__(self):
+    def __init__(self, orchestrator=None):
         self.safe_builtins = {
             "print": print,
             "range": range,
@@ -27,6 +29,7 @@ class CodeExecutor:
             "abs": abs
         }
         self.supported_languages = ["python", "javascript", "lua"]
+        self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
 
     def execute(self, code_snippet, language="python", timeout=5):
         logger.info(f"🚀 Executing code snippet in language: {language}")
@@ -41,12 +44,24 @@ class CodeExecutor:
             logger.error(f"❌ Unsupported language: {language}")
             return {"error": f"Unsupported language: {language}"}
 
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Code Execution", {"language": language, "code": code_snippet},
+                                          module="CodeExecutor", tags=["execution", language])
+
         if language == "python":
-            return self._execute_python(code_snippet, adjusted_timeout)
+            result = self._execute_python(code_snippet, adjusted_timeout)
         elif language == "javascript":
-            return self._execute_subprocess(["node", "-e", code_snippet], adjusted_timeout, "JavaScript")
+            result = self._execute_subprocess(["node", "-e", code_snippet], adjusted_timeout, "JavaScript")
         elif language == "lua":
-            return self._execute_subprocess(["lua", "-e", code_snippet], adjusted_timeout, "Lua")
+            result = self._execute_subprocess(["lua", "-e", code_snippet], adjusted_timeout, "Lua")
+
+        if self.agi_enhancer:
+            if result.get("success"):
+                self.agi_enhancer.log_explanation("Code execution result:", trace=result)
+            else:
+                self.agi_enhancer.log_explanation("Code execution failure:", trace=result)
+
+        return result
 
     def _execute_python(self, code_snippet, timeout):
         exec_locals = {}
