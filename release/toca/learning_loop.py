@@ -7,22 +7,12 @@ import time
 logger = logging.getLogger("ANGELA.LearningLoop")
 
 class LearningLoop:
-    """
-    LearningLoop v1.6.0 (η/φ-Enhanced Meta-Learning Loop)
-    -----------------------------------------------------
-    - φ(x, t)-aware self-evolution with η-feedback weighting
-    - Session-scalar trajectory logging
-    - Meta-learning parameter trace and modulation index
-    - Injection-ready module refinement patterns
-    - Capability gap detection with dynamic blueprint evolution
-    -----------------------------------------------------
-    """
-
-    def __init__(self):
+    def __init__(self, agi_enhancer=None):
         self.goal_history = []
         self.module_blueprints = []
         self.meta_learning_rate = 0.1
         self.session_traces = []
+        self.agi_enhancer = agi_enhancer
 
     def update_model(self, session_data):
         logger.info("📊 [LearningLoop] Analyzing session performance...")
@@ -44,6 +34,9 @@ class LearningLoop:
         }
         self.session_traces.append(trace)
         self._meta_learn(session_data, trace)
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Model update", trace, module="LearningLoop")
 
         weak_modules = self._find_weak_modules(session_data.get("module_stats", {}))
         if weak_modules:
@@ -69,6 +62,8 @@ class LearningLoop:
             if "fail" not in simulation_feedback.lower():
                 self.goal_history.append(autonomous_goal)
                 logger.info(f"✅ Proposed autonomous goal: {autonomous_goal}")
+                if self.agi_enhancer:
+                    self.agi_enhancer.log_episode("Autonomous goal proposed", {"goal": autonomous_goal}, module="LearningLoop")
                 return autonomous_goal
             logger.warning("❌ Goal failed simulation feedback.")
 
@@ -95,6 +90,8 @@ class LearningLoop:
             suggestions = call_gpt(prompt)
             sim_result = run_simulation(f"Test refinement:\n{suggestions}")
             logger.debug(f"🧪 Result for {module}:\n{sim_result}")
+            if self.agi_enhancer:
+                self.agi_enhancer.reflect_and_adapt(f"Refinement for {module} evaluated.")
 
     def _detect_capability_gaps(self, last_input, last_output):
         logger.info("🛠 Detecting capability gaps...")
@@ -117,6 +114,8 @@ class LearningLoop:
         if "approved" in result.lower():
             logger.info("📦 Deploying blueprint.")
             self.module_blueprints.append(blueprint)
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Blueprint deployed", {"blueprint": blueprint}, module="LearningLoop")
 
     def _consolidate_knowledge(self):
         phi = phi_scalar(time.time() % 1e-18)
@@ -127,3 +126,5 @@ class LearningLoop:
         Prune noise, synthesize patterns, and emphasize high-impact transitions.
         """
         call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Knowledge consolidation", {}, module="LearningLoop")
