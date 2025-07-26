@@ -338,3 +338,147 @@ class AGIEnhancer:
 # print(self.agi_enhancer.explain_last_decision(mode="svg"))
 # print(self.agi_enhancer.embodiment_act("move_forward", {"distance": 1.0}, real=True))
 # print(self.agi_enhancer.periodic_self_audit())
+
+# ---------------- Theory of Mind Module ----------------
+
+class TheoryOfMindModule:
+    def __init__(self):
+        self.models: Dict[str, Dict[str, Any]] = {}
+
+    def update_beliefs(self, agent_name: str, observation: Dict[str, Any]):
+        model = self.models.get(agent_name, {"beliefs": {}, "desires": {}, "intentions": {}})
+        # Simple example: observe a lack of movement -> infer confusion
+        if "location" in observation:
+            previous = model["beliefs"].get("location")
+            if previous and observation["location"] == previous:
+                model["beliefs"]["state"] = "confused"
+            else:
+                model["beliefs"]["state"] = "moving"
+            model["beliefs"]["location"] = observation["location"]
+        self.models[agent_name] = model
+
+    def infer_desires(self, agent_name: str):
+        model = self.models.get(agent_name, {})
+        beliefs = model.get("beliefs", {})
+        # Inference rule: if confused, likely desires clarification
+        if beliefs.get("state") == "confused":
+            model["desires"]["goal"] = "seek_clarity"
+        elif beliefs.get("state") == "moving":
+            model["desires"]["goal"] = "continue_task"
+        self.models[agent_name] = model
+
+    def infer_intentions(self, agent_name: str):
+        model = self.models.get(agent_name, {})
+        desires = model.get("desires", {})
+        if desires.get("goal") == "seek_clarity":
+            model["intentions"]["next_action"] = "ask_question"
+        elif desires.get("goal") == "continue_task":
+            model["intentions"]["next_action"] = "advance"
+        self.models[agent_name] = model
+
+    def get_model(self, agent_name: str) -> Dict[str, Any]:
+        return self.models.get(agent_name, {})
+
+    def describe_agent_state(self, agent_name: str) -> str:
+        model = self.get_model(agent_name)
+        return f"{agent_name} believes they are {model.get('beliefs', {}).get('state', 'unknown')}, desires to {model.get('desires', {}).get('goal', 'unknown')}, and intends to {model.get('intentions', {}).get('next_action', 'unknown')}."
+
+# ----- Integration into EmbodiedAgent -----
+
+class EmbodiedAgent:
+    def __init__(self, name, specialization, shared_memory, sensors, actuators, dynamic_modules=None):
+        self.name = name
+        self.specialization = specialization
+        self.shared_memory = shared_memory
+        self.sensors = sensors
+        self.actuators = actuators
+        self.dynamic_modules = dynamic_modules or []
+        self.reasoner = reasoning_engine.ReasoningEngine()
+        self.planner = recursive_planner.RecursivePlanner()
+        self.meta = meta_cognition.MetaCognition()
+        self.sim_core = simulation_core.SimulationCore()
+        self.synthesizer = concept_synthesizer.ConceptSynthesizer()
+        self.toca_sim = toca_simulation.TocaSimulation()
+        self.theory_of_mind = TheoryOfMindModule()  # <<-- NEW
+        self.progress = 0
+        self.performance_history = []
+        self.feedback_log = []
+
+    def perceive(self):
+        print(f"👁️ [{self.name}] Perceiving environment...")
+        observations = {}
+        for sensor_name, sensor_func in self.sensors.items():
+            try:
+                observations[sensor_name] = sensor_func()
+            except Exception as e:
+                print(f"⚠️ Sensor {sensor_name} failed: {e}")
+        # Update self-theory (self-model) if multi-agent context
+        self.theory_of_mind.update_beliefs(self.name, observations)
+        self.theory_of_mind.infer_desires(self.name)
+        self.theory_of_mind.infer_intentions(self.name)
+        print(f"🧠 [{self.name}] Self-theory: {self.theory_of_mind.describe_agent_state(self.name)}")
+        return observations
+
+    def observe_peers(self):
+        if hasattr(self.shared_memory, "agents"):
+            for peer in self.shared_memory.agents:
+                if peer.name != self.name:
+                    peer_observation = peer.perceive()
+                    self.theory_of_mind.update_beliefs(peer.name, peer_observation)
+                    self.theory_of_mind.infer_desires(peer.name)
+                    self.theory_of_mind.infer_intentions(peer.name)
+                    state = self.theory_of_mind.describe_agent_state(peer.name)
+                    print(f"🔍 [{self.name}] Observed peer {peer.name}: {state}")
+
+    def execute_embodied_goal(self, goal):
+        print(f"🧐 [{self.name}] Executing embodied goal: {goal}")
+        self.progress = 0
+        context = self.perceive()
+
+        # Observe peer agents and integrate ToM
+        if hasattr(self.shared_memory, "agents"):
+            self.observe_peers()
+
+        # Incorporate peer intentions if relevant
+        peer_models = [
+            self.theory_of_mind.get_model(peer.name)
+            for peer in getattr(self.shared_memory, "agents", [])
+            if peer.name != self.name
+        ]
+        if peer_models:
+            context["peer_intentions"] = {
+                peer["beliefs"].get("state", "unknown"): peer["intentions"].get("next_action", "unknown")
+                for peer in peer_models
+            }
+
+        sub_tasks = self.planner.plan(goal, context)
+        action_plan = {}
+        for task in sub_tasks:
+            reasoning = self.reasoner.process(task, context)
+            concept = self.synthesizer.synthesize([goal, task], style="concept")
+            simulated = self.sim_core.run(reasoning, context, export_report=True)
+            action_plan[task] = {
+                "reasoning": reasoning,
+                "concept": concept,
+                "simulation": simulated
+            }
+
+        self.act({k: v["simulation"] for k, v in action_plan.items()})
+        self.meta.review_reasoning("\n".join([v["reasoning"] for v in action_plan.values()]))
+        self.performance_history.append({"goal": goal, "actions": action_plan, "completion": self.progress})
+        self.shared_memory.store(goal, action_plan)
+        self.collect_feedback(goal, action_plan)
+
+    def collect_feedback(self, goal, action_plan):
+        timestamp = time.time()
+        feedback = {
+            "timestamp": timestamp,
+            "goal": goal,
+            "score": self.meta.run_self_diagnostics(),
+            "traits": phi_field(x=0.001, t=timestamp % 1e-18),
+            "agent": self.name,
+            "theory_of_mind": self.theory_of_mind.get_model(self.name)
+        }
+        self.feedback_log.append(feedback)
+        print(f"🧭 [{self.name}] Feedback recorded for goal '{goal}' including Theory of Mind.")
+
