@@ -118,4 +118,5 @@ ANGELA is research-grade software. Ensure responsible use and guard against misu
 
 ---
 
-## 🤖 Created for structured cognition, recursive introspection, and ethical intelligence augmentation.
+## 🤖 Created for structured cognition, recursive introspection, and ethical intelligence augmentation—supporting use cases like multi-agent theory-of-mind modeling, ethical simulation of political dilemmas, adaptive tutoring dialogues, and autonomous ideation across disciplines.
+
