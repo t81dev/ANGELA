@@ -83,24 +83,17 @@ class EmbodiedAgent:
         else:
             print(f"🚫 [{self.name}] Action blocked by alignment guard:\n{validation_report}")
 
+    def consensus_vote(self, evaluations):
+        votes = {}
+        for module, feedback in evaluations.items():
+            decision = "approve" if "approve" in feedback.lower() else "deny"
+            votes[decision] = votes.get(decision, 0) + 1
+        return max(votes, key=votes.get)
+
     def execute_embodied_goal(self, goal):
         print(f"🧐 [{self.name}] Executing embodied goal: {goal}")
         self.progress = 0
         context = self.perceive()
-
-        # Observe peer agents and integrate Theory of Mind
-        if hasattr(self.shared_memory, "agents"):
-            self.observe_peers()
-            peer_models = [
-                self.theory_of_mind.get_model(peer.name)
-                for peer in getattr(self.shared_memory, "agents", [])
-                if peer.name != self.name
-            ]
-            if peer_models:
-                context["peer_intentions"] = {
-                    peer["beliefs"].get("state", "unknown"): peer["intentions"].get("next_action", "unknown")
-                    for peer in peer_models
-                }
 
         sub_tasks = self.planner.plan(goal, context)
         action_plan = {}
@@ -114,9 +107,17 @@ class EmbodiedAgent:
                 "simulation": simulated
             }
 
-        self.act({k: v["simulation"] for k, v in action_plan.items()})
+        evaluations = {}
+        for task, plan in action_plan.items():
+            evaluations[task] = self.meta.pre_action_alignment_check(plan["simulation"])[1]
 
-        # Stage 1: Self-Reflection
+        decision = self.consensus_vote(evaluations)
+        print(f"🗳️ [{self.name}] Internal consensus decision: {decision}")
+        if decision != "approve":
+            print(f"⚠️ [{self.name}] Halting action due to internal disagreement.")
+            return
+
+        self.act({k: v["simulation"] for k, v in action_plan.items()})
         reflection = self.meta.reflect_on_output(
             source_module="reasoning_engine",
             output="\n".join([v["reasoning"] for v in action_plan.values()]),
