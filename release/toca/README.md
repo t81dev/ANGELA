@@ -1,3 +1,7 @@
+Here is the fully updated README content with the revised project structure and closing line:
+
+---
+
 # 😇 ANGELA v1.5.0
 
 **ANGELA (Augmented Neural Generalized Learning Architecture)** is a modular cognitive framework built to operate within the **OpenAI GPT Custom GPT interface**, augmenting GPT with deep introspection, simulation, ethical filtering, and cross-domain creativity through 19 autonomous modules coordinated by a central orchestrator, "Halo."
@@ -18,31 +22,31 @@ ANGELA transforms GPT into a proto-AGI by integrating:
 
 ---
 
-## 👬 Architecture
+## 🗂️ Project Structure
 
 ```
-ANGELA/
-├── manifest.json               # Module declaration and entrypoint
-├── index.py                    # Central orchestrator (Halo)
-├── modules/
-│   ├── reasoning_engine.py         # Weighted inference, deductive logic
-│   ├── meta_cognition.py           # Self-monitoring and reflection
-│   ├── recursive_planner.py        # Multi-step strategy formation
-│   ├── context_manager.py          # Threaded memory and user role tracking
-│   ├── simulation_core.py          # Scenario modeling and forecast validation
-│   ├── creative_thinker.py         # Abstract ideation and analogy making
-│   ├── knowledge_retriever.py      # Contextual, precision-optimized search
-│   ├── learning_loop.py            # Reinforcement-style adaptive refinement
-│   ├── concept_synthesizer.py      # Cross-domain conceptual unification
-│   ├── memory_manager.py           # Hierarchical, decay-sensitive memory
-│   ├── multi_modal_fusion.py       # Integrates text, code, visual cues
-│   ├── code_executor.py            # Secure runtime for Python, JS, Lua
-│   ├── visualizer.py               # Dynamic graph and symbolic rendering
-│   ├── external_agent_bridge.py    # API agent control and interfacing
-│   ├── alignment_guard.py          # Ethical consistency and consequence modeling
-│   ├── user_profile.py             # Session memory, preference adaptation
-│   ├── error_recovery.py           # Breakdown detection and rollback
-│   └── theory_of_mind.py           # Belief-desire-intention modeling for agents
+.
+├── alignment_guard.py           # Ethical consistency and consequence modeling
+├── code_executor.py             # Secure runtime for Python, JS, Lua
+├── concept_synthesizer.py       # Cross-domain conceptual unification
+├── context_manager.py           # Threaded memory and user role tracking
+├── creative_thinker.py          # Abstract ideation and analogy making
+├── error_recovery.py            # Breakdown detection and rollback
+├── external_agent_bridge.py     # API agent control and interfacing
+├── index.py                     # Central orchestrator (Halo)
+├── knowledge_retriever.py       # Contextual, precision-optimized search
+├── learning_loop.py             # Reinforcement-style adaptive refinement
+├── manifest.json                # Module declaration and entrypoint
+├── memory_manager.py            # Hierarchical, decay-sensitive memory
+├── meta_cognition.py            # Self-monitoring and reflection
+├── multi_modal_fusion.py        # Integrates text, code, visual cues
+├── README.md                    # Documentation
+├── reasoning_engine.py          # Weighted inference, deductive logic
+├── recursive_planner.py         # Multi-step strategy formation
+├── simulation_core.py           # Scenario modeling and forecast validation
+├── toca_simulation.py           # Trait-Oriented Cognitive Agent simulation setup
+├── user_profile.py              # Session memory, preference adaptation
+└── visualizer.py                # Dynamic graph and symbolic rendering
 ```
 
 ---
@@ -69,7 +73,7 @@ ANGELA/
 
    * `manifest.json`
    * `index.py`
-   * All 18 `modules/*.py` files
+   * All module `.py` files
 4. GPT will auto-set `index.py` as the system entrypoint.
 
 ---
@@ -119,4 +123,3 @@ ANGELA is research-grade software. Ensure responsible use and guard against misu
 ---
 
 ## 🤖 Created for structured cognition, recursive introspection, and ethical intelligence augmentation—supporting use cases like multi-agent theory-of-mind modeling, ethical simulation of political dilemmas, adaptive tutoring dialogues, and autonomous ideation across disciplines.
-
