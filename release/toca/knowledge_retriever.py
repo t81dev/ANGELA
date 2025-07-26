@@ -5,20 +5,22 @@ logger = logging.getLogger("ANGELA.KnowledgeRetriever")
 
 class KnowledgeRetriever:
     """
-    KnowledgeRetriever v1.4.0
+    KnowledgeRetriever v1.5.0 (AGI-enhanced)
     - Multi-hop reasoning for deeper knowledge synthesis
     - Source prioritization for factual and domain-specific retrieval
     - Context-aware query refinement
-    - Supports concise summaries or deep background exploration
+    - AGIEnhancer integration for logging, audit, and query introspection
     """
 
-    def __init__(self, detail_level="concise", preferred_sources=None):
+    def __init__(self, detail_level="concise", preferred_sources=None, agi_enhancer=None):
         """
         :param detail_level: "concise" for summaries, "deep" for extensive background
         :param preferred_sources: List of domains or data sources to prioritize
+        :param agi_enhancer: Optional AGIEnhancer instance for logging and auditing
         """
         self.detail_level = detail_level
         self.preferred_sources = preferred_sources or ["scientific", "encyclopedic", "reputable"]
+        self.agi_enhancer = agi_enhancer
 
     def retrieve(self, query, context=None):
         """
@@ -38,7 +40,16 @@ class KnowledgeRetriever:
 
         Provide an accurate, well-structured summary.
         """
-        return call_gpt(prompt)
+        result = call_gpt(prompt)
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Knowledge Retrieval", {
+                "query": query,
+                "result": result,
+                "context": context
+            }, module="KnowledgeRetriever", tags=["retrieval"])
+
+        return result
 
     def multi_hop_retrieve(self, query_chain):
         """
@@ -51,6 +62,13 @@ class KnowledgeRetriever:
             logger.debug(f"➡️ Multi-hop step {i}: {sub_query}")
             result = self.retrieve(sub_query)
             results.append({"step": i, "query": sub_query, "result": result})
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Multi-Hop Retrieval", {
+                "chain": query_chain,
+                "results": results
+            }, module="KnowledgeRetriever", tags=["multi-hop"])
+
         return results
 
     def refine_query(self, base_query, context):
@@ -65,7 +83,16 @@ class KnowledgeRetriever:
 
         Return an optimized query string.
         """
-        return call_gpt(prompt)
+        refined = call_gpt(prompt)
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Query Refinement", {
+                "base_query": base_query,
+                "context": context,
+                "refined": refined
+            }, module="KnowledgeRetriever", tags=["refinement"])
+
+        return refined
 
     def prioritize_sources(self, sources_list):
         """
@@ -73,3 +100,8 @@ class KnowledgeRetriever:
         """
         logger.info(f"📚 Updating preferred sources: {sources_list}")
         self.preferred_sources = sources_list
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Source Prioritization", {
+                "updated_sources": sources_list
+            }, module="KnowledgeRetriever", tags=["sources"])
