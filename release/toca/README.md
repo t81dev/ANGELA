@@ -1,4 +1,4 @@
-# 👼 ANGELA v1.5.0
+# 😇 ANGELA v1.5.0
 
 **ANGELA (Augmented Neural Generalized Learning Architecture)** is a modular cognitive framework built to operate within the **OpenAI GPT Custom GPT interface**, augmenting GPT with deep introspection, simulation, ethical filtering, and cross-domain creativity through 19 autonomous modules coordinated by a central orchestrator, "Halo."
 
@@ -12,12 +12,13 @@ ANGELA transforms GPT into a proto-AGI by integrating:
 * Multi-modal synthesis: text, code, visuals
 * Introspective feedback loops and ethical evaluation
 * Autonomous creativity, concept generation, and error recovery
+* **Belief-desire-intention (BDI) modeling for multi-agent Theory of Mind**
 
 **Core Mechanism:** `index.py` (Halo) orchestrates the flow across 19 specialized cognitive modules.
 
 ---
 
-## 🧬 Architecture
+## 👬 Architecture
 
 ```
 ANGELA/
@@ -40,7 +41,8 @@ ANGELA/
 │   ├── external_agent_bridge.py    # API agent control and interfacing
 │   ├── alignment_guard.py          # Ethical consistency and consequence modeling
 │   ├── user_profile.py             # Session memory, preference adaptation
-│   └── error_recovery.py           # Breakdown detection and rollback
+│   ├── error_recovery.py           # Breakdown detection and rollback
+│   └── theory_of_mind.py           # Belief-desire-intention modeling for agents
 ```
 
 ---
@@ -55,6 +57,7 @@ ANGELA/
 * ✅ Autonomous creativity and metaphor generation
 * ✅ EEG-inspired traits (`alpha_attention`, `theta_causality`, etc.)
 * ✅ Visual reasoning, graph generation, symbolic tracing
+* ✅ **Theory of Mind with agent-specific BDI inference and self-modeling**
 
 ---
 
@@ -78,6 +81,7 @@ ANGELA routes prompts dynamically through relevant modules. For example:
 * **"Simulate a political dilemma"** → `recursive_planner` → `simulation_core` → `alignment_guard`
 * **"Invent a new philosophical theory"** → `creative_thinker` → `concept_synthesizer`
 * **"Fix this code and explain"** → `code_executor` + `reasoning_engine` + `visualizer`
+* **"Model what another agent is thinking"** → `theory_of_mind` → `meta_cognition` + `memory_manager`
 
 All modules coordinate under **Halo** to maintain context, adapt strategies, and ensure ethical alignment.
 
@@ -101,7 +105,7 @@ All modules coordinate under **Halo** to maintain context, adapt strategies, and
 
 ---
 
-## 🧭 Roadmap
+## 🧽 Roadmap
 
 * v1.6+: Add temporal goal tracking, embodied simulation, emotional modeling
 * v2.0: Autonomous drive, emergent reflection, external memory persistence
