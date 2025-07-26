@@ -23,11 +23,12 @@ class ReasoningEngine:
     --------------------------------------------------------------------------
     """
 
-    def __init__(self, persistence_file="reasoning_success_rates.json"):
+    def __init__(self, agi_enhancer=None, persistence_file="reasoning_success_rates.json"):
         self.confidence_threshold = 0.7
         self.persistence_file = persistence_file
         self.success_rates = self._load_success_rates()
         self.decomposition_patterns = self._load_default_patterns()
+        self.agi_enhancer = agi_enhancer
 
     def _load_success_rates(self):
         if os.path.exists(self.persistence_file):
@@ -53,10 +54,15 @@ class ReasoningEngine:
         }
 
     def detect_contradictions(self, subgoals):
+        # Detect duplicated subgoals as contradictions
         duplicates = set([x for x in subgoals if subgoals.count(x) > 1])
-        return list(duplicates)
+        contradictions = list(duplicates)
+        if contradictions and self.agi_enhancer:
+            self.agi_enhancer.log_episode("Contradictions detected", {"contradictions": contradictions}, module="ReasoningEngine")
+        return contradictions
 
     def decompose(self, goal: str, context: dict = None, prioritize=False) -> list:
+        # Decompose a goal into subgoals using trait and context-aware logic
         context = context or {}
         logger.info(f"Decomposing goal: '{goal}'")
         reasoning_trace = [f"🔍 Goal: '{goal}'"]
@@ -73,6 +79,7 @@ class ReasoningEngine:
         trait_bias = 1 + creativity + culture + 0.5 * linguistics
         context_weight = context.get("weight_modifier", 1.0)
 
+        # Apply decomposition pattern matching
         for key, steps in self.decomposition_patterns.items():
             if key in goal.lower():
                 base = random.uniform(0.5, 1.0)
@@ -84,33 +91,48 @@ class ReasoningEngine:
                 else:
                     reasoning_trace.append(f"❌ Rejected (low conf)")
 
+        # Detect contradictions
         contradictions = self.detect_contradictions(subgoals)
         if contradictions:
             reasoning_trace.append(f"⚠️ Contradictions detected: {contradictions}")
 
+        # Request clarification if phi is high and no valid steps found
         if not subgoals and phi > 0.8:
             sim_hint = call_gpt(f"Simulate decomposition ambiguity for: {goal}")
             reasoning_trace.append(f"🌀 Ambiguity simulation:\n{sim_hint}")
+            if self.agi_enhancer:
+                self.agi_enhancer.reflect_and_adapt("Decomposition ambiguity encountered")
 
         if prioritize:
             subgoals = sorted(set(subgoals))  # deduplicate and order
             reasoning_trace.append(f"📌 Prioritized: {subgoals}")
 
-        logger.debug("🧠 Reasoning Trace:\n" + "\n".join(reasoning_trace))
+        trace_log = "\n".join(reasoning_trace)
+        logger.debug("🧠 Reasoning Trace:\n" + trace_log)
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Goal decomposition run", {
+                "goal": goal,
+                "trace": trace_log,
+                "subgoals": subgoals
+            }, module="ReasoningEngine")
+
         return subgoals
 
     def update_success_rate(self, pattern_key: str, success: bool):
+        # Update historical success rates for goal decomposition patterns
         rate = self.success_rates.get(pattern_key, 1.0)
         new = min(max(rate + (0.05 if success else -0.05), 0.1), 1.0)
         self.success_rates[pattern_key] = new
         self._save_success_rates()
 
     def run_galaxy_rotation_simulation(self, r_kpc, M0, r_scale, v0, k, epsilon):
+        # Perform a galaxy rotation simulation using ToCA-aware physics
         try:
             M_b_func = lambda r: M_b_exponential(r, M0, r_scale)
             v_obs_func = lambda r: v_obs_flat(r, v0)
             result = simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func, k, epsilon)
-            return {
+            output = {
                 "input": {
                     "r_kpc": r_kpc.tolist() if hasattr(r_kpc, 'tolist') else r_kpc,
                     "M0": M0,
@@ -122,10 +144,17 @@ class ReasoningEngine:
                 "result": result.tolist() if hasattr(result, 'tolist') else result,
                 "status": "success"
             }
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Galaxy rotation simulation", output, module="ReasoningEngine")
+            return output
         except Exception as e:
-            return {"status": "error", "error": str(e)}
+            error_output = {"status": "error", "error": str(e)}
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Simulation error", error_output, module="ReasoningEngine")
+            return error_output
 
     def infer_with_simulation(self, goal, context=None):
+        # Inference method that triggers galaxy simulations if the goal matches
         if "galaxy rotation" in goal.lower():
             r_kpc = np.linspace(0.1, 20, 100)
             params = {
