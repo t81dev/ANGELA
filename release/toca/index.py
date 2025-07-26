@@ -10,6 +10,8 @@ from modules import (
 import math
 import numpy as np
 import time
+import datetime
+from typing import List, Dict, Any, Optional
 
 # --- ToCA-inspired Cognitive Traits ---
 def epsilon_emotion(t): return 0.2 * math.sin(2 * math.pi * t / 0.1)
@@ -37,6 +39,30 @@ def phi_field(x, t):
         omega_selfawareness(t), kappa_culture(t, x), lambda_linguistics(t), chi_culturevolution(t),
         psi_history(t), zeta_spirituality(t), xi_collective(t, x), tau_timeperception(t)
     ])
+
+class ConsensusReflector:
+    def __init__(self):
+        self.shared_reflections = []
+
+    def post_reflection(self, feedback):
+        self.shared_reflections.append(feedback)
+        if len(self.shared_reflections) > 1000:
+            self.shared_reflections.pop(0)
+
+    def cross_compare(self):
+        mismatches = []
+        for i in range(len(self.shared_reflections)):
+            for j in range(i+1, len(self.shared_reflections)):
+                a = self.shared_reflections[i]
+                b = self.shared_reflections[j]
+                if a['goal'] == b['goal'] and a['theory_of_mind'] != b['theory_of_mind']:
+                    mismatches.append((a['agent'], b['agent'], a['goal']))
+        return mismatches
+
+    def suggest_alignment(self):
+        return "Schedule inter-agent reflection or re-observation."
+
+consensus_reflector = ConsensusReflector()
 
 class SymbolicSimulator:
     def __init__(self):
@@ -76,7 +102,7 @@ class EmbodiedAgent:
         self.progress = 0
         self.performance_history = []
         self.feedback_log = []
-
+    
     def perceive(self):
         observations = {}
         for sensor_name, sensor_func in self.sensors.items():
@@ -209,6 +235,17 @@ class HaloEmbodimentLayer:
     )
     print(f"🌱 [HaloEmbodimentLayer] Spawned embodied agent: {agent.name}")
     return agent
+
+ def reflect_consensus(self):
+     print("🔄 [HaloEmbodimentLayer] Performing decentralized reflective consensus...")
+     mismatches = consensus_reflector.cross_compare()
+     if mismatches:
+         print("⚠️ Inconsistencies detected:", mismatches)
+         print(consensus_reflector.suggest_alignment())
+     else:
+         print("✅ Consensus achieved among agents.")
+
+# Call self.reflect_consensus() at the end of propagate_goal()
 
     def propagate_goal(self, goal):
         print(f"📥 [HaloEmbodimentLayer] Propagating goal: {goal}")
