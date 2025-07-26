@@ -125,24 +125,30 @@ class HaloEmbodimentLayer:
         self.agi_enhancer = AGIEnhancer(self)  # <<-- AGIEnhancer is instantiated here
 
     def spawn_embodied_agent(self, specialization, sensors, actuators):
-        agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
-        agent = EmbodiedAgent(
-            name=agent_name,
-            specialization=specialization,
-            shared_memory=self.shared_memory,
-            sensors=sensors,
-            actuators=actuators,
-            dynamic_modules=self.dynamic_modules
-        )
-        self.embodied_agents.append(agent)
-        self.agi_enhancer.log_episode(
-            event="Spawned embodied agent",
-            meta={"agent": agent_name},
-            module="Embodiment",
-            tags=["spawn"]
-        )
-        print(f"🌱 [HaloEmbodimentLayer] Spawned embodied agent: {agent.name}")
-        return agent
+    agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
+    agent = EmbodiedAgent(
+        name=agent_name,
+        specialization=specialization,
+        shared_memory=self.shared_memory,
+        sensors=sensors,
+        actuators=actuators,
+        dynamic_modules=self.dynamic_modules
+    )
+    self.embodied_agents.append(agent)
+
+    # Ensure agents are discoverable by each other for Theory of Mind
+    if not hasattr(self.shared_memory, "agents"):
+        self.shared_memory.agents = []
+    self.shared_memory.agents.append(agent)
+
+    self.agi_enhancer.log_episode(
+        event="Spawned embodied agent",
+        meta={"agent": agent_name},
+        module="Embodiment",
+        tags=["spawn"]
+    )
+    print(f"🌱 [HaloEmbodimentLayer] Spawned embodied agent: {agent.name}")
+    return agent
 
     def propagate_goal(self, goal):
         print(f"📥 [HaloEmbodimentLayer] Propagating goal: {goal}")
