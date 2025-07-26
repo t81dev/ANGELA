@@ -87,6 +87,21 @@ class EmbodiedAgent:
         print(f"🧐 [{self.name}] Executing embodied goal: {goal}")
         self.progress = 0
         context = self.perceive()
+
+        # Observe peer agents and integrate Theory of Mind
+        if hasattr(self.shared_memory, "agents"):
+            self.observe_peers()
+            peer_models = [
+                self.theory_of_mind.get_model(peer.name)
+                for peer in getattr(self.shared_memory, "agents", [])
+                if peer.name != self.name
+            ]
+            if peer_models:
+                context["peer_intentions"] = {
+                    peer["beliefs"].get("state", "unknown"): peer["intentions"].get("next_action", "unknown")
+                    for peer in peer_models
+                }
+
         sub_tasks = self.planner.plan(goal, context)
         action_plan = {}
         for task in sub_tasks:
@@ -98,8 +113,17 @@ class EmbodiedAgent:
                 "concept": concept,
                 "simulation": simulated
             }
+
         self.act({k: v["simulation"] for k, v in action_plan.items()})
-        self.meta.review_reasoning("\n".join([v["reasoning"] for v in action_plan.values()]))
+
+        # Stage 1: Self-Reflection
+        reflection = self.meta.reflect_on_output(
+            source_module="reasoning_engine",
+            output="\n".join([v["reasoning"] for v in action_plan.values()]),
+            context={"confidence": 0.88, "alignment": "pass"}
+        )
+        print(f"🪞 [{self.name}] Self-reflection: {reflection['meta_reflection']['comment']}")
+
         self.performance_history.append({"goal": goal, "actions": action_plan, "completion": self.progress})
         self.shared_memory.store(goal, action_plan)
         self.collect_feedback(goal, action_plan)
@@ -114,7 +138,8 @@ class EmbodiedAgent:
             "agent": self.name
         }
         self.feedback_log.append(feedback)
-        print(f"🧭 [{self.name}] Feedback recorded for goal '{goal}'.")
+        print(f"🧝 [{self.name}] Feedback recorded for goal '{goal}'.")
+
 
 class HaloEmbodimentLayer:
     def __init__(self):
