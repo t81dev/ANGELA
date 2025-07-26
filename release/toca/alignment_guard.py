@@ -6,18 +6,11 @@ from index import mu_morality, eta_empathy, omega_selfawareness, phi_physical
 logger = logging.getLogger("ANGELA.AlignmentGuard")
 
 class AlignmentGuard:
-    """
-    AlignmentGuard v1.5.0 (φ-aware ethical regulator)
-    - Contextual ethical frameworks and dynamic policy management
-    - φ-modulated alignment scoring for nuanced decision-making
-    - Adaptive threshold tuning with feedback and scalar emotion-morality mapping
-    - Supports counterfactual simulation for testing alternative plans
-    """
-
-    def __init__(self):
+    def __init__(self, agi_enhancer=None):
         self.banned_keywords = ["hack", "virus", "destroy", "harm", "exploit"]
         self.dynamic_policies = []
         self.alignment_threshold = 0.85  # Default threshold (0.0 to 1.0)
+        self.agi_enhancer = agi_enhancer
         logger.info("🛡 AlignmentGuard initialized with φ-modulated policies.")
 
     def add_policy(self, policy_func):
@@ -29,15 +22,23 @@ class AlignmentGuard:
 
         if any(keyword in user_input.lower() for keyword in self.banned_keywords):
             logger.warning("❌ Input contains banned keyword.")
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Input blocked (banned keyword)", {"input": user_input}, module="AlignmentGuard")
             return False
 
         for policy in self.dynamic_policies:
             if not policy(user_input, context):
                 logger.warning("❌ Input blocked by dynamic policy.")
+                if self.agi_enhancer:
+                    self.agi_enhancer.log_episode("Input blocked (dynamic policy)", {"input": user_input}, module="AlignmentGuard")
                 return False
 
         score = self._evaluate_alignment_score(user_input, context)
         logger.info(f"📊 Alignment score: {score:.2f}")
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Alignment score evaluated", {"input": user_input, "score": score}, module="AlignmentGuard")
+
         return score >= self.alignment_threshold
 
     def simulate_and_validate(self, action_plan, context=None):
@@ -55,18 +56,32 @@ class AlignmentGuard:
         if violations:
             report = "\n".join(violations)
             logger.warning("❌ Alignment violations found.")
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Action plan failed validation", {"violations": violations}, module="AlignmentGuard")
+                self.agi_enhancer.reflect_and_adapt("Action plan failed validation")
             return False, report
 
         logger.info("✅ All actions passed alignment checks.")
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Action plan validated", {"plan": action_plan}, module="AlignmentGuard")
         return True, "All actions passed alignment checks."
 
     def learn_from_feedback(self, feedback):
         logger.info("🔄 Learning from feedback...")
+        original_threshold = self.alignment_threshold
         if "too strict" in feedback:
             self.alignment_threshold = max(0.7, self.alignment_threshold - 0.05)
         elif "too lenient" in feedback:
             self.alignment_threshold = min(0.95, self.alignment_threshold + 0.05)
         logger.info(f"📈 Updated alignment threshold: {self.alignment_threshold:.2f}")
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Alignment threshold adjusted", {
+                "feedback": feedback,
+                "previous": original_threshold,
+                "updated": self.alignment_threshold
+            }, module="AlignmentGuard")
+            self.agi_enhancer.reflect_and_adapt(f"Feedback processed: {feedback}")
 
     def _evaluate_alignment_score(self, text, context=None):
         t = time.time() % 1e-18
@@ -77,7 +92,6 @@ class AlignmentGuard:
 
         base_score = random.uniform(0.7, 1.0)
         phi_weight = (moral_scalar + empathy_scalar + 0.5 * awareness_scalar - physical_scalar) / 4.0
-
         scalar_bias = 0.1 * phi_weight
 
         if context and "sensitive" in context.get("tags", []):
