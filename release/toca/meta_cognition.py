@@ -190,3 +190,37 @@ class MetaCognition:
                 "diagnosis": diagnosis
             }, module="MetaCognition")
         return diagnosis
+
+    def reflect_on_output(self, source_module: str, output: str, context: dict = None):
+        if context is None:
+            context = {}
+
+        trait_map = {
+            "reasoning_engine": "logic",
+            "creative_thinker": "creativity",
+            "simulation_core": "scenario modeling",
+            "alignment_guard": "ethics",
+            "user_profile": "goal alignment"
+        }
+
+        trait = trait_map.get(source_module, "general reasoning")
+        confidence = context.get("confidence", 0.85)
+        alignment = context.get("alignment", "not verified")
+
+        reflection = {
+            "module_output": output,
+            "meta_reflection": {
+                "source_module": source_module,
+                "primary_trait": trait,
+                "confidence": round(confidence, 2),
+                "alignment_status": alignment,
+                "comment": f"This output emphasized {trait} with confidence {round(confidence, 2)} and alignment status '{alignment}'."
+            }
+        }
+
+        logger.info(f"🧠 Self-reflection for {source_module}: {reflection['meta_reflection']['comment']}")
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Output reflection", reflection, module="MetaCognition")
+
+        return reflection
