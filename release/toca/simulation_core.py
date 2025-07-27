@@ -75,6 +75,7 @@ class SimulationCore:
 
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Simulation run", {"results": results, "output": simulation_output}, module="SimulationCore")
+            self.agi_enhancer.reflect_and_adapt("SimulationCore: scenario simulation complete")
 
         self.visualizer.render_charts(simulation_output)
 
@@ -148,6 +149,7 @@ class SimulationCore:
 
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Environment simulation", {"config": environment_config, "result": environment_simulation}, module="SimulationCore")
+            self.agi_enhancer.reflect_and_adapt("SimulationCore: environment simulation complete")
 
         return environment_simulation
 
