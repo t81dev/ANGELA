@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## v1.5.8 – Simulated Self-Dialogue & Meta-Planning
+
+* Introduced `simulate_self_dialogue()` in `ReasoningEngine` for goal reformulation via internal dialogue.
+* Enabled φ/η-modulated persona conflict resolution logic across simulated agents (SELF-A, SELF-B, etc.).
+* Self-dialogue logs now feed into `LearningLoop` for reflexive goal adaptation and reinforcement.
+* Contextual planning integrated with internal role debates for goal ambiguity resolution.
+* Enhanced trait vector normalization for cross-wave confidence routing.
+
 ## v1.5.7 – Recursive Identity & Lifeline Persistence
 
 * Added advanced theory of mind modeling with inter-agent inference.
