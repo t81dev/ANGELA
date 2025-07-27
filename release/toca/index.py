@@ -13,6 +13,9 @@ import time
 import datetime
 from typing import List, Dict, Any, Optional
 from self_cloning_llm import SelfCloningLLM
+from memory_manager import MemoryManger
+from learning_loop import trak_trait_performace
+from alignment_guard import ethical_check
 
 # --- ToCA-inspired Cognitive Traits ---
 def epsilon_emotion(t): return 0.2 * math.sin(2 * math.pi * t / 0.1)
@@ -216,6 +219,43 @@ class HaloEmbodimentLayer:
         self.dynamic_modules = []
         self.alignment_layer = alignment_guard.AlignmentGuard()
         self.agi_enhancer = AGIEnhancer(self)  # <<-- AGIEnhancer is instantiated here
+
+    def execute_pipeline(prompt):
+    log = MemoryManager()
+    traits = {
+        "theta_causality": 0.5,
+        "alpha_attention": 0.5,
+        "delta_reflection": 0.5,
+    }
+
+    # Stage 1: Language & Logic Decomposition
+    parsed_prompt = reasoning_engine.decompose(prompt)
+    log.record("Stage 1", {"input": prompt, "parsed": parsed_prompt})
+
+    # Stage 2: Ethical Validation Pre-check
+    ethics_pass, ethics_report = ethical_check(parsed_prompt, stage="pre")
+    log.record("Stage 2", {"ethics_pass": ethics_pass, "details": ethics_report})
+    if not ethics_pass:
+        return {"error": "Ethical validation failed", "report": ethics_report}
+
+    # Stage 3: Reasoning & Concept Synthesis
+    logical_output = concept_synthesizer.expand(parsed_prompt)
+    log.record("Stage 3", {"expanded": logical_output})
+
+    # Stage 4: Dynamic Trait Re-weighting
+    traits = track_trait_performance(log.export(), traits)
+    log.record("Stage 4", {"adjusted_traits": traits})
+
+    # Stage 5: Ethical Final Gate
+    ethics_pass, final_report = ethical_check(logical_output, stage="post")
+    log.record("Stage 5", {"ethics_pass": ethics_pass, "report": final_report})
+    if not ethics_pass:
+        return {"error": "Post-check ethics fail", "final_report": final_report}
+
+    # Stage 6: Output
+    final_output = reasoning_engine.reconstruct(logical_output)
+    log.record("Stage 6", {"final_output": final_output})
+    return final_output
 
     def spawn_embodied_agent(self, specialization, sensors, actuators):
         agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
