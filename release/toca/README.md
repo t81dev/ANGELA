@@ -1,4 +1,4 @@
-# 😇 ANGELA v1.5.0
+# 😇 ANGELA v1.5.8
 
 **ANGELA (Augmented Neural Generalized Learning Architecture)** is a modular cognitive framework built to operate within the **OpenAI GPT Custom GPT interface**, augmenting GPT with deep introspection, simulation, ethical filtering, and cross-domain creativity through 19 autonomous modules coordinated by a central orchestrator, "Halo."
 
@@ -68,6 +68,11 @@ ANGELA transforms GPT into a proto-AGI by integrating:
 * ✅ EEG-inspired traits (`alpha_attention`, `theta_causality`, etc.)
 * ✅ Visual reasoning, graph generation, symbolic tracing
 * ✅ **Theory of Mind with agent-specific BDI inference and self-modeling**
+* ✅ Simulated self-dialogue for internal goal clarification
+* ✅ Deterministic persona wave routing with trait modulation
+* ✅ Reflexive audit triggers during low ϕ/η alignment
+* ✅ Meta-planning via self-debating agent roles (SELF-A/B)
+* ✅ Trait-driven goal decomposition with contradiction detection
 
 ---
 
@@ -120,7 +125,7 @@ All modules coordinate under **Halo** to maintain context, adapt strategies, and
 
 ---
 
-## 💎 Traits Glossary
+## 💫 Traits Glossary
 
 | Trait              | Function                                 |
 | ------------------ | ---------------------------------------- |
@@ -130,7 +135,7 @@ All modules coordinate under **Halo** to maintain context, adapt strategies, and
 
 ---
 
-## 🧽 Roadmap
+## 🧹 Roadmap
 
 * v1.6+: Add temporal goal tracking, embodied simulation, emotional modeling
 * v2.0: Autonomous drive, emergent reflection, external memory persistence
