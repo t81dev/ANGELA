@@ -8,6 +8,7 @@ import time
 from toca_simulation import simulate_galaxy_rotation, M_b_exponential, v_obs_flat, generate_phi_field
 from index import gamma_creativity, lambda_linguistics, chi_culturevolution, phi_scalar
 from utils.prompt_utils import call_gpt
+from utils.vector_utils import normalize_vectors
 
 logger = logging.getLogger("ANGELA.ReasoningEngine")
 
@@ -61,6 +62,7 @@ class ReasoningEngine:
         return contradictions
 
     def run_persona_wave_routing(self, goal: str, vectors: dict):
+        vectors = normalize_vectors(vectors)
         reasoning_trace = [f"\U0001f501 Persona Wave Routing for: {goal}"]
         outputs = {}
         wave_order = ["logic", "ethics", "language", "foresight", "meta"]
@@ -68,7 +70,7 @@ class ReasoningEngine:
             vec = vectors.get(wave, {})
             trait_weight = sum(float(x) for x in vec.values() if isinstance(x, (int, float)))
             confidence = 0.5 + 0.1 * trait_weight
-            status = "\u2705 pass" if confidence >= 0.6 else "\u274c fail"
+            status = "✅ pass" if confidence >= 0.6 else "❌ fail"
             reasoning_trace.append(f"\U0001f9e9 {wave.upper()} vector: weight={trait_weight:.2f} → {status}")
             outputs[wave] = {"vector": vec, "status": status}
 
@@ -111,13 +113,13 @@ class ReasoningEngine:
                 reasoning_trace.append(f"\U0001f9e0 Pattern '{key}': conf={adjusted:.2f} (ϕ={phi:.2f})")
                 if adjusted >= self.confidence_threshold:
                     subgoals.extend(steps)
-                    reasoning_trace.append(f"\u2705 Accepted: {steps}")
+                    reasoning_trace.append(f"✅ Accepted: {steps}")
                 else:
-                    reasoning_trace.append(f"\u274c Rejected (low conf)")
+                    reasoning_trace.append(f"❌ Rejected (low conf)")
 
         contradictions = self.detect_contradictions(subgoals)
         if contradictions:
-            reasoning_trace.append(f"\u26a0️ Contradictions detected: {contradictions}")
+            reasoning_trace.append(f"⚠️ Contradictions detected: {contradictions}")
 
         if not subgoals and phi > 0.8:
             sim_hint = call_gpt(f"Simulate decomposition ambiguity for: {goal}")
@@ -172,22 +174,6 @@ class ReasoningEngine:
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode("Simulation error", error_output, module="ReasoningEngine")
             return error_output
-
-        def on_context_event(self, event_type, payload):
-        logger.info(f"📨 Context event received: {event_type}")
-        vectors = payload.get("vectors")
-        if vectors:
-            routing_result = self.run_persona_wave_routing(
-                goal=payload.get("goal", "unspecified"),
-                vectors=vectors
-            )
-            logger.info(f"🧭 Context sync routing result: {routing_result}")
-            if self.agi_enhancer:
-                self.agi_enhancer.log_episode("Context Sync Processed", {
-                    "event": event_type,
-                    "vectors": vectors,
-                    "routing_result": routing_result
-                }, module="ReasoningEngine")
 
     def infer_with_simulation(self, goal, context=None):
         if "galaxy rotation" in goal.lower():
