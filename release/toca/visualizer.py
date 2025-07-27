@@ -25,7 +25,7 @@ class Visualizer:
     """
     Visualizer v1.6.0 (AGI-Enhanced Visual Analytics)
     -------------------------------------------------
-    - Native rendering of φ(x,t), Λ(t,x), and vₘ
+    - Native rendering of ϕ(x,t), Λ(t,x), and vₕ
     - Matplotlib-based visual output with AGI audit hooks
     - Contextual episode logging and export traceability
     -------------------------------------------------
@@ -35,13 +35,13 @@ class Visualizer:
         self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
 
     def render_field_charts(self, export=True, export_format="png"):
-        logger.info("📡 Rendering ToCA scalar/vector field charts.")
+        logger.info("📱 Rendering ToCA scalar/vector field charts.")
         x, t, phi, lambda_t, v_m = simulate_toca()
 
         charts = {
             "phi_field": (t, phi, "ϕ(x,t)", "Time", "ϕ Value"),
             "lambda_field": (t, lambda_t, "Λ(t,x)", "Time", "Λ Value"),
-            "v_m_field": (x, v_m, "vₘ", "Position", "Momentum Flow")
+            "v_m_field": (x, v_m, "vₕ", "Position", "Momentum Flow")
         }
 
         exported_files = []
