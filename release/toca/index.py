@@ -221,11 +221,11 @@ class HaloEmbodimentLayer:
         self.agi_enhancer = AGIEnhancer(self)  # <<-- AGIEnhancer is instantiated here
 
     def execute_pipeline(prompt):
-    log = MemoryManager()
-    traits = {
-        "theta_causality": 0.5,
-        "alpha_attention": 0.5,
-        "delta_reflection": 0.5,
+        log = MemoryManager()
+        traits = {
+            "theta_causality": 0.5,
+            "alpha_attention": 0.5,
+            "delta_reflection": 0.5,
     }
 
     # Stage 1: Language & Logic Decomposition
