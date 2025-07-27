@@ -548,25 +548,6 @@ class TheoryOfMindModule:
 
 # ----- Integration into EmbodiedAgent -----
 
-class EmbodiedAgent:
-    def __init__(self, name, specialization, shared_memory, sensors, actuators, dynamic_modules=None):
-        self.name = name
-        self.specialization = specialization
-        self.shared_memory = shared_memory
-        self.sensors = sensors
-        self.actuators = actuators
-        self.dynamic_modules = dynamic_modules or []
-        self.reasoner = reasoning_engine.ReasoningEngine()
-        self.planner = recursive_planner.RecursivePlanner()
-        self.meta = meta_cognition.MetaCognition()
-        self.sim_core = simulation_core.SimulationCore()
-        self.synthesizer = concept_synthesizer.ConceptSynthesizer()
-        self.toca_sim = toca_simulation.TocaSimulation()
-        self.theory_of_mind = TheoryOfMindModule()  # <<-- NEW
-        self.progress = 0
-        self.performance_history = []
-        self.feedback_log = []
-
     def perceive(self):
         print(f"👁️ [{self.name}] Perceiving environment...")
         observations = {}
