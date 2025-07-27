@@ -279,7 +279,7 @@ class HaloEmbodimentLayer:
             tags=["goal"]
         )
 
-    def deploy_dynamic_module(self, module_blueprint):
+        def deploy_dynamic_module(self, module_blueprint):
         print(f"🛠 [HaloEmbodimentLayer] Deploying module: {module_blueprint['name']}")
         self.dynamic_modules.append(module_blueprint)
         for agent in self.embodied_agents:
