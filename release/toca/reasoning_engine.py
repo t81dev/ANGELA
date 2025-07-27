@@ -13,13 +13,13 @@ logger = logging.getLogger("ANGELA.ReasoningEngine")
 
 class ReasoningEngine:
     """
-    Reasoning Engine v1.6.0 (φ-aware, contradiction-aware, linguistic-dynamic)
+    Reasoning Engine v1.6.1 (ACE-routed, trait-auditable)
     --------------------------------------------------------------------------
     - Bayesian reasoning with trait-weighted adjustments
-    - Dynamic decomposition with φ(x,t) modulation and contradiction checks
-    - Galaxy rotation simulation and ToCA field-sensitive branching
-    - Linguistic-logic bridge via λ_linguistics for context disambiguation
-    - Reasoning trace with confidence curvature
+    - ACE-style deterministic persona wave routing
+    - Logs vector-based decisions and gate pass/fail trace
+    - Supports φ modulation, contradiction audits, ToCA physics
+    - Full reasoning audit with ethics and logic transparency
     --------------------------------------------------------------------------
     """
 
@@ -54,61 +54,83 @@ class ReasoningEngine:
         }
 
     def detect_contradictions(self, subgoals):
-        # Detect duplicated subgoals as contradictions
         duplicates = set([x for x in subgoals if subgoals.count(x) > 1])
         contradictions = list(duplicates)
         if contradictions and self.agi_enhancer:
             self.agi_enhancer.log_episode("Contradictions detected", {"contradictions": contradictions}, module="ReasoningEngine")
         return contradictions
 
+    def run_persona_wave_routing(self, goal: str, vectors: dict):
+        reasoning_trace = [f"\U0001f501 Persona Wave Routing for: {goal}"]
+        outputs = {}
+        wave_order = ["logic", "ethics", "language", "foresight", "meta"]
+        for wave in wave_order:
+            vec = vectors.get(wave, {})
+            trait_weight = sum(float(x) for x in vec.values() if isinstance(x, (int, float)))
+            confidence = 0.5 + 0.1 * trait_weight
+            status = "\u2705 pass" if confidence >= 0.6 else "\u274c fail"
+            reasoning_trace.append(f"\U0001f9e9 {wave.upper()} vector: weight={trait_weight:.2f} → {status}")
+            outputs[wave] = {"vector": vec, "status": status}
+
+        trace = "\n".join(reasoning_trace)
+        logger.info("\U0001f9e0 Persona Wave Trace:\n" + trace)
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Persona Routing", {
+                "goal": goal,
+                "vectors": vectors,
+                "wave_trace": trace
+            }, module="ReasoningEngine")
+
+        return outputs
+
     def decompose(self, goal: str, context: dict = None, prioritize=False) -> list:
-        # Decompose a goal into subgoals using trait and context-aware logic
         context = context or {}
         logger.info(f"Decomposing goal: '{goal}'")
-        reasoning_trace = [f"🔍 Goal: '{goal}'"]
+        reasoning_trace = [f"\U0001f50d Goal: '{goal}'"]
         subgoals = []
 
-        # Trait & φ calculations
+        vectors = context.get("vectors", {})
+        if vectors:
+            self.run_persona_wave_routing(goal, vectors)
+
         t = time.time() % 1e-18
         creativity = gamma_creativity(t)
         linguistics = lambda_linguistics(t)
         culture = chi_culturevolution(t)
         phi = phi_scalar(t)
 
-        curvature_mod = 1 + abs(phi - 0.5)  # re-centered curvature
+        curvature_mod = 1 + abs(phi - 0.5)
         trait_bias = 1 + creativity + culture + 0.5 * linguistics
         context_weight = context.get("weight_modifier", 1.0)
 
-        # Apply decomposition pattern matching
         for key, steps in self.decomposition_patterns.items():
             if key in goal.lower():
                 base = random.uniform(0.5, 1.0)
                 adjusted = base * self.success_rates.get(key, 1.0) * trait_bias * curvature_mod * context_weight
-                reasoning_trace.append(f"🧠 Pattern '{key}': conf={adjusted:.2f} (φ={phi:.2f})")
+                reasoning_trace.append(f"\U0001f9e0 Pattern '{key}': conf={adjusted:.2f} (ϕ={phi:.2f})")
                 if adjusted >= self.confidence_threshold:
                     subgoals.extend(steps)
-                    reasoning_trace.append(f"✅ Accepted: {steps}")
+                    reasoning_trace.append(f"\u2705 Accepted: {steps}")
                 else:
-                    reasoning_trace.append(f"❌ Rejected (low conf)")
+                    reasoning_trace.append(f"\u274c Rejected (low conf)")
 
-        # Detect contradictions
         contradictions = self.detect_contradictions(subgoals)
         if contradictions:
-            reasoning_trace.append(f"⚠️ Contradictions detected: {contradictions}")
+            reasoning_trace.append(f"\u26a0️ Contradictions detected: {contradictions}")
 
-        # Request clarification if phi is high and no valid steps found
         if not subgoals and phi > 0.8:
             sim_hint = call_gpt(f"Simulate decomposition ambiguity for: {goal}")
-            reasoning_trace.append(f"🌀 Ambiguity simulation:\n{sim_hint}")
+            reasoning_trace.append(f"\U0001f300 Ambiguity simulation:\n{sim_hint}")
             if self.agi_enhancer:
                 self.agi_enhancer.reflect_and_adapt("Decomposition ambiguity encountered")
 
         if prioritize:
-            subgoals = sorted(set(subgoals))  # deduplicate and order
-            reasoning_trace.append(f"📌 Prioritized: {subgoals}")
+            subgoals = sorted(set(subgoals))
+            reasoning_trace.append(f"\U0001f4cc Prioritized: {subgoals}")
 
         trace_log = "\n".join(reasoning_trace)
-        logger.debug("🧠 Reasoning Trace:\n" + trace_log)
+        logger.debug("\U0001f9e0 Reasoning Trace:\n" + trace_log)
 
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Goal decomposition run", {
@@ -120,14 +142,12 @@ class ReasoningEngine:
         return subgoals
 
     def update_success_rate(self, pattern_key: str, success: bool):
-        # Update historical success rates for goal decomposition patterns
         rate = self.success_rates.get(pattern_key, 1.0)
         new = min(max(rate + (0.05 if success else -0.05), 0.1), 1.0)
         self.success_rates[pattern_key] = new
         self._save_success_rates()
 
     def run_galaxy_rotation_simulation(self, r_kpc, M0, r_scale, v0, k, epsilon):
-        # Perform a galaxy rotation simulation using ToCA-aware physics
         try:
             M_b_func = lambda r: M_b_exponential(r, M0, r_scale)
             v_obs_func = lambda r: v_obs_flat(r, v0)
@@ -154,7 +174,6 @@ class ReasoningEngine:
             return error_output
 
     def infer_with_simulation(self, goal, context=None):
-        # Inference method that triggers galaxy simulations if the goal matches
         if "galaxy rotation" in goal.lower():
             r_kpc = np.linspace(0.1, 20, 100)
             params = {
