@@ -15,7 +15,7 @@ class UserProfile:
     --------------------------------------------------------
     - Multi-profile and multi-agent identity tracking
     - Dynamic preference inheritance and ε-modulation
-    - AGIEnhancer audit, traceability, and φ-justified logging
+    - AGIEnhancer audit, traceability, and ϕ-justified logging
     - PSI and cross-agent drift analysis
     """
 
@@ -92,6 +92,13 @@ class UserProfile:
         profile = self.profiles[self.active_user][self.active_agent]
         old_prefs = profile["preferences"]
         changes = {k: (old_prefs.get(k), v) for k, v in new_prefs.items()}
+
+        contradictions = [k for k, (old, new) in changes.items() if isinstance(old, str) and old != new]
+        if contradictions:
+            logger.warning(f"⚠️ Contradiction detected in preferences: {contradictions}")
+            if self.agi_enhancer:
+                self.agi_enhancer.reflect_and_adapt(f"Preference contradictions: {contradictions}")
+
         profile["preferences"].update(new_prefs)
         profile["audit_log"].append({"timestamp": timestamp, "changes": changes})
 
