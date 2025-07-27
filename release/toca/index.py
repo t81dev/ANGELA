@@ -254,8 +254,21 @@ class HaloEmbodimentLayer:
 
 # Call self.reflect_consensus() at the end of propagate_goal()
 
-    def propagate_goal(self, goal):
+        def propagate_goal(self, goal):
         print(f"📥 [HaloEmbodimentLayer] Propagating goal: {goal}")
+
+        print("🧪 [HaloEmbodimentLayer] Internal LLM agent reflections:")
+        llm_responses = self.internal_llm.broadcast_prompt(goal)
+        for aid, res in llm_responses.items():
+            print(f"🗣️ LLM-Agent {aid}: {res}")
+            self.shared_memory.store(f"llm_agent_{aid}_response", res)
+            self.agi_enhancer.log_episode(
+                event="LLM agent reflection",
+                meta={"agent_id": aid, "response": res},
+                module="ReasoningEngine",
+                tags=["internal_llm"]
+            )
+
         for agent in self.embodied_agents:
             agent.execute_embodied_goal(goal)
             print(f"📊 [{agent.name}] Progress: {agent.progress}% Complete")
