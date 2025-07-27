@@ -129,23 +129,6 @@ class LearningLoop:
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Knowledge consolidation", {}, module="LearningLoop")
 
-    def on_context_event(self, event_type, payload):
-        logger.info(f"🔔 [LearningLoop] Context event received: {event_type}")
-        if event_type == "context_updated" and isinstance(payload, dict):
-            vectors = payload.get("vectors", {})
-            phi = phi_scalar(time.time() % 1e-18)
-            eta = eta_feedback(time.time() % 1e-18)
-            trend_trace = {
-                "event": event_type,
-                "vectors": vectors,
-                "phi": phi,
-                "eta": eta,
-                "time": time.time()
-            }
-            self.session_traces.append(trend_trace)
-            if self.agi_enhancer:
-                self.agi_enhancer.log_episode("Context vector trend", trend_trace, module="LearningLoop")
-
     def trigger_reflexive_audit(self, context_snapshot):
         logger.info("🌀 [Reflexive Audit] Initiating audit on context trajectory...")
         t = time.time() % 1e-18
