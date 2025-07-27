@@ -57,12 +57,12 @@ class MemoryManager:
             if fuzzy_match:
                 for key, value in self.memory[layer].items():
                     if key.lower() in query.lower() or query.lower() in key.lower():
-                        logger.debug(f"📥 Found match in {layer}: {key} | τφ_boost: {trait_boost:.2f}")
+                        logger.debug(f"📅 Found match in {layer}: {key} | τϕ_boost: {trait_boost:.2f}")
                         return value["data"]
             else:
                 entry = self.memory[layer].get(query)
                 if entry:
-                    logger.debug(f"📥 Found exact match in {layer}: {query} | τφ_boost: {trait_boost:.2f}")
+                    logger.debug(f"📅 Found exact match in {layer}: {query} | τϕ_boost: {trait_boost:.2f}")
                     return entry["data"]
 
         logger.info("❌ No relevant prior memory found.")
