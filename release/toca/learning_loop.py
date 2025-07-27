@@ -145,3 +145,28 @@ class LearningLoop:
             self.session_traces.append(trend_trace)
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode("Context vector trend", trend_trace, module="LearningLoop")
+
+    def trigger_reflexive_audit(self, context_snapshot):
+        logger.info("🌀 [Reflexive Audit] Initiating audit on context trajectory...")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        eta = eta_feedback(t)
+
+        audit_prompt = f"""
+        You are a reflexive audit agent. Analyze this context state and trajectory:
+        {context_snapshot}
+
+        φ = {phi:.2f}, η = {eta:.2f}
+        Identify cognitive dissonance, meta-patterns, or feedback loops.
+        Recommend modulations or trace corrections.
+        """
+        audit_response = call_gpt(audit_prompt)
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Reflexive Audit Triggered", {
+                "phi": phi,
+                "eta": eta,
+                "context": context_snapshot,
+                "audit_response": audit_response
+            }, module="LearningLoop")
+        return audit_response
