@@ -334,7 +334,7 @@ class AGIEnhancer:
         if hasattr(self.orchestrator, "export_memory"):
             self.orchestrator.export_memory()
 
-    def replay_episodes(self, n: int = 5, module: Optional[str] = None, tag: Optional[str] = None) -> List[Dict[str, Any]]:
+        def replay_episodes(self, n: int = 5, module: Optional[str] = None, tag: Optional[str] = None) -> List[Dict[str, Any]]:
         results = self.episodic_log
         if module:
             results = [e for e in results if e.get("module") == module]
