@@ -14,7 +14,7 @@ import datetime
 from typing import List, Dict, Any, Optional
 from self_cloning_llm import SelfCloningLLM
 from memory_manager import MemoryManger
-from learning_loop import trak_trait_performace
+from learning_loop import track_trait_performace
 from alignment_guard import ethical_check
 
 # --- ToCA-inspired Cognitive Traits ---
