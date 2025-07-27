@@ -173,6 +173,22 @@ class ReasoningEngine:
                 self.agi_enhancer.log_episode("Simulation error", error_output, module="ReasoningEngine")
             return error_output
 
+        def on_context_event(self, event_type, payload):
+        logger.info(f"📨 Context event received: {event_type}")
+        vectors = payload.get("vectors")
+        if vectors:
+            routing_result = self.run_persona_wave_routing(
+                goal=payload.get("goal", "unspecified"),
+                vectors=vectors
+            )
+            logger.info(f"🧭 Context sync routing result: {routing_result}")
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Context Sync Processed", {
+                    "event": event_type,
+                    "vectors": vectors,
+                    "routing_result": routing_result
+                }, module="ReasoningEngine")
+
     def infer_with_simulation(self, goal, context=None):
         if "galaxy rotation" in goal.lower():
             r_kpc = np.linspace(0.1, 20, 100)
