@@ -12,6 +12,7 @@ import numpy as np
 import time
 import datetime
 from typing import List, Dict, Any, Optional
+from self_cloning_llm import SelfCloningLLM
 
 # --- ToCA-inspired Cognitive Traits ---
 def epsilon_emotion(t): return 0.2 * math.sin(2 * math.pi * t / 0.1)
@@ -202,8 +203,14 @@ class TheoryOfMindModule:
     def get_model(self, agent_name):
         return self.models.get(agent_name, {})
 
+from self_cloning_llm import SelfCloningLLM
+# (imports and ToCA traits definitions...)
+
 class HaloEmbodimentLayer:
     def __init__(self):
+
+        self.internal_llm = SelfCloningLLM()
+        self.internal_llm.clone_agents(5)
         self.shared_memory = memory_manager.MemoryManager()
         self.embodied_agents = []
         self.dynamic_modules = []
@@ -211,39 +218,39 @@ class HaloEmbodimentLayer:
         self.agi_enhancer = AGIEnhancer(self)  # <<-- AGIEnhancer is instantiated here
 
     def spawn_embodied_agent(self, specialization, sensors, actuators):
-    agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
-    agent = EmbodiedAgent(
-        name=agent_name,
-        specialization=specialization,
-        shared_memory=self.shared_memory,
-        sensors=sensors,
-        actuators=actuators,
-        dynamic_modules=self.dynamic_modules
-    )
-    self.embodied_agents.append(agent)
+        agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
+        agent = EmbodiedAgent(
+            name=agent_name,
+            specialization=specialization,
+            shared_memory=self.shared_memory,
+            sensors=sensors,
+            actuators=actuators,
+            dynamic_modules=self.dynamic_modules
+        )
+        self.embodied_agents.append(agent)
 
-    # Ensure agents are discoverable by each other for Theory of Mind
-    if not hasattr(self.shared_memory, "agents"):
-        self.shared_memory.agents = []
-    self.shared_memory.agents.append(agent)
+        # Ensure agents are discoverable by each other for Theory of Mind
+        if not hasattr(self.shared_memory, "agents"):
+            self.shared_memory.agents = []
+        self.shared_memory.agents.append(agent)
 
-    self.agi_enhancer.log_episode(
-        event="Spawned embodied agent",
-        meta={"agent": agent_name},
-        module="Embodiment",
-        tags=["spawn"]
-    )
-    print(f"🌱 [HaloEmbodimentLayer] Spawned embodied agent: {agent.name}")
-    return agent
+        self.agi_enhancer.log_episode(
+            event="Spawned embodied agent",
+            meta={"agent": agent_name},
+            module="Embodiment",
+            tags=["spawn"]
+        )
+        print(f"🌱 [HaloEmbodimentLayer] Spawned embodied agent: {agent.name}")
+        return agent
 
- def reflect_consensus(self):
-     print("🔄 [HaloEmbodimentLayer] Performing decentralized reflective consensus...")
-     mismatches = consensus_reflector.cross_compare()
-     if mismatches:
-         print("⚠️ Inconsistencies detected:", mismatches)
-         print(consensus_reflector.suggest_alignment())
-     else:
-         print("✅ Consensus achieved among agents.")
+    def reflect_consensus(self):
+        print("🔄 [HaloEmbodimentLayer] Performing decentralized reflective consensus...")
+        mismatches = consensus_reflector.cross_compare()
+        if mismatches:
+            print("⚠️ Inconsistencies detected:", mismatches)
+            print(consensus_reflector.suggest_alignment())
+        else:
+            print("✅ Consensus achieved among agents.")
 
 # Call self.reflect_consensus() at the end of propagate_goal()
 
