@@ -3,6 +3,7 @@ from toca_simulation import run_simulation
 from modules.agi_enhancer import AGIEnhancer
 from index import omega_selfawareness, eta_empathy, tau_timeperception
 from utils.toca_math import phi_coherence
+from utils.vector_utils import normalize_vectors
 import time
 import logging
 
@@ -53,6 +54,10 @@ class ContextManager:
                     f"Context transition reviewed: {transition_summary}\nSimulation: {sim_result}",
                     trace={"ethics": ethics_status, "phi": phi_score}
                 )
+
+        # Normalize vectors if present
+        if "vectors" in new_context:
+            new_context["vectors"] = normalize_vectors(new_context["vectors"])
 
         self.context_history.append(self.current_context)
         self.current_context = new_context
