@@ -43,6 +43,7 @@ class ContextManager:
                 logger.warning("⚠️ Low φ-coherence detected. Recommend reflective pause or support review.")
                 if self.agi_enhancer:
                     self.agi_enhancer.reflect_and_adapt("Context coherence low during update")
+                    self.agi_enhancer.trigger_reflexive_audit("Low φ-coherence during context update")
 
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode("Context Update", {"from": self.current_context, "to": new_context},
