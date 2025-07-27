@@ -6,6 +6,7 @@ import time
 import logging
 import numpy as np
 from numba import jit
+import json
 
 logger = logging.getLogger("ANGELA.SimulationCore")
 
@@ -149,3 +150,12 @@ class SimulationCore:
             self.agi_enhancer.log_episode("Environment simulation", {"config": environment_config, "result": environment_simulation}, module="SimulationCore")
 
         return environment_simulation
+
+# Adapter for swarm-based agent simulation
+
+def adapt_swarm_to_simulation(agent_responses, metadata):
+    formatted = "\n".join(
+        f"{meta['persona']}: {agent_responses[meta['agent_id']]}"
+        for meta in metadata
+    )
+    return f"Swarm Agent Summary:\n{formatted}"
