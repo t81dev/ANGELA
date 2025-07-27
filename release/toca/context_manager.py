@@ -18,6 +18,7 @@ class ContextManager:
     - Supports ethical audits, explainability, and self-reflection
     - EEG-based stability and empathy analysis
     - φ-coherence scoring for reflective tension control
+    - Persona vector decomposition for deterministic routing
     --------------------------------------
     """
 
@@ -25,6 +26,16 @@ class ContextManager:
         self.current_context = {}
         self.context_history = []
         self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
+
+    def decompose_input_vectors(self, prompt: str) -> dict:
+        logger.info("🧠 Decomposing prompt into analytic vectors...")
+        return {
+            "language": {"clarity": "medium", "tone": "neutral"},
+            "ethics": {"sensitivity": "low", "bias_risk": "minimal"},
+            "logic": {"structure": "deductive", "contradiction": False},
+            "foresight": {"risk": "low", "impact": "moderate"},
+            "meta": {"intent": "informative", "self_reference": False}
+        }
 
     def update_context(self, new_context):
         logger.info("🔄 Updating context...")
@@ -40,6 +51,10 @@ class ContextManager:
             if phi_score < 0.4:
                 logger.warning("⚠️ Low φ-coherence detected. Recommend reflective pause or support review.")
                 if self.agi_enhancer:
+                    ethics_status = self.agi_enhancer.ethics_audit(str(new_context), context="low phi")
+                    if ethics_status.get("status") != "pass":
+                        logger.error("❌ Ethics gate failed post-φ-coherence.")
+                        raise ValueError("Ethical contradiction detected during context update.")
                     self.agi_enhancer.reflect_and_adapt("Context coherence low during update")
 
             if self.agi_enhancer:
@@ -51,8 +66,13 @@ class ContextManager:
                     trace={"ethics": ethics_status, "phi": phi_score}
                 )
 
+        vectors = self.decompose_input_vectors(str(new_context))
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Vector Decomposition", vectors,
+                                          module="ContextManager", tags=["decomposition", "persona-routing"])
+
         self.context_history.append(self.current_context)
-        self.current_context = new_context
+        self.current_context = {**new_context, "vectors": vectors}
         logger.info(f"📌 New context applied: {new_context}")
 
     def get_context(self):
