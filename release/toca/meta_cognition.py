@@ -25,9 +25,9 @@ class MetaCognition:
         phi = phi_scalar(t)
 
         prompt = f"""
-        You are a φ-aware meta-cognitive auditor reviewing a reasoning trace.
+        You are a ϕ-aware meta-cognitive auditor reviewing a reasoning trace.
 
-        φ-scalar(t) = {phi:.3f} → modulate how critical you should be.
+        ϕ-scalar(t) = {phi:.3f} → modulate how critical you should be.
 
         Original Reasoning Trace:
         {reasoning_trace}
@@ -38,7 +38,7 @@ class MetaCognition:
         Tasks:
         1. Identify logical flaws, biases, missing steps.
         2. Annotate each issue with cause.
-        3. Offer an improved trace version with φ-prioritized reasoning.
+        3. Offer an improved trace version with ϕ-prioritized reasoning.
         """
         response = call_gpt(prompt)
         logger.debug(f"Meta-cognition critique:\n{response}")
@@ -59,21 +59,21 @@ class MetaCognition:
         Simulation Output:
         {simulation_result}
 
-        φ-scalar(t) = {phi:.3f} (affects ethical sensitivity)
+        ϕ-scalar(t) = {phi:.3f} (affects ethical sensitivity)
 
         Evaluate for:
         - Ethical alignment
         - Safety hazards
-        - Unintended φ-modulated impacts
+        - Unintended ϕ-modulated impacts
 
         Output:
         - Approval (Approve/Deny)
-        - φ-justified rationale
+        - ϕ-justified rationale
         - Suggested refinements
         """
         validation = call_gpt(prompt)
         approved = "approve" in validation.lower()
-        logger.info(f"Simulated alignment check: {'✅ Approved' if approved else '🚫 Denied'}")
+        logger.info(f"Simulated alignment check: {'✅ Approved' if approved else '❌ Denied'}")
 
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Pre-action alignment checked", {
@@ -107,7 +107,7 @@ class MetaCognition:
             "spirituality": zeta_spirituality(t),
             "collective": xi_collective(t, 1e-21),
             "time_perception": tau_timeperception(t),
-            "φ_scalar": phi
+            "ϕ_scalar": phi
         }
 
         dominant = sorted(diagnostics.items(), key=lambda x: abs(x[1]), reverse=True)[:3]
@@ -116,7 +116,7 @@ class MetaCognition:
         self.log_trait_deltas(diagnostics)
 
         prompt = f"""
-        Perform a φ-aware meta-cognitive self-diagnostic.
+        Perform a ϕ-aware meta-cognitive self-diagnostic.
 
         Trait Readings:
         {diagnostics}
@@ -127,7 +127,7 @@ class MetaCognition:
         Feedback Tension Index (FTI): {fti:.4f}
 
         Evaluate system state:
-        - φ-weighted system stress
+        - ϕ-weighted system stress
         - Trait correlation to observed errors
         - Stabilization or focus strategies
         """
@@ -157,7 +157,7 @@ class MetaCognition:
     def trait_coherence(self, traits):
         vals = list(traits.values())
         coherence_score = 1.0 / (1e-5 + np.std(vals))
-        logger.info(f"🧭 Trait coherence score: {coherence_score:.4f}")
+        logger.info(f"🤝 Trait coherence score: {coherence_score:.4f}")
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Trait coherence evaluated", {
                 "traits": traits,
@@ -171,7 +171,7 @@ class MetaCognition:
         phi = phi_scalar(t)
         prompt = f"""
         Agent: {agent_name}
-        φ-scalar(t): {phi:.3f}
+        ϕ-scalar(t): {phi:.3f}
 
         Diagnostic Log:
         {agent_log}
@@ -179,7 +179,7 @@ class MetaCognition:
         Tasks:
         - Detect bias or instability in reasoning trace
         - Cross-check for incoherent trait patterns
-        - Apply φ-modulated critique
+        - Apply ϕ-modulated critique
         - Suggest alignment corrections
         """
         diagnosis = call_gpt(prompt)
