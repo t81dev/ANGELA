@@ -71,7 +71,7 @@ class LearningLoop:
         return None
 
     def _meta_learn(self, session_data, trace):
-        logger.info("🧠 [Meta-Learning] Adapting learning from φ/η trace.")
+        logger.info("🧐 [Meta-Learning] Adapting learning from φ/η trace.")
         # Placeholder for deeper adaptation logic using trace context
 
     def _find_weak_modules(self, module_stats):
