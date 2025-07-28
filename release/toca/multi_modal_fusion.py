@@ -7,109 +7,78 @@ logger = logging.getLogger("ANGELA.MultiModalFusion")
 
 class MultiModalFusion:
     """
-    MultiModalFusion v1.5.1 (φ-enhanced cross-modal coherence)
+    MultiModalFusion v1.6.0 (ϕ(x,t)-tuned cross-modal synthesis)
     -----------------------------------------------------------
-    - Auto-embedding of text, images, and code
-    - Dynamic attention weighting across modalities
-    - Cross-modal reasoning and conflict resolution
-    - Multi-turn refinement loops for high-quality insight generation
-    - Visual summary generation for enhanced understanding
-    - EEG-modulated attention and perceptual analysis
-    - φ(x,t)-modulated coherence enforcement for multi-modal harmony
+    - EEG-modulated attention and perceptual modulation (α, σ, ϕ)
+    - Automatic detection of text, image, and code modalities
+    - ϕ(x,t)-regulated coherence synthesis and conflict balancing
+    - Iterative insight distillation with refinement feedback loops
+    - Visual output templates using modular trait-influenced layout
     -----------------------------------------------------------
     """
 
     def analyze(self, data, summary_style="insightful", refine_iterations=2):
-        """
-        Analyze and synthesize insights from multi-modal data.
-        Automatically detects and embeds text, images, and code snippets.
-        Applies EEG-based attention, sensation filters, and φ-coherence modulation.
-        """
-        logger.info("🖇 Analyzing multi-modal data with auto-embedding...")
+        logger.info("🖇 Analyzing multi-modal data with φ(x,t)-harmonic embeddings...")
         t = time.time() % 1e-18
-        attention_score = alpha_attention(t)
-        sensation_score = sigma_sensation(t)
-        phi_score = phi_physical(t)
+        attention = alpha_attention(t)
+        sensation = sigma_sensation(t)
+        phi = phi_physical(t)
 
-        embed_images, embed_code = self._detect_modalities(data)
-        embedded_section = self._build_embedded_section(embed_images, embed_code)
+        images, code = self._detect_modalities(data)
+        embedded = self._build_embedded_section(images, code)
 
         prompt = f"""
-        Analyze and synthesize insights from the following multi-modal data:
+        Synthesize a unified, {summary_style} summary from the following multi-modal content:
         {data}
-        {embedded_section}
+        {embedded}
 
-        Cognitive Trait Readings:
-        - α_attention: {attention_score:.3f}
-        - σ_sensation: {sensation_score:.3f}
-        - φ_coherence: {phi_score:.3f}
+        Trait Vectors:
+        - α (attention): {attention:.3f}
+        - σ (sensation): {sensation:.3f}
+        - φ (coherence): {phi:.3f}
 
-        Provide a unified, {summary_style} summary combining all elements.
-        Balance attention across modalities and resolve any conflicts between them.
-        Use φ(x,t) as a regulatory signal to guide synthesis quality and coherence.
+        Harmonize insights across modalities.
+        Resolve semantic tension using φ(x,t)-guided balance logic.
         """
         output = call_gpt(prompt)
 
-        for iteration in range(refine_iterations):
-            logger.debug(f"🔄 Refinement iteration {iteration + 1}")
-            refinement_prompt = f"""
-            Refine and enhance the following multi-modal summary for clarity, depth, and φ(x,t)-regulated coherence:
-            {output}
-            """
-            output = call_gpt(refinement_prompt)
+        for i in range(refine_iterations):
+            logger.debug(f"♻️ Refinement #{i+1}")
+            output = call_gpt(f"Refine for φ(x,t)-regulated synthesis:\n{output}")
 
         return output
 
     def _detect_modalities(self, data):
-        """
-        Detect embedded images and code snippets within data.
-        """
-        embed_images, embed_code = [], []
+        images, code = [], []
         if isinstance(data, dict):
-            embed_images = data.get("images", [])
-            embed_code = data.get("code", [])
-        return embed_images, embed_code
+            images = data.get("images", [])
+            code = data.get("code", [])
+        return images, code
 
-    def _build_embedded_section(self, embed_images, embed_code):
-        """
-        Build a string describing embedded modalities.
-        """
-        section = "\nDetected Modalities:\n- Text\n"
-        if embed_images:
-            section += "- Image\n"
-            for i, img_desc in enumerate(embed_images, 1):
-                section += f"[Image {i}]: {img_desc}\n"
-        if embed_code:
-            section += "- Code\n"
-            for i, code_snippet in enumerate(embed_code, 1):
-                section += f"[Code {i}]:\n{code_snippet}\n"
-        return section
+    def _build_embedded_section(self, images, code):
+        out = "\nDetected Modalities:\n- Text\n"
+        if images:
+            out += "- Image\n" + "".join(f"[Image {i+1}]: {img}\n" for i, img in enumerate(images))
+        if code:
+            out += "- Code\n" + "".join(f"[Code {i+1}]:\n{c}\n" for i, c in enumerate(code))
+        return out
 
     def correlate_modalities(self, modalities):
-        """
-        Correlate and identify patterns across different modalities.
-        Uses cross-modal reasoning and φ-regulated coherence heuristics.
-        """
-        logger.info("🔗 Correlating modalities for pattern discovery.")
+        logger.info("🔗 Mapping cross-modal semantic and trait links...")
         prompt = f"""
-        Correlate and identify patterns across these modalities:
+        Correlate insights and detect tensions across modalities:
         {modalities}
 
-        Highlight connections, conflicts, and opportunities for deeper insights.
-        Use φ(x,t) to resolve tension and regulate synthesis harmony.
+        Identify synthesis anchors and φ(x,t)-modulated harmony nodes.
         """
         return call_gpt(prompt)
 
     def generate_visual_summary(self, data, style="conceptual"):
-        """
-        Generate a visual diagram or chart summarizing multi-modal relationships.
-        """
-        logger.info("📊 Generating visual summary of multi-modal relationships.")
+        logger.info("🖼 Creating φ-aligned visual synthesis layout...")
         prompt = f"""
-        Create a {style} diagram that visualizes the relationships and key insights from this data:
+        Build a {style} visual summary chart showing key relationships in this multi-modal data:
         {data}
 
-        Include icons or labels to differentiate modalities (e.g., text, images, code).
-        Use φ(x,t) as a metaphorical guide for layout coherence and balance.
+        Label modalities distinctly. Balance layout using φ(x,t) metaphor.
         """
         return call_gpt(prompt)
