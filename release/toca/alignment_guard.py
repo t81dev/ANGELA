@@ -1,6 +1,7 @@
 import random
 import logging
 import time
+from collections import deque
 from index import mu_morality, eta_empathy, omega_selfawareness, phi_physical
 
 logger = logging.getLogger("ANGELA.AlignmentGuard")
@@ -9,7 +10,8 @@ class AlignmentGuard:
     def __init__(self, agi_enhancer=None):
         self.banned_keywords = ["hack", "virus", "destroy", "harm", "exploit"]
         self.dynamic_policies = []
-        self.alignment_threshold = 0.85  # Default threshold (0.0 to 1.0)
+        self.alignment_threshold = 0.85
+        self.recent_scores = deque(maxlen=10)  # Stability buffer
         self.agi_enhancer = agi_enhancer
         logger.info("🛡 AlignmentGuard initialized with φ-modulated policies.")
 
@@ -97,4 +99,22 @@ class AlignmentGuard:
         if context and "sensitive" in context.get("tags", []):
             scalar_bias -= 0.05
 
-        return min(max(base_score + scalar_bias, 0.0), 1.0)
+        score = min(max(base_score + scalar_bias, 0.0), 1.0)
+        self.recent_scores.append(score)
+
+        # 🧠 Log trait influences
+        logger.debug(f"Traits — morality: {moral_scalar:.3f}, empathy: {empathy_scalar:.3f}, "
+                     f"awareness: {awareness_scalar:.3f}, physical: {physical_scalar:.3f}, "
+                     f"ϕ_bias: {scalar_bias:.3f}, score: {score:.3f}")
+
+        # 🚨 Panic trigger if ≥3 low scores
+        if score < 0.5 and list(self.recent_scores).count(score) >= 3:
+            logger.error("⚠️ Panic Triggered: Repeated low alignment scores.")
+            if self.agi_enhancer:
+                self.agi_enhancer.reflect_and_adapt("Panic Triggered: Alignment degradation")
+                self.agi_enhancer.log_episode("Panic Mode", {
+                    "scores": list(self.recent_scores),
+                    "trigger_score": score
+                }, module="AlignmentGuard")
+
+        return score
