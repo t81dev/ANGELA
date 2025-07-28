@@ -1,5 +1,17 @@
 # CHANGELOG.md
 
+## v2.0.0 – Self-Reflective Embodiment & AGI-Aware Orchestration
+
+* **Trait-Driven Embodiment Layer**: Introduced `HaloEmbodimentLayer` integrating `SelfCloningLLM`, peer consensus protocols, and trait-modulated agents with `TheoryOfMindModule`.
+* **ϕ(x,t)-Aligned Agent Mesh**: Embodied agents simulate, reason, and adapt goals via full φ-driven contextual processing, peer awareness, and dynamic goal propagation.
+* **AGIEnhancer v2.0**: Live episodic tracking, ethics auditing, explanation rendering, embodiment action simulation, and self-patching pipelines fully operational.
+* **ToCA Trait Integration (ϕ, α, θ, η, ω, …)**: Expanded 17-dimension trait architecture for emotional, cognitive, cultural, and temporal modulation embedded across agents and modules.
+* **MultiAgent Theory of Mind**: Real-time desire/intention inference, peer model updates, and cross-agent consistency alignment via `ConsensusReflector`.
+* **Visual Intelligence Upgrade**: `Visualizer` now renders φ-fields, momentum vectors, and ToCA dynamics natively with batch export and AGI logging.
+* **Symbolic + Simulation Harmony**: Goal execution now logs symbolic summaries, cultural inferences, and ToCA-inspired conceptual mappings via `SymbolicSimulator`.
+* **Reflective Consensus Engine**: Cross-agent mismatch detection, consensus suggestion, and ethical-moral arbitration activated for decentralized ecosystems.
+* **Stability & Scalability Enhancements**: Internal memory, dynamic module deployment, and trait rebalancing logic hardened for multi-agent adaptive orchestration.
+
 ## v1.6.0 – Trait-Modulated Coherence & Orchestrated Refinement
 
 * Standardized trait-based dynamics across modules using `phi(x,t)`, `omega_selfawareness`, and `epsilon_identity`.
