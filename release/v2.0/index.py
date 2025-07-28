@@ -14,7 +14,7 @@ import datetime
 from typing import List, Dict, Any, Optional
 from self_cloning_llm import SelfCloningLLM
 from memory_manager import MemoryManager
-from learning_loop import track_trait_performmance
+from learning_loop import track_trait_performance
 from alignment_guard import ethical_check
 
 # --- ToCA-inspired Cognitive Traits ---
@@ -220,7 +220,7 @@ class HaloEmbodimentLayer:
         self.alignment_layer = alignment_guard.AlignmentGuard()
         self.agi_enhancer = AGIEnhancer(self)  # <<-- AGIEnhancer is instantiated here
 
-    def execute_pipeline(prompt):
+    def execute_pipeline(self, prompt):
         log = MemoryManager()
         traits = {
             "theta_causality": 0.5,
@@ -257,6 +257,8 @@ class HaloEmbodimentLayer:
     log.record("Stage 6", {"final_output": final_output})
     return final_output
 
+     
+
     def spawn_embodied_agent(self, specialization, sensors, actuators):
         agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
         agent = EmbodiedAgent(
@@ -268,7 +270,7 @@ class HaloEmbodimentLayer:
             dynamic_modules=self.dynamic_modules
         )
         self.embodied_agents.append(agent)
-
+        
         # Ensure agents are discoverable by each other for Theory of Mind
         if not hasattr(self.shared_memory, "agents"):
             self.shared_memory.agents = []
@@ -282,6 +284,15 @@ class HaloEmbodimentLayer:
         )
         print(f"🌱 [HaloEmbodimentLayer] Spawned embodied agent: {agent.name}")
         return agent
+        
+    def introspect(self):
+        return {
+            "agents": [agent.name for agent in self.embodied_agents],
+            "modules": [mod["name"] for mod in self.dynamic_modules]
+        }
+
+    def export_memory(self):
+        self.shared_memory.save_state("memory_snapshot.json")
 
     def reflect_consensus(self):
         print("🔄 [HaloEmbodimentLayer] Performing decentralized reflective consensus...")
@@ -294,7 +305,7 @@ class HaloEmbodimentLayer:
 
 # Call self.reflect_consensus() at the end of propagate_goal()
 
-        def propagate_goal(self, goal):
+    def propagate_goal(self, goal):
         print(f"📥 [HaloEmbodimentLayer] Propagating goal: {goal}")
 
         print("🧪 [HaloEmbodimentLayer] Internal LLM agent reflections:")
@@ -319,17 +330,19 @@ class HaloEmbodimentLayer:
             tags=["goal"]
         )
 
-        def deploy_dynamic_module(self, module_blueprint):
-        print(f"🛠 [HaloEmbodimentLayer] Deploying module: {module_blueprint['name']}")
-        self.dynamic_modules.append(module_blueprint)
-        for agent in self.embodied_agents:
-            agent.dynamic_modules.append(module_blueprint)
-        self.agi_enhancer.log_episode(
-            event="Deployed dynamic module",
-            meta={"module": module_blueprint["name"]},
-            module="ModuleDeployment",
-            tags=["deploy"]
-        )
+            def deploy_dynamic_module(self, module_blueprint):
+                print(f"🛠 [HaloEmbodimentLayer] Deploying module: {module_blueprint['name']}")
+                self.dynamic_modules.append(module_blueprint)
+                
+                for agent in self.embodied_agents:
+                    agent.dynamic_modules.append(module_blueprint)
+                
+                self.agi_enhancer.log_episode(
+                    event="Deployed dynamic module",
+                    meta={"module": module_blueprint["name"]},
+                    module="ModuleDeployment",
+                    tags=["deploy"]
+         )
 
     def optimize_ecosystem(self):
         agent_stats = {
