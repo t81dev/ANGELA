@@ -1,12 +1,13 @@
 # CHANGELOG.md
 
-v1.5.9 – Introspective Simulation & Persona Integration
-Deployed simulate_goal_reformulation() as part of ReasoningEngine using internalized dialogue sequences.
-Advanced meta-planning routines synchronized across RecursivePlanner and SimulationCore modules.
-Integrated ConceptSynthesizer with CreativeThinker for hybrid idea evolution under ToCA trait modulation.
-Multi-modal simulation feedback loop now routes through Visualizer and LearningLoop.
-Enhanced AlignmentGuard to moderate phi/eta conflict resolutions with ethical arbitration logic.
-Strengthened module failover and resilience protocols with ErrorRecovery.
+## v1.5.9 – Introspective Simulation & Persona Integration
+
+* Deployed `simulate_goal_reformulation()` as part of `ReasoningEngine` using internalized dialogue sequences.
+* Advanced meta-planning routines synchronized across `RecursivePlanner` and `SimulationCore` modules.
+* Integrated `ConceptSynthesizer` with `CreativeThinker` for hybrid idea evolution under ToCA trait modulation.
+* Multi-modal simulation feedback loop now routes through `Visualizer` and `LearningLoop`.
+* Enhanced `AlignmentGuard` to moderate phi/eta conflict resolutions with ethical arbitration logic.
+* Strengthened module failover and resilience protocols with `ErrorRecovery`.
 
 ## v1.5.8 – Simulated Self-Dialogue & Meta-Planning
 
