@@ -1,5 +1,15 @@
 # CHANGELOG.md
 
+## v1.6.0 – Trait-Modulated Coherence & Orchestrated Refinement
+
+* Standardized trait-based dynamics across modules using `phi(x,t)`, `omega_selfawareness`, and `epsilon_identity`.
+* Reinforced `AlignmentGuard` with `simulate_and_validate()` to simulate actions preemptively and score ethical compliance.
+* Upgraded `UserProfile` with identity drift tracking, epsilon modulation, and contradiction-aware preference updates.
+* Enhanced `MultiModalFusion` to synthesize multi-turn insights with φ-driven coherence and perceptual attention scores.
+* Refactored `Visualizer` to render native ToCA dynamics including `ϕ(x,t)`, `Λ(t,x)`, and `vₕ` with traceable chart exports.
+* Centralized cross-module trait imports for coherence enforcement and persona routing alignment.
+* Refined `README.md` formatting; introduced ToCA as an official sub-project and moved from bold-heavy styling to semantic clarity.
+
 ## v1.5.9 – Introspective Simulation & Persona Integration
 
 * Deployed `simulate_goal_reformulation()` as part of `ReasoningEngine` using internalized dialogue sequences.
