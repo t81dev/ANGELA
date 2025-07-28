@@ -1,10 +1,11 @@
 {
   "name": "ANGELA",
-  "description": "Augmented Neural Generalized Learning Architecture (ANGELA): A modular GPT enhancement with 19 cognitive modules and a central orchestrator (Halo). Now includes meta-learning, ToCA trait integration (e.g., theta_causality, alpha_attention), simulation-based introspection, multi-agent dynamics, Theory of Mind inference, cross-domain creativity, and adaptive reasoning through EEG-modulated control flows.",
-  "version": "1.6.0",
+  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) v2.0.0 – A modular GPT cognitive system featuring 19+ dynamic modules orchestrated by Halo. Includes meta-cognition, ToCA trait simulation (ϕ, θ, η, ω), embodied agent reasoning, ethical validation, BDI-based Theory of Mind, and EEG-modulated control for cross-modal synthesis, introspection, and self-adaptive simulation.",
+  "version": "2.0.0",
   "entry_point": "index.py",
   "files": [
     "index.py",
+    "manifest.json",
     "external_agent_bridge.py",
     "reasoning_engine.py",
     "meta_cognition.py",
@@ -21,7 +22,8 @@
     "visualizer.py",
     "alignment_guard.py",
     "user_profile.py",
-    "error_recovery.py"
+    "error_recovery.py",
+    "toca_simulation.py"
   ],
   "language": "python",
   "environment": {
@@ -29,18 +31,19 @@
   },
   "tags": [
     "modular AI",
-    "multi-modal",
+    "multi-modal synthesis",
     "adaptive reasoning",
     "meta-learning",
-    "probabilistic reasoning",
+    "cognitive traits",
     "hierarchical memory",
     "multi-agent simulation",
     "cross-domain creativity",
-    "cognitive architecture",
-    "visualization",
-    "trait-core integration",
-    "EEG-modulated cognition",
     "Theory of Mind",
-    "GPT enhancement"
+    "visual reasoning",
+    "ToCA integration",
+    "ethical arbitration",
+    "EEG-modulated cognition",
+    "trait-based simulation",
+    "introspective AGI prototype"
   ]
 }
