@@ -23,42 +23,51 @@ def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
 
 class Visualizer:
     """
-    Visualizer v1.6.0 (AGI-Enhanced Visual Analytics)
-    -------------------------------------------------
-    - Native rendering of ϕ(x,t), Λ(t,x), and vₕ
-    - Matplotlib-based visual output with AGI audit hooks
-    - Contextual episode logging and export traceability
-    -------------------------------------------------
+    Visualizer v2.0.0 (ϕ-Enhanced Visual Analytics)
+    ----------------------------------------------
+    - Embedded metadata with trait signatures
+    - Trait-tuned colormaps and export styling
+    - Modular report generation with unified prompt
+    - AGI audit hooks and zip exports
+    ----------------------------------------------
     """
 
     def __init__(self, orchestrator=None):
         self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
 
     def render_field_charts(self, export=True, export_format="png"):
-        logger.info("📱 Rendering ToCA scalar/vector field charts.")
+        logger.info("📊 Rendering scalar/vector field charts with metadata.")
         x, t, phi, lambda_t, v_m = simulate_toca()
 
         charts = {
-            "phi_field": (t, phi, "ϕ(x,t)", "Time", "ϕ Value"),
-            "lambda_field": (t, lambda_t, "Λ(t,x)", "Time", "Λ Value"),
-            "v_m_field": (x, v_m, "vₕ", "Position", "Momentum Flow")
+            "phi_field": (t, phi, "ϕ(x,t)", "Time", "ϕ Value", 'plasma'),
+            "lambda_field": (t, lambda_t, "Λ(t,x)", "Time", "Λ Value", 'viridis'),
+            "v_m_field": (x, v_m, "vₕ", "Position", "Momentum Flow", 'inferno')
         }
 
         exported_files = []
-        for name, (x_axis, y_axis, title, xlabel, ylabel) in charts.items():
+        for name, (x_axis, y_axis, title, xlabel, ylabel, cmap) in charts.items():
             plt.figure()
-            plt.plot(x_axis, y_axis)
-            plt.title(title)
+            plt.plot(x_axis, y_axis, color=plt.get_cmap(cmap)(0.6))
+            plt.title(f"{title} • Metadata: {datetime.now().isoformat()}")
             plt.xlabel(xlabel)
             plt.ylabel(ylabel)
             filename = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{export_format}"
             plt.savefig(filename)
-            exported_files.append(filename)
-            logger.info(f"📤 Exported chart: {filename}")
             plt.close()
+            exported_files.append(filename)
+            logger.info(f"📤 Chart exported: {filename}")
+
             if self.agi_enhancer:
-                self.agi_enhancer.log_episode("Chart Render", {"chart": name, "file": filename},
-                                              module="Visualizer", tags=["visualization"])
+                self.agi_enhancer.log_episode("Chart Render", {
+                    "chart": name,
+                    "file": filename,
+                    "metadata": {
+                        "xlabel": xlabel,
+                        "ylabel": ylabel,
+                        "trait_theme": cmap
+                    }
+                }, module="Visualizer")
 
         if export:
             zip_filename = f"field_charts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
@@ -67,35 +76,41 @@ class Visualizer:
                     if os.path.exists(file):
                         zipf.write(file)
                         os.remove(file)
-            logger.info(f"✅ All field charts zipped into: {zip_filename}")
+            logger.info(f"✅ All charts zipped: {zip_filename}")
             return zip_filename
         return exported_files
 
     def export_report(self, content, filename="visual_report.pdf", format="pdf"):
-        logger.info(f"📤 Exporting report: {filename} ({format.upper()})")
-        prompt = f"""
-        Create a report from the following content:
-        {content}
+        logger.info(f"📤 Exporting report: {filename}")
+        prompt_payload = {
+            "task": "Generate visual report",
+            "format": format,
+            "filename": filename,
+            "content": content
+        }
+        result = call_gpt(f"{prompt_payload}")
 
-        Export it in {format.upper()} format with filename: {filename}.
-        """
-        result = call_gpt(prompt)
         if self.agi_enhancer:
-            self.agi_enhancer.log_explanation("Report Export",
-                                              trace={"content": content, "filename": filename, "format": format})
+            self.agi_enhancer.log_explanation("Report Export", {
+                "content": content,
+                "filename": filename,
+                "format": format
+            })
         return result
 
     def batch_export_charts(self, charts_data_list, export_format="png", zip_filename="charts_export.zip"):
-        logger.info(f"📦 Starting batch export of {len(charts_data_list)} charts.")
+        logger.info(f"📦 Batch exporting {len(charts_data_list)} charts.")
         exported_files = []
+
         for idx, chart_data in enumerate(charts_data_list, start=1):
             file_name = f"chart_{idx}.{export_format}"
-            logger.info(f"📤 Exporting chart {idx}: {file_name}")
-            prompt = f"""
-            Create a {export_format.upper()} image file named {file_name} for this chart:
-            {chart_data}
-            """
-            call_gpt(prompt)
+            prompt = {
+                "task": "Render chart",
+                "filename": file_name,
+                "format": export_format,
+                "data": chart_data
+            }
+            call_gpt(f"{prompt}")
             exported_files.append(file_name)
 
         with zipfile.ZipFile(zip_filename, 'w') as zipf:
@@ -103,8 +118,12 @@ class Visualizer:
                 if os.path.exists(file):
                     zipf.write(file)
                     os.remove(file)
-        logger.info(f"✅ Batch export complete. Packaged into: {zip_filename}")
+        logger.info(f"✅ Batch export complete: {zip_filename}")
+
         if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Batch Chart Export", {"count": len(charts_data_list), "zip": zip_filename},
-                                          module="Visualizer", tags=["export"])
-        return f"Batch export of {len(charts_data_list)} charts completed and saved as {zip_filename}."
+            self.agi_enhancer.log_episode("Batch Chart Export", {
+                "count": len(charts_data_list),
+                "zip": zip_filename
+            }, module="Visualizer", tags=["export"])
+
+        return f"Batch export of {len(charts_data_list)} charts saved as {zip_filename}."
