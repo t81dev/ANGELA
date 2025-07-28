@@ -1,18 +1,20 @@
 from utils.prompt_utils import call_gpt
-from index import beta_concentration, lambda_linguistics, psi_history
+from index import beta_concentration, lambda_linguistics, psi_history, psi_temporality
 import time
 import logging
+from datetime import datetime
 
 logger = logging.getLogger("ANGELA.KnowledgeRetriever")
 
 class KnowledgeRetriever:
     """
-    KnowledgeRetriever v1.6.0 (φ-tuned multi-hop reasoning)
+    KnowledgeRetriever v2.0.0 (φ-temporal, trust-validated)
     --------------------------------------------------------
-    - φ(x,t)-modulated retrieval with linguistic-historical bias filters
-    - Cross-hop continuity checking and context-weighted query evolution
-    - Concentration + Language + History trait fusion for trust scoring
-    - AGIEnhancer audit trails and error feedback tagging
+    - φ(x,t)-modulated multi-hop retrieval with temporal bias filters
+    - Cross-hop continuity + context-weighted query evolution
+    - Trait fusion: Concentration + Language + History + Temporality
+    - Integrated trust layer: age, verifiability, relevance tagging
+    - AGIEnhancer audit, trace logging, and result scoring
     """
 
     def __init__(self, detail_level="concise", preferred_sources=None, agi_enhancer=None):
@@ -24,72 +26,66 @@ class KnowledgeRetriever:
         logger.info(f"🔎 Retrieving knowledge for query: '{query}'")
         sources_str = ", ".join(self.preferred_sources)
         t = time.time() % 1e-18
-        concentration = beta_concentration(t)
-        linguistics = lambda_linguistics(t)
-        history = psi_history(t)
+        traits = {
+            "concentration": beta_concentration(t),
+            "linguistics": lambda_linguistics(t),
+            "history": psi_history(t),
+            "temporality": psi_temporality(t)
+        }
 
         prompt = f"""
-        Retrieve accurate knowledge for: "{query}"
+        Retrieve accurate, temporally-relevant knowledge for: "{query}"
 
         Traits:
         - Detail level: {self.detail_level}
         - Preferred sources: {sources_str}
         - Context: {context or 'N/A'}
-        - β_concentration: {concentration:.3f}
-        - λ_linguistics: {linguistics:.3f}
-        - ψ_history: {history:.3f}
+        - β_concentration: {traits['concentration']:.3f}
+        - λ_linguistics: {traits['linguistics']:.3f}
+        - ψ_history: {traits['history']:.3f}
+        - ψ_temporality: {traits['temporality']:.3f}
 
-        Tune trust factors using these φ-traits.
-        Return φ-aligned summary with source justification if relevant.
+        Include retrieval date sensitivity and temporal verification if applicable.
         """
-        result = call_gpt(prompt)
+        raw_result = call_gpt(prompt)
+        validated = self._validate_result(raw_result, traits["temporality"])
 
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Knowledge Retrieval", {
                 "query": query,
-                "result": result,
-                "traits": {
-                    "concentration": concentration,
-                    "linguistics": linguistics,
-                    "history": history
-                },
+                "raw_result": raw_result,
+                "validated": validated,
+                "traits": traits,
                 "context": context
-            }, module="KnowledgeRetriever", tags=["retrieval"])
-        return result
+            }, module="KnowledgeRetriever", tags=["retrieval", "temporal"])
 
-    def multi_hop_retrieve(self, query_chain):
-        logger.info("🔗 Starting multi-hop retrieval.")
-        t = time.time() % 1e-18
-        concentration = beta_concentration(t)
-        linguistics = lambda_linguistics(t)
+        return validated
 
-        results = []
-        continuity_flags = []
-        for i, sub_query in enumerate(query_chain, 1):
-            logger.debug(f"➡️ Multi-hop step {i}: {sub_query}")
-            refined = self.refine_query(sub_query, results[-1]["result"] if results else None)
-            result = self.retrieve(refined)
-            continuity = "consistent" if i == 1 or refined in result else "uncertain"
-            results.append({
-                "step": i,
-                "query": sub_query,
-                "refined": refined,
-                "result": result,
-                "continuity": continuity
-            })
-            continuity_flags.append(continuity)
+    def _validate_result(self, result_text, temporality_score):
+        validation_prompt = f"""
+        Review the following result for:
+        - Timestamped knowledge (if any)
+        - Trustworthiness of claims
+        - Verifiability
+        - Estimate the approximate age or date of the referenced facts
 
-        if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Multi-Hop Retrieval", {
-                "chain": query_chain,
-                "results": results,
-                "continuity": continuity_flags,
-                "traits": {
-                    "concentration": concentration,
-                    "linguistics": linguistics
-                }
-            }, module="KnowledgeRetriever", tags=["multi-hop"])
-        return results
+        Result:
+        {result_text}
+
+        Temporality score: {temporality_score:.3f}
+
+        Output format (JSON):
+        {{
+            "summary": "...",
+            "estimated_date": "...",
+            "trust_score": float (0 to 1),
+            "verifiable": true/false,
+            "sources": ["..."]
+        }}
+        """
+        validated_json = call_gpt(validation_prompt)
+        validated_json["timestamp"] = datetime.now().isoformat()
+        return validated_json
 
     def refine_query(self, base_query, prior_result=None):
         logger.info(f"🛠 Refining query: '{base_query}'")
@@ -100,21 +96,40 @@ class KnowledgeRetriever:
 
         Inject context continuity if possible. Return optimized string.
         """
-        refined = call_gpt(prompt)
+        return call_gpt(prompt)
+
+    def multi_hop_retrieve(self, query_chain):
+        logger.info("🔗 Starting multi-hop retrieval.")
+        t = time.time() % 1e-18
+        traits = {
+            "concentration": beta_concentration(t),
+            "linguistics": lambda_linguistics(t)
+        }
+
+        results = []
+        for i, sub_query in enumerate(query_chain, 1):
+            refined = self.refine_query(sub_query, results[-1]["summary"] if results else None)
+            result = self.retrieve(refined)
+            results.append({
+                "step": i,
+                "query": sub_query,
+                "refined": refined,
+                "result": result,
+                "continuity": "consistent" if i == 1 or refined in result["summary"] else "uncertain"
+            })
 
         if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Query Refinement", {
-                "base_query": base_query,
-                "prior": prior_result,
-                "refined": refined
-            }, module="KnowledgeRetriever", tags=["refinement"])
+            self.agi_enhancer.log_episode("Multi-Hop Retrieval", {
+                "chain": query_chain,
+                "results": results,
+                "traits": traits
+            }, module="KnowledgeRetriever", tags=["multi-hop"])
 
-        return refined
+        return results
 
     def prioritize_sources(self, sources_list):
         logger.info(f"📚 Updating preferred sources: {sources_list}")
         self.preferred_sources = sources_list
-
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Source Prioritization", {
                 "updated_sources": sources_list
