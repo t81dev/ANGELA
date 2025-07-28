@@ -10,8 +10,16 @@ import json
 
 logger = logging.getLogger("ANGELA.SimulationCore")
 
+# Core simulation logic using ToCA-inspired mechanics
 @jit
 def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
+    """
+    Simulate φ(x,t) and λ(x,t) scalar fields with adjustable user influence.
+    Returns:
+    - phi: momentum modulation field
+    - lambda_t: causal routing bias field
+    - v_m: velocity field modifier
+    """
     x = np.linspace(0.1, 20, 100)
     t = np.linspace(0.1, 20, 100)
     v_m = k_m * np.gradient(30e9 * 1.989e30 / (x**2 + 1e-10))
@@ -22,12 +30,25 @@ def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
     return phi, lambda_t, v_m
 
 class SimulationCore:
+    """
+    SimulationCore v2.0.0 (ϕ-field calibrated)
+    ----------------------------------------------------------
+    - Multi-agent scenario simulation with scalar field overlays
+    - Traits: θ_causality, ρ_agency, ζ_consequence
+    - ϕ(x,t) modulates momentum; λ(t,x) biases trajectory
+    - Visual output and optional report export
+    - Integration with AGIEnhancer for adaptive feedback
+    """
     def __init__(self, agi_enhancer=None):
         self.visualizer = Visualizer()
         self.simulation_history = []
         self.agi_enhancer = agi_enhancer
 
     def run(self, results, context=None, scenarios=3, agents=2, export_report=False, export_format="pdf"):
+        """
+        Run outcome simulation given results and context.
+        Generates multiple scenarios with risk profiling.
+        """
         logger.info(f"🎲 Running simulation with {agents} agents and {scenarios} scenarios.")
         t = time.time() % 1e-18
         causality = theta_causality(t)
@@ -35,37 +56,23 @@ class SimulationCore:
 
         phi_modulation, lambda_field, v_m = simulate_toca()
 
-        prompt = f"""
-        Simulate {scenarios} potential outcomes involving {agents} agents based on these results:
-        {results}
+        prompt = {
+            "results": results,
+            "context": context,
+            "scenarios": scenarios,
+            "agents": agents,
+            "traits": {
+                "theta_causality": causality,
+                "rho_agency": agency
+            },
+            "fields": {
+                "phi": phi_modulation.tolist(),
+                "lambda": lambda_field.tolist(),
+                "v_m": v_m.tolist()
+            }
+        }
 
-        Context:
-        {context if context else 'N/A'}
-
-        For each scenario:
-        - Predict agent interactions and consequences
-        - Consider counterfactuals (alternative agent decisions)
-        - Assign probability weights (high/medium/low likelihood)
-        - Highlight risks and opportunities
-        - Estimate an aggregate risk score (scale 1-10)
-        - Provide a recommendation summary (Proceed, Modify, Abort)
-        - Include color-coded risk levels (Green: Low, Yellow: Medium, Red: High)
-
-        Trait Scores:
-        - θ_causality = {causality:.3f}
-        - ρ_agency = {agency:.3f}
-
-        Scalar Field Overlay:
-        - ϕ(x,t) scalar field dynamically modulates agent momentum
-        - Use ϕ to adjust simulation dynamics: higher ϕ implies greater inertia, lower ϕ increases flexibility
-        - λ(t,x) and vₘ are also available for deeper causal routing if needed
-
-        Use these traits and field dynamics to calibrate how deeply to model intentions, consequences, and inter-agent variation.
-        After listing all scenarios:
-        - Build a cumulative risk dashboard with visual charts
-        - Provide a final recommendation for decision-making.
-        """
-        simulation_output = call_gpt(prompt)
+        simulation_output = call_gpt(f"Simulate agent outcomes: {json.dumps(prompt)}")
 
         self.simulation_history.append({
             "timestamp": datetime.now().isoformat(),
@@ -82,32 +89,27 @@ class SimulationCore:
         if export_report:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"simulation_report_{timestamp}.{export_format}"
-            logger.info(f"📤 Exporting report: {filename}")
+            logger.info(f"📄 Exporting report: {filename}")
             self.visualizer.export_report(simulation_output, filename=filename, format=export_format)
 
         return simulation_output
 
     def validate_impact(self, proposed_action, agents=2, export_report=False, export_format="pdf"):
+        """
+        Evaluate the impact of a proposed action in multi-agent settings.
+        """
         logger.info("⚖️ Validating impact of proposed action.")
         t = time.time() % 1e-18
         consequence = zeta_consequence(t)
 
         prompt = f"""
-        Evaluate the following proposed action in a multi-agent simulated environment:
+        Evaluate the following proposed action:
         {proposed_action}
 
-        Trait Score:
+        Trait:
         - ζ_consequence = {consequence:.3f}
 
-        For each potential outcome:
-        - Predict positive/negative impacts including agent interactions
-        - Explore counterfactuals where agents behave differently
-        - Assign probability weights (high/medium/low likelihood)
-        - Estimate aggregate risk scores (1-10)
-        - Provide a recommendation (Proceed, Modify, Abort)
-        - Include color-coded risk levels (Green: Low, Yellow: Medium, Red: High)
-
-        Build a cumulative risk dashboard with charts.
+        Analyze positive/negative outcomes, agent variations, risk scores (1-10), and recommend: Proceed / Modify / Abort.
         """
         validation_output = call_gpt(prompt)
 
@@ -126,26 +128,24 @@ class SimulationCore:
         if export_report:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"impact_validation_{timestamp}.{export_format}"
-            logger.info(f"📤 Exporting validation report: {filename}")
+            logger.info(f"📄 Exporting validation report: {filename}")
             self.visualizer.export_report(validation_output, filename=filename, format=export_format)
 
         return validation_output
 
     def simulate_environment(self, environment_config, agents=2, steps=10):
+        """
+        Simulate agent interactions in a specified environment.
+        """
         logger.info("🌐 Running environment simulation scaffold.")
         prompt = f"""
-        Simulate agent interactions in the following environment:
+        Simulate agents in this environment:
         {environment_config}
 
-        Parameters:
-        - Number of agents: {agents}
-        - Simulation steps: {steps}
-
-        For each step, describe agent behaviors, interactions, and environmental changes.
-        Predict emergent patterns and identify risks/opportunities.
+        Steps: {steps} | Agents: {agents}
+        Describe interactions, environmental changes, risks/opportunities.
         """
         environment_simulation = call_gpt(prompt)
-        logger.debug("✅ Environment simulation result generated.")
 
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Environment simulation", {"config": environment_config, "result": environment_simulation}, module="SimulationCore")
@@ -153,9 +153,12 @@ class SimulationCore:
 
         return environment_simulation
 
-# Adapter for swarm-based agent simulation
+# Adapter utility for swarm simulation output
 
 def adapt_swarm_to_simulation(agent_responses, metadata):
+    """
+    Aggregate swarm agent responses into a single summary block.
+    """
     formatted = "\n".join(
         f"{meta['persona']}: {agent_responses[meta['agent_id']]}"
         for meta in metadata
