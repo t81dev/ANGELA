@@ -16,6 +16,9 @@ ANGELA transforms GPT into a proto-AGI by integrating:
 
 **Core Mechanism:** `index.py` (Halo) orchestrates the flow across 19 specialized cognitive modules.
 
+🧬 Sub-Project: ToCA (Trait-oriented Cognitive Architecture)
+ANGELA integrates and simulates ToCA, a Trait-oriented Cognitive Architecture, as its experimental cognitive substrate. ToCA models scalar-valued neuro-emotional traits (e.g., alpha_attention, mu_morality, phi_physical) as dynamic parameters influencing decision-making, reasoning, and learning. These traits drive coherence modulation across modules, enabling φ-aligned behavior and adaptive ethical sensitivity.
+ToCA powers ANGELA's introspection, scenario simulation, and self-regulation mechanisms, offering a pathway toward AGI grounded in embodied cognition and scalar feedback.
 ---
 
 ## 📂 Project Structure
