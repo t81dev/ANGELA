@@ -1,4 +1,4 @@
-# 😇 ANGELA v1.5.8
+# 😇 ANGELA v1.5.9
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19 autonomous modules coordinated by a central orchestrator, *Halo*.
 
