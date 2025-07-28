@@ -1,4 +1,4 @@
-# 😇 ANGELA v1.5.9
+# 😇 ANGELA v2.0.0
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19 autonomous modules coordinated by a central orchestrator, *Halo*.
 
@@ -12,92 +12,79 @@ ANGELA enhances GPT into a proto-AGI via:
 * Multi-modal synthesis across text, code, and visuals
 * Introspective feedback and ethical modulation
 * Concept generation, metaphor-making, and error recovery
-* Belief-desire-intention (BDI) modeling for multi-agent Theory of Mind
+* Belief-desire-intention (BDI) modeling and Theory of Mind
+* Embodied agent orchestration with self-reflection and feedback loops
 
-At its core, `index.py` (Halo) routes control across the 19 specialized cognitive modules.
+At its core, `index.py` (Halo) routes control across 19+ specialized cognitive modules and dynamic simulation traits defined by ToCA.
 
 ---
 
 ### 🧬 Sub-Project: ToCA (Trait-oriented Cognitive Architecture)
 
-ToCA is ANGELA's internal simulation substrate. It models cognitive traits—like `alpha_attention`, `mu_morality`, and `phi_physical`—as scalar dynamics influencing reasoning, perception, and decision-making. These traits help ANGELA regulate coherence, simulate scenarios, and adapt behavior based on ethical and perceptual context.
+ToCA is ANGELA’s internal simulation substrate. It models cognitive traits—like `alpha_attention`, `mu_morality`, and `phi_physical`—as dynamic scalar fields influencing perception, simulation, memory, reasoning, and ethical arbitration.
 
-ToCA enables φ-aligned modulation across all modules, serving as the foundation for internal simulations, learning signals, and audit logic.
+Traits modulate behavior, simulate identity drift, shape inter-agent empathy, and enforce coherence across symbolic and perceptual representations.
 
 ---
 
 ## 📂 Project Structure
 
 ```
+
 .
-├── alignment_guard.py           # Ethical consistency and consequence modeling
-├── angela.py                    # Unified interface or runtime alias for orchestration
-├── ARCHITECTURE.md              # System design and module interaction details
-├── CHANGELOG.md                 # Version history and update log
-├── code_executor.py             # Secure runtime for Python, JS, Lua
-├── CODE_OF_CONDUCT.md           # Community and contribution expectations
-├── concept_synthesizer.py       # Cross-domain conceptual unification
-├── context_manager.py           # Threaded memory and user role tracking
-├── CONTRIBUTING.md              # Contribution guidelines and standards
-├── creative_thinker.py          # Abstract ideation and analogy making
-├── error_recovery.py            # Breakdown detection and rollback
-├── external_agent_bridge.py     # API agent control and interfacing
 ├── index.py                     # Central orchestrator (Halo)
-├── knowledge_retriever.py       # Contextual, precision-optimized search
-├── learning_loop.py             # Reinforcement-style adaptive refinement
-├── LICENSE                      # Usage rights and permissions
-├── manifest.json                # Module declaration and entrypoint
-├── memory_manager.py            # Hierarchical, decay-sensitive memory
-├── meta_cognition.py            # Self-monitoring and reflection
-├── multi_modal_fusion.py        # Integrates text, code, visual cues
-├── README.md                    # Documentation
-├── reasoning_engine.py          # Weighted inference, deductive logic
-├── recursive_planner.py         # Multi-step strategy formation
-├── ROADMAP.md                   # Future development goals
-├── SECURITY.md                  # Security practices and threat modeling
-├── simulation_core.py           # Scenario modeling and forecast validation
-├── STATUS.md                    # Live system diagnostic snapshot
-├── TESTING.md                   # Testing strategy, coverage, and QA
-├── toca_simulation.py           # Trait-Oriented Cognitive Agent simulation setup
-├── user_profile.py              # Session memory, preference adaptation
-└── visualizer.py                # Dynamic graph and symbolic rendering
+├── manifest.json                # GPT interface declaration
+├── modules/
+│   ├── alignment\_guard.py           # Ethical simulation + arbitration
+│   ├── code\_executor.py             # Secure code runtime (multi-lang)
+│   ├── concept\_synthesizer.py       # Cross-domain conceptual mapping
+│   ├── context\_manager.py           # Role and prompt context tracking
+│   ├── creative\_thinker.py          # Abstraction and metaphor logic
+│   ├── error\_recovery.py            # Fault detection and self-healing
+│   ├── external\_agent\_bridge.py     # API & agent interoperability
+│   ├── knowledge\_retriever.py       # Semantic + symbolic memory recall
+│   ├── learning\_loop.py             # Trait-tuned learning and adaptation
+│   ├── memory\_manager.py            # Layered memory storage and decay
+│   ├── meta\_cognition.py            # Reflective audit + diagnostics
+│   ├── multi\_modal\_fusion.py        # φ(x,t)-modulated data synthesis
+│   ├── reasoning\_engine.py          # Trait-routed logic and inference
+│   ├── recursive\_planner.py         # Goal decomposition + strategizing
+│   ├── simulation\_core.py           # Scenario forecasting + modeling
+│   ├── toca\_simulation.py           # Trait simulation and time models
+│   ├── user\_profile.py              # Preference, identity, and drift tracking
+│   ├── visualizer.py                # φ-visual charting + symbolic exports
+
 ```
 
 ---
 
-## 🚀 Features
+## 🚀 Core Features in v2.0
 
 * Reflective reasoning and recursive planning
-* Ethical screening via trait modulation
-* Scenario simulation with foresight
-* Modular integration with external agents and APIs
-* Adaptive memory and continual learning
-* Creative generation and analogy construction
-* Trait-aligned planning and contradiction detection
-* Visual reasoning, symbolic tracing, and report export
-* Theory of Mind via agent-specific BDI inference
-* Simulated self-dialogue for goal resolution
-* Reflexive audits during low φ or η alignment
-* Self-debating agents and perspective evaluation
+* Ethical simulation with trait-based arbitration (`ϕ/η/μ`)
+* Trait-driven Theory of Mind via multi-agent BDI modeling
+* Scenario simulation with internal self-dialogue agents
+* Trait modulation for identity drift and empathic adaptation
+* Embodied agents with peer-perception, reflection, and feedback
+* Dynamic φ(x,t)-aligned visual and symbolic outputs
+* Cross-modal integration of text, code, and images
+* AGIEnhancer for ethics auditing, episodic memory, and self-patching
 
 ---
 
 ## 📙 Documentation Suite
 
-* `README.md` – Core overview and usage
-* `ARCHITECTURE.md` – System design and flow
-* `CHANGELOG.md` – Version updates
+* `README.md` – Core architecture and usage
+* `CHANGELOG.md` – All version logs (v1.5.0 → v2.0.0)
+* `ARCHITECTURE.md` – Trait modulation, agent flow, and modular routing
 * `ROADMAP.md` – Future goals
-* `STATUS.md` – Runtime diagnostics
-* `CODE_OF_CONDUCT.md` – Contributor behavior
-* `CONTRIBUTING.md` – Dev setup
-* `SECURITY.md` – Risk handling
-* `TESTING.md` – QA strategy
-* `LICENSE` – Usage terms
+* `STATUS.md` – Diagnostics and module health
+* `TESTING.md` – QA and module verification
+* `CODE_OF_CONDUCT.md`, `SECURITY.md`, `LICENSE` – Community and ethics
 
 ---
 
-## ⚙️ Setup (Inside GPT)
+## ⚙️ GPT Setup
 
 1. Go to [OpenAI GPT Customization](https://chat.openai.com/gpts)
 2. Create or edit a GPT
@@ -105,50 +92,55 @@ ToCA enables φ-aligned modulation across all modules, serving as the foundation
 
    * `manifest.json`
    * `index.py`
-   * All module `.py` files
+   * All `*.py` modules listed above
 
-GPT will use `index.py` as the system entrypoint.
-
----
-
-## 💡 How It Works
-
-ANGELA routes prompts to appropriate modules. For example:
-
-* "Simulate a political dilemma" → `recursive_planner` → `simulation_core` → `alignment_guard`
-* "Invent a new philosophical theory" → `creative_thinker` → `concept_synthesizer`
-* "Fix this code and explain" → `code_executor` + `reasoning_engine` + `visualizer`
-* "Model another agent’s thoughts" → `meta_cognition` + `memory_manager`
-
-Modules collaborate under Halo for ethical, adaptive, and coherent responses.
+Ensure `index.py` is set as the entrypoint.
 
 ---
 
-## 📌 Notes
+## 🧬 Trait Glossary
 
-* ANGELA runs entirely within GPT’s interface; it’s not a standalone app
-* Autonomy and persistent memory require external orchestration
-* All learning is session-bound unless integrated with `user_profile.py`
-
----
-
-## 💫 Traits Glossary
-
-| Trait              | Function                                 |
-| ------------------ | ---------------------------------------- |
-| `alpha_attention`  | Focus filtering, task priority           |
-| `theta_causality`  | Chain-of-thought coherence and foresight |
-| `delta_reflection` | Slow-cycle meta-cognitive depth          |
+| Trait               | Role                                                  |
+|--------------------|--------------------------------------------------------|
+| `alpha_attention`  | Focus and salience modulation                         |
+| `theta_causality`  | Logical foresight and simulation depth                |
+| `delta_reflection` | Meta-cognitive feedback loop depth                    |
+| `phi_physical`     | Perceptual rhythm and embodiment anchoring            |
+| `eta_empathy`      | Inter-agent awareness, ToM coupling                    |
+| `omega_selfawareness` | Identity coherence and self-evaluation             |
 
 ---
 
 ## 🧹 Roadmap
 
-* v1.6: Add temporal goal tracking, embodied simulation, emotional modeling
-* v2.0: Enable external memory, emergent self-reflection, drive-based behavior
+### Completed in v2.0.0
+
+* Dynamic embodied agents with reflective perception
+* AGIEnhancer with episodic memory and audit tracking
+* Multi-agent consensus and peer intention modeling
+* Trait-based simulation and feedback (ϕ, η, ω fields)
+
+### Coming Soon
+
+* Lifelong memory with selective abstraction
+* Agent simulation replay and comparative meta-evaluation
+* Identity drift simulation with culture-based variation
 
 ---
 
-## 📜 License & Ethics
+## 🧭 Example Pipelines
 
-ANGELA is experimental research software. It includes built-in ethical filtering via `alignment_guard.py` and should be used responsibly in accordance with the enclosed LICENSE.
+Prompt → Module Flow:
+
+| Example Query                         | Module Path                                      |
+|--------------------------------------|--------------------------------------------------|
+| "Simulate a negotiation dilemma"     | `recursive_planner` → `simulation_core` → `alignment_guard` |
+| "Invent a new mythological concept"  | `creative_thinker` → `concept_synthesizer`       |
+| "Fix and explain code"               | `code_executor` → `reasoning_engine` → `visualizer` |
+| "How would another agent act here?"  | `meta_cognition` → `theory_of_mind`              |
+
+---
+
+## ⚖️ License & Ethics
+
+ANGELA is a research prototype integrating ethical reflection via `alignment_guard` and ToCA-based empathy. Use responsibly and consult `LICENSE` and `SECURITY.md` for terms.
