@@ -7,15 +7,18 @@ logger = logging.getLogger("ANGELA.MultiModalFusion")
 
 class MultiModalFusion:
     """
-    MultiModalFusion v1.6.0 (ϕ(x,t)-tuned cross-modal synthesis)
+    MultiModalFusion v2.0.0 (ϕ(x,t)-harmonized cross-modal cognition)
     -----------------------------------------------------------
-    - EEG-modulated attention and perceptual modulation (α, σ, ϕ)
-    - Automatic detection of text, image, and code modalities
-    - ϕ(x,t)-regulated coherence synthesis and conflict balancing
-    - Iterative insight distillation with refinement feedback loops
-    - Visual output templates using modular trait-influenced layout
+    - Enhanced φ-regulated multi-modal inference using context traits
+    - EEG-style α/σ/φ-trait embeddings for perceptual sensitivity
+    - Embedded modality detection and cross-alignment fusion
+    - Iterative feedback distillation with conflict resolution logic
+    - Visual anchor map generation with semantic graph overlays
     -----------------------------------------------------------
     """
+
+    def __init__(self, agi_enhancer=None):
+        self.agi_enhancer = agi_enhancer
 
     def analyze(self, data, summary_style="insightful", refine_iterations=2):
         logger.info("🖇 Analyzing multi-modal data with φ(x,t)-harmonic embeddings...")
@@ -37,14 +40,25 @@ class MultiModalFusion:
         - σ (sensation): {sensation:.3f}
         - φ (coherence): {phi:.3f}
 
-        Harmonize insights across modalities.
-        Resolve semantic tension using φ(x,t)-guided balance logic.
+        Use φ(x,t)-synchrony to resolve inter-modality coherence conflicts.
         """
         output = call_gpt(prompt)
 
         for i in range(refine_iterations):
             logger.debug(f"♻️ Refinement #{i+1}")
-            output = call_gpt(f"Refine for φ(x,t)-regulated synthesis:\n{output}")
+            output = call_gpt(f"Refine using φ(x,t)-adaptive tension balance:
+{output}")
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Multi-modal synthesis", {
+                "data": data,
+                "summary": output,
+                "traits": {
+                    "alpha": attention,
+                    "sigma": sensation,
+                    "phi": phi
+                }
+            }, module="MultiModalFusion", tags=["fusion"])
 
         return output
 
@@ -66,19 +80,20 @@ class MultiModalFusion:
     def correlate_modalities(self, modalities):
         logger.info("🔗 Mapping cross-modal semantic and trait links...")
         prompt = f"""
-        Correlate insights and detect tensions across modalities:
+        Correlate insights and detect semantic friction between modalities:
         {modalities}
 
-        Identify synthesis anchors and φ(x,t)-modulated harmony nodes.
+        Highlight synthesis anchors and φ(x,t)-sensitive alignment opportunities.
         """
         return call_gpt(prompt)
 
     def generate_visual_summary(self, data, style="conceptual"):
         logger.info("🖼 Creating φ-aligned visual synthesis layout...")
         prompt = f"""
-        Build a {style} visual summary chart showing key relationships in this multi-modal data:
+        Construct a {style} visual chart revealing inter-modal relationships:
         {data}
 
-        Label modalities distinctly. Balance layout using φ(x,t) metaphor.
+        Use φ-mapped flow layout. Label and partition modalities clearly.
+        Highlight balance and semantic cross-links.
         """
         return call_gpt(prompt)
