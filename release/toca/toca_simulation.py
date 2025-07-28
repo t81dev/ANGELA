@@ -1,4 +1,3 @@
-# toca_simulation.py
 import numpy as np
 from scipy.constants import G
 import matplotlib.pyplot as plt
@@ -13,8 +12,8 @@ k_default = 0.85
 epsilon_default = 0.015
 r_halo_default = 20.0  # kpc
 
+
 def compute_AGRF_curve(v_obs_kms, M_baryon_solar, r_kpc, k=k_default, epsilon=epsilon_default, r_halo=r_halo_default):
-    """Compute AGRF-derived total velocity for a galaxy."""
     r_m = r_kpc * KPC_TO_M
     M_b_kg = M_baryon_solar * MSUN_TO_KG
     v_obs_ms = v_obs_kms * 1e3
@@ -26,40 +25,63 @@ def compute_AGRF_curve(v_obs_kms, M_baryon_solar, r_kpc, k=k_default, epsilon=ep
 
     return v_total_ms / 1e3  # km/s
 
+
 def simulate_galaxy_rotation(r_kpc, M_b_profile_func, v_obs_kms_func, k=k_default, epsilon=epsilon_default):
-    """Simulate full AGRF-based rotation curve."""
     M_baryons = M_b_profile_func(r_kpc)
     v_obs = v_obs_kms_func(r_kpc)
     v_total = compute_AGRF_curve(v_obs, M_baryons, r_kpc, k, epsilon)
     return v_total
 
+
+def compute_trait_fields(r_kpc, v_obs, v_sim, time_elapsed=1.0, tau_persistence=10):
+    gamma_field = np.log(1 + r_kpc) * 0.5
+    beta_field = np.abs(v_obs - v_sim) / np.max(v_obs)
+    zeta_field = 1 / (1 + np.gradient(v_sim)**2)
+    eta_field = np.exp(-time_elapsed / tau_persistence)
+    psi_field = np.gradient(v_sim) / np.gradient(r_kpc)
+    return gamma_field, beta_field, zeta_field, eta_field, psi_field
+
+
 def plot_AGRF_simulation(r_kpc, M_b_func, v_obs_func, label="ToCA-AGRF"):
     v_sim = simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func)
     v_obs = v_obs_func(r_kpc)
 
-    # Optional phi field overlay
     phi_field = k_default * np.exp(-epsilon_default * r_kpc / r_halo_default)
+    gamma_field, beta_field, zeta_field, eta_field, psi_field = compute_trait_fields(r_kpc, v_obs, v_sim)
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 8))
+    plt.subplot(2, 1, 1)
     plt.plot(r_kpc, v_obs, label="Observed", linestyle="--", color="gray")
     plt.plot(r_kpc, v_sim, label=label, color="crimson")
     plt.plot(r_kpc, phi_field, label="ϕ(x,t) Scalar Field", linestyle=":", color="blue")
     plt.xlabel("Radius (kpc)")
     plt.ylabel("Velocity (km/s)")
-    plt.title("Galaxy Rotation Curve with ToCA AGRF and ϕ Field")
+    plt.title("Galaxy Rotation Curve with AGRF and Trait Fields")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.7)
+
+    plt.subplot(2, 1, 2)
+    plt.plot(r_kpc, gamma_field, label="γ (Imagination)")
+    plt.plot(r_kpc, beta_field, label="β (Conflict)")
+    plt.plot(r_kpc, zeta_field, label="ζ (Resilience)")
+    plt.plot(r_kpc, [eta_field]*len(r_kpc), label="η (Agency)")
+    plt.plot(r_kpc, psi_field, label="ψ (Projection)")
+    plt.xlabel("Radius (kpc)")
+    plt.ylabel("Trait Intensity")
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.7)
     plt.tight_layout()
     plt.show()
 
-# Example profiles for SPARC-like simulation
+
 def M_b_exponential(r_kpc, M0=5e10, r_scale=3.5):
     return M0 * np.exp(-r_kpc / r_scale)
+
 
 def v_obs_flat(r_kpc, v0=180):
     return np.full_like(r_kpc, v0)
 
-# Usage
+
 if __name__ == "__main__":
     r_vals = np.linspace(0.1, 20, 100)
     plot_AGRF_simulation(r_vals, M_b_exponential, v_obs_flat)
