@@ -31,9 +31,9 @@
 
 ## Feature Implementation
 
-* [ ] Integrate ToCA trait simulation (ϕ, θ, η, ω)
-* [ ] Implement BDI-based Theory of Mind module behavior
-* [ ] Test EEG-modulated control for cognition modules
+* [x] Integrate ToCA trait simulation (ϕ, θ, η, ω)
+* [x] Implement BDI-based Theory of Mind module behavior
+* [x] Test EEG-modulated control for cognition modules
 
 ## Testing and Validation
 
