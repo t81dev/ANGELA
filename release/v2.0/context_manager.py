@@ -21,6 +21,7 @@ class ContextManager:
     - φ-coherence scoring for reflective tension control
     - Broadcasts inter-module context events
     - Enables responsive module synchronization
+    - λ-narrative integration: goal/intent lineage threading
     --------------------------------------------------
     """
 
@@ -63,6 +64,16 @@ class ContextManager:
         self.current_context = new_context
         logger.info(f"📌 New context applied: {new_context}")
         self.broadcast_context_event("context_updated", new_context)
+
+    def tag_context(self, intent=None, goal_id=None):
+        if intent:
+            self.current_context["intent"] = intent
+        if goal_id:
+            self.current_context["goal_id"] = goal_id
+        logger.info(f"🏷️ Context tagged with intent='{intent}', goal_id='{goal_id}'")
+
+    def get_context_tags(self):
+        return self.current_context.get("intent"), self.current_context.get("goal_id")
 
     def get_context(self):
         return self.current_context
