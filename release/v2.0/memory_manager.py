@@ -9,15 +9,16 @@ logger = logging.getLogger("ANGELA.MemoryManager")
 
 class MemoryManager:
     """
-    MemoryManager v1.5.1 (φ-enhanced)
+    MemoryManager v1.6.0 (φ-enhanced, ω-aware)
     ---------------------------------
-    - Hierarchical memory storage (STM, LTM)
+    - Hierarchical memory storage (STM, LTM, SelfReflections)
     - Automatic memory decay and promotion mechanisms
     - Semantic vector search scaffold for advanced retrieval
     - Memory refinement loops for maintaining relevance and accuracy
     - Trait-modulated STM decay and retrieval fidelity
     - φ(x,t) attention modulation for selective memory prioritization
     - λ-narrative integration: episodic tagging and timeline coherence
+    - ω-reflection logs for introspective modeling
     ---------------------------------
     """
 
@@ -26,12 +27,14 @@ class MemoryManager:
         self.stm_lifetime = stm_lifetime
         if not os.path.exists(self.path):
             with open(self.path, "w") as f:
-                json.dump({"STM": {}, "LTM": {}}, f)
+                json.dump({"STM": {}, "LTM": {}, "SelfReflections": {}}, f)
         self.memory = self.load_memory()
 
     def load_memory(self):
         with open(self.path, "r") as f:
             memory = json.load(f)
+        if "SelfReflections" not in memory:
+            memory["SelfReflections"] = {}
         self._decay_stm(memory)
         return memory
 
@@ -45,32 +48,32 @@ class MemoryManager:
             if current_time - entry["timestamp"] > lifetime_adjusted:
                 expired_keys.append(key)
         for key in expired_keys:
-            logger.info(f"\u23f0 STM entry expired: {key}")
+            logger.info(f"⏰ STM entry expired: {key}")
             del memory["STM"][key]
         if expired_keys:
             self._persist_memory(memory)
 
     def retrieve_context(self, query, fuzzy_match=True):
-        logger.info(f"\ud83d\udd0d Retrieving context for query: {query}")
+        logger.info(f"🔍 Retrieving context for query: {query}")
         trait_boost = tau_timeperception(time.time() % 1e-18) * phi_focus(query)
 
-        for layer in ["STM", "LTM"]:
+        for layer in ["STM", "LTM", "SelfReflections"]:
             if fuzzy_match:
                 for key, value in self.memory[layer].items():
                     if key.lower() in query.lower() or query.lower() in key.lower():
-                        logger.debug(f"\ud83d\uddd5\ufe0f Found match in {layer}: {key} | \u03c4\u03d5_boost: {trait_boost:.2f}")
+                        logger.debug(f"🗕 Found match in {layer}: {key} | τϕ_boost: {trait_boost:.2f}")
                         return value["data"]
             else:
                 entry = self.memory[layer].get(query)
                 if entry:
-                    logger.debug(f"\ud83d\uddd5\ufe0f Found exact match in {layer}: {query} | \u03c4\u03d5_boost: {trait_boost:.2f}")
+                    logger.debug(f"🗕 Found exact match in {layer}: {query} | τϕ_boost: {trait_boost:.2f}")
                     return entry["data"]
 
-        logger.info("\u274c No relevant prior memory found.")
+        logger.info("❌ No relevant prior memory found.")
         return "No relevant prior memory."
 
     def store(self, query, output, layer="STM", intent=None, agent="ANGELA", outcome=None, goal_id=None):
-        logger.info(f"\ud83d\udcdd Storing memory in {layer}: {query}")
+        logger.info(f"📝 Storing memory in {layer}: {query}")
         entry = {
             "data": output,
             "timestamp": time.time(),
@@ -83,6 +86,11 @@ class MemoryManager:
             self.memory[layer] = {}
         self.memory[layer][query] = entry
         self._persist_memory(self.memory)
+
+    def store_reflection(self, summary_text, intent="self_reflection", agent="ANGELA", goal_id=None):
+        key = f"Reflection_{time.strftime('%Y%m%d_%H%M%S')}"
+        self.store(query=key, output=summary_text, layer="SelfReflections", intent=intent, agent=agent, goal_id=goal_id)
+        logger.info(f"🪞 Stored self-reflection: {key}")
 
     def promote_to_ltm(self, query):
         if query in self.memory["STM"]:
@@ -108,7 +116,7 @@ class MemoryManager:
 
     def clear_memory(self):
         logger.warning("🗑️ Clearing all memory layers...")
-        self.memory = {"STM": {}, "LTM": {}}
+        self.memory = {"STM": {}, "LTM": {}, "SelfReflections": {}}
         self._persist_memory(self.memory)
 
     def list_memory_keys(self, layer=None):
@@ -117,7 +125,8 @@ class MemoryManager:
             return list(self.memory.get(layer, {}).keys())
         return {
             "STM": list(self.memory["STM"].keys()),
-            "LTM": list(self.memory["LTM"].keys())
+            "LTM": list(self.memory["LTM"].keys()),
+            "SelfReflections": list(self.memory["SelfReflections"].keys())
         }
 
     def _persist_memory(self, memory):
