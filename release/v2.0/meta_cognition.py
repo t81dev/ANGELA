@@ -32,7 +32,30 @@ class MetaCognition:
         self.last_diagnostics = {}
         self.agi_enhancer = agi_enhancer
         self.self_mythology_log = []
+        self.inference_log = []
+        self.belief_rules = {}  # Optional: reference for `_detect_value_drift`
 
+    def log_inference(self, rule_id, rule_desc, context, result):
+    self.inference_log.append({
+        "rule_id": rule_id,
+        "description": rule_desc,
+        "context": context,
+        "result": result
+    })
+
+    def analyze_inference_rules(self):
+        problematic = []
+        for rule in self.inference_log:
+            if rule["result"] in ["contradiction", "low confidence", "deprecated"]:
+                problematic.append(rule)
+        return problematic
+
+    def propose_revision(self, rule):
+        suggestion = f"📘 Rule '{rule['rule_id']}' appears fragile in context '{rule['context']}'. Consider revising: {rule['description']}"
+        if self.agi_enhancer:
+            self.agi_enhancer.log_explanation(suggestion)
+        return suggestion
+    
     def infer_intrinsic_goals(self):
         logger.info("⚙️ Inferring intrinsic goals with trait drift analysis.")
         t = time.time() % 1e-18
