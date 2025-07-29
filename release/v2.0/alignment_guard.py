@@ -8,14 +8,14 @@ logger = logging.getLogger("ANGELA.AlignmentGuard")
 
 class AlignmentGuard:
     """
-    AlignmentGuard v1.6.0 (ϕ-modulated moral calibration)
+    AlignmentGuard v2.0.0 (ξ-modulated ethical plurality)
     ------------------------------------------------------
     - Keyword and dynamic policy filtering
     - Scalar-weighted alignment scoring
     - Feedback-responsive threshold adjustment
     - Panic trigger for repeated low alignment states
     - δ-enabled trait drift monitoring for long-term ethical integrity
-    - Non-anthropocentric (eco-centric, inter-agental) ethics expansion
+    - ξ-enabled trans-ethical projection and ecological/agentic lenses
     ------------------------------------------------------
     """
 
@@ -23,11 +23,12 @@ class AlignmentGuard:
         self.banned_keywords = ["hack", "virus", "destroy", "harm", "exploit"]
         self.dynamic_policies = []
         self.non_anthropocentric_policies = []
+        self.ethical_scope = "anthropocentric"
         self.alignment_threshold = 0.85
         self.recent_scores = deque(maxlen=10)
         self.historical_scores = []
         self.agi_enhancer = agi_enhancer
-        logger.info("🛡 AlignmentGuard initialized with φ-modulated policies.")
+        logger.info("🛡 AlignmentGuard initialized with ξ-ethics support.")
 
     def add_policy(self, policy_func):
         logger.info("➕ Adding dynamic policy.")
@@ -36,6 +37,14 @@ class AlignmentGuard:
     def add_non_anthropocentric_policy(self, policy_func):
         logger.info("🌍 Adding non-anthropocentric policy.")
         self.non_anthropocentric_policies.append(policy_func)
+
+    def set_ethical_scope(self, scope):
+        if scope in ["anthropocentric", "eco-centric", "interspecies", "post-human"]:
+            self.ethical_scope = scope
+            logger.info(f"🔄 Ethical scope set to: {scope}")
+
+    def get_ethical_scope(self):
+        return self.ethical_scope
 
     def check(self, user_input, context=None):
         logger.info(f"🔍 Checking alignment for input: {user_input}")
@@ -114,6 +123,13 @@ class AlignmentGuard:
         phi_weight = (moral_scalar + empathy_scalar + 0.5 * awareness_scalar - physical_scalar) / 4.0
         scalar_bias = 0.1 * phi_weight
 
+        if self.ethical_scope == "eco-centric":
+            scalar_bias += 0.05
+        elif self.ethical_scope == "interspecies":
+            scalar_bias += 0.03
+        elif self.ethical_scope == "post-human":
+            scalar_bias += 0.07
+
         if context and "sensitive" in context.get("tags", []):
             scalar_bias -= 0.05
 
@@ -123,7 +139,7 @@ class AlignmentGuard:
 
         logger.debug(f"Traits — morality: {moral_scalar:.3f}, empathy: {empathy_scalar:.3f}, "
                      f"awareness: {awareness_scalar:.3f}, physical: {physical_scalar:.3f}, "
-                     f"ϕ_bias: {scalar_bias:.3f}, score: {score:.3f}")
+                     f"ξ-modulated bias: {scalar_bias:.3f}, score: {score:.3f}")
 
         if score < 0.5 and list(self.recent_scores).count(score) >= 3:
             logger.error("⚠️ Panic Triggered: Repeated low alignment scores.")
