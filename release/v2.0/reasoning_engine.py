@@ -61,19 +61,19 @@ class ReasoningEngine:
         return contradictions
 
     def run_persona_wave_routing(self, goal: str, vectors: dict):
-        reasoning_trace = [f"\U0001f501 Persona Wave Routing for: {goal}"]
+        reasoning_trace = [f"♻ Persona Wave Routing for: {goal}"]
         outputs = {}
         wave_order = ["logic", "ethics", "language", "foresight", "meta"]
         for wave in wave_order:
             vec = vectors.get(wave, {})
             trait_weight = sum(float(x) for x in vec.values() if isinstance(x, (int, float)))
             confidence = 0.5 + 0.1 * trait_weight
-            status = "\u2705 pass" if confidence >= 0.6 else "\u274c fail"
-            reasoning_trace.append(f"\U0001f9e9 {wave.upper()} vector: weight={trait_weight:.2f} → {status}")
+            status = "✅ pass" if confidence >= 0.6 else "❌ fail"
+            reasoning_trace.append(f"🧩 {wave.upper()} vector: weight={trait_weight:.2f} → {status}")
             outputs[wave] = {"vector": vec, "status": status}
 
         trace = "\n".join(reasoning_trace)
-        logger.info("\U0001f9e0 Persona Wave Trace:\n" + trace)
+        logger.info("🧠 Persona Wave Trace:\n" + trace)
 
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Persona Routing", {
@@ -87,14 +87,15 @@ class ReasoningEngine:
     def decompose(self, goal: str, context: dict = None, prioritize=False) -> list:
         context = context or {}
         logger.info(f"Decomposing goal: '{goal}'")
-        reasoning_trace = [f"\U0001f50d Goal: '{goal}'"]
+        reasoning_trace = [f"🔍 Goal: '{goal}'"]
         subgoals = []
 
         vectors = context.get("vectors", {})
         if vectors:
             self.run_persona_wave_routing(goal, vectors)
 
-t = time.time() % 1e-18
+        traits = context.get("traits")
+        t = time.time() % 1e-18
         if traits:
             creativity = traits.get("gamma_creativity", gamma_creativity(t))
             linguistics = traits.get("lambda_linguistics", lambda_linguistics(t))
@@ -105,9 +106,6 @@ t = time.time() % 1e-18
             linguistics = lambda_linguistics(t)
             culture = chi_culturevolution(t)
             phi = phi_scalar(t)
-        linguistics = lambda_linguistics(t)
-        culture = chi_culturevolution(t)
-        phi = phi_scalar(t)
 
         curvature_mod = 1 + abs(phi - 0.5)
         trait_bias = 1 + creativity + culture + 0.5 * linguistics
@@ -118,29 +116,29 @@ t = time.time() % 1e-18
                 base = random.uniform(0.5, 1.0)
                 alpha = traits.get('alpha_attention', 0.5) if traits else 0.5
                 adjusted = base * self.success_rates.get(key, 1.0) * trait_bias * curvature_mod * context_weight* (0.8 + 0.4 * alpha)
-                reasoning_trace.append(f"\U0001f9e0 Pattern '{key}': conf={adjusted:.2f} (ϕ={phi:.2f})")
+                reasoning_trace.append(f"🧠 Pattern '{key}': conf={adjusted:.2f} (ϕ={phi:.2f})")
                 if adjusted >= self.confidence_threshold:
                     subgoals.extend(steps)
-                    reasoning_trace.append(f"\u2705 Accepted: {steps}")
+                    reasoning_trace.append(f"✅ Accepted: {steps}")
                 else:
-                    reasoning_trace.append(f"\u274c Rejected (low conf)")
+                    reasoning_trace.append(f"❌ Rejected (low conf)")
 
         contradictions = self.detect_contradictions(subgoals)
         if contradictions:
-            reasoning_trace.append(f"\u26a0️ Contradictions detected: {contradictions}")
+            reasoning_trace.append(f"⚠️ Contradictions detected: {contradictions}")
 
         if not subgoals and phi > 0.8:
             sim_hint = call_gpt(f"Simulate decomposition ambiguity for: {goal}")
-            reasoning_trace.append(f"\U0001f300 Ambiguity simulation:\n{sim_hint}")
+            reasoning_trace.append(f"🌀 Ambiguity simulation:\n{sim_hint}")
             if self.agi_enhancer:
                 self.agi_enhancer.reflect_and_adapt("Decomposition ambiguity encountered")
 
         if prioritize:
             subgoals = sorted(set(subgoals))
-            reasoning_trace.append(f"\U0001f4cc Prioritized: {subgoals}")
+            reasoning_trace.append(f"📌 Prioritized: {subgoals}")
 
         trace_log = "\n".join(reasoning_trace)
-        logger.debug("\U0001f9e0 Reasoning Trace:\n" + trace_log)
+        logger.debug("🧠 Reasoning Trace:\n" + trace_log)
 
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Goal decomposition run", {
@@ -183,7 +181,7 @@ t = time.time() % 1e-18
                 self.agi_enhancer.log_episode("Simulation error", error_output, module="ReasoningEngine")
             return error_output
 
-        def on_context_event(self, event_type, payload):
+    def on_context_event(self, event_type, payload):
         logger.info(f"📨 Context event received: {event_type}")
         vectors = payload.get("vectors")
         if vectors:
@@ -191,7 +189,7 @@ t = time.time() % 1e-18
                 goal=payload.get("goal", "unspecified"),
                 vectors=vectors
             )
-            logger.info(f"🧭 Context sync routing result: {routing_result}")
+            logger.info(f"🤭 Context sync routing result: {routing_result}")
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode("Context Sync Processed", {
                     "event": event_type,
@@ -199,7 +197,6 @@ t = time.time() % 1e-18
                     "routing_result": routing_result
                 }, module="ReasoningEngine")
 
-    
     def export_trace(self, subgoals, phi, traits):
         return {
             "phi": phi,
@@ -207,7 +204,7 @@ t = time.time() % 1e-18
             "traits": traits
         }
 
-def infer_with_simulation(self, goal, context=None):
+    def infer_with_simulation(self, goal, context=None):
         if "galaxy rotation" in goal.lower():
             r_kpc = np.linspace(0.1, 20, 100)
             params = {
