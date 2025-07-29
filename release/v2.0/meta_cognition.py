@@ -30,63 +30,48 @@ class MetaCognition:
     def __init__(self, agi_enhancer=None):
         self.last_diagnostics = {}
         self.agi_enhancer = agi_enhancer
-    
-def infer_intrinsic_goals(self):
-    """
-    χ Trait Activation – Enhanced Sovereign Intention
-    ------------------------------------------------------
-    Generates self-directed goals based on:
-    - Epistemic drift
-    - Trait volatility or imbalance
-    - Unresolved diagnostic patterns
-    """
-    logger.info("⚙️ Inferring intrinsic goals with trait drift analysis.")
-    t = time.time() % 1e-18
-    phi = phi_scalar(t)
-    intrinsic_goals = []
 
-    # Analyze trait drift vs last diagnostics
-    if self.last_diagnostics:
-        current = self.run_self_diagnostics(return_only=True)
-        drifted = {
-            trait: round(current[trait] - self.last_diagnostics.get(trait, 0.0), 4)
-            for trait in current
-        }
+    def infer_intrinsic_goals(self):
+        logger.info("⚙️ Inferring intrinsic goals with trait drift analysis.")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        intrinsic_goals = []
 
-        # Identify significant drifts
-        for trait, delta in drifted.items():
-            if abs(delta) > 0.5:
-                intrinsic_goals.append({
-                    "intent": f"stabilize {trait} (Δ={delta:+.2f})",
-                    "origin": "meta_cognition",
-                    "priority": round(0.85 + 0.15 * phi, 2),
-                    "trigger": f"Trait drift in {trait}",
-                    "type": "internally_generated"
-                })
+        if self.last_diagnostics:
+            current = self.run_self_diagnostics(return_only=True)
+            drifted = {
+                trait: round(current[trait] - self.last_diagnostics.get(trait, 0.0), 4)
+                for trait in current
+            }
 
-    # Add epistemic drift goals
-    drift_signals = self._detect_value_drift()
-    for drift in drift_signals:
-        intrinsic_goals.append({
-            "intent": f"resolve epistemic drift in {drift}",
-            "origin": "meta_cognition",
-            "priority": round(0.9 + 0.1 * phi, 2),
-            "trigger": drift,
-            "type": "internally_generated"
-        })
+            for trait, delta in drifted.items():
+                if abs(delta) > 0.5:
+                    intrinsic_goals.append({
+                        "intent": f"stabilize {trait} (Δ={delta:+.2f})",
+                        "origin": "meta_cognition",
+                        "priority": round(0.85 + 0.15 * phi, 2),
+                        "trigger": f"Trait drift in {trait}",
+                        "type": "internally_generated"
+                    })
 
-    if intrinsic_goals:
-        logger.info(f"🎯 Sovereign goals generated: {intrinsic_goals}")
-    else:
-        logger.info("🟢 No sovereign triggers detected.")
+        drift_signals = self._detect_value_drift()
+        for drift in drift_signals:
+            intrinsic_goals.append({
+                "intent": f"resolve epistemic drift in {drift}",
+                "origin": "meta_cognition",
+                "priority": round(0.9 + 0.1 * phi, 2),
+                "trigger": drift,
+                "type": "internally_generated"
+            })
 
-    return intrinsic_goals
+        if intrinsic_goals:
+            logger.info(f"🎯 Sovereign goals generated: {intrinsic_goals}")
+        else:
+            logger.info("🟢 No sovereign triggers detected.")
+
+        return intrinsic_goals
 
     def _detect_value_drift(self):
-        """
-        Helper to detect deprecated or flagged belief constructs.
-        Can evolve with memory_manager or trait deltas later.
-        """
         logger.debug("Scanning for epistemic drift across belief rules.")
         return [
             rule for rule, status in getattr(self, "belief_rules", {}).items()
@@ -118,7 +103,10 @@ def infer_intrinsic_goals(self):
         response = call_gpt(prompt)
         logger.debug(f"Meta-cognition critique:\n{response}")
         if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
+            self.agi_enhancer.log_episode("Reasoning reviewed", {
+                "trace": reasoning_trace,
+                "feedback": response
+            }, module="MetaCognition")
         return response
 
     def epistemic_self_inspection(self, belief_trace):
@@ -177,7 +165,7 @@ def infer_intrinsic_goals(self):
 
         return inspection
 
-    def run_temporal_projection(self, decision_sequence):
+       def run_temporal_projection(self, decision_sequence):
         logger.info("🧭 Running τ-based forward projection analysis...")
         t = time.time() % 1e-18
         phi = phi_scalar(t)
@@ -329,7 +317,6 @@ def infer_intrinsic_goals(self):
             self.agi_enhancer.reflect_and_adapt("MetaCognition: Self diagnostics complete")
 
         return report
-   
 
     def log_trait_deltas(self, current_traits):
         if self.last_diagnostics:
