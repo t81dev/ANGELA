@@ -8,9 +8,10 @@ logger = logging.getLogger("ANGELA.ConceptSynthesizer")
 
 class ConceptSynthesizer:
     """
-    ConceptSynthesizer v1.6.0 (Cognitive Tension Augmented Synthesis)
+    ConceptSynthesizer v1.7.0 (Graph-Integrated Cognitive Synthesis)
     -----------------------------------------------------------------
     - φ(x,t) modulation refined with novelty-strain adjustment
+    - Concept graph integration for coherence and lineage tracing
     - Layered simulation echo loop for thematic resonance
     - Self-weighted adversarial refinement with strain signature tracking
     - Trait-modulated metaphor synthesis (tension-symbol pair tuning)
@@ -21,6 +22,7 @@ class ConceptSynthesizer:
     def __init__(self, creativity_level="high", critic_threshold=0.65):
         self.creativity_level = creativity_level
         self.critic_threshold = critic_threshold
+        self.concept_graph = {}  # node: [connections]
 
     def synthesize(self, data, style="analogy", refine_iterations=2):
         logger.info(f"🎨 Synthesizing concept: creativity={self.creativity_level}, style={style}")
@@ -50,6 +52,8 @@ class ConceptSynthesizer:
             simulation_result = run_simulation(f"Test refined: {concept}")
             novelty_score = self._critic(concept, simulation_result)
             iterations += 1
+
+        self._update_concept_graph(data, concept)
 
         return {
             "concept": concept,
@@ -96,3 +100,8 @@ class ConceptSynthesizer:
     def _phi_modulation(self, text: str) -> float:
         entropy = sum(ord(c) for c in text) % 1000 / 1000
         return 1 + 0.5 * tanh(entropy)
+
+    def _update_concept_graph(self, input_data, concept):
+        key = str(concept).strip()
+        self.concept_graph[key] = self.concept_graph.get(key, []) + list(map(str, input_data))
+        logger.debug(f"🧠 Concept graph updated: {key} → {self.concept_graph[key]}")
