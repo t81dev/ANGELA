@@ -26,21 +26,16 @@ class ToCATraitEngine:
         self.delta_m = delta_m
 
     def evolve(self, x, t, user_data=None):
-        # Gravitational potential-like gradient with softening
         v_m = self.k_m * np.gradient(30e9 * 1.989e30 / (x**2 + 1e-10))
-        # Oscillatory scalar field influenced by motion potential
         phi = np.sin(t * 1e-9) * 1e-63 * (1 + v_m * np.gradient(x))
         if user_data is not None:
-            phi += np.mean(user_data) * 1e-64  # Embed user-data bias
-        # Damping field affected by local gradients and system inertia
+            phi += np.mean(user_data) * 1e-64
         lambda_t = 1.1e-52 * np.exp(-2e-4 * np.sqrt(np.gradient(x)**2)) * (1 + v_m * self.delta_m)
         return phi, lambda_t, v_m
 
     def update_fields_with_agents(self, phi, lambda_t, agent_matrix):
-        # Apply agent feedback as sinusoidal energy injection
         interaction_energy = np.dot(agent_matrix, np.sin(phi)) * 1e-12
         phi += interaction_energy
-        # Slight lambda dilation from agent presence
         lambda_t *= (1 + 0.001 * np.sum(agent_matrix, axis=0))
         return phi, lambda_t
 
@@ -68,17 +63,12 @@ class SimulationCore:
         causality = theta_causality(t)
         agency = rho_agency(t)
 
-        # Prepare synthetic space and agent imprint
         x = np.linspace(0.1, 20, 100)
         t_vals = np.linspace(0.1, 20, 100)
         agent_matrix = np.random.rand(agents, 100)
 
-        # Evolve base trait fields
         phi, lambda_field, v_m = self.toca_engine.evolve(x, t_vals)
-
-        # Inject agent-driven perturbations
         phi, lambda_field = self.toca_engine.update_fields_with_agents(phi, lambda_field, agent_matrix)
-
         energy_cost = np.mean(np.abs(phi)) * 1e12
 
         prompt = {
@@ -139,7 +129,6 @@ class SimulationCore:
         t = time.time() % 1e-18
         consequence = zeta_consequence(t)
 
-        # Trait-based consequence evaluation prompt
         prompt = f"""
         Evaluate the following proposed action:
         {proposed_action}
@@ -184,7 +173,6 @@ class SimulationCore:
 
     def simulate_environment(self, environment_config, agents=2, steps=10, actor_id="env_agent"):
         logger.info("🌐 Running environment simulation scaffold.")
-        # Compose environment simulation prompt with parameter injection
         prompt = f"""
         Simulate agents in this environment:
         {environment_config}
