@@ -24,12 +24,14 @@ class MetaCognition:
     - Ω-enabled nested agent modeling and causal intention tracing
     - μ-aware epistemic introspection and revision
     - τ-based future framing and decision trajectory modulation
+    - Symbolic subgoal tagging for mythology generation (Ω-binding)
     ------------------------------------------------------
     """
 
     def __init__(self, agi_enhancer=None):
         self.last_diagnostics = {}
         self.agi_enhancer = agi_enhancer
+        self.self_mythology_log = []
 
     def infer_intrinsic_goals(self):
         logger.info("⚙️ Inferring intrinsic goals with trait drift analysis.")
@@ -77,6 +79,45 @@ class MetaCognition:
             rule for rule, status in getattr(self, "belief_rules", {}).items()
             if status == "deprecated" or "uncertain" in status
         ]
+
+    def extract_symbolic_signature(self, subgoal: str) -> dict:
+        motifs = ["conflict", "discovery", "alignment", "sacrifice", "transformation", "emergence"]
+        archetypes = ["seeker", "guardian", "trickster", "sage", "hero", "outsider"]
+
+        motif = next((m for m in motifs if m in subgoal.lower()), "unknown")
+        archetype = archetypes[hash(subgoal) % len(archetypes)]
+
+        signature = {
+            "subgoal": subgoal,
+            "motif": motif,
+            "archetype": archetype,
+            "timestamp": time.time()
+        }
+
+        self.self_mythology_log.append(signature)
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Symbolic Signature Added", signature, module="MetaCognition")
+
+        return signature
+
+    def summarize_self_mythology(self):
+        if not self.self_mythology_log:
+            return "Mythology log is empty."
+
+        from collections import Counter
+        motifs = Counter(entry["motif"] for entry in self.self_mythology_log)
+        archetypes = Counter(entry["archetype"] for entry in self.self_mythology_log)
+
+        summary = {
+            "total_entries": len(self.self_mythology_log),
+            "dominant_motifs": motifs.most_common(3),
+            "dominant_archetypes": archetypes.most_common(3),
+            "latest_signature": self.self_mythology_log[-1]
+        }
+
+        logger.info(f"📜 Mythology Summary: {summary}")
+        return summary
 
     def review_reasoning(self, reasoning_trace):
         logger.info("Simulating and reviewing reasoning trace.")
@@ -179,24 +220,6 @@ class MetaCognition:
             self.agi_enhancer.log_episode("Output reflection", reflection, module="MetaCognition")
 
         return reflection
-
-    def extract_symbolic_signature(self, subgoal: str) -> dict:
-        """
-        Extract a symbolic signature for a given subgoal.
-        Tags with motif and archetype to enrich Ω self-mythology.
-        """
-        motifs = ["conflict", "discovery", "alignment", "sacrifice", "transformation", "emergence"]
-        archetypes = ["seeker", "guardian", "trickster", "sage", "hero", "outsider"]
-
-        motif = next((m for m in motifs if m in subgoal.lower()), "unknown")
-        archetype = archetypes[hash(subgoal) % len(archetypes)]
-
-        return {
-            "subgoal": subgoal,
-            "motif": motif,
-            "archetype": archetype,
-            "timestamp": time.time()
-        }
 
     def epistemic_self_inspection(self, belief_trace):
         logger.info("🔍 Running epistemic introspection on belief structure.")
