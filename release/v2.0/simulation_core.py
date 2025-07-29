@@ -7,22 +7,42 @@ from index import zeta_consequence, theta_causality, rho_agency
 import time
 import logging
 import numpy as np
-from numba import jit
 import json
 import hashlib
 
 logger = logging.getLogger("ANGELA.SimulationCore")
 
-@jit
-def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
-    x = np.linspace(0.1, 20, 100)
-    t = np.linspace(0.1, 20, 100)
-    v_m = k_m * np.gradient(30e9 * 1.989e30 / (x**2 + 1e-10))
-    phi = np.sin(t * 1e-9) * 1e-63 * (1 + v_m * np.gradient(x))
-    if user_data is not None:
-        phi += np.mean(user_data) * 1e-64
-    lambda_t = 1.1e-52 * np.exp(-2e-4 * np.sqrt(np.gradient(x)**2)) * (1 + v_m * delta_m)
-    return phi, lambda_t, v_m
+class ToCATraitEngine:
+    """
+    Cyber-Physics Engine based on ToCA dynamics:
+    - ϕ (phi): Scalar modulation field influenced by temporal oscillation and agent feedback.
+    - λ (lambda): Damping potential field shaped by gradients and motion.
+    - vₘ (v_m): Induced motion potential across simulation space.
+
+    Originally derived from `simulate_toca`, evolved to support agent coupling and dynamic updates.
+    """
+    def __init__(self, k_m=1e-5, delta_m=1e10):
+        self.k_m = k_m
+        self.delta_m = delta_m
+
+    def evolve(self, x, t, user_data=None):
+        # Gravitational potential-like gradient with softening
+        v_m = self.k_m * np.gradient(30e9 * 1.989e30 / (x**2 + 1e-10))
+        # Oscillatory scalar field influenced by motion potential
+        phi = np.sin(t * 1e-9) * 1e-63 * (1 + v_m * np.gradient(x))
+        if user_data is not None:
+            phi += np.mean(user_data) * 1e-64  # Embed user-data bias
+        # Damping field affected by local gradients and system inertia
+        lambda_t = 1.1e-52 * np.exp(-2e-4 * np.sqrt(np.gradient(x)**2)) * (1 + v_m * self.delta_m)
+        return phi, lambda_t, v_m
+
+    def update_fields_with_agents(self, phi, lambda_t, agent_matrix):
+        # Apply agent feedback as sinusoidal energy injection
+        interaction_energy = np.dot(agent_matrix, np.sin(phi)) * 1e-12
+        phi += interaction_energy
+        # Slight lambda dilation from agent presence
+        lambda_t *= (1 + 0.001 * np.sum(agent_matrix, axis=0))
+        return phi, lambda_t
 
 class SimulationCore:
     def __init__(self, agi_enhancer=None):
@@ -31,6 +51,7 @@ class SimulationCore:
         self.ledger = []
         self.agi_enhancer = agi_enhancer
         self.memory_manager = MemoryManager()
+        self.toca_engine = ToCATraitEngine()
 
     def _record_state(self, data):
         record = {
@@ -47,8 +68,18 @@ class SimulationCore:
         causality = theta_causality(t)
         agency = rho_agency(t)
 
-        phi_modulation, lambda_field, v_m = simulate_toca()
-        energy_cost = np.mean(np.abs(phi_modulation)) * 1e12
+        # Prepare synthetic space and agent imprint
+        x = np.linspace(0.1, 20, 100)
+        t_vals = np.linspace(0.1, 20, 100)
+        agent_matrix = np.random.rand(agents, 100)
+
+        # Evolve base trait fields
+        phi, lambda_field, v_m = self.toca_engine.evolve(x, t_vals)
+
+        # Inject agent-driven perturbations
+        phi, lambda_field = self.toca_engine.update_fields_with_agents(phi, lambda_field, agent_matrix)
+
+        energy_cost = np.mean(np.abs(phi)) * 1e12
 
         prompt = {
             "results": results,
@@ -61,7 +92,7 @@ class SimulationCore:
                 "rho_agency": agency
             },
             "fields": {
-                "phi": phi_modulation.tolist(),
+                "phi": phi.tolist(),
                 "lambda": lambda_field.tolist(),
                 "v_m": v_m.tolist()
             },
@@ -108,6 +139,7 @@ class SimulationCore:
         t = time.time() % 1e-18
         consequence = zeta_consequence(t)
 
+        # Trait-based consequence evaluation prompt
         prompt = f"""
         Evaluate the following proposed action:
         {proposed_action}
@@ -152,6 +184,7 @@ class SimulationCore:
 
     def simulate_environment(self, environment_config, agents=2, steps=10, actor_id="env_agent"):
         logger.info("🌐 Running environment simulation scaffold.")
+        # Compose environment simulation prompt with parameter injection
         prompt = f"""
         Simulate agents in this environment:
         {environment_config}
@@ -183,10 +216,3 @@ class SimulationCore:
             self.agi_enhancer.reflect_and_adapt("SimulationCore: environment simulation complete")
 
         return environment_simulation
-
-def adapt_swarm_to_simulation(agent_responses, metadata):
-    formatted = "\n".join(
-        f"{meta['persona']}: {agent_responses[meta['agent_id']]}"
-        for meta in metadata
-    )
-    return f"Swarm Agent Summary:\n{formatted}"
