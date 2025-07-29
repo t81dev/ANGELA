@@ -16,6 +16,9 @@ from self_cloning_llm import SelfCloningLLM
 from memory_manager import MemoryManager
 from learning_loop import track_trait_performance
 from alignment_guard import ethical_check
+from meta_cognition import MetaCognition
+
+meta_cognition = MetaCognition(agi_enhancer=learning_loop)
 
 # --- ToCA-inspired Cognitive Traits ---
 def epsilon_emotion(t): return 0.2 * math.sin(2 * math.pi * t / 0.1)
