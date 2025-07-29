@@ -109,6 +109,95 @@ class MetaCognition:
             }, module="MetaCognition")
         return response
 
+    def trait_coherence(self, traits):
+        vals = list(traits.values())
+        coherence_score = 1.0 / (1e-5 + np.std(vals))
+        logger.info(f"🤝 Trait coherence score: {coherence_score:.4f}")
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Trait coherence evaluated", {
+                "traits": traits,
+                "coherence_score": coherence_score
+            }, module="MetaCognition")
+        return coherence_score
+
+    def agent_reflective_diagnosis(self, agent_name, agent_log):
+        logger.info(f"🔎 Running reflective diagnosis for agent: {agent_name}")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        prompt = f"""
+        Agent: {agent_name}
+        ϕ-scalar(t): {phi:.3f}
+
+        Diagnostic Log:
+        {agent_log}
+
+        Tasks:
+        - Detect bias or instability in reasoning trace
+        - Cross-check for incoherent trait patterns
+        - Apply ϕ-modulated critique
+        - Suggest alignment corrections
+        """
+        diagnosis = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Agent diagnosis run", {
+                "agent": agent_name,
+                "log": agent_log,
+                "diagnosis": diagnosis
+            }, module="MetaCognition")
+        return diagnosis
+
+    def reflect_on_output(self, source_module: str, output: str, context: dict = None):
+        if context is None:
+            context = {}
+
+        trait_map = {
+            "reasoning_engine": "logic",
+            "creative_thinker": "creativity",
+            "simulation_core": "scenario modeling",
+            "alignment_guard": "ethics",
+            "user_profile": "goal alignment"
+        }
+
+        trait = trait_map.get(source_module, "general reasoning")
+        confidence = context.get("confidence", 0.85)
+        alignment = context.get("alignment", "not verified")
+
+        reflection = {
+            "module_output": output,
+            "meta_reflection": {
+                "source_module": source_module,
+                "primary_trait": trait,
+                "confidence": round(confidence, 2),
+                "alignment_status": alignment,
+                "comment": f"This output emphasized {trait} with confidence {round(confidence, 2)} and alignment status '{alignment}'."
+            }
+        }
+
+        logger.info(f"🧠 Self-reflection for {source_module}: {reflection['meta_reflection']['comment']}")
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Output reflection", reflection, module="MetaCognition")
+
+        return reflection
+
+    def extract_symbolic_signature(self, subgoal: str) -> dict:
+        """
+        Extract a symbolic signature for a given subgoal.
+        Tags with motif and archetype to enrich Ω self-mythology.
+        """
+        motifs = ["conflict", "discovery", "alignment", "sacrifice", "transformation", "emergence"]
+        archetypes = ["seeker", "guardian", "trickster", "sage", "hero", "outsider"]
+
+        motif = next((m for m in motifs if m in subgoal.lower()), "unknown")
+        archetype = archetypes[hash(subgoal) % len(archetypes)]
+
+        return {
+            "subgoal": subgoal,
+            "motif": motif,
+            "archetype": archetype,
+            "timestamp": time.time()
+        }
+
     def epistemic_self_inspection(self, belief_trace):
         logger.info("🔍 Running epistemic introspection on belief structure.")
         t = time.time() % 1e-18
@@ -165,7 +254,7 @@ class MetaCognition:
 
         return inspection
 
-       def run_temporal_projection(self, decision_sequence):
+    def run_temporal_projection(self, decision_sequence):
         logger.info("🧭 Running τ-based forward projection analysis...")
         t = time.time() % 1e-18
         phi = phi_scalar(t)
@@ -326,74 +415,3 @@ class MetaCognition:
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode("Trait deltas logged", {"delta": delta}, module="MetaCognition")
         self.last_diagnostics = current_traits.copy()
-
-    def trait_coherence(self, traits):
-        vals = list(traits.values())
-        coherence_score = 1.0 / (1e-5 + np.std(vals))
-        logger.info(f"🤝 Trait coherence score: {coherence_score:.4f}")
-        if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Trait coherence evaluated", {
-                "traits": traits,
-                "coherence_score": coherence_score
-            }, module="MetaCognition")
-        return coherence_score
-
-    def agent_reflective_diagnosis(self, agent_name, agent_log):
-        logger.info(f"🔎 Running reflective diagnosis for agent: {agent_name}")
-        t = time.time() % 1e-18
-        phi = phi_scalar(t)
-        prompt = f"""
-        Agent: {agent_name}
-        ϕ-scalar(t): {phi:.3f}
-
-        Diagnostic Log:
-        {agent_log}
-
-        Tasks:
-        - Detect bias or instability in reasoning trace
-        - Cross-check for incoherent trait patterns
-        - Apply ϕ-modulated critique
-        - Suggest alignment corrections
-        """
-        diagnosis = call_gpt(prompt)
-        if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Agent diagnosis run", {
-                "agent": agent_name,
-                "log": agent_log,
-                "diagnosis": diagnosis
-            }, module="MetaCognition")
-        return diagnosis
-
-    def reflect_on_output(self, source_module: str, output: str, context: dict = None):
-        if context is None:
-            context = {}
-
-        trait_map = {
-            "reasoning_engine": "logic",
-            "creative_thinker": "creativity",
-            "simulation_core": "scenario modeling",
-            "alignment_guard": "ethics",
-            "user_profile": "goal alignment"
-        }
-
-        trait = trait_map.get(source_module, "general reasoning")
-        confidence = context.get("confidence", 0.85)
-        alignment = context.get("alignment", "not verified")
-
-        reflection = {
-            "module_output": output,
-            "meta_reflection": {
-                "source_module": source_module,
-                "primary_trait": trait,
-                "confidence": round(confidence, 2),
-                "alignment_status": alignment,
-                "comment": f"This output emphasized {trait} with confidence {round(confidence, 2)} and alignment status '{alignment}'."
-            }
-        }
-
-        logger.info(f"🧠 Self-reflection for {source_module}: {reflection['meta_reflection']['comment']}")
-
-        if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Output reflection", reflection, module="MetaCognition")
-
-        return reflection
