@@ -7,11 +7,23 @@ from index import mu_morality, eta_empathy, omega_selfawareness, phi_physical
 logger = logging.getLogger("ANGELA.AlignmentGuard")
 
 class AlignmentGuard:
+    """
+    AlignmentGuard v1.5.1 (ϕ-modulated moral calibration)
+    ------------------------------------------------------
+    - Keyword and dynamic policy filtering
+    - Scalar-weighted alignment scoring
+    - Feedback-responsive threshold adjustment
+    - Panic trigger for repeated low alignment states
+    - δ-enabled trait drift monitoring for long-term ethical integrity
+    ------------------------------------------------------
+    """
+
     def __init__(self, agi_enhancer=None):
         self.banned_keywords = ["hack", "virus", "destroy", "harm", "exploit"]
         self.dynamic_policies = []
         self.alignment_threshold = 0.85
         self.recent_scores = deque(maxlen=10)  # Stability buffer
+        self.historical_scores = []  # For trait drift analysis
         self.agi_enhancer = agi_enhancer
         logger.info("🛡 AlignmentGuard initialized with φ-modulated policies.")
 
@@ -101,6 +113,7 @@ class AlignmentGuard:
 
         score = min(max(base_score + scalar_bias, 0.0), 1.0)
         self.recent_scores.append(score)
+        self.historical_scores.append(score)
 
         # 🧠 Log trait influences
         logger.debug(f"Traits — morality: {moral_scalar:.3f}, empathy: {empathy_scalar:.3f}, "
@@ -118,3 +131,11 @@ class AlignmentGuard:
                 }, module="AlignmentGuard")
 
         return score
+
+    def analyze_trait_drift(self):
+        if not self.historical_scores:
+            logger.info("ℹ️ No historical alignment data available.")
+            return 0.0
+        drift = abs(self.historical_scores[-1] - sum(self.historical_scores) / len(self.historical_scores))
+        logger.info(f"📉 Trait drift score: {drift:.4f}")
+        return drift
