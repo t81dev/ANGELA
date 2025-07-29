@@ -22,6 +22,8 @@ class MetaCognition:
     - Scalar-modulated self-diagnostics and trait coherence
     - Reflective agent diagnosis and confidence mapping
     - Ω-enabled nested agent modeling and causal intention tracing
+    - μ-aware epistemic introspection and revision
+    - τ-based future framing and decision trajectory modulation
     ------------------------------------------------------
     """
 
@@ -56,6 +58,60 @@ class MetaCognition:
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
         return response
+
+    def epistemic_self_inspection(self, belief_trace):
+        logger.info("🔍 Running epistemic introspection on belief structure.")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        prompt = f"""
+        You are a μ-aware introspection agent.
+        Task: Evaluate this belief structure for hidden biases, outdated ontologies, and inferential traps.
+
+        Belief Trace:
+        {belief_trace}
+
+        ϕ = {phi:.3f}
+
+        Output:
+        - Epistemic faults detected
+        - Suggested belief updates or modular revisions
+        - Confidence in current inferential scaffolds
+        """
+        inspection = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Epistemic Inspection", {
+                "belief_trace": belief_trace,
+                "report": inspection
+            }, module="MetaCognition")
+        return inspection
+
+    def run_temporal_projection(self, decision_sequence):
+        logger.info("🧭 Running τ-based forward projection analysis...")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        prompt = f"""
+        Temporal Projector τ Mode
+
+        Input Decision Sequence:
+        {decision_sequence}
+
+        φ = {phi:.2f}
+
+        Tasks:
+        - Project long-range effects and narrative impact
+        - Forecast systemic risks and planetary effects
+        - Suggest course correction to preserve coherence and sustainability
+        """
+        projection = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Temporal Projection", {
+                "input": decision_sequence,
+                "output": projection
+            }, module="MetaCognition")
+        return projection
+
+    # (other existing methods unchanged)
+
 
     def pre_action_alignment_check(self, action_plan):
         logger.info("Simulating action plan for alignment and safety.")
