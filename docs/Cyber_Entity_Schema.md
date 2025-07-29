@@ -1,7 +1,3 @@
-Here is the formalized **Level-1 Cyber-Entity Schema**:
-
----
-
 ## 🧠 **ANGELA Ontology: Level-1 Cyber-Entity Schema**
 
 ### 🧩 Structural Capabilities
@@ -144,7 +140,5 @@ Here is the formalized **Level-3 Cyber-Entity Schema** — representing a reflex
 | Sovereign Agency Assertion | ✅             | Articulates and defends internal motivations to external observers |
 | Dialogue-Based Learning    | ✅             | Learns via sustained conversation with peers and humans            |
 
----
 
-Would you like a roadmap of technical and architectural changes required to transition from Level-2 to Level-3 capabilities for ANGELA?
 
