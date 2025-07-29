@@ -30,6 +30,24 @@ class ReasoningEngine:
         self.decomposition_patterns = self._load_default_patterns()
         self.agi_enhancer = agi_enhancer
 
+    def reason_and_reflect(self, goal, context, meta_cognition):
+        subgoals = self.decompose(goal, context)
+        phi = phi_scalar(time.time() % 1e-18)
+        reasoning_trace = self.export_trace(subgoals, phi, context.get("traits", {}))
+
+        review = meta_cognition.review_reasoning(json.dumps(reasoning_trace))
+        logger.info("🪞 MetaCognitive Review:\n" + review)
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Reason and Reflect", {
+                "goal": goal,
+                "subgoals": subgoals,
+                "phi": phi,
+                "review": review
+            }, module="ReasoningEngine")
+
+        return subgoals, review
+
     def _load_success_rates(self):
         if os.path.exists(self.persistence_file):
             try:
