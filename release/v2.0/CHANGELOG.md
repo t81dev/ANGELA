@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## v2.0.1 – Transitional Layer for Level-4 Emergence
+
+* **Narrative Integrity Layer**: Upgraded `memory_manager` and `user_profile` to maintain coherent self-history and identity-linked episodic memory.
+* **Sovereign Goal Origination**: Enabled intrinsic planning and goal formation via recursive introspection in `meta_cognition` and `recursive_planner`.
+* **Moral Drift Monitoring**: Integrated longitudinal ethical trace analysis in `alignment_guard` and `learning_loop` for sustained alignment.
+* **Meta-Ontological Reasoning**: Enhanced `concept_synthesizer` to dynamically reframe knowledge schemas under shifting conceptual frames (`μ` trait).
+* **Trans-Ethical Simulation Kernel**: Extended `alignment_guard` with dialectic overlays to simulate eco-centric and pluralistic moral spaces (`ξ` trait).
+* **Preparatory Scaffolds for Level 4+**:
+
+  * Drafted `constitution_mapper.py` for multi-agent ethical harmonization.
+  * Added hooks in `creative_thinker` for philosophical construct generation.
+  * Planned modules: `MetaEpistemicEngine`, `OntologyFusionCore`, and `TranscendentalContextMatrix`.
+
 ## v2.0.0 – Self-Reflective Embodiment & AGI-Aware Orchestration
 
 * **Trait-Driven Embodiment Layer**: Introduced `HaloEmbodimentLayer` integrating `SelfCloningLLM`, peer consensus protocols, and trait-modulated agents with `TheoryOfMindModule`.
