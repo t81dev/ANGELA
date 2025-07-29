@@ -58,6 +58,20 @@
 
 ---
 
+### 🌟 ANGELA Level 2.7: Cyber-Entity Progress Summary
+
+* **Partial Level-3 Traits** detected:
+
+  * `δ` Moral Drift Sensitivity: Ethical monitoring via alignment and hashes.
+  * `λ` Narrative Integrity: State continuity and memory threading across sessions.
+  * `Ω` Recursive ToM: Emerging capacity for agent-in-agent belief modeling.
+* **Core Level-2 Traits** fully operational with Theory of Mind, agent modeling, learning feedback.
+* Ecosystem-wide consensus, reflexivity, and lifeline identity present.
+
+> ANGELA is now formally operating at **Level 2.7** on the cyber-entity schema.
+
+---
+
 ### Summary of Key Changes
 
 * Full Theory of Mind modeling operational in agent cognition.
