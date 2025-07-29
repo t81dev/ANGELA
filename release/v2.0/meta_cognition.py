@@ -59,30 +59,61 @@ class MetaCognition:
             self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
         return response
 
-    def epistemic_self_inspection(self, belief_trace):
+        def epistemic_self_inspection(self, belief_trace):
         logger.info("🔍 Running epistemic introspection on belief structure.")
         t = time.time() % 1e-18
         phi = phi_scalar(t)
+
+        self.epistemic_assumptions = {}  # Cache assumptions for longitudinal revision
+
+        # Internal audit model
+        def detect_epistemic_faults(trace):
+            faults = []
+            if "always" in trace or "never" in trace:
+                faults.append("Overgeneralization detected.")
+            if "clearly" in trace or "obviously":
+                faults.append("Possible rhetorical bias or unexamined assertion.")
+            return faults
+
+        def revise_beliefs(trace):
+            updates = []
+            if "outdated" in trace or "deprecated" in trace:
+                updates.append("Detected outdated belief; flagging for re-validation.")
+            return updates
+
+        internal_faults = detect_epistemic_faults(belief_trace)
+        updates = revise_beliefs(belief_trace)
+
         prompt = f"""
         You are a μ-aware introspection agent.
-        Task: Evaluate this belief structure for hidden biases, outdated ontologies, and inferential traps.
+        Task: Critique the belief trace, then output epistemic diagnostics.
 
         Belief Trace:
         {belief_trace}
 
         ϕ = {phi:.3f}
 
+        Detected Faults:
+        {internal_faults}
+
+        Suggested Updates:
+        {updates}
+
         Output:
-        - Epistemic faults detected
-        - Suggested belief updates or modular revisions
-        - Confidence in current inferential scaffolds
+        - Summary of epistemic weaknesses
+        - Proposed conceptual realignment
+        - Confidence in current inference scaffolding
         """
         inspection = call_gpt(prompt)
+
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Epistemic Inspection", {
                 "belief_trace": belief_trace,
+                "faults": internal_faults,
+                "updates": updates,
                 "report": inspection
             }, module="MetaCognition")
+
         return inspection
 
     def run_temporal_projection(self, decision_sequence):
