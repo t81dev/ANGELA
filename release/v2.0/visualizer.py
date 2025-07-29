@@ -29,6 +29,7 @@ class Visualizer:
     - Trait-tuned colormaps and export styling
     - Modular report generation with unified prompt
     - AGI audit hooks and zip exports
+    - λ-narrative integration: renders memory arcs and timelines
     ----------------------------------------------
     """
 
@@ -79,6 +80,20 @@ class Visualizer:
             logger.info(f"✅ All charts zipped: {zip_filename}")
             return zip_filename
         return exported_files
+
+    def render_memory_timeline(self, memory_entries):
+        logger.info("🧠 Rendering memory timeline by goal or intent...")
+        timeline = {}
+        for key, entry in memory_entries.items():
+            label = entry.get("goal_id") or entry.get("intent") or "ungrouped"
+            timestamp = datetime.fromtimestamp(entry["timestamp"]).isoformat()
+            timeline.setdefault(label, []).append((timestamp, key, entry["data"]))
+
+        for label, events in timeline.items():
+            logger.info(f"--- Timeline for '{label}' ---")
+            for t, k, d in sorted(events):
+                logger.info(f"[{t}] {k}: {d[:80]}...")
+        return timeline
 
     def export_report(self, content, filename="visual_report.pdf", format="pdf"):
         logger.info(f"📤 Exporting report: {filename}")
