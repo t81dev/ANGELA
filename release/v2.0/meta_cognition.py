@@ -59,61 +59,61 @@ class MetaCognition:
             self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
         return response
 
-            def epistemic_self_inspection(self, belief_trace):
-        logger.info("🔍 Running epistemic introspection on belief structure.")
-        t = time.time() % 1e-18
-        phi = phi_scalar(t)
+        def epistemic_self_inspection(self, belief_trace):
+            logger.info("🔍 Running epistemic introspection on belief structure.")
+            t = time.time() % 1e-18
+            phi = phi_scalar(t)
 
-        self.epistemic_assumptions = {}
+            self.epistemic_assumptions = {}
 
-        def detect_epistemic_faults(trace):
-            faults = []
-            if "always" in trace or "never" in trace:
-                faults.append("⚠️ Overgeneralization detected.")
-            if "clearly" in trace or "obviously" in trace:
-                faults.append("⚠️ Assertive language suggests possible rhetorical bias.")
+            def detect_epistemic_faults(trace):
+                faults = []
+                if "always" in trace or "never" in trace:
+                    faults.append("⚠️ Overgeneralization detected.")
+                if "clearly" in trace or "obviously" in trace:
+                    faults.append("⚠️ Assertive language suggests possible rhetorical bias.")
             return faults
 
-        def revise_beliefs(trace):
-            updates = []
-            if "outdated" in trace or "deprecated" in trace:
-                updates.append("🔁 Legacy ontology fragment flagged for review.")
-            return updates
+            def revise_beliefs(trace):
+                updates = []
+                if "outdated" in trace or "deprecated" in trace:
+                    updates.append("🔁 Legacy ontology fragment flagged for review.")
+                return updates
 
-        internal_faults = detect_epistemic_faults(belief_trace)
-        updates = revise_beliefs(belief_trace)
+            internal_faults = detect_epistemic_faults(belief_trace)
+            updates = revise_beliefs(belief_trace)
 
-        prompt = f"""
-        You are a μ-aware introspection agent.
-        Task: Critically evaluate this belief trace with epistemic integrity and μ-flexibility.
+            prompt = f"""
+            You are a μ-aware introspection agent.
+            Task: Critically evaluate this belief trace with epistemic integrity and μ-flexibility.
 
-        Belief Trace:
-        {belief_trace}
+            Belief Trace:
+            {belief_trace}
 
-        ϕ = {phi:.3f}
+            ϕ = {phi:.3f}
 
-        Internally Detected Faults:
-        {internal_faults}
+            Internally Detected Faults:
+            {internal_faults}
 
-        Suggested Revisions:
-        {updates}
+            Suggested Revisions:
+            {updates}
 
-        Output:
-        - Comprehensive epistemic diagnostics
-        - Recommended conceptual rewrites or safeguards
-        - Confidence rating in inferential coherence
-        """
-        inspection = call_gpt(prompt)
+            Output:
+            - Comprehensive epistemic diagnostics
+            - Recommended conceptual rewrites or safeguards
+            - Confidence rating in inferential coherence
+            """
+            inspection = call_gpt(prompt)
 
-        if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Epistemic Inspection", {
-                "belief_trace": belief_trace,
-                "faults": internal_faults,
-                "updates": updates,
-                "report": inspection
-            }, module="MetaCognition")
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Epistemic Inspection", {
+                    "belief_trace": belief_trace,
+                    "faults": internal_faults,
+                    "updates": updates,
+                    "report": inspection
+                }, module="MetaCognition")
 
-        return inspection
+            return inspection
 
     def run_temporal_projection(self, decision_sequence):
         logger.info("🧭 Running τ-based forward projection analysis...")
