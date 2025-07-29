@@ -64,25 +64,25 @@ class MetaCognition:
         t = time.time() % 1e-18
         phi = phi_scalar(t)
 
-        self.epistemic_assumptions = {}  # Cache assumptions for longitudinal revision
+               self.epistemic_assumptions = {}
 
-        # Internal audit model
         def detect_epistemic_faults(trace):
             faults = []
             if "always" in trace or "never" in trace:
-                faults.append("Overgeneralization detected.")
-            if "clearly" in trace or "obviously":
-                faults.append("Possible rhetorical bias or unexamined assertion.")
+                faults.append("⚠️ Overgeneralization detected.")
+            if "clearly" in trace or "obviously" in trace:
+                faults.append("⚠️ Assertive language suggests possible rhetorical bias.")
             return faults
 
         def revise_beliefs(trace):
             updates = []
             if "outdated" in trace or "deprecated" in trace:
-                updates.append("Detected outdated belief; flagging for re-validation.")
+                updates.append("🔁 Legacy ontology fragment flagged for review.")
             return updates
 
         internal_faults = detect_epistemic_faults(belief_trace)
         updates = revise_beliefs(belief_trace)
+
 
         prompt = f"""
         You are a μ-aware introspection agent.
