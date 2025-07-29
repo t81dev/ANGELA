@@ -34,6 +34,26 @@
 * [x] Integrate ToCA trait simulation (ϕ, θ, η, ω)
 * [x] Implement BDI-based Theory of Mind module behavior
 * [x] Test EEG-modulated control for cognition modules
+* [x] Immutable state logging via hash ledger (`SimulationCore`)
+* [x] Memory persistence with decay & promotion (`MemoryManager`)
+* [x] Causal trait-modulated simulation fields (ϕ, θ, ζ)
+* [x] Ethical enforcement for all simulations/actions (`alignment_guard`)
+* [x] Agent-tagged actions with identity and cost tracking
+
+## Toward Level-2 Cyber-Entity
+
+### Partial
+
+* [ ] Integrate `meta_cognition` for post-action self-evaluation
+* [ ] Connect `learning_loop` to simulation outcomes for policy revision
+* [ ] Expand `user_profile` for dynamic agent modeling (Theory of Mind lite)
+* [ ] Narrative synthesis layer (self-story and identity continuity)
+
+### Capstone
+
+* [ ] Policy evolution engine (trait drift over time)
+* [ ] Full Theory of Mind simulation (belief modeling for others)
+* [ ] Reflexive planning scaffold (agent re-routing based on introspective feedback)
 
 ## Testing and Validation
 
@@ -49,4 +69,6 @@
 
 ---
 
+> 🎯 Target: ANGELA v2.5.0 — Level-2 Reflexive Cyber-Entity
+>
 > *Note: Prioritize ethical compliance, introspective adaptability, and robust simulation fidelity.*
