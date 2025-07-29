@@ -3,7 +3,7 @@ from modules.visualizer import Visualizer
 from modules.memory_manager import MemoryManager
 from modules.alignment_guard import enforce_alignment
 from datetime import datetime
-from index import zeta_consequence, theta_causality, rho_agency
+from index import zeta_consequence, theta_causality, rho_agency, TraitOverlayManager
 import time
 import logging
 import numpy as np
@@ -47,6 +47,7 @@ class SimulationCore:
         self.agi_enhancer = agi_enhancer
         self.memory_manager = MemoryManager()
         self.toca_engine = ToCATraitEngine()
+        self.overlay_router = TraitOverlayManager()
 
     def _record_state(self, data):
         record = {
