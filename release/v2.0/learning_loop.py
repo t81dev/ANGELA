@@ -14,6 +14,33 @@ class LearningLoop:
         self.session_traces = []
         self.agi_enhancer = agi_enhancer
 
+    def activate_intrinsic_goals(self, meta_cognition):
+        """
+        Activate χ-origin intrinsic goals proposed by MetaCognition.
+        These are internally generated and prioritized via ϕ-scalar modulation.
+        """
+        logger.info("🌱 Activating χ-intrinsic goals from MetaCognition.")
+        intrinsic_goals = meta_cognition.infer_intrinsic_goals()
+        activated = []
+
+        for goal in intrinsic_goals:
+            if goal["intent"] not in [g["goal"] for g in self.goal_history]:
+                simulation_result = run_simulation(goal["intent"])
+                if "fail" not in simulation_result.lower():
+                    self.goal_history.append({
+                        "goal": goal["intent"],
+                        "timestamp": time.time(),
+                        "priority": goal["priority"],
+                        "origin": "intrinsic"
+                    })
+                    logger.info(f"✅ Intrinsic goal activated: {goal['intent']}")
+                    if self.agi_enhancer:
+                        self.agi_enhancer.log_episode("Intrinsic goal activated", goal, module="LearningLoop")
+                    activated.append(goal["intent"])
+                else:
+                    logger.warning(f"❌ Rejected goal: {goal['intent']} (simulation failed)")
+        return activated
+        
     def update_model(self, session_data):
         logger.info("\ud83d\udcca [LearningLoop] Analyzing session performance...")
 
