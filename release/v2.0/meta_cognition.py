@@ -25,9 +25,6 @@ class MetaCognition:
     - μ-aware epistemic introspection and revision
     - τ-based future framing and decision trajectory modulation
     ------------------------------------------------------
-    - μ-aware epistemic introspection and revision
-    - τ-based future framing and decision trajectory modulation
-    ------------------------------------------------------
     """
 
     def __init__(self, agi_enhancer=None):
@@ -57,8 +54,7 @@ class MetaCognition:
         3. Offer an improved trace version with ϕ-prioritized reasoning.
         """
         response = call_gpt(prompt)
-        logger.debug(f"Meta-cognition critique:
-{response}")
+        logger.debug(f"Meta-cognition critique:\n{response}")
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
         return response
