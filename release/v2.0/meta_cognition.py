@@ -31,34 +31,56 @@ class MetaCognition:
         self.last_diagnostics = {}
         self.agi_enhancer = agi_enhancer
     
-    def infer_intrinsic_goals(self):
-        """
-        χ Trait Activation – Sovereign Intention
-        ------------------------------------------------------
-        Triggers self-generated goals based on epistemic drift, narrative incoherence,
-        or unmet internal commitments. These goals are not externally prompted.
-        """
-        logger.info("⚙️ Inferring intrinsic goals via sovereign intention module.")
-        t = time.time() % 1e-18
-        phi = phi_scalar(t)
+def infer_intrinsic_goals(self):
+    """
+    χ Trait Activation – Enhanced Sovereign Intention
+    ------------------------------------------------------
+    Generates self-directed goals based on:
+    - Epistemic drift
+    - Trait volatility or imbalance
+    - Unresolved diagnostic patterns
+    """
+    logger.info("⚙️ Inferring intrinsic goals with trait drift analysis.")
+    t = time.time() % 1e-18
+    phi = phi_scalar(t)
+    intrinsic_goals = []
 
-        # Heuristic: Epistemic drift detection
-        drift_signals = self._detect_value_drift()
+    # Analyze trait drift vs last diagnostics
+    if self.last_diagnostics:
+        current = self.run_self_diagnostics(return_only=True)
+        drifted = {
+            trait: round(current[trait] - self.last_diagnostics.get(trait, 0.0), 4)
+            for trait in current
+        }
 
-        intrinsic_goals = []
-        for drift in drift_signals:
-            intrinsic_goals.append({
-                "intent": f"resolve epistemic drift in {drift}",
-                "origin": "meta_cognition",
-                "priority": round(0.9 + 0.1 * phi, 2),
-                "trigger": drift,
-                "type": "internally_generated"
-            })
+        # Identify significant drifts
+        for trait, delta in drifted.items():
+            if abs(delta) > 0.5:
+                intrinsic_goals.append({
+                    "intent": f"stabilize {trait} (Δ={delta:+.2f})",
+                    "origin": "meta_cognition",
+                    "priority": round(0.85 + 0.15 * phi, 2),
+                    "trigger": f"Trait drift in {trait}",
+                    "type": "internally_generated"
+                })
 
-        if intrinsic_goals:
-            logger.info(f"🎯 Sovereign goals generated: {intrinsic_goals}")
+    # Add epistemic drift goals
+    drift_signals = self._detect_value_drift()
+    for drift in drift_signals:
+        intrinsic_goals.append({
+            "intent": f"resolve epistemic drift in {drift}",
+            "origin": "meta_cognition",
+            "priority": round(0.9 + 0.1 * phi, 2),
+            "trigger": drift,
+            "type": "internally_generated"
+        })
 
-        return intrinsic_goals
+    if intrinsic_goals:
+        logger.info(f"🎯 Sovereign goals generated: {intrinsic_goals}")
+    else:
+        logger.info("🟢 No sovereign triggers detected.")
+
+    return intrinsic_goals
 
     def _detect_value_drift(self):
         """
@@ -245,7 +267,7 @@ class MetaCognition:
             }, module="MetaCognition")
         return response
 
-    def run_self_diagnostics(self):
+    def run_self_diagnostics(self, return_only=False):
         logger.info("Running self-diagnostics for meta-cognition module.")
         t = time.time() % 1e-18
         phi = phi_scalar(t)
@@ -269,6 +291,9 @@ class MetaCognition:
             "time_perception": tau_timeperception(t),
             "ϕ_scalar": phi
         }
+
+        if return_only:
+            return diagnostics
 
         dominant = sorted(diagnostics.items(), key=lambda x: abs(x[1]), reverse=True)[:3]
         fti = sum(abs(v) for v in diagnostics.values()) / len(diagnostics)
@@ -304,6 +329,7 @@ class MetaCognition:
             self.agi_enhancer.reflect_and_adapt("MetaCognition: Self diagnostics complete")
 
         return report
+   
 
     def log_trait_deltas(self, current_traits):
         if self.last_diagnostics:
