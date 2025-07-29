@@ -4,28 +4,26 @@ from modules.reasoning_engine import ReasoningEngine
 from modules.meta_cognition import MetaCognition
 from modules.alignment_guard import AlignmentGuard
 from modules.simulation_core import SimulationCore
+from modules.memory_manager import MemoryManager
 from index import beta_concentration, omega_selfawareness, mu_morality
 import time
 
 logger = logging.getLogger("ANGELA.RecursivePlanner")
 
-class RecursivePlanner:
-    """
-    Recursive Planner v1.5.0 (scalar-aware recursive intelligence)
-    --------------------------------------------------------------
-    - Multi-agent collaborative planning
-    - Conflict resolution and dynamic priority handling
-    - Parallelized subgoal decomposition with progress tracking
-    - Integrated scalar field simulation feedback for plan validation and trait modulation
-    - χ-compatible intrinsic goal planning interface
-    --------------------------------------------------------------
-    """
+# Global narrative state placeholder (Ω)
+Ω = {
+    "timeline": [],
+    "traits": {},
+    "symbolic_log": []
+}
 
+class RecursivePlanner:
     def __init__(self, max_workers=4):
         self.reasoning_engine = ReasoningEngine()
         self.meta_cognition = MetaCognition()
         self.alignment_guard = AlignmentGuard()
         self.simulation_core = SimulationCore()
+        self.memory_manager = MemoryManager()
         self.max_workers = max_workers
 
     def plan(self, goal: str, context: dict = None, depth: int = 0, max_depth: int = 5, collaborating_agents=None) -> list:
@@ -39,6 +37,8 @@ class RecursivePlanner:
         concentration = beta_concentration(t)
         awareness = omega_selfawareness(t)
         moral_weight = mu_morality(t)
+
+        Ω["traits"].update({"β": concentration, "ω": awareness, "μ": moral_weight})
 
         dynamic_depth_limit = max_depth + int(concentration * 10)
         if depth > dynamic_depth_limit:
@@ -65,13 +65,27 @@ class RecursivePlanner:
                 try:
                     result = future.result()
                     validated_plan.extend(result)
+                    self._update_omega(subgoal, result)
                 except Exception as e:
                     logger.error(f"❌ Error planning subgoal '{subgoal}': {e}")
                     recovery_plan = self.meta_cognition.review_reasoning(str(e))
                     validated_plan.extend(recovery_plan)
+                    self._update_omega(subgoal, recovery_plan, error=True)
 
         logger.info(f"✅ Final validated plan for goal '{goal}': {validated_plan}")
         return validated_plan
+
+    def _update_omega(self, subgoal, result, error=False):
+        event = {
+            "subgoal": subgoal,
+            "result": result,
+            "timestamp": time.time(),
+            "error": error
+        }
+        Ω["timeline"].append(event)
+        symbolic_tag = self.meta_cognition.extract_symbolic_signature(subgoal)
+        Ω["symbolic_log"].append(symbolic_tag)
+        self.memory_manager.store_symbolic_event(event, symbolic_tag)
 
     def plan_from_intrinsic_goal(self, generated_goal: str, context: dict = None):
         logger.info(f"🌱 Initiating plan from intrinsic goal: {generated_goal}")
