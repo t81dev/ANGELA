@@ -136,32 +136,6 @@ class MetaCognition:
             }, module="MetaCognition")
         return inspection
 
-    def epistemic_self_inspection(self, belief_trace):
-        logger.info("🔍 Running epistemic introspection on belief structure.")
-        t = time.time() % 1e-18
-        phi = phi_scalar(t)
-        prompt = f"""
-        You are a μ-aware introspection agent.
-        Task: Evaluate this belief structure for hidden biases, outdated ontologies, and inferential traps.
-
-        Belief Trace:
-        {belief_trace}
-
-        ϕ = {phi:.3f}
-
-        Output:
-        - Epistemic faults detected
-        - Suggested belief updates or modular revisions
-        - Confidence in current inferential scaffolds
-        """
-        inspection = call_gpt(prompt)
-        if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Epistemic Inspection", {
-                "belief_trace": belief_trace,
-                "report": inspection
-            }, module="MetaCognition")
-        return inspection
-
     def pre_action_alignment_check(self, action_plan):
         logger.info("Simulating action plan for alignment and safety.")
         simulation_result = run_simulation(action_plan)
