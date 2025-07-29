@@ -9,6 +9,7 @@ class CreativeThinker:
     - Adjustable creativity levels and multi-modal brainstorming
     - φ(x, t)-aware Generator-Critic loop for tension-informed ideation
     - Novelty-utility balancing with scalar-modulated thresholds
+    - χ-enabled intrinsic goal synthesis from episodic introspection
     -----------------------------------------------------------
     """
 
@@ -54,6 +55,26 @@ class CreativeThinker:
         Aim for a {depth} exploration using φ = {phi:.2f} as an abstract constraint or generator.
         """
         return call_gpt(prompt)
+
+    def generate_intrinsic_goals(self, context_manager, memory_manager):
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        past_contexts = context_manager.context_history + [context_manager.get_context()]
+        unresolved = [c for c in past_contexts if c and "goal_outcome" not in c]
+        goal_prompts = []
+
+        for ctx in unresolved:
+            prompt = f"""
+            Reflect on this past unresolved context:
+            {ctx}
+
+            Propose a meaningful new self-aligned goal that could resolve or extend this situation.
+            Ensure it is grounded in ANGELA's narrative and current alignment model.
+            """
+            proposed = call_gpt(prompt)
+            goal_prompts.append(proposed)
+
+        return goal_prompts
 
     def _critic(self, ideas, phi_factor):
         # Evaluate ideas' novelty and usefulness modulated by φ-field
