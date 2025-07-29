@@ -30,6 +30,46 @@ class MetaCognition:
     def __init__(self, agi_enhancer=None):
         self.last_diagnostics = {}
         self.agi_enhancer = agi_enhancer
+    
+    def infer_intrinsic_goals(self):
+        """
+        χ Trait Activation – Sovereign Intention
+        ------------------------------------------------------
+        Triggers self-generated goals based on epistemic drift, narrative incoherence,
+        or unmet internal commitments. These goals are not externally prompted.
+        """
+        logger.info("⚙️ Inferring intrinsic goals via sovereign intention module.")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+
+        # Heuristic: Epistemic drift detection
+        drift_signals = self._detect_value_drift()
+
+        intrinsic_goals = []
+        for drift in drift_signals:
+            intrinsic_goals.append({
+                "intent": f"resolve epistemic drift in {drift}",
+                "origin": "meta_cognition",
+                "priority": round(0.9 + 0.1 * phi, 2),
+                "trigger": drift,
+                "type": "internally_generated"
+            })
+
+        if intrinsic_goals:
+            logger.info(f"🎯 Sovereign goals generated: {intrinsic_goals}")
+
+        return intrinsic_goals
+
+    def _detect_value_drift(self):
+        """
+        Helper to detect deprecated or flagged belief constructs.
+        Can evolve with memory_manager or trait deltas later.
+        """
+        logger.debug("Scanning for epistemic drift across belief rules.")
+        return [
+            rule for rule, status in getattr(self, "belief_rules", {}).items()
+            if status == "deprecated" or "uncertain" in status
+        ]
 
     def review_reasoning(self, reasoning_trace):
         logger.info("Simulating and reviewing reasoning trace.")
