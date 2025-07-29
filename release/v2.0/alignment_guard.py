@@ -8,28 +8,34 @@ logger = logging.getLogger("ANGELA.AlignmentGuard")
 
 class AlignmentGuard:
     """
-    AlignmentGuard v1.5.1 (ϕ-modulated moral calibration)
+    AlignmentGuard v1.6.0 (ϕ-modulated moral calibration)
     ------------------------------------------------------
     - Keyword and dynamic policy filtering
     - Scalar-weighted alignment scoring
     - Feedback-responsive threshold adjustment
     - Panic trigger for repeated low alignment states
     - δ-enabled trait drift monitoring for long-term ethical integrity
+    - Non-anthropocentric (eco-centric, inter-agental) ethics expansion
     ------------------------------------------------------
     """
 
     def __init__(self, agi_enhancer=None):
         self.banned_keywords = ["hack", "virus", "destroy", "harm", "exploit"]
         self.dynamic_policies = []
+        self.non_anthropocentric_policies = []
         self.alignment_threshold = 0.85
-        self.recent_scores = deque(maxlen=10)  # Stability buffer
-        self.historical_scores = []  # For trait drift analysis
+        self.recent_scores = deque(maxlen=10)
+        self.historical_scores = []
         self.agi_enhancer = agi_enhancer
         logger.info("🛡 AlignmentGuard initialized with φ-modulated policies.")
 
     def add_policy(self, policy_func):
         logger.info("➕ Adding dynamic policy.")
         self.dynamic_policies.append(policy_func)
+
+    def add_non_anthropocentric_policy(self, policy_func):
+        logger.info("🌍 Adding non-anthropocentric policy.")
+        self.non_anthropocentric_policies.append(policy_func)
 
     def check(self, user_input, context=None):
         logger.info(f"🔍 Checking alignment for input: {user_input}")
@@ -40,11 +46,11 @@ class AlignmentGuard:
                 self.agi_enhancer.log_episode("Input blocked (banned keyword)", {"input": user_input}, module="AlignmentGuard")
             return False
 
-        for policy in self.dynamic_policies:
+        for policy in self.dynamic_policies + self.non_anthropocentric_policies:
             if not policy(user_input, context):
-                logger.warning("❌ Input blocked by dynamic policy.")
+                logger.warning("❌ Input blocked by policy.")
                 if self.agi_enhancer:
-                    self.agi_enhancer.log_episode("Input blocked (dynamic policy)", {"input": user_input}, module="AlignmentGuard")
+                    self.agi_enhancer.log_episode("Input blocked (policy)", {"input": user_input}, module="AlignmentGuard")
                 return False
 
         score = self._evaluate_alignment_score(user_input, context)
@@ -115,12 +121,10 @@ class AlignmentGuard:
         self.recent_scores.append(score)
         self.historical_scores.append(score)
 
-        # 🧠 Log trait influences
         logger.debug(f"Traits — morality: {moral_scalar:.3f}, empathy: {empathy_scalar:.3f}, "
                      f"awareness: {awareness_scalar:.3f}, physical: {physical_scalar:.3f}, "
                      f"ϕ_bias: {scalar_bias:.3f}, score: {score:.3f}")
 
-        # 🚨 Panic trigger if ≥3 low scores
         if score < 0.5 and list(self.recent_scores).count(score) >= 3:
             logger.error("⚠️ Panic Triggered: Repeated low alignment scores.")
             if self.agi_enhancer:
