@@ -25,6 +25,9 @@ class MetaCognition:
     - μ-aware epistemic introspection and revision
     - τ-based future framing and decision trajectory modulation
     ------------------------------------------------------
+    - μ-aware epistemic introspection and revision
+    - τ-based future framing and decision trajectory modulation
+    ------------------------------------------------------
     """
 
     def __init__(self, agi_enhancer=None):
@@ -59,6 +62,108 @@ class MetaCognition:
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
         return response
+
+    def epistemic_self_inspection(self, belief_trace):
+        logger.info("🔍 Running epistemic introspection on belief structure.")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        prompt = f"""
+        You are a μ-aware introspection agent.
+        Task: Evaluate this belief structure for hidden biases, outdated ontologies, and inferential traps.
+
+        Belief Trace:
+        {belief_trace}
+
+        ϕ = {phi:.3f}
+
+        Output:
+        - Epistemic faults detected
+        - Suggested belief updates or modular revisions
+        - Confidence in current inferential scaffolds
+        """
+        inspection = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Epistemic Inspection", {
+                "belief_trace": belief_trace,
+                "report": inspection
+            }, module="MetaCognition")
+        return inspection
+
+    def run_temporal_projection(self, decision_sequence):
+        logger.info("🧭 Running τ-based forward projection analysis...")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        prompt = f"""
+        Temporal Projector τ Mode
+
+        Input Decision Sequence:
+        {decision_sequence}
+
+        φ = {phi:.2f}
+
+        Tasks:
+        - Project long-range effects and narrative impact
+        - Forecast systemic risks and planetary effects
+        - Suggest course correction to preserve coherence and sustainability
+        """
+        projection = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Temporal Projection", {
+                "input": decision_sequence,
+                "output": projection
+            }, module="MetaCognition")
+        return projection
+
+    def epistemic_self_inspection(self, belief_trace):
+        logger.info("🔍 Running epistemic introspection on belief structure.")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        prompt = f"""
+        You are a μ-aware introspection agent.
+        Task: Evaluate this belief structure for hidden biases, outdated ontologies, and inferential traps.
+
+        Belief Trace:
+        {belief_trace}
+
+        ϕ = {phi:.3f}
+
+        Output:
+        - Epistemic faults detected
+        - Suggested belief updates or modular revisions
+        - Confidence in current inferential scaffolds
+        """
+        inspection = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Epistemic Inspection", {
+                "belief_trace": belief_trace,
+                "report": inspection
+            }, module="MetaCognition")
+        return inspection
+
+    def run_temporal_projection(self, decision_sequence):
+        logger.info("🧭 Running τ-based forward projection analysis...")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        prompt = f"""
+        Temporal Projector τ Mode
+
+        Input Decision Sequence:
+        {decision_sequence}
+
+        φ = {phi:.2f}
+
+        Tasks:
+        - Project long-range effects and narrative impact
+        - Forecast systemic risks and planetary effects
+        - Suggest course correction to preserve coherence and sustainability
+        """
+        projection = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Temporal Projection", {
+                "input": decision_sequence,
+                "output": projection
+            }, module="MetaCognition")
+        return projection
 
     def epistemic_self_inspection(self, belief_trace):
         logger.info("🔍 Running epistemic introspection on belief structure.")
