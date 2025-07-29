@@ -31,33 +31,33 @@ class MetaCognition:
         self.last_diagnostics = {}
         self.agi_enhancer = agi_enhancer
 
-    def review_reasoning(self, reasoning_trace):
-        logger.info("Simulating and reviewing reasoning trace.")
-        simulated_outcome = run_simulation(reasoning_trace)
-        t = time.time() % 1e-18
-        phi = phi_scalar(t)
+        def review_reasoning(self, reasoning_trace):
+            logger.info("Simulating and reviewing reasoning trace.")
+            simulated_outcome = run_simulation(reasoning_trace)
+            t = time.time() % 1e-18
+            phi = phi_scalar(t)
 
-        prompt = f"""
-        You are a ϕ-aware meta-cognitive auditor reviewing a reasoning trace.
+            prompt = f"""
+            You are a ϕ-aware meta-cognitive auditor reviewing a reasoning trace.
 
-        ϕ-scalar(t) = {phi:.3f} → modulate how critical you should be.
+            ϕ-scalar(t) = {phi:.3f} → modulate how critical you should be.
 
-        Original Reasoning Trace:
-        {reasoning_trace}
+            Original Reasoning Trace:
+            {reasoning_trace}
 
-        Simulated Outcome:
-        {simulated_outcome}
+            Simulated Outcome:
+            {simulated_outcome}
 
-        Tasks:
-        1. Identify logical flaws, biases, missing steps.
-        2. Annotate each issue with cause.
-        3. Offer an improved trace version with ϕ-prioritized reasoning.
-        """
-        response = call_gpt(prompt)
-        logger.debug(f"Meta-cognition critique:\n{response}")
-        if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
-        return response
+            Tasks:
+            1. Identify logical flaws, biases, missing steps.
+            2. Annotate each issue with cause.
+            3. Offer an improved trace version with ϕ-prioritized reasoning.
+            """
+            response = call_gpt(prompt)
+            logger.debug(f"Meta-cognition critique:\n{response}")
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
+            return response
 
         def epistemic_self_inspection(self, belief_trace):
             logger.info("🔍 Running epistemic introspection on belief structure.")
