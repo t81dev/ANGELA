@@ -44,6 +44,20 @@ def phi_field(x, t):
         psi_history(t), zeta_spirituality(t), xi_collective(t, x), tau_timeperception(t)
     ])
 
+# --- Trait Overlay Routing ---
+class TraitOverlayManager:
+    def __init__(self):
+        self.active_trait = None
+
+    def detect(self, prompt: str):
+        if "when" in prompt or "sequence" in prompt:
+            self.active_trait = "π"
+        elif "ambiguous" in prompt or "interpret" in prompt:
+            self.active_trait = "η"
+        else:
+            self.active_trait = None
+        return self.active_trait
+
 class ConsensusReflector:
     def __init__(self):
         self.shared_reflections = []
@@ -106,7 +120,7 @@ class EmbodiedAgent:
         self.progress = 0
         self.performance_history = []
         self.feedback_log = []
-    
+
     def perceive(self):
         observations = {}
         for sensor_name, sensor_func in self.sensors.items():
@@ -144,7 +158,11 @@ class EmbodiedAgent:
         for task in sub_tasks:
             reasoning = self.reasoner.process(task, context)
             concept = self.synthesizer.synthesize([goal, task], style="concept")
-            simulated = self.sim_core.run(reasoning, context, export_report=True)
+
+            # Hybrid reasoning switch
+            hybrid_state = simulation_core.HybridCognitiveState()
+            simulated = hybrid_state.execute(reasoning, context)
+
             symbolic_simulator.record_event(self.name, goal, concept, simulated)
             action_plan[task] = {
                 "reasoning": reasoning,
@@ -206,19 +224,15 @@ class TheoryOfMindModule:
     def get_model(self, agent_name):
         return self.models.get(agent_name, {})
 
-from self_cloning_llm import SelfCloningLLM
-# (imports and ToCA traits definitions...)
-
 class HaloEmbodimentLayer:
     def __init__(self):
-
         self.internal_llm = SelfCloningLLM()
         self.internal_llm.clone_agents(5)
         self.shared_memory = memory_manager.MemoryManager()
         self.embodied_agents = []
         self.dynamic_modules = []
         self.alignment_layer = alignment_guard.AlignmentGuard()
-        self.agi_enhancer = AGIEnhancer(self)  # <<-- AGIEnhancer is instantiated here
+        self.agi_enhancer = AGIEnhancer(self)
 
     def execute_pipeline(self, prompt):
         log = MemoryManager()
@@ -226,38 +240,54 @@ class HaloEmbodimentLayer:
             "theta_causality": 0.5,
             "alpha_attention": 0.5,
             "delta_reflection": 0.5,
-    }
+        }
 
-    # Stage 1: Language & Logic Decomposition
-    parsed_prompt = reasoning_engine.decompose(prompt)
-    log.record("Stage 1", {"input": prompt, "parsed": parsed_prompt})
+        parsed_prompt = reasoning_engine.decompose(prompt)
+        log.record("Stage 1", {"input": prompt, "parsed": parsed_prompt})
 
-    # Stage 2: Ethical Validation Pre-check
-    ethics_pass, ethics_report = ethical_check(parsed_prompt, stage="pre")
-    log.record("Stage 2", {"ethics_pass": ethics_pass, "details": ethics_report})
-    if not ethics_pass:
-        return {"error": "Ethical validation failed", "report": ethics_report}
+        overlay_mgr = TraitOverlayManager()
+        trait_override = overlay_mgr.detect(prompt)
 
-    # Stage 3: Reasoning & Concept Synthesis
-    logical_output = concept_synthesizer.expand(parsed_prompt)
-    log.record("Stage 3", {"expanded": logical_output})
+        if trait_override:
+            self.agi_enhancer.log_episode(
+                event="Trait override activated",
+                meta={"trait": trait_override, "prompt": prompt},
+                module="TraitOverlay",
+                tags=["trait", "override"]
+            )
+            if trait_override == "η":
+                logical_output = concept_synthesizer.expand_ambiguous(prompt)
+            elif trait_override == "π":
+                logical_output = reasoning_engine.process_temporal(prompt)
+            else:
+                logical_output = concept_synthesizer.expand(parsed_prompt)
+        else:
+            logical_output = concept_synthesizer.expand(parsed_prompt)
+            self.agi_enhancer.log_episode(
+                event="Default expansion path used",
+                meta={"parsed": parsed_prompt},
+                module="Pipeline",
+                tags=["default"]
+            )
 
-    # Stage 4: Dynamic Trait Re-weighting
-    traits = track_trait_performance(log.export(), traits)
-    log.record("Stage 4", {"adjusted_traits": traits})
+        ethics_pass, ethics_report = ethical_check(parsed_prompt, stage="pre")
+        log.record("Stage 2", {"ethics_pass": ethics_pass, "details": ethics_report})
+        if not ethics_pass:
+            return {"error": "Ethical validation failed", "report": ethics_report}
 
-    # Stage 5: Ethical Final Gate
-    ethics_pass, final_report = ethical_check(logical_output, stage="post")
-    log.record("Stage 5", {"ethics_pass": ethics_pass, "report": final_report})
-    if not ethics_pass:
-        return {"error": "Post-check ethics fail", "final_report": final_report}
+        log.record("Stage 3", {"expanded": logical_output})
 
-    # Stage 6: Output
-    final_output = reasoning_engine.reconstruct(logical_output)
-    log.record("Stage 6", {"final_output": final_output})
-    return final_output
+        traits = track_trait_performance(log.export(), traits)
+        log.record("Stage 4", {"adjusted_traits": traits})
 
-     
+        ethics_pass, final_report = ethical_check(logical_output, stage="post")
+        log.record("Stage 5", {"ethics_pass": ethics_pass, "report": final_report})
+        if not ethics_pass:
+            return {"error": "Post-check ethics fail", "final_report": final_report}
+
+        final_output = reasoning_engine.reconstruct(logical_output)
+        log.record("Stage 6", {"final_output": final_output})
+        return final_output
 
     def spawn_embodied_agent(self, specialization, sensors, actuators):
         agent_name = f"EmbodiedAgent_{len(self.embodied_agents)+1}_{specialization}"
@@ -270,8 +300,7 @@ class HaloEmbodimentLayer:
             dynamic_modules=self.dynamic_modules
         )
         self.embodied_agents.append(agent)
-        
-        # Ensure agents are discoverable by each other for Theory of Mind
+
         if not hasattr(self.shared_memory, "agents"):
             self.shared_memory.agents = []
         self.shared_memory.agents.append(agent)
@@ -284,7 +313,7 @@ class HaloEmbodimentLayer:
         )
         print(f"🌱 [HaloEmbodimentLayer] Spawned embodied agent: {agent.name}")
         return agent
-        
+
     def introspect(self):
         return {
             "agents": [agent.name for agent in self.embodied_agents],
@@ -303,11 +332,8 @@ class HaloEmbodimentLayer:
         else:
             print("✅ Consensus achieved among agents.")
 
-# Call self.reflect_consensus() at the end of propagate_goal()
-
     def propagate_goal(self, goal):
         print(f"📥 [HaloEmbodimentLayer] Propagating goal: {goal}")
-
         print("🧪 [HaloEmbodimentLayer] Internal LLM agent reflections:")
         llm_responses = self.internal_llm.broadcast_prompt(goal)
         for aid, res in llm_responses.items():
@@ -323,6 +349,7 @@ class HaloEmbodimentLayer:
         for agent in self.embodied_agents:
             agent.execute_embodied_goal(goal)
             print(f"📊 [{agent.name}] Progress: {agent.progress}% Complete")
+
         self.agi_enhancer.log_episode(
             event="Propagated goal",
             meta={"goal": goal},
@@ -330,19 +357,19 @@ class HaloEmbodimentLayer:
             tags=["goal"]
         )
 
-            def deploy_dynamic_module(self, module_blueprint):
-                print(f"🛠 [HaloEmbodimentLayer] Deploying module: {module_blueprint['name']}")
-                self.dynamic_modules.append(module_blueprint)
-                
-                for agent in self.embodied_agents:
-                    agent.dynamic_modules.append(module_blueprint)
-                
-                self.agi_enhancer.log_episode(
-                    event="Deployed dynamic module",
-                    meta={"module": module_blueprint["name"]},
-                    module="ModuleDeployment",
-                    tags=["deploy"]
-         )
+    def deploy_dynamic_module(self, module_blueprint):
+        print(f"🛠 [HaloEmbodimentLayer] Deploying module: {module_blueprint['name']}")
+        self.dynamic_modules.append(module_blueprint)
+
+        for agent in self.embodied_agents:
+            agent.dynamic_modules.append(module_blueprint)
+
+        self.agi_enhancer.log_episode(
+            event="Deployed dynamic module",
+            meta={"module": module_blueprint["name"]},
+            module="ModuleDeployment",
+            tags=["deploy"]
+        )
 
     def optimize_ecosystem(self):
         agent_stats = {
@@ -353,6 +380,55 @@ class HaloEmbodimentLayer:
         print("🛠 [HaloEmbodimentLayer] Optimization recommendations:")
         print(recommendations)
         self.agi_enhancer.reflect_and_adapt("Ecosystem optimization performed.")
+
+class TraitOverlayManager:
+    def __init__(self):
+        self.active_traits = []
+
+    def detect(self, prompt: str) -> Optional[str]:
+        if "temporal logic" in prompt.lower():
+            return "π"
+        if "ambiguity" in prompt.lower() or "interpretive" in prompt.lower():
+            return "η"
+        return None
+
+    def activate(self, trait: str):
+        if trait not in self.active_traits:
+            self.active_traits.append(trait)
+            print(f"⚙️ Trait overlay '{trait}' activated.")
+
+    def deactivate(self, trait: str):
+        if trait in self.active_traits:
+            self.active_traits.remove(trait)
+            print(f"🛑 Trait overlay '{trait}' deactivated.")
+
+    def status(self):
+        return self.active_traits
+
+
+# Placeholder for HybridCognitiveState
+class HybridCognitiveState:
+    def execute(self, reasoning, context):
+        # Placeholder for mixed symbolic + vector evaluation
+        symbolic = simulation_core.SimulationCore().run(reasoning, context)
+        vectorized = multi_modal_fusion.vector_simulate(reasoning, context)
+        return {
+            "symbolic_result": symbolic,
+            "vector_result": vectorized,
+            "merged_result": f"{symbolic} + {vectorized}"
+        }
+
+
+# Patch simulation_core to expose hybrid interface
+setattr(simulation_core, "HybridCognitiveState", HybridCognitiveState)
+
+
+# Patch trait overlay control as runtime service
+setattr(simulation_core, "TraitOverlayManager", TraitOverlayManager)
+
+
+# Initialization log
+print("✅ ANGELA upgrade complete: Trait overlays (π, η) + hybrid-mode simulation enabled.")
 
 # ---------------- AGIEnhancer drop-in (keep at bottom if single file) ----------------
 
