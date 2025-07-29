@@ -14,6 +14,17 @@ from index import (
 logger = logging.getLogger("ANGELA.MetaCognition")
 
 class MetaCognition:
+    """
+    MetaCognition v2.0.0 (ϕ-aware recursive introspection)
+    ------------------------------------------------------
+    - Reasoning critique with simulation feedback
+    - Pre-action ethical screening
+    - Scalar-modulated self-diagnostics and trait coherence
+    - Reflective agent diagnosis and confidence mapping
+    - Ω-enabled nested agent modeling and causal intention tracing
+    ------------------------------------------------------
+    """
+
     def __init__(self, agi_enhancer=None):
         self.last_diagnostics = {}
         self.agi_enhancer = agi_enhancer
@@ -84,6 +95,32 @@ class MetaCognition:
             }, module="MetaCognition")
 
         return approved, validation
+
+    def model_nested_agents(self, scenario, agents):
+        logger.info("🔁 Modeling nested agent beliefs and reactions...")
+        t = time.time() % 1e-18
+        phi = phi_scalar(t)
+        prompt = f"""
+        Given scenario:
+        {scenario}
+
+        Agents involved:
+        {agents}
+
+        Task:
+        - Simulate each agent's likely beliefs and intentions
+        - Model how they recursively model each other (ToM Level-2+)
+        - Predict possible causal chains and coordination failures
+        - Use ϕ-scalar(t) = {phi:.3f} to moderate belief divergence or tension
+        """
+        response = call_gpt(prompt)
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Nested agent modeling", {
+                "scenario": scenario,
+                "agents": agents,
+                "response": response
+            }, module="MetaCognition")
+        return response
 
     def run_self_diagnostics(self):
         logger.info("Running self-diagnostics for meta-cognition module.")
