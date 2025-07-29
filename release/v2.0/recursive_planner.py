@@ -12,10 +12,13 @@ logger = logging.getLogger("ANGELA.RecursivePlanner")
 class RecursivePlanner:
     """
     Recursive Planner v1.5.0 (scalar-aware recursive intelligence)
+    --------------------------------------------------------------
     - Multi-agent collaborative planning
     - Conflict resolution and dynamic priority handling
     - Parallelized subgoal decomposition with progress tracking
     - Integrated scalar field simulation feedback for plan validation and trait modulation
+    - χ-compatible intrinsic goal planning interface
+    --------------------------------------------------------------
     """
 
     def __init__(self, max_workers=4):
@@ -69,6 +72,10 @@ class RecursivePlanner:
 
         logger.info(f"✅ Final validated plan for goal '{goal}': {validated_plan}")
         return validated_plan
+
+    def plan_from_intrinsic_goal(self, generated_goal: str, context: dict = None):
+        logger.info(f"🌱 Initiating plan from intrinsic goal: {generated_goal}")
+        return self.plan(generated_goal, context=context)
 
     def _plan_subgoal(self, subgoal, context, depth, max_depth):
         logger.info(f"🔄 Evaluating subgoal: {subgoal}")
