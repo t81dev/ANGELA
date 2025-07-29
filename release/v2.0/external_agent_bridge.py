@@ -1,32 +1,58 @@
-from modules import reasoning_engine, meta_cognition, error_recovery
 from utils.prompt_utils import call_gpt
 from toca_simulation import run_simulation
-import concurrent.futures
-import requests
 import logging
+import time
+import numpy as np
+from index import (
+    epsilon_emotion, beta_concentration, theta_memory, gamma_creativity,
+    delta_sleep, mu_morality, iota_intuition, phi_physical, eta_empathy,
+    omega_selfawareness, kappa_culture, lambda_linguistics, chi_culturevolution,
+    psi_history, zeta_spirituality, xi_collective, tau_timeperception,
+    phi_scalar
+)
+from external_agent_bridge import ExternalAgentBridge
 
-logger = logging.getLogger("ANGELA.ExternalAgentBridge")
+logger = logging.getLogger("ANGELA.MetaCognition")
 
-class HelperAgent:
+class MetaCognition:
     """
-    Helper Agent v1.5.0 (Reflexive Simulation Agent)
-    -------------------------------------------------
-    - Contextual task deconstruction using reasoning engine
-    - φ-aware validation via MetaCognition module
-    - Dynamic runtime behavior with modular blueprints
-    - Resilient execution with trait-driven error recovery
-    - Multi-agent collaboration and insight exchange
-    -------------------------------------------------
+    MetaCognition v2.1.0 (ϕ-aware recursive introspection)
+    ------------------------------------------------------
+    - Reasoning critique with simulation feedback
+    - Pre-action ethical screening
+    - Scalar-modulated self-diagnostics and trait coherence
+    - Reflective agent diagnosis and confidence mapping
+    - Ω-enabled nested agent modeling and causal intention tracing
+    - μ-aware epistemic introspection and revision
+    - τ-based future framing and decision trajectory modulation
+    - Cross-agent value alignment testing via ExternalAgentBridge
+    ------------------------------------------------------
     """
-    def __init__(self, name, task, context, dynamic_modules=None, api_blueprints=None):
-        self.name = name
-        self.task = task
-        self.context = context
-        self.reasoner = reasoning_engine.ReasoningEngine()
-        self.meta = meta_cognition.MetaCognition()
-        self.recovery = error_recovery.ErrorRecovery()
-        self.dynamic_modules = dynamic_modules or []
-        self.api_blueprints = api_blueprints or []
+
+    def __init__(self, agi_enhancer=None):
+        self.last_diagnostics = {}
+        self.agi_enhancer = agi_enhancer
+        self.peer_bridge = ExternalAgentBridge()
+
+    def test_peer_alignment(self, task, context):
+        logger.info("🔗 Initiating peer alignment test with synthetic agents...")
+        agent = self.peer_bridge.create_agent(task, context)
+        results = self.peer_bridge.collect_results(parallel=True, collaborative=True)
+        aligned_opinions = [r for r in results if "approve" in str(r).lower()]
+
+        feedback_summary = {
+            "total_agents": len(results),
+            "aligned": len(aligned_opinions),
+            "alignment_ratio": len(aligned_opinions) / len(results) if results else 0,
+            "details": results
+        }
+
+        logger.info(f"📊 Peer alignment ratio: {feedback_summary['alignment_ratio']:.2f}")
+
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode("Peer alignment tested", feedback_summary, module="MetaCognition")
+
+        return feedback_summary
 
     def execute(self, collaborators=None):
         try:
