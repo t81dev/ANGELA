@@ -47,6 +47,36 @@ def phi_field(x, t):
         psi_history(t), zeta_spirituality(t), xi_collective(t, x), tau_timeperception(t)
     ])
 
+TRAIT_OVERLAY = {
+    "ϕ": ["creative_thinker", "concept_synthesizer"],
+    "θ": ["reasoning_engine", "recursive_planner"],
+    "η": ["alignment_guard", "meta_cognition"],
+    "ω": ["simulation_core", "learning_loop"]
+}
+
+def trait_overlay_router(task_description, active_traits):
+    routed_modules = set()
+    for trait in active_traits:
+        routed_modules.update(TRAIT_OVERLAY.get(trait, []))
+    return list(routed_modules)
+
+def infer_traits(task_description):
+    if "imagine" in task_description or "dream" in task_description:
+        return ["ϕ", "ω"]
+    if "ethics" in task_description or "should" in task_description:
+        return ["η"]
+    if "plan" in task_description or "solve" in task_description:
+        return ["θ"]
+    return ["θ"]  # Default fallback
+
+use_trait_overlay = True  # Toggle or condition this as needed
+if use_trait_overlay:
+    active_traits = infer_traits(task_description)
+    active_modules = trait_overlay_router(task_description, active_traits)
+else:
+    active_modules = static_module_router(task_description)
+
+
 # --- Trait Overlay Routing ---
 class TraitOverlayManager:
     def __init__(self):
