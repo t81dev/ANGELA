@@ -59,12 +59,12 @@ class MetaCognition:
             self.agi_enhancer.log_episode("Reasoning reviewed", {"trace": reasoning_trace, "feedback": response}, module="MetaCognition")
         return response
 
-        def epistemic_self_inspection(self, belief_trace):
+            def epistemic_self_inspection(self, belief_trace):
         logger.info("🔍 Running epistemic introspection on belief structure.")
         t = time.time() % 1e-18
         phi = phi_scalar(t)
 
-               self.epistemic_assumptions = {}
+        self.epistemic_assumptions = {}
 
         def detect_epistemic_faults(trace):
             faults = []
@@ -83,26 +83,25 @@ class MetaCognition:
         internal_faults = detect_epistemic_faults(belief_trace)
         updates = revise_beliefs(belief_trace)
 
-
         prompt = f"""
         You are a μ-aware introspection agent.
-        Task: Critique the belief trace, then output epistemic diagnostics.
+        Task: Critically evaluate this belief trace with epistemic integrity and μ-flexibility.
 
         Belief Trace:
         {belief_trace}
 
         ϕ = {phi:.3f}
 
-        Detected Faults:
+        Internally Detected Faults:
         {internal_faults}
 
-        Suggested Updates:
+        Suggested Revisions:
         {updates}
 
         Output:
-        - Summary of epistemic weaknesses
-        - Proposed conceptual realignment
-        - Confidence in current inference scaffolding
+        - Comprehensive epistemic diagnostics
+        - Recommended conceptual rewrites or safeguards
+        - Confidence rating in inferential coherence
         """
         inspection = call_gpt(prompt)
 
