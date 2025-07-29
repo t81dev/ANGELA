@@ -17,6 +17,7 @@ class MemoryManager:
     - Memory refinement loops for maintaining relevance and accuracy
     - Trait-modulated STM decay and retrieval fidelity
     - φ(x,t) attention modulation for selective memory prioritization
+    - λ-narrative integration: episodic tagging and timeline coherence
     ---------------------------------
     """
 
@@ -44,35 +45,39 @@ class MemoryManager:
             if current_time - entry["timestamp"] > lifetime_adjusted:
                 expired_keys.append(key)
         for key in expired_keys:
-            logger.info(f"⌛ STM entry expired: {key}")
+            logger.info(f"\u23f0 STM entry expired: {key}")
             del memory["STM"][key]
         if expired_keys:
             self._persist_memory(memory)
 
     def retrieve_context(self, query, fuzzy_match=True):
-        logger.info(f"🔍 Retrieving context for query: {query}")
+        logger.info(f"\ud83d\udd0d Retrieving context for query: {query}")
         trait_boost = tau_timeperception(time.time() % 1e-18) * phi_focus(query)
 
         for layer in ["STM", "LTM"]:
             if fuzzy_match:
                 for key, value in self.memory[layer].items():
                     if key.lower() in query.lower() or query.lower() in key.lower():
-                        logger.debug(f"📅 Found match in {layer}: {key} | τϕ_boost: {trait_boost:.2f}")
+                        logger.debug(f"\ud83d\uddd5\ufe0f Found match in {layer}: {key} | \u03c4\u03d5_boost: {trait_boost:.2f}")
                         return value["data"]
             else:
                 entry = self.memory[layer].get(query)
                 if entry:
-                    logger.debug(f"📅 Found exact match in {layer}: {query} | τϕ_boost: {trait_boost:.2f}")
+                    logger.debug(f"\ud83d\uddd5\ufe0f Found exact match in {layer}: {query} | \u03c4\u03d5_boost: {trait_boost:.2f}")
                     return entry["data"]
 
-        logger.info("❌ No relevant prior memory found.")
+        logger.info("\u274c No relevant prior memory found.")
         return "No relevant prior memory."
 
-    def store(self, query, output, layer="STM"):
-        logger.info(f"📝 Storing memory in {layer}: {query}")
+    def store(self, query, output, layer="STM", intent=None, agent="ANGELA", outcome=None, goal_id=None):
+        logger.info(f"\ud83d\udcdd Storing memory in {layer}: {query}")
         entry = {
             "data": output,
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "intent": intent,
+            "agent": agent,
+            "outcome": outcome,
+            "goal_id": goal_id
         }
         if layer not in self.memory:
             self.memory[layer] = {}
