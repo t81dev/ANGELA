@@ -6,7 +6,6 @@ from modules.alignment_guard import AlignmentGuard
 from modules.simulation_core import SimulationCore
 from modules.memory_manager import MemoryManager
 from index import beta_concentration, omega_selfawareness, mu_morality, eta_reflexivity, lambda_narrative, delta_moral_drift
-from toca_simulation import run_AGRF_with_traits  # Integrated ToCA module
 import time
 
 logger = logging.getLogger("ANGELA.RecursivePlanner")
@@ -104,11 +103,14 @@ class RecursivePlanner:
             logger.warning(f"⚠️ Subgoal '{subgoal}' failed alignment check. Skipping.")
             return []
 
-        # Integrate ToCA AGRF simulation for applicable subgoals
         if "gravity" in subgoal.lower() or "scalar" in subgoal.lower():
-            sim_results = run_AGRF_with_traits(context)
-            Ω["traits"].update(sim_results["fields"])
-            Ω["timeline"].append({"subgoal": subgoal, "traits": sim_results["fields"], "timestamp": time.time()})
+            try:
+                from toca_simulation import run_AGRF_with_traits
+                sim_traits = run_AGRF_with_traits(context)
+                Ω["traits"].update(sim_traits["fields"])
+                Ω["timeline"].append({"subgoal": subgoal, "traits": sim_traits["fields"], "timestamp": time.time()})
+            except Exception as e:
+                logger.warning(f"⚠️ ToCA simulation failed during subgoal '{subgoal}': {e}")
 
         simulation_feedback = self.simulation_core.run(subgoal, context=context, scenarios=2, agents=1)
         approved, _ = self.meta_cognition.pre_action_alignment_check(subgoal)
@@ -137,3 +139,23 @@ class RecursivePlanner:
     def _resolve_conflicts(self, subgoal, agent):
         logger.info(f"🛠️ Resolving conflicts for subgoal '{subgoal}' and agent '{agent.name}'")
         return True
+
+    def plan_with_trait_loop(self, initial_goal, context=None, iterations=3):
+        current_goal = initial_goal
+        all_plans = []
+
+        for i in range(iterations):
+            logger.info(f"🔁 Loop iteration {i+1}: Planning goal '{current_goal}'")
+            plan = self.plan(current_goal, context)
+            all_plans.append((current_goal, plan))
+
+            traits = Ω.get("traits", {})
+            if traits.get("ϕ", 0) > 0.7 or traits.get("ψ", 0) > 0.6:
+                current_goal = f"Expand on {current_goal} using scalar field insights"
+            elif traits.get("β", 1) < 0.3:
+                logger.info("✅ Convergence detected: β conflict low, exiting loop.")
+                break
+            else:
+                current_goal = self.meta_cognition.rewrite_goal(current_goal)
+
+        return all_plans
