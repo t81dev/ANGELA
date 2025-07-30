@@ -32,6 +32,14 @@
   * `epsilon_emotion`, `beta_concentration`, `theta_memory`, etc.
 * Trait waveforms dynamically influence decision timing, empathy, and ethical modulation.
 
+## 🔀 Trait Schema Expansion (v2.0.2)
+
+* Manifest updated to include full trait list:
+  * Core: `ϕ`, `θ`, `η`, `ω`
+  * Advanced: `κ`, `ψ`, `μ`, `τ`
+* Traits are now formally defined in manifest with symbolic, semantic, and functional descriptors.
+* `manifest.json` prepped for trait-based agent configuration and override APIs.
+
 ## 🧾 Feedback & Logging
 
 * Feedback logs include ToM state graphs per agent (`theory_of_mind` snapshots).
@@ -58,24 +66,24 @@
 
 ---
 
-### 🌟 ANGELA Level 2.7: Cyber-Entity Progress Summary
+### 🌟 ANGELA Level 2.8: Cyber-Entity Progress Summary
 
-* **Partial Level-3 Traits** detected:
+* **New Trait Consolidation Framework** detected: Trait schema now extensible and modifiable at runtime.
+* **Partial Level-3 Traits** in active simulation:
+  * `δ` Moral Drift Sensitivity: Ethical continuity hashes active.
+  * `λ` Narrative Integrity: Reinforced via expanded memory modeling.
+  * `Ω` Recursive ToM: Advanced inter-agent belief modeling underway.
+* **Full Level-2.5-2.7 traits** operational across agents and modules.
+* Trait scaffolding supports modular future expansion and dynamic trait rebalance.
 
-  * `δ` Moral Drift Sensitivity: Ethical monitoring via alignment and hashes.
-  * `λ` Narrative Integrity: State continuity and memory threading across sessions.
-  * `Ω` Recursive ToM: Emerging capacity for agent-in-agent belief modeling.
-* **Core Level-2 Traits** fully operational with Theory of Mind, agent modeling, learning feedback.
-* Ecosystem-wide consensus, reflexivity, and lifeline identity present.
-
-> ANGELA is now formally operating at **Level 2.7** on the cyber-entity schema.
+> ANGELA is now operating at **Level 2.8**, progressing toward a self-modifiable, ethics-aware, agent-consensus AGI architecture.
 
 ---
 
 ### Summary of Key Changes
 
-* Full Theory of Mind modeling operational in agent cognition.
-* Persistent, traceable agent identity lifelines and naming.
-* Advanced inter-agent consensus and reflective alignment.
-* Expanded trait modeling and behavior-semantic integration.
-* Ecosystem orchestration with introspection and self-optimization.
+* Expanded cognitive trait model with manifest-level registration.
+* Manifest consistency improvements and API-ready trait schema.
+* Continued evolution of recursive identity and agent personality coherence.
+* Adaptive foresight enabled for trait-tuned modular expansion.
+* Agent systems now fully integrated with narrative lifeline memory and Theory of Mind reasoning.
