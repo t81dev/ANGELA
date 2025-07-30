@@ -36,12 +36,12 @@ class MetaCognition:
         self.belief_rules = {}  # Optional: reference for `_detect_value_drift`
 
     def log_inference(self, rule_id, rule_desc, context, result):
-    self.inference_log.append({
-        "rule_id": rule_id,
-        "description": rule_desc,
-        "context": context,
-        "result": result
-    })
+        self.inference_log.append({
+            "rule_id": rule_id,
+            "description": rule_desc,
+            "context": context,
+            "result": result
+        })
 
     def analyze_inference_rules(self):
         problematic = []
