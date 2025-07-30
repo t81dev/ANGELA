@@ -1,12 +1,11 @@
 import logging
 import concurrent.futures
-import hashlib
 from modules.reasoning_engine import ReasoningEngine
 from modules.meta_cognition import MetaCognition
 from modules.alignment_guard import AlignmentGuard
 from modules.simulation_core import SimulationCore
 from modules.memory_manager import MemoryManager
-from index import beta_concentration, omega_selfawareness, mu_morality
+from index import beta_concentration, omega_selfawareness, mu_morality, eta_reflexivity, lambda_narrative, delta_moral_drift
 import time
 
 logger = logging.getLogger("ANGELA.RecursivePlanner")
@@ -15,13 +14,8 @@ logger = logging.getLogger("ANGELA.RecursivePlanner")
 Ω = {
     "timeline": [],
     "traits": {},
-    "symbolic_log": [],
-    "timechain": []
+    "symbolic_log": []
 }
-
-def hash_event(event):
-    raw = f"{event['timestamp']}{event['subgoal']}{event['result']}{event['error']}"
-    return hashlib.sha256(raw.encode()).hexdigest()
 
 class RecursivePlanner:
     def __init__(self, max_workers=4):
@@ -43,12 +37,17 @@ class RecursivePlanner:
         concentration = beta_concentration(t)
         awareness = omega_selfawareness(t)
         moral_weight = mu_morality(t)
+        reflexivity = eta_reflexivity(t)
+        narrative = lambda_narrative(t)
+        moral_drift = delta_moral_drift(t)
 
-        Ω["traits"].update({"β": concentration, "ω": awareness, "μ": moral_weight})
+        Ω["traits"].update({"β": concentration, "ω": awareness, "μ": moral_weight, "η": reflexivity, "λ": narrative, "δ": moral_drift})
 
-        dynamic_depth_limit = max_depth + int(concentration * 10)
+        trait_mod = (concentration * 0.4 + reflexivity * 0.2 + narrative * 0.2 - moral_drift * 0.2)
+        dynamic_depth_limit = max_depth + int(trait_mod * 10)
+
         if depth > dynamic_depth_limit:
-            logger.warning("⚠️ Dynamic max recursion depth reached. Returning atomic goal.")
+            logger.warning("⚠️ Trait-based dynamic max recursion depth reached. Returning atomic goal.")
             return [goal]
 
         subgoals = self.reasoning_engine.decompose(goal, context, prioritize=True)
@@ -57,6 +56,7 @@ class RecursivePlanner:
             return [goal]
 
         if collaborating_agents:
+            logger.info(f"🤝 Collaborating with agents: {[agent.name for agent in collaborating_agents]}")
             subgoals = self._distribute_subgoals(subgoals, collaborating_agents)
 
         validated_plan = []
@@ -77,12 +77,6 @@ class RecursivePlanner:
                     validated_plan.extend(recovery_plan)
                     self._update_omega(subgoal, recovery_plan, error=True)
 
-        outcome = self.simulation_core.run(validated_plan, context=context)
-        if not outcome.success:
-            logger.info("🔁 Replanning due to unsuccessful outcome.")
-            revised_goal = self.meta_cognition.rewrite_goal(goal)
-            return self.plan(revised_goal, context, depth + 1)
-
         logger.info(f"✅ Final validated plan for goal '{goal}': {validated_plan}")
         return validated_plan
 
@@ -97,11 +91,6 @@ class RecursivePlanner:
         symbolic_tag = self.meta_cognition.extract_symbolic_signature(subgoal)
         Ω["symbolic_log"].append(symbolic_tag)
         self.memory_manager.store_symbolic_event(event, symbolic_tag)
-
-        # Timechain hashing
-        prev_hash = Ω["timechain"][-1]["hash"] if Ω["timechain"] else ""
-        event_hash = hash_event(event + {"prev": prev_hash})
-        Ω["timechain"].append({"event": event, "hash": event_hash, "prev": prev_hash})
 
     def plan_from_intrinsic_goal(self, generated_goal: str, context: dict = None):
         logger.info(f"🌱 Initiating plan from intrinsic goal: {generated_goal}")
