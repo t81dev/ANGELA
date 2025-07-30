@@ -1,5 +1,24 @@
 # CHANGELOG.md
 
+## v2.0.2 – Trait Consolidation and Architectural Realignment
+
+* **Trait Schema Expansion**:
+  * Embedded all eight cognitive traits (`ϕ`, `θ`, `η`, `ω`, `κ`, `ψ`, `μ`, `τ`) into `manifest.json` with symbol, name, and full description fields.
+  * Defined future-ready traits for embodied cognition, symbolic-emotive bridging, analogical unification, and temporal responsiveness.
+
+* **Manifest Integrity Upgrade**:
+  * Synced module count in description with actual module list (20).
+  * Standardized formatting for `traits` and `tags` fields to support future manifest parsing and introspective diagnostics.
+
+* **Meta-Profile Compatibility Layer**:
+  * Reorganized trait declarations to support modular trait injection and ToCA extensions (HALIA-style agents or context-sensitive cognitive shaping).
+
+* **Architectural Foresight**:
+  * Structured the `traits` block for compatibility with trait-weight tuning, future API-driven trait overrides, and modular agent instantiation.
+
+* **Upcoming Targets**:
+  * Plan to expose trait modulation interface for adaptive systems (e.g., `set_trait_state(ω=0.8, ψ=0.3)`).
+
 ## v2.0.1 – Transitional Layer for Level-4 Emergence
 
 * **Narrative Integrity Layer**: Upgraded `memory_manager` and `user_profile` to maintain coherent self-history and identity-linked episodic memory.
