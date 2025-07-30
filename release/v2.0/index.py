@@ -35,6 +35,23 @@ class TimeChainMixin:
     def get_timechain_log(self):
         return timechain_log
 
+# Patch into key classes
+
+class PatchedHaloEmbodimentLayer(TimeChainMixin):
+    pass
+
+class PatchedAGIEnhancer(TimeChainMixin):
+    pass
+
+class PatchedEmbodiedAgent(TimeChainMixin):
+    pass
+
+# Replace original class declarations with patched ones as needed
+HaloEmbodimentLayer.__bases__ += (TimeChainMixin,)
+AGIEnhancer.__bases__ += (TimeChainMixin,)
+EmbodiedAgent.__bases__ += (TimeChainMixin,)
+
+
 # --- ToCA-inspired Cognitive Traits ---
 def epsilon_emotion(t): return 0.2 * math.sin(2 * math.pi * t / 0.1)
 def beta_concentration(t): return 0.15 * math.cos(2 * math.pi * t / 0.038)
