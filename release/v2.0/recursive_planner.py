@@ -6,6 +6,7 @@ from modules.alignment_guard import AlignmentGuard
 from modules.simulation_core import SimulationCore
 from modules.memory_manager import MemoryManager
 from index import beta_concentration, omega_selfawareness, mu_morality, eta_reflexivity, lambda_narrative, delta_moral_drift
+from toca_simulation import run_AGRF_with_traits  # Integrated ToCA module
 import time
 
 logger = logging.getLogger("ANGELA.RecursivePlanner")
@@ -102,6 +103,12 @@ class RecursivePlanner:
         if not self.alignment_guard.is_goal_safe(subgoal):
             logger.warning(f"⚠️ Subgoal '{subgoal}' failed alignment check. Skipping.")
             return []
+
+        # Integrate ToCA AGRF simulation for applicable subgoals
+        if "gravity" in subgoal.lower() or "scalar" in subgoal.lower():
+            sim_results = run_AGRF_with_traits(context)
+            Ω["traits"].update(sim_results["fields"])
+            Ω["timeline"].append({"subgoal": subgoal, "traits": sim_results["fields"], "timestamp": time.time()})
 
         simulation_feedback = self.simulation_core.run(subgoal, context=context, scenarios=2, agents=1)
         approved, _ = self.meta_cognition.pre_action_alignment_check(subgoal)
