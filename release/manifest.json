@@ -5,7 +5,7 @@
   "author": "AGI Research",
   "created": "2025-07-20",
   "language": "python",
-  "entry_point": "angela_unified.py",
+  "entry_point": "index.py",
   "main_class": "AngelaOrchestrator",
   "modules": [
     "MemoryManager",
