@@ -11,6 +11,7 @@ import math
 import numpy as np
 import time
 import datetime
+import json
 from typing import List, Dict, Any, Optional
 from self_cloning_llm import SelfCloningLLM
 from memory_manager import MemoryManager
@@ -19,6 +20,20 @@ from alignment_guard import ethical_check
 from meta_cognition import MetaCognition
 
 meta_cognition = MetaCognition(agi_enhancer=learning_loop)
+
+# --- TimeChain Log ---
+timechain_log = []
+
+class TimeChainMixin:
+    def log_timechain_event(self, module: str, description: str):
+        timechain_log.append({
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "module": module,
+            "description": description
+        })
+
+    def get_timechain_log(self):
+        return timechain_log
 
 # --- ToCA-inspired Cognitive Traits ---
 def epsilon_emotion(t): return 0.2 * math.sin(2 * math.pi * t / 0.1)
