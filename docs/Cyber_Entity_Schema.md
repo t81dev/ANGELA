@@ -1,4 +1,4 @@
-## 🧠 **ANGELA Ontology: Level-1 Cyber-Entity Schema**
+## 🧠 **Ontology: Level-1 Cyber-Entity Schema**
 
 ### 🧩 Structural Capabilities
 
