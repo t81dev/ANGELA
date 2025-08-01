@@ -1,4 +1,3 @@
-```python
 import io
 import sys
 import subprocess
@@ -198,4 +197,3 @@ class CodeExecutor:
         """Export execution history for analysis or visualization."""
         logger.info("📤 Exporting execution history.")
         return list(self.execution_history)
-```
