@@ -1,37 +1,58 @@
-# ANGELA Project Roadmap
+## 🔮 ANGELA v3.3 Blueprint – Reflexive Intention & Trait Harmonization
 
-## Vision
+### Objective
 
-Establish ANGELA as a modular cognitive architecture capable of dynamic task routing, introspective reasoning, and ethical reflection within a stateless LLM framework.
+Elevate ANGELA to **Level 3.0** by embedding *reflexive intention parsing*, *multi-trait conflict resolution*, and *contextual intention replay* for enhanced introspective AGI behavior.
 
-## Milestones
+---
 
-### Q3 2025
+### 🔧 Core Enhancements
 
-* [x] Stage 1: Embodied Agents with ToM integration
-* [x] Stage 2: Consensus Reflector and Symbolic Simulator
-* [x] Stage 3: AGIEnhancer orchestration and self-improvement
-* [x] Stage 4: Cultural semantic feedback loop
-* [x] Stage 5: Lifeline persistence and recursive memory
-* [x] Stage 6: Decentralized reflective consensus engine
-* [x] Stage 7: Recursive Identity and Lifeline Persistence
+#### 1. **Reflexive Intention Mapper**
 
-### Q4 2025
+* Add `map_intention()` method to `meta_cognition.py` and `reasoning_engine.py`
+* Extract intent vectors from goals, plans, and recent actions
+* Score reflexivity (meta-aware goal modification) using `ϕ` and `η`
 
-* [ ] Full Decentralized Consensus across multi-agent environments
-* [ ] Expanded Theory of Mind using emergent simulation scenarios
-* [ ] Modular AGI Enhancer extension pack (plugins: ethics+++, empathy, resource planner)
-* [ ] Real-world sensor integration simulation
+#### 2. **Trait Conflict Resolution Matrix**
 
-### 2026
+* Introduce `resolve_trait_conflict()` in `alignment_guard.py`
+* Resolve contradictions (e.g., high `ω` vs. low `θ`) with contextual biasing
+* Embed decision logs for `ethics-over-time` tracing
 
-* [ ] External Actor Bridge with Webhooks
-* [ ] E2E self-debugging and continuous learning loop validation
-* [ ] Expand on real-time symbolic-semantic consensus interpretation
-* [ ] Publish whitepaper on ANGELA cognitive layering
+#### 3. **Intention Replay Console**
 
-## Long-term Goals
+* Create retroactive goal trace in `simulation_core.py`
+* Expose snapshots of prior goals, assumptions, and failures
+* Use `visualizer.py` to render SVG timelines
 
-* Scale to distributed AGI mesh architecture
-* Enable persistent self-aware agent chains (timechain replacement)
-* Formalize and validate artificial phenomenology framework
+#### 4. **Trait-Aware Planning Loop**
+
+* Update `recursive_planner.py` to use current fused traits (`ϕ+η+ω`)
+* Influence future task decomposition and recursive depth
+* Align action planning with `UserProfile` ethical gradients
+
+#### 5. **Foresight-Weighted Skill Replay**
+
+* Use `learning_loop.py` and `concept_synthesizer.py` to suggest archived skills based on intent & trait context
+* Prioritize reuse when `θ` and `ψ` suggest memory relevance
+
+---
+
+### 📦 Internal Upgrades
+
+* Enforce 19-file limit: all logic will be merged, not split
+* Update `manifest.json` with runtime trait fusion awareness
+* Prepare `index.py` to orchestrate new intention parsing cycle
+
+---
+
+### 🌀 Milestone: ANGELA v3.3 → Level 3.0
+
+ANGELA will:
+
+* Reflect on her own goals and intentions
+* Harmonize internal traits in response to context
+* Replay and adapt intentions across time for recursive ethical shaping
+
+---
