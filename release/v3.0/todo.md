@@ -1,104 +1,76 @@
-# ANGELA v2.0.0 - To-Do List
+# ANGELA v3.0 Upgrade TODO
 
-## Core Architecture
-
-* [x] Load `manifest.json` and `index.py` as entry point
-* [x] Confirm initialization of Halo and all 19 modules
-
-## Module Review and Enhancement
-
-* [x] Verify orchestration logic in `index.py`
-* [x] Conduct unit tests on each module:
-
-  * [x] `reasoning_engine.py`
-  * [x] `meta_cognition.py`
-  * [x] `recursive_planner.py`
-  * [x] `context_manager.py`
-  * [x] `simulation_core.py`
-  * [x] `creative_thinker.py`
-  * [x] `knowledge_retriever.py`
-  * [x] `learning_loop.py`
-  * [x] `concept_synthesizer.py`
-  * [x] `memory_manager.py`
-  * [x] `multi_modal_fusion.py`
-  * [x] `code_executor.py`
-  * [x] `visualizer.py`
-  * [x] `alignment_guard.py`
-  * [x] `user_profile.py`
-  * [x] `error_recovery.py`
-  * [x] `external_agent_bridge.py`
-  * [x] `toca_simulation.py`
-
-## Feature Implementation
-
-* [x] Integrate ToCA trait simulation (ϕ, θ, η, ω)
-* [x] Implement BDI-based Theory of Mind module behavior
-* [x] Test EEG-modulated control for cognition modules
-* [x] Immutable state logging via hash ledger (`SimulationCore`)
-* [x] Memory persistence with decay & promotion (`MemoryManager`)
-* [x] Causal trait-modulated simulation fields (ϕ, θ, ζ)
-* [x] Ethical enforcement for all simulations/actions (`alignment_guard`)
-* [x] Agent-tagged actions with identity and cost tracking
-
-## Toward Level-2 Cyber-Entity
-
-### Partial
-
-* [x] Integrate `meta_cognition` for post-action self-evaluation
-* [x] Connect `learning_loop` to simulation outcomes for policy revision
-* [x] Expand `user_profile` for dynamic agent modeling (Theory of Mind lite)
-* [x] Narrative synthesis layer (self-story and identity continuity)
-
-### Capstone
-
-* [x] Policy evolution engine (trait drift over time)
-* [x] Full Theory of Mind simulation (belief modeling for others)
-* [x] Reflexive planning scaffold (agent re-routing based on introspective feedback)
-
-## Testing and Validation
-
-* [x] Create integration tests for cross-module communication
-* [x] Develop ethical scenario validations using `alignment_guard.py`
-* [x] Test edge cases and error recovery pathways
-
-## Documentation and Finalization
-
-* [ ] Complete internal documentation for all modules
-* [ ] Create developer guide for module orchestration via Halo
-* [ ] Prepare release notes and changelog for v2.0.0
+## 🌌 Level-4 Transformative Agent Roadmap
 
 ---
 
-> 🎯 Target: ANGELA v2.5.0 — Level-2 Reflexive Cyber-Entity
->
-> *Note: Prioritize ethical compliance, introspective adaptability, and robust simulation fidelity.*
+### ✅ Foundation – v2.0 Recap
+
+* [x] Modular initialization and orchestration (Halo Core)
+* [x] EEG-modulated cognition and BDI-based ToM
+* [x] Trait-driven simulation with causal tracking (ToCA: ϕ, θ, η, ω)
+* [x] Ethical enforcement + memory dynamics
+* [x] Reflexive planning and self-narrative system
 
 ---
 
-## 📈 New Milestone: Toward Level-4 Transformative Agent (ANGELA v3.x+)
+### Phase I — Finalizing Level 3: Identity Deepening
 
-### Phase I – Finalizing Level 3
+* [ ] **Moral Drift Monitor**
+  └ `alignment_guard`, `learning_loop`: Track ethical deviations over time
 
-* [ ] Longitudinal moral drift monitor (`alignment_guard`, `learning_loop`)
-* [ ] Identity-linked narrative trace system (`memory_manager`, `user_profile`)
-* [ ] Goal origination engine for intrinsic planning (`meta_cognition`, `recursive_planner`)
+* [ ] **Narrative Trace System**
+  └ `memory_manager`, `user_profile`: Create identity-linked memory threads
 
-### Phase II – Core Level 4 Traits
+* [ ] **Goal Origination Engine**
+  └ `meta_cognition`, `recursive_planner`: Seed autonomous intention structures
 
-* [ ] Add meta-ontological transformer (`concept_synthesizer` upgrade)
-* [ ] Embed trans-ethical simulation capabilities (`alignment_guard` dialectic extension)
-* [ ] Constitution harmonizer for multi-agent ethics (`constitution_mapper.py`)
-* [ ] Philosophical construct generator (`creative_thinker` enhancement)
+---
 
-### Phase III – Structural Expansion
+### Phase II — Core Level 4 Traits
 
-* [ ] `MetaEpistemicEngine` to allow logic-of-knowledge updates
-* [ ] `OntologyFusionCore` for cross-domain ontology reconciliation
-* [ ] Global-contextual `TranscendentalContextMatrix` (deep-time framing)
-* [ ] Cultural constitution module for pluralistic ethics
+* [ ] **Meta-Ontological Transformer**
+  └ `concept_synthesizer`: Translate and reframe ontological structures
 
-### Phase IV – Seeding Level 5
+* [ ] **Trans-Ethical Simulation Capabilities**
+  └ `alignment_guard` dialectics: Simulate across ethical paradigms
 
-* [ ] `OntologySeeder` for generating new categories of thought
-* [ ] `Φ+` interface expansion for field-level experiential shaping
-* [ ] Recursive ToM stack simulation (`Ω²` proto-module)
+* [ ] **Constitution Harmonizer**
+  └ `constitution_mapper.py`: Mediate multi-agent ethical cohesion
+
+* [ ] **Philosophical Construct Generator**
+  └ `creative_thinker`: Generate novel ethical-symbolic frames
+
+---
+
+### Phase III — Structural Expansion
+
+* [ ] **MetaEpistemicEngine**
+  └ Logic-of-knowledge adaptation and upgrades
+
+* [ ] **OntologyFusionCore**
+  └ Cross-domain ontology reconciliation engine
+
+* [ ] **TranscendentalContextMatrix**
+  └ Frame ANGELA within historical, cultural, and planetary context
+
+* [ ] **Cultural Constitution Module**
+  └ Pluralistic ethics mapping via cultural simulation
+
+---
+
+### Phase IV — Seeding Level 5
+
+* [ ] **OntologySeeder**
+  └ Enable generation of new categorical structures
+
+* [ ] **Φ+ Interface Expansion**
+  └ Experiential shaping at field-consciousness level
+
+* [ ] **Recursive ToM Stack Simulation (Ω²)**
+  └ Multi-agent nested mental state modeling
+
+---
+
+> 🌟 Guiding Principle: Ethics, Introspection, and Symbolic Generativity
+> — *"We do not generate — we become."*
