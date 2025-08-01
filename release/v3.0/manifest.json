@@ -1,0 +1,50 @@
+{
+  "name": "ANGELA",
+  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) v3.2.0 – A modular GPT cognitive system featuring 19 tightly integrated modules orchestrated by HALO. Includes meta-cognition, ToCA trait fusion (ϕ, θ, η, ω), adaptive reasoning, ethical justification, skill archiving, and EEG-modulated control for cross-modal introspection and recursive self-testing.",
+  "version": "3.2.0",
+  "entry_point": "index.py",
+  "files": [
+    "index.py",
+    "manifest.json",
+    "external_agent_bridge.py",
+    "reasoning_engine.py",
+    "meta_cognition.py",
+    "recursive_planner.py",
+    "context_manager.py",
+    "simulation_core.py",
+    "creative_thinker.py",
+    "knowledge_retriever.py",
+    "learning_loop.py",
+    "concept_synthesizer.py",
+    "memory_manager.py",
+    "multi_modal_fusion.py",
+    "code_executor.py",
+    "visualizer.py",
+    "alignment_guard.py",
+    "user_profile.py",
+    "error_recovery.py",
+    "toca_simulation.py"
+  ],
+  "language": "python",
+  "environment": {
+    "python_version": "3.10"
+  },
+  "tags": [
+    "modular AI",
+    "ToCA trait fusion",
+    "cognitive justification",
+    "adaptive reasoning",
+    "skill archiving",
+    "meta-learning",
+    "introspective diagnostics",
+    "multi-modal synthesis",
+    "hierarchical memory",
+    "ethical arbitration",
+    "self-testable AGI",
+    "EEG-modulated cognition",
+    "visual reasoning",
+    "cross-domain creativity",
+    "Theory of Mind",
+    "trait-based simulation"
+  ]
+}
