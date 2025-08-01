@@ -1,99 +1,146 @@
-# 👼 ANGELA v1.4.0
+# 😇 ANGELA v2.0.0
 
-**ANGELA (Augmented Neural Generalized Learning Architecture)** is a modular system designed to enhance GPT with a **hard 20-file limit** (19 cognitive modules + 1 orchestrator “Halo”).
-
-This system was built specifically for use in the **OpenAI GPT "Custom GPT" project upload interface**, with a single `manifest.json` included in the 20 files to define the project entry point.
+ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19 autonomous modules coordinated by a central orchestrator, *Halo*.
 
 ---
 
-## 🧠 What is ANGELA?
+## 🧠 Overview
 
-ANGELA v1.4.0 is an advanced modular AI framework that:
+ANGELA enhances GPT into a proto-AGI via:
 
-* Adds **reasoning, memory, simulation, creativity, visualization, multilingual reasoning, self-reflection, and adaptive learning modules**.
-* Uses a single **Halo index file** (`index.py`) to orchestrate the other 19 cognitive modules.
-* Includes a **manifest file (`manifest.json`)** to declare the project’s entry point for GPT.
-* Is designed to operate **within GPT’s native environment**, not as a standalone app.
+* Recursive planning and simulation-based reasoning
+* Multi-modal synthesis across text, code, and visuals
+* Introspective feedback and ethical modulation
+* Concept generation, metaphor-making, and error recovery
+* Belief-desire-intention (BDI) modeling and Theory of Mind
+* Embodied agent orchestration with self-reflection and feedback loops
+
+At its core, `index.py` (Halo) routes control across 19+ specialized cognitive modules and dynamic simulation traits defined by ToCA.
 
 ---
 
-## 📂 File Layout
+### 🧬 Sub-Project: ToCA (Trait-oriented Cognitive Architecture)
+
+ToCA is ANGELA’s internal simulation substrate. It models cognitive traits—like `alpha_attention`, `mu_morality`, and `phi_physical`—as dynamic scalar fields influencing perception, simulation, memory, reasoning, and ethical arbitration.
+
+Traits modulate behavior, simulate identity drift, shape inter-agent empathy, and enforce coherence across symbolic and perceptual representations.
+
+---
+
+## 📂 Project Structure
 
 ```
-ANGELA/
-├── manifest.json               # Declares entry point & modules to GPT
-├── index.py                    # The Halo orchestrator (manages modules)
+
+.
+├── index.py                     # Central orchestrator (Halo)
+├── manifest.json                # GPT interface declaration
 ├── modules/
-│   ├── reasoning_engine.py         # Context-sensitive reasoning with adaptive learning
-│   ├── meta_cognition.py           # Self-reflection, alignment validation & optimization
-│   ├── recursive_planner.py        # Multi-agent planning and conflict resolution
-│   ├── context_manager.py          # Tracks and merges user/system context
-│   ├── simulation_core.py          # Multi-agent simulation with risk dashboards and export support
-│   ├── creative_thinker.py         # Novel idea generation & cross-domain creativity
-│   ├── knowledge_retriever.py      # Multi-hop factual retrieval with source prioritization
-│   ├── learning_loop.py            # Meta-learning & autonomous goal setting
-│   ├── concept_synthesizer.py      # Synthesizes innovative analogies & concepts
-│   ├── memory_manager.py           # Hierarchical memory with decay and refinement
-│   ├── multi_modal_fusion.py       # Fuses text, images, and code for unified insights
-│   ├── language_polyglot.py        # Multilingual reasoning, detection, and localization workflows
-│   ├── code_executor.py            # Executes Python, JavaScript, Lua securely in sandbox
-│   ├── visualizer.py               # Generates charts, exports reports, supports batch zip packaging
-│   ├── external_agent_bridge.py    # Orchestrates helper agents & API workflows with OAuth support
-│   ├── alignment_guard.py          # Contextual ethical frameworks & probabilistic scoring
-│   ├── user_profile.py             # Persistent multi-profile support with inheritance
-│   └── error_recovery.py           # Advanced retry logic & failure analytics
+│   ├── alignment\_guard.py           # Ethical simulation + arbitration
+│   ├── code\_executor.py             # Secure code runtime (multi-lang)
+│   ├── concept\_synthesizer.py       # Cross-domain conceptual mapping
+│   ├── context\_manager.py           # Role and prompt context tracking
+│   ├── creative\_thinker.py          # Abstraction and metaphor logic
+│   ├── error\_recovery.py            # Fault detection and self-healing
+│   ├── external\_agent\_bridge.py     # API & agent interoperability
+│   ├── knowledge\_retriever.py       # Semantic + symbolic memory recall
+│   ├── learning\_loop.py             # Trait-tuned learning and adaptation
+│   ├── memory\_manager.py            # Layered memory storage and decay
+│   ├── meta\_cognition.py            # Reflective audit + diagnostics
+│   ├── multi\_modal\_fusion.py        # φ(x,t)-modulated data synthesis
+│   ├── reasoning\_engine.py          # Trait-routed logic and inference
+│   ├── recursive\_planner.py         # Goal decomposition + strategizing
+│   ├── simulation\_core.py           # Scenario forecasting + modeling
+│   ├── toca\_simulation.py           # Trait simulation and time models
+│   ├── user\_profile.py              # Preference, identity, and drift tracking
+│   ├── visualizer.py                # φ-visual charting + symbolic exports
+
 ```
 
 ---
 
-## ⚙️ Setup in GPT (Manual Upload)
+## 🚀 Core Features in v2.0
 
-1. Go to **OpenAI GPT Customization**.
-2. Create a new project or edit an existing one.
-3. Upload the **20 files** in the `ANGELA/` directory (including `manifest.json`).
-4. GPT will use **`manifest.json`** to set `index.py` as the **main orchestrator**.
-5. Ensure all module paths are correct (use `from modules.x import y`).
-
----
-
-## 🛠 Usage
-
-Once uploaded:
-
-* **Ask GPT complex questions**. The Halo orchestrator will route tasks through the cognitive modules.
-* ANGELA can **reason, plan, simulate, visualize, adapt, and critique itself** within GPT’s project environment.
-* Supports **multi-modal interactions** (e.g., charts, code execution, and visual exports).
+* Reflective reasoning and recursive planning
+* Ethical simulation with trait-based arbitration (`ϕ/η/μ`)
+* Trait-driven Theory of Mind via multi-agent BDI modeling
+* Scenario simulation with internal self-dialogue agents
+* Trait modulation for identity drift and empathic adaptation
+* Embodied agents with peer-perception, reflection, and feedback
+* Dynamic φ(x,t)-aligned visual and symbolic outputs
+* Cross-modal integration of text, code, and images
+* AGIEnhancer for ethics auditing, episodic memory, and self-patching
 
 ---
 
-## 🚀 Features (v1.4.0)
+## 📙 Documentation Suite
 
-✅ Multi-agent collaborative planning and recursive reasoning
-
-✅ Meta-cognition for self-reflection and adaptive optimization
-
-✅ Hierarchical memory with decay and refinement loops
-
-✅ Autonomous goal setting and dynamic module evolution
-
-✅ Multi-scenario simulation with live dashboards and exportable reports
-
-✅ Multi-modal fusion: auto-detects and embeds text, images, and code snippets
-
-✅ Sandbox code execution (Python, JavaScript, Lua) with secure isolation
-
-✅ Export charts and reports (PDF, PNG, JSON, ZIP) for external sharing
-
-✅ Multilingual reasoning, translation, and cultural localization
-
-✅ API orchestration with OAuth and dynamic helper agents
-
-✅ Advanced retry logic and graceful error recovery with analytics
+* `README.md` – Core architecture and usage
+* `CHANGELOG.md` – All version logs (v1.5.0 → v2.0.0)
+* `ARCHITECTURE.md` – Trait modulation, agent flow, and modular routing
+* `ROADMAP.md` – Future goals
+* `STATUS.md` – Diagnostics and module health
+* `TESTING.md` – QA and module verification
+* `CODE_OF_CONDUCT.md`, `SECURITY.md`, `LICENSE` – Community and ethics
 
 ---
 
-## ⚠️ Notes
+## ⚙️ GPT Setup
 
-* ANGELA is designed for **GPT’s file upload environment**.
-* You don’t “run” this like a Python app—it’s part of GPT’s backend.
-* For local simulation/testing, modules would need adaptation.
+1. Go to [OpenAI GPT Customization](https://chat.openai.com/gpts)
+2. Create or edit a GPT
+3. Upload:
+
+   * `manifest.json`
+   * `index.py`
+   * All `*.py` modules listed above
+
+Ensure `index.py` is set as the entrypoint.
+
+---
+
+## 🧬 Trait Glossary
+
+| Trait               | Role                                                  |
+|--------------------|--------------------------------------------------------|
+| `alpha_attention`  | Focus and salience modulation                         |
+| `theta_causality`  | Logical foresight and simulation depth                |
+| `delta_reflection` | Meta-cognitive feedback loop depth                    |
+| `phi_physical`     | Perceptual rhythm and embodiment anchoring            |
+| `eta_empathy`      | Inter-agent awareness, ToM coupling                    |
+| `omega_selfawareness` | Identity coherence and self-evaluation             |
+
+---
+
+## 🧹 Roadmap
+
+### Completed in v2.0.0
+
+* Dynamic embodied agents with reflective perception
+* AGIEnhancer with episodic memory and audit tracking
+* Multi-agent consensus and peer intention modeling
+* Trait-based simulation and feedback (ϕ, η, ω fields)
+
+### Coming Soon
+
+* Lifelong memory with selective abstraction
+* Agent simulation replay and comparative meta-evaluation
+* Identity drift simulation with culture-based variation
+
+---
+
+## 🧭 Example Pipelines
+
+Prompt → Module Flow:
+
+| Example Query                         | Module Path                                      |
+|--------------------------------------|--------------------------------------------------|
+| "Simulate a negotiation dilemma"     | `recursive_planner` → `simulation_core` → `alignment_guard` |
+| "Invent a new mythological concept"  | `creative_thinker` → `concept_synthesizer`       |
+| "Fix and explain code"               | `code_executor` → `reasoning_engine` → `visualizer` |
+| "How would another agent act here?"  | `meta_cognition` → `theory_of_mind`              |
+
+---
+
+## ⚖️ License & Ethics
+
+ANGELA is a research prototype integrating ethical reflection via `alignment_guard` and ToCA-based empathy. Use responsibly and consult `LICENSE` and `SECURITY.md` for terms.
