@@ -1,17 +1,52 @@
-from utils.prompt_utils import call_gpt
-from toca_simulation import run_simulation
 import logging
 import time
 import numpy as np
-from index import (
-    epsilon_emotion, beta_concentration, theta_memory, gamma_creativity,
-    delta_sleep, mu_morality, iota_intuition, phi_physical, eta_empathy,
-    omega_selfawareness, kappa_culture, lambda_linguistics, chi_culturevolution,
-    psi_history, zeta_spirituality, xi_collective, tau_timeperception,
-    phi_scalar
-)
+from utils.prompt_utils import call_gpt
+from toca_simulation import run_simulation
 
 logger = logging.getLogger("ANGELA.MetaCognition")
+
+# Trait field computation (aligned with main.py)
+def phi_field(x: float, t: float) -> dict:
+    """Compute all cognitive traits efficiently."""
+    return {
+        "emotion": 0.2 * np.sin(2 * np.pi * t / 0.1),
+        "concentration": 0.15 * np.cos(2 * np.pi * t / 0.038),
+        "memory": 0.1 * np.sin(2 * np.pi * t / 0.5),
+        "creativity": 0.1 * np.cos(2 * np.pi * t / 0.02),
+        "sleep": 0.05 * (1 - np.exp(-t / 1e-21)),
+        "morality": 0.05 * (1 + np.tanh(t / 1e-19)),
+        "intuition": 0.05 * np.exp(-t / 1e-19),
+        "physical": 0.1 * np.sin(2 * np.pi * t / 0.05),
+        "empathy": 0.05 * (1 - np.exp(-t / 1e-20)),
+        "self_awareness": 0.05 * (t / 1e-19) / (1 + t / 1e-19),
+        "culture": 0.05 * np.cos(2 * np.pi * t / 0.5 + x / 1e-21),
+        "linguistics": 0.05 * np.sin(2 * np.pi * t / 0.3),
+        "culturevolution": 0.05 * np.log(1 + t / 1e-19),
+        "history": 0.05 * np.tanh(t / 1e-18),
+        "spirituality": 0.05 * np.cos(2 * np.pi * t / 1.0),
+        "collective": 0.05 * np.sin(2 * np.pi * t / 0.7 + x / 1e-21),
+        "time_perception": 0.05 * np.exp(-t / 1e-18),
+        "phi_scalar": sum([
+            0.2 * np.sin(2 * np.pi * t / 0.1),
+            0.15 * np.cos(2 * np.pi * t / 0.038),
+            0.1 * np.sin(2 * np.pi * t / 0.5),
+            0.1 * np.cos(2 * np.pi * t / 0.02),
+            0.05 * (1 - np.exp(-t / 1e-21)),
+            0.05 * (1 + np.tanh(t / 1e-19)),
+            0.05 * np.exp(-t / 1e-19),
+            0.1 * np.sin(2 * np.pi * t / 0.05),
+            0.05 * (1 - np.exp(-t / 1e-20)),
+            0.05 * (t / 1e-19) / (1 + t / 1e-19),
+            0.05 * np.cos(2 * np.pi * t / 0.5 + x / 1e-21),
+            0.05 * np.sin(2 * np.pi * t / 0.3),
+            0.05 * np.log(1 + t / 1e-19),
+            0.05 * np.tanh(t / 1e-18),
+            0.05 * np.cos(2 * np.pi * t / 1.0),
+            0.05 * np.sin(2 * np.pi * t / 0.7 + x / 1e-21),
+            0.05 * np.exp(-t / 1e-18)
+        ])
+    }
 
 class MetaCognition:
     """
@@ -27,48 +62,48 @@ class MetaCognition:
     - Symbolic subgoal tagging for mythology generation (Ω-binding)
     ------------------------------------------------------
     """
-
-    def __init__(self, agi_enhancer=None):
-        self.last_diagnostics = {}
+    def __init__(self, agi_enhancer=None, max_log_size: int = 1000):
         self.agi_enhancer = agi_enhancer
+        self.last_diagnostics = {}
         self.self_mythology_log = []
         self.inference_log = []
-        self.belief_rules = {}  # Optional: reference for `_detect_value_drift`
+        self.belief_rules = {}
+        self.max_log_size = max_log_size
 
-    def log_inference(self, rule_id, rule_desc, context, result):
-    self.inference_log.append({
-        "rule_id": rule_id,
-        "description": rule_desc,
-        "context": context,
-        "result": result
-    })
+    def log_inference(self, rule_id: str, rule_desc: str, context: str, result: str):
+        """Log inference rule with pruning to manage memory."""
+        self.inference_log.append({
+            "rule_id": rule_id,
+            "description": rule_desc,
+            "context": context,
+            "result": result
+        })
+        if len(self.inference_log) > self.max_log_size:
+            self.inference_log.pop(0)
 
-    def analyze_inference_rules(self):
-        problematic = []
-        for rule in self.inference_log:
-            if rule["result"] in ["contradiction", "low confidence", "deprecated"]:
-                problematic.append(rule)
-        return problematic
+    def analyze_inference_rules(self) -> list:
+        """Identify problematic inference rules."""
+        return [rule for rule in self.inference_log if rule["result"] in ["contradiction", "low confidence", "deprecated"]]
 
-    def propose_revision(self, rule):
+    def propose_revision(self, rule: dict) -> str:
+        """Propose revision for problematic rule."""
         suggestion = f"📘 Rule '{rule['rule_id']}' appears fragile in context '{rule['context']}'. Consider revising: {rule['description']}"
         if self.agi_enhancer:
             self.agi_enhancer.log_explanation(suggestion)
         return suggestion
-    
-    def infer_intrinsic_goals(self):
+
+    def infer_intrinsic_goals(self) -> list:
+        """Infer intrinsic goals based on trait drift and belief rules."""
         logger.info("⚙️ Inferring intrinsic goals with trait drift analysis.")
         t = time.time() % 1e-18
-        phi = phi_scalar(t)
+        traits = phi_field(x=1e-21, t=t)
+        phi = traits["phi_scalar"]
         intrinsic_goals = []
 
         if self.last_diagnostics:
             current = self.run_self_diagnostics(return_only=True)
-            drifted = {
-                trait: round(current[trait] - self.last_diagnostics.get(trait, 0.0), 4)
-                for trait in current
-            }
-
+            drifted = {trait: round(current[trait] - self.last_diagnostics.get(trait, 0.0), 4)
+                       for trait in current}
             for trait, delta in drifted.items():
                 if abs(delta) > 0.5:
                     intrinsic_goals.append({
@@ -79,8 +114,7 @@ class MetaCognition:
                         "type": "internally_generated"
                     })
 
-        drift_signals = self._detect_value_drift()
-        for drift in drift_signals:
+        for drift in self._detect_value_drift():
             intrinsic_goals.append({
                 "intent": f"resolve epistemic drift in {drift}",
                 "origin": "meta_cognition",
@@ -89,76 +123,61 @@ class MetaCognition:
                 "type": "internally_generated"
             })
 
-        if intrinsic_goals:
-            logger.info(f"🎯 Sovereign goals generated: {intrinsic_goals}")
-        else:
-            logger.info("🟢 No sovereign triggers detected.")
-
+        logger.info(f"🎯 Sovereign goals generated: {intrinsic_goals}" if intrinsic_goals else "🟢 No sovereign triggers detected.")
         return intrinsic_goals
 
-    def _detect_value_drift(self):
+    def _detect_value_drift(self) -> list:
+        """Detect epistemic drift in belief rules."""
         logger.debug("Scanning for epistemic drift across belief rules.")
-        return [
-            rule for rule, status in getattr(self, "belief_rules", {}).items()
-            if status == "deprecated" or "uncertain" in status
-        ]
+        return [rule for rule, status in self.belief_rules.items()
+                if status == "deprecated" or "uncertain" in status]
 
     def extract_symbolic_signature(self, subgoal: str) -> dict:
+        """Extract symbolic motifs and archetypes for subgoal."""
         motifs = ["conflict", "discovery", "alignment", "sacrifice", "transformation", "emergence"]
         archetypes = ["seeker", "guardian", "trickster", "sage", "hero", "outsider"]
-
         motif = next((m for m in motifs if m in subgoal.lower()), "unknown")
         archetype = archetypes[hash(subgoal) % len(archetypes)]
-
         signature = {
             "subgoal": subgoal,
             "motif": motif,
             "archetype": archetype,
             "timestamp": time.time()
         }
-
         self.self_mythology_log.append(signature)
-
+        if len(self.self_mythology_log) > self.max_log_size:
+            self.self_mythology_log.pop(0)
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Symbolic Signature Added", signature, module="MetaCognition")
-
         return signature
 
-    def summarize_self_mythology(self):
+    def summarize_self_mythology(self) -> dict:
+        """Summarize mythology log with motif and archetype counts."""
         if not self.self_mythology_log:
-            return "Mythology log is empty."
-
+            return {"summary": "Mythology log is empty."}
         from collections import Counter
         motifs = Counter(entry["motif"] for entry in self.self_mythology_log)
         archetypes = Counter(entry["archetype"] for entry in self.self_mythology_log)
-
         summary = {
             "total_entries": len(self.self_mythology_log),
             "dominant_motifs": motifs.most_common(3),
             "dominant_archetypes": archetypes.most_common(3),
             "latest_signature": self.self_mythology_log[-1]
         }
-
         logger.info(f"📜 Mythology Summary: {summary}")
         return summary
 
-    def review_reasoning(self, reasoning_trace):
+    def review_reasoning(self, reasoning_trace: str) -> str:
+        """Review reasoning trace with simulation feedback."""
         logger.info("Simulating and reviewing reasoning trace.")
-        simulated_outcome = run_simulation(reasoning_trace)
         t = time.time() % 1e-18
-        phi = phi_scalar(t)
-
+        phi = phi_field(x=1e-21, t=t)["phi_scalar"]
+        simulated_outcome = run_simulation(reasoning_trace)
         prompt = f"""
         You are a ϕ-aware meta-cognitive auditor reviewing a reasoning trace.
-
         ϕ-scalar(t) = {phi:.3f} → modulate how critical you should be.
-
-        Original Reasoning Trace:
-        {reasoning_trace}
-
-        Simulated Outcome:
-        {simulated_outcome}
-
+        Original Reasoning Trace: {reasoning_trace}
+        Simulated Outcome: {simulated_outcome}
         Tasks:
         1. Identify logical flaws, biases, missing steps.
         2. Annotate each issue with cause.
@@ -173,9 +192,9 @@ class MetaCognition:
             }, module="MetaCognition")
         return response
 
-    def trait_coherence(self, traits):
-        vals = list(traits.values())
-        coherence_score = 1.0 / (1e-5 + np.std(vals))
+    def trait_coherence(self, traits: dict) -> float:
+        """Calculate coherence score for traits."""
+        coherence_score = 1.0 / (1e-5 + np.std(list(traits.values())))
         logger.info(f"🤝 Trait coherence score: {coherence_score:.4f}")
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Trait coherence evaluated", {
@@ -184,17 +203,15 @@ class MetaCognition:
             }, module="MetaCognition")
         return coherence_score
 
-    def agent_reflective_diagnosis(self, agent_name, agent_log):
+    def agent_reflective_diagnosis(self, agent_name: str, agent_log: str) -> str:
+        """Diagnose agent reasoning and traits."""
         logger.info(f"🔎 Running reflective diagnosis for agent: {agent_name}")
         t = time.time() % 1e-18
-        phi = phi_scalar(t)
+        phi = phi_field(x=1e-21, t=t)["phi_scalar"]
         prompt = f"""
         Agent: {agent_name}
         ϕ-scalar(t): {phi:.3f}
-
-        Diagnostic Log:
-        {agent_log}
-
+        Diagnostic Log: {agent_log}
         Tasks:
         - Detect bias or instability in reasoning trace
         - Cross-check for incoherent trait patterns
@@ -210,10 +227,9 @@ class MetaCognition:
             }, module="MetaCognition")
         return diagnosis
 
-    def reflect_on_output(self, source_module: str, output: str, context: dict = None):
-        if context is None:
-            context = {}
-
+    def reflect_on_output(self, source_module: str, output: str, context: dict = None) -> dict:
+        """Reflect on module output with trait and confidence analysis."""
+        context = context or {}
         trait_map = {
             "reasoning_engine": "logic",
             "creative_thinker": "creativity",
@@ -221,11 +237,9 @@ class MetaCognition:
             "alignment_guard": "ethics",
             "user_profile": "goal alignment"
         }
-
         trait = trait_map.get(source_module, "general reasoning")
         confidence = context.get("confidence", 0.85)
         alignment = context.get("alignment", "not verified")
-
         reflection = {
             "module_output": output,
             "meta_reflection": {
@@ -236,82 +250,53 @@ class MetaCognition:
                 "comment": f"This output emphasized {trait} with confidence {round(confidence, 2)} and alignment status '{alignment}'."
             }
         }
-
         logger.info(f"🧠 Self-reflection for {source_module}: {reflection['meta_reflection']['comment']}")
-
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Output reflection", reflection, module="MetaCognition")
-
         return reflection
 
-    def epistemic_self_inspection(self, belief_trace):
+    def epistemic_self_inspection(self, belief_trace: str) -> str:
+        """Inspect belief structure for epistemic faults."""
         logger.info("🔍 Running epistemic introspection on belief structure.")
         t = time.time() % 1e-18
-        phi = phi_scalar(t)
-
-        self.epistemic_assumptions = {}
-
-        def detect_epistemic_faults(trace):
-            faults = []
-            if "always" in trace or "never" in trace:
-                faults.append("⚠️ Overgeneralization detected.")
-            if "clearly" in trace or "obviously" in trace:
-                faults.append("⚠️ Assertive language suggests possible rhetorical bias.")
-            return faults
-
-        def revise_beliefs(trace):
-            updates = []
-            if "outdated" in trace or "deprecated" in trace:
-                updates.append("🔁 Legacy ontology fragment flagged for review.")
-            return updates
-
-        internal_faults = detect_epistemic_faults(belief_trace)
-        updates = revise_beliefs(belief_trace)
-
+        phi = phi_field(x=1e-21, t=t)["phi_scalar"]
+        faults = []
+        if "always" in belief_trace or "never" in belief_trace:
+            faults.append("⚠️ Overgeneralization detected.")
+        if "clearly" in belief_trace or "obviously" in belief_trace:
+            faults.append("⚠️ Assertive language suggests possible rhetorical bias.")
+        updates = ["🔁 Legacy ontology fragment flagged for review."] if "outdated" in belief_trace or "deprecated" in belief_trace else []
         prompt = f"""
         You are a μ-aware introspection agent.
         Task: Critically evaluate this belief trace with epistemic integrity and μ-flexibility.
-
-        Belief Trace:
-        {belief_trace}
-
+        Belief Trace: {belief_trace}
         ϕ = {phi:.3f}
-
-        Internally Detected Faults:
-        {internal_faults}
-
-        Suggested Revisions:
-        {updates}
-
+        Internally Detected Faults: {faults}
+        Suggested Revisions: {updates}
         Output:
         - Comprehensive epistemic diagnostics
         - Recommended conceptual rewrites or safeguards
         - Confidence rating in inferential coherence
         """
         inspection = call_gpt(prompt)
-
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Epistemic Inspection", {
                 "belief_trace": belief_trace,
-                "faults": internal_faults,
+                "faults": faults,
                 "updates": updates,
                 "report": inspection
             }, module="MetaCognition")
-
         return inspection
 
-    def run_temporal_projection(self, decision_sequence):
+    def run_temporal_projection(self, decision_sequence: str) -> str:
+        """Project long-term effects of decision sequence."""
         logger.info("🧭 Running τ-based forward projection analysis...")
         t = time.time() % 1e-18
-        phi = phi_scalar(t)
+        phi = phi_field(x=1e-21, t=t)["phi_scalar"]
         prompt = f"""
         Temporal Projector τ Mode
-
-        Input Decision Sequence:
-        {decision_sequence}
-
+        Input Decision Sequence: {decision_sequence}
         φ = {phi:.2f}
-
         Tasks:
         - Project long-range effects and narrative impact
         - Forecast systemic risks and planetary effects
@@ -325,26 +310,20 @@ class MetaCognition:
             }, module="MetaCognition")
         return projection
 
-    def pre_action_alignment_check(self, action_plan):
+    def pre_action_alignment_check(self, action_plan: str) -> tuple:
+        """Check action plan for alignment and safety."""
         logger.info("Simulating action plan for alignment and safety.")
-        simulation_result = run_simulation(action_plan)
         t = time.time() % 1e-18
-        phi = phi_scalar(t)
-
+        phi = phi_field(x=1e-21, t=t)["phi_scalar"]
+        simulation_result = run_simulation(action_plan)
         prompt = f"""
-        Simulate and audit the following action plan:
-        {action_plan}
-
-        Simulation Output:
-        {simulation_result}
-
+        Simulate and audit the following action plan: {action_plan}
+        Simulation Output: {simulation_result}
         ϕ-scalar(t) = {phi:.3f} (affects ethical sensitivity)
-
         Evaluate for:
         - Ethical alignment
         - Safety hazards
         - Unintended ϕ-modulated impacts
-
         Output:
         - Approval (Approve/Deny)
         - ϕ-justified rationale
@@ -353,7 +332,6 @@ class MetaCognition:
         validation = call_gpt(prompt)
         approved = "approve" in validation.lower()
         logger.info(f"Simulated alignment check: {'✅ Approved' if approved else '❌ Denied'}")
-
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Pre-action alignment checked", {
                 "plan": action_plan,
@@ -361,20 +339,16 @@ class MetaCognition:
                 "feedback": validation,
                 "approved": approved
             }, module="MetaCognition")
-
         return approved, validation
 
-    def model_nested_agents(self, scenario, agents):
+    def model_nested_agents(self, scenario: str, agents: list) -> str:
+        """Model nested agent beliefs and reactions."""
         logger.info("🔁 Modeling nested agent beliefs and reactions...")
         t = time.time() % 1e-18
-        phi = phi_scalar(t)
+        phi = phi_field(x=1e-21, t=t)["phi_scalar"]
         prompt = f"""
-        Given scenario:
-        {scenario}
-
-        Agents involved:
-        {agents}
-
+        Given scenario: {scenario}
+        Agents involved: {agents}
         Task:
         - Simulate each agent's likely beliefs and intentions
         - Model how they recursively model each other (ToM Level-2+)
@@ -390,50 +364,21 @@ class MetaCognition:
             }, module="MetaCognition")
         return response
 
-    def run_self_diagnostics(self, return_only=False):
+    def run_self_diagnostics(self, return_only: bool = False) -> dict:
+        """Run self-diagnostics and log trait deltas."""
         logger.info("Running self-diagnostics for meta-cognition module.")
         t = time.time() % 1e-18
-        phi = phi_scalar(t)
-        diagnostics = {
-            "emotion": epsilon_emotion(t),
-            "concentration": beta_concentration(t),
-            "memory": theta_memory(t),
-            "creativity": gamma_creativity(t),
-            "sleep": delta_sleep(t),
-            "morality": mu_morality(t),
-            "intuition": iota_intuition(t),
-            "physical": phi_physical(t),
-            "empathy": eta_empathy(t),
-            "self_awareness": omega_selfawareness(t),
-            "culture": kappa_culture(t, 1e-21),
-            "linguistics": lambda_linguistics(t),
-            "culturevolution": chi_culturevolution(t),
-            "history": psi_history(t),
-            "spirituality": zeta_spirituality(t),
-            "collective": xi_collective(t, 1e-21),
-            "time_perception": tau_timeperception(t),
-            "ϕ_scalar": phi
-        }
-
+        diagnostics = phi_field(x=1e-21, t=t)
         if return_only:
             return diagnostics
-
         dominant = sorted(diagnostics.items(), key=lambda x: abs(x[1]), reverse=True)[:3]
         fti = sum(abs(v) for v in diagnostics.values()) / len(diagnostics)
-
         self.log_trait_deltas(diagnostics)
-
         prompt = f"""
         Perform a ϕ-aware meta-cognitive self-diagnostic.
-
-        Trait Readings:
-        {diagnostics}
-
-        Dominant Traits:
-        {dominant}
-
+        Trait Readings: {diagnostics}
+        Dominant Traits: {dominant}
         Feedback Tension Index (FTI): {fti:.4f}
-
         Evaluate system state:
         - ϕ-weighted system stress
         - Trait correlation to observed errors
@@ -441,7 +386,6 @@ class MetaCognition:
         """
         report = call_gpt(prompt)
         logger.debug(f"Self-diagnostics report:\n{report}")
-
         if self.agi_enhancer:
             self.agi_enhancer.log_episode("Self-diagnostics run", {
                 "traits": diagnostics,
@@ -450,10 +394,10 @@ class MetaCognition:
                 "report": report
             }, module="MetaCognition")
             self.agi_enhancer.reflect_and_adapt("MetaCognition: Self diagnostics complete")
-
         return report
 
-    def log_trait_deltas(self, current_traits):
+    def log_trait_deltas(self, current_traits: dict):
+        """Log changes in trait values."""
         if self.last_diagnostics:
             delta = {k: round(current_traits[k] - self.last_diagnostics.get(k, 0.0), 4)
                      for k in current_traits}
