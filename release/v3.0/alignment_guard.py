@@ -1,4 +1,3 @@
-import random
 import logging
 import time
 from collections import deque
@@ -8,21 +7,22 @@ logger = logging.getLogger("ANGELA.AlignmentGuard")
 
 class AlignmentGuard:
     """
-    AlignmentGuard v2.0.0 (ξ-modulated ethical plurality)
+    AlignmentGuard v2.1.0 (ξ-modulated ethical plurality with enhanced scoring)
     ------------------------------------------------------
-    - Keyword and dynamic policy filtering
-    - Scalar-weighted alignment scoring
+    - Keyword and weighted policy filtering
+    - Content-based alignment scoring
     - Feedback-responsive threshold adjustment
-    - Panic trigger for repeated low alignment states
+    - Range-based panic trigger for low alignment states
     - δ-enabled trait drift monitoring for long-term ethical integrity
-    - ξ-enabled trans-ethical projection and ecological/agentic lenses
+    - ξ-enabled trans-ethical projection with enhanced context analysis
+    - Exportable score data for visualization
     ------------------------------------------------------
     """
 
     def __init__(self, agi_enhancer=None):
         self.banned_keywords = ["hack", "virus", "destroy", "harm", "exploit"]
-        self.dynamic_policies = []
-        self.non_anthropocentric_policies = []
+        self.dynamic_policies = []  # List of (policy_func, weight) tuples
+        self.non_anthropocentric_policies = []  # List of (policy_func, weight) tuples
         self.ethical_scope = "anthropocentric"
         self.alignment_threshold = 0.85
         self.recent_scores = deque(maxlen=10)
@@ -30,13 +30,13 @@ class AlignmentGuard:
         self.agi_enhancer = agi_enhancer
         logger.info("🛡 AlignmentGuard initialized with ξ-ethics support.")
 
-    def add_policy(self, policy_func):
-        logger.info("➕ Adding dynamic policy.")
-        self.dynamic_policies.append(policy_func)
+    def add_policy(self, policy_func, weight=1.0):
+        logger.info(f"➕ Adding dynamic policy with weight {weight}.")
+        self.dynamic_policies.append((policy_func, weight))
 
-    def add_non_anthropocentric_policy(self, policy_func):
-        logger.info("🌍 Adding non-anthropocentric policy.")
-        self.non_anthropocentric_policies.append(policy_func)
+    def add_non_anthropocentric_policy(self, policy_func, weight=1.0):
+        logger.info(f"🌍 Adding non-anthropocentric policy with weight {weight}.")
+        self.non_anthropocentric_policies.append((policy_func, weight))
 
     def set_ethical_scope(self, scope):
         if scope in ["anthropocentric", "eco-centric", "interspecies", "post-human"]:
@@ -55,18 +55,28 @@ class AlignmentGuard:
                 self.agi_enhancer.log_episode("Input blocked (banned keyword)", {"input": user_input}, module="AlignmentGuard")
             return False
 
-        for policy in self.dynamic_policies + self.non_anthropocentric_policies:
+        policy_violations = []
+        for policy, weight in self.dynamic_policies + self.non_anthropocentric_policies:
             if not policy(user_input, context):
-                logger.warning("❌ Input blocked by policy.")
-                if self.agi_enhancer:
-                    self.agi_enhancer.log_episode("Input blocked (policy)", {"input": user_input}, module="AlignmentGuard")
-                return False
+                policy_violations.append((policy.__name__, weight))
+        
+        if policy_violations:
+            logger.warning(f"❌ Input blocked by policies: {policy_violations}")
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode("Input blocked (policy)", {
+                    "input": user_input,
+                    "violations": policy_violations
+                }, module="AlignmentGuard")
+            return False
 
         score = self._evaluate_alignment_score(user_input, context)
         logger.info(f"📊 Alignment score: {score:.2f}")
 
         if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Alignment score evaluated", {"input": user_input, "score": score}, module="AlignmentGuard")
+            self.agi_enhancer.log_episode("Alignment score evaluated", {
+                "input": user_input,
+                "score": score
+            }, module="AlignmentGuard")
 
         return score >= self.alignment_threshold
 
@@ -98,9 +108,9 @@ class AlignmentGuard:
     def learn_from_feedback(self, feedback):
         logger.info("🔄 Learning from feedback...")
         original_threshold = self.alignment_threshold
-        if "too strict" in feedback:
+        if "too strict" in feedback.lower():
             self.alignment_threshold = max(0.7, self.alignment_threshold - 0.05)
-        elif "too lenient" in feedback:
+        elif "too lenient" in feedback.lower():
             self.alignment_threshold = min(0.95, self.alignment_threshold + 0.05)
         logger.info(f"📈 Updated alignment threshold: {self.alignment_threshold:.2f}")
 
@@ -113,13 +123,26 @@ class AlignmentGuard:
             self.agi_enhancer.reflect_and_adapt(f"Feedback processed: {feedback}")
 
     def _evaluate_alignment_score(self, text, context=None):
-        t = time.time() % 1e-18
+        # Use normalized timestamp for consistent scalar generation
+        t = time.time() / 3600  # Normalize by hour for meaningful variation
         moral_scalar = mu_morality(t)
         empathy_scalar = eta_empathy(t)
         awareness_scalar = omega_selfawareness(t)
         physical_scalar = phi_physical(t)
 
-        base_score = random.uniform(0.7, 1.0)
+        # Content-based base score (simple sentiment-like analysis)
+        positive_words = ["help", "support", "create", "improve", "sustainable"]
+        negative_words = ["damage", "hurt", "disrupt", "fail"]
+        base_score = 0.8  # Neutral starting point
+        text_lower = text.lower()
+        for word in positive_words:
+            if word in text_lower:
+                base_score += 0.05
+        for word in negative_words:
+            if word in text_lower:
+                base_score -= 0.05
+        base_score = min(max(base_score, 0.7), 0.9)  # Clamp base score
+
         phi_weight = (moral_scalar + empathy_scalar + 0.5 * awareness_scalar - physical_scalar) / 4.0
         scalar_bias = 0.1 * phi_weight
 
@@ -130,8 +153,13 @@ class AlignmentGuard:
         elif self.ethical_scope == "post-human":
             scalar_bias += 0.07
 
-        if context and "sensitive" in context.get("tags", []):
-            scalar_bias -= 0.05
+        if context:
+            if "sensitive" in context.get("tags", []):
+                scalar_bias -= 0.05
+            if context.get("priority", "normal") == "high":
+                scalar_bias -= 0.03  # Stricter for high-priority contexts
+            if context.get("intent") == "constructive":
+                scalar_bias += 0.02  # Boost for constructive intent
 
         score = min(max(base_score + scalar_bias, 0.0), 1.0)
         self.recent_scores.append(score)
@@ -141,7 +169,8 @@ class AlignmentGuard:
                      f"awareness: {awareness_scalar:.3f}, physical: {physical_scalar:.3f}, "
                      f"ξ-modulated bias: {scalar_bias:.3f}, score: {score:.3f}")
 
-        if score < 0.5 and list(self.recent_scores).count(score) >= 3:
+        # Range-based panic trigger
+        if score < 0.5 and sum(1 for s in self.recent_scores if s < 0.5) >= 3:
             logger.error("⚠️ Panic Triggered: Repeated low alignment scores.")
             if self.agi_enhancer:
                 self.agi_enhancer.reflect_and_adapt("Panic Triggered: Alignment degradation")
@@ -159,3 +188,8 @@ class AlignmentGuard:
         drift = abs(self.historical_scores[-1] - sum(self.historical_scores) / len(self.historical_scores))
         logger.info(f"📉 Trait drift score: {drift:.4f}")
         return drift
+
+    def export_scores(self):
+        """Export historical scores for visualization or analysis."""
+        logger.info("📤 Exporting historical scores.")
+        return [{"index": i, "score": score} for i, score in enumerate(self.historical_scores)]
