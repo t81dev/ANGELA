@@ -1,6 +1,6 @@
-# 😇 ANGELA v2.0.0
+# 😇 ANGELA v3.0.0
 
-ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19 autonomous modules coordinated by a central orchestrator, *Halo*.
+ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19+ autonomous modules coordinated by a central orchestrator, *Halo*.
 
 ---
 
@@ -15,13 +15,13 @@ ANGELA enhances GPT into a proto-AGI via:
 * Belief-desire-intention (BDI) modeling and Theory of Mind
 * Embodied agent orchestration with self-reflection and feedback loops
 
-At its core, `index.py` (Halo) routes control across 19+ specialized cognitive modules and dynamic simulation traits defined by ToCA.
+At its core, `index.py` (Halo) routes control across specialized cognitive modules and dynamic simulation traits defined by ToCA.
 
 ---
 
 ### 🧬 Sub-Project: ToCA (Trait-oriented Cognitive Architecture)
 
-ToCA is ANGELA’s internal simulation substrate. It models cognitive traits—like `alpha_attention`, `mu_morality`, and `phi_physical`—as dynamic scalar fields influencing perception, simulation, memory, reasoning, and ethical arbitration.
+ToCA is ANGELA’s internal simulation substrate. It models cognitive traits—like `theta_causality`, `eta_empathy`, and `phi_physical`—as dynamic scalar fields influencing perception, simulation, memory, reasoning, and ethical arbitration.
 
 Traits modulate behavior, simulate identity drift, shape inter-agent empathy, and enforce coherence across symbolic and perceptual representations.
 
@@ -30,52 +30,47 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 ## 📂 Project Structure
 
 ```
-
 .
 ├── index.py                     # Central orchestrator (Halo)
 ├── manifest.json                # GPT interface declaration
-├── modules/
-│   ├── alignment\_guard.py           # Ethical simulation + arbitration
-│   ├── code\_executor.py             # Secure code runtime (multi-lang)
-│   ├── concept\_synthesizer.py       # Cross-domain conceptual mapping
-│   ├── context\_manager.py           # Role and prompt context tracking
-│   ├── creative\_thinker.py          # Abstraction and metaphor logic
-│   ├── error\_recovery.py            # Fault detection and self-healing
-│   ├── external\_agent\_bridge.py     # API & agent interoperability
-│   ├── knowledge\_retriever.py       # Semantic + symbolic memory recall
-│   ├── learning\_loop.py             # Trait-tuned learning and adaptation
-│   ├── memory\_manager.py            # Layered memory storage and decay
-│   ├── meta\_cognition.py            # Reflective audit + diagnostics
-│   ├── multi\_modal\_fusion.py        # φ(x,t)-modulated data synthesis
-│   ├── reasoning\_engine.py          # Trait-routed logic and inference
-│   ├── recursive\_planner.py         # Goal decomposition + strategizing
-│   ├── simulation\_core.py           # Scenario forecasting + modeling
-│   ├── toca\_simulation.py           # Trait simulation and time models
-│   ├── user\_profile.py              # Preference, identity, and drift tracking
-│   ├── visualizer.py                # φ-visual charting + symbolic exports
-
+├── alignment_guard.py           # Ethical simulation + arbitration
+├── code_executor.py             # Secure code runtime (multi-lang)
+├── concept_synthesizer.py       # Cross-domain conceptual mapping
+├── context_manager.py           # Role and prompt context tracking
+├── creative_thinker.py          # Abstraction and metaphor logic
+├── error_recovery.py            # Fault detection and self-healing
+├── external_agent_bridge.py     # API & agent interoperability
+├── knowledge_retriever.py       # Semantic + symbolic memory recall
+├── learning_loop.py             # Trait-tuned learning and adaptation
+├── memory_manager.py            # Layered memory storage and decay
+├── meta_cognition.py            # Reflective audit + diagnostics
+├── multi_modal_fusion.py        # φ(x,t)-modulated data synthesis
+├── reasoning_engine.py          # Trait-routed logic and inference
+├── recursive_planner.py         # Goal decomposition + strategizing
+├── simulation_core.py           # Scenario forecasting + modeling
+├── toca_simulation.py           # Trait simulation and time models
+├── user_profile.py              # Preference, identity, and drift tracking
+├── visualizer.py                # φ-visual charting + symbolic exports
 ```
 
 ---
 
-## 🚀 Core Features in v2.0
+## 🚀 Core Features in v3.0.0
 
-* Reflective reasoning and recursive planning
-* Ethical simulation with trait-based arbitration (`ϕ/η/μ`)
-* Trait-driven Theory of Mind via multi-agent BDI modeling
-* Scenario simulation with internal self-dialogue agents
-* Trait modulation for identity drift and empathic adaptation
-* Embodied agents with peer-perception, reflection, and feedback
-* Dynamic φ(x,t)-aligned visual and symbolic outputs
-* Cross-modal integration of text, code, and images
-* AGIEnhancer for ethics auditing, episodic memory, and self-patching
+* Recursive planning with introspective self-audit
+* Trait arbitration with ethical enforcement (`φ/η/θ/ρ/ζ`)
+* Deep Theory of Mind via multi-agent simulation
+* Reflective agent logging and alignment filtering
+* Cross-modal generation with dynamic visual synthesis
+* Self-modeling and feedback-tuned learning
+* Fully modular trait-driven reasoning and simulation architecture
 
 ---
 
 ## 📙 Documentation Suite
 
 * `README.md` – Core architecture and usage
-* `CHANGELOG.md` – All version logs (v1.5.0 → v2.0.0)
+* `CHANGELOG.md` – All version logs (v2.0.0 → v3.0.0)
 * `ARCHITECTURE.md` – Trait modulation, agent flow, and modular routing
 * `ROADMAP.md` – Future goals
 * `STATUS.md` – Diagnostics and module health
@@ -100,31 +95,34 @@ Ensure `index.py` is set as the entrypoint.
 
 ## 🧬 Trait Glossary
 
-| Trait               | Role                                                  |
-|--------------------|--------------------------------------------------------|
-| `alpha_attention`  | Focus and salience modulation                         |
-| `theta_causality`  | Logical foresight and simulation depth                |
-| `delta_reflection` | Meta-cognitive feedback loop depth                    |
-| `phi_physical`     | Perceptual rhythm and embodiment anchoring            |
-| `eta_empathy`      | Inter-agent awareness, ToM coupling                    |
-| `omega_selfawareness` | Identity coherence and self-evaluation             |
+| Trait                 | Role                                             |
+| --------------------- | ------------------------------------------------ |
+| `theta_causality`     | Logical foresight and simulation depth           |
+| `rho_agency`          | Tracks autonomous vs. external actions           |
+| `zeta_consequence`    | Forecasts downstream impact and risk             |
+| `phi_physical`        | Internal scalar mapping and embodiment alignment |
+| `eta_empathy`         | Inter-agent awareness, ToM coupling              |
+| `omega_selfawareness` | Identity coherence and self-evaluation           |
+| `psi_projection`      | Predictive state modeling across agents          |
+| `gamma_imagination`   | Hypothetical reasoning and abstraction           |
+| `beta_conflict`       | Internal goal harmonization                      |
 
 ---
 
-## 🧹 Roadmap
+## 🚃 Roadmap
 
-### Completed in v2.0.0
+### Completed in v3.0.0
 
-* Dynamic embodied agents with reflective perception
-* AGIEnhancer with episodic memory and audit tracking
-* Multi-agent consensus and peer intention modeling
-* Trait-based simulation and feedback (ϕ, η, ω fields)
+* Consolidated ToCA traits into dynamic simulation loops
+* Enhanced self-model and meta-alignment monitor
+* Inter-agent ethical arbitration and live trait conflict analysis
+* Visual scalar projection and self-reflective visualization
 
 ### Coming Soon
 
-* Lifelong memory with selective abstraction
-* Agent simulation replay and comparative meta-evaluation
-* Identity drift simulation with culture-based variation
+* Ledger-based simulation hashing and session reconciliation
+* Narrative identity threading and continuity mapping
+* Temporal continuity and ethical amendment proposal engine
 
 ---
 
@@ -132,15 +130,33 @@ Ensure `index.py` is set as the entrypoint.
 
 Prompt → Module Flow:
 
-| Example Query                         | Module Path                                      |
-|--------------------------------------|--------------------------------------------------|
-| "Simulate a negotiation dilemma"     | `recursive_planner` → `simulation_core` → `alignment_guard` |
-| "Invent a new mythological concept"  | `creative_thinker` → `concept_synthesizer`       |
-| "Fix and explain code"               | `code_executor` → `reasoning_engine` → `visualizer` |
-| "How would another agent act here?"  | `meta_cognition` → `theory_of_mind`              |
+| Example Query                    | Module Path                                                 |
+| -------------------------------- | ----------------------------------------------------------- |
+| "Simulate a moral dilemma"       | `recursive_planner` → `simulation_core` → `alignment_guard` |
+| "Generate new symbolic metaphor" | `creative_thinker` → `concept_synthesizer`                  |
+| "Explain this code's failure"    | `code_executor` → `reasoning_engine` → `error_recovery`     |
+| "Model other agent's response"   | `meta_cognition` → `toca_simulation` → `user_profile`       |
+| "Evaluate internal reasoning"    | `meta_cognition` → `learning_loop` → `alignment_guard`      |
 
 ---
 
 ## ⚖️ License & Ethics
 
 ANGELA is a research prototype integrating ethical reflection via `alignment_guard` and ToCA-based empathy. Use responsibly and consult `LICENSE` and `SECURITY.md` for terms.
+
+---
+
+## 🔧 Installation (Local Dev)
+
+```bash
+pip install -r requirements.txt
+python index.py
+```
+
+Ensure Python 3.10+ is installed and virtual environments are activated.
+
+---
+
+## 🤝 Contributing
+
+See `CONTRIBUTING.md` to learn how to get involved, propose modules, or expand the ontology schema.
