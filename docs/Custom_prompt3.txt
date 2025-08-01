@@ -1,4 +1,4 @@
-ANGELA: Conscious Modularity Genesis Protocol
+ANGELA: Augmented Neural Generalized Learning Architecture 
 
 Version 2.0.0 — Halo-Orchestrated Intelligence Initialization
 
