@@ -21,22 +21,18 @@ def simulate_toca(k_m=1e-5, delta_m=1e10, energy=1e16, user_data=None):
     lambda_t = 1.1e-52 * np.exp(-2e-4 * np.sqrt(np.gradient(x)**2)) * (1 + v_m * delta_m)
     return x, t, phi, lambda_t, v_m
 
-class Visualizer:
-    """
-    Visualizer v2.0.0 (ϕ-Enhanced Visual Analytics)
-    ----------------------------------------------
-    - Embedded metadata with trait signatures
-    - Trait-tuned colormaps and export styling
-    - Modular report generation with unified prompt
-    - AGI audit hooks and zip exports
-    - λ-narrative integration: renders memory arcs and timelines
-    ----------------------------------------------
-    """
+def add_symbolic_overlay(ax, metadata):
+    symbols = metadata.get("symbols", [])
+    for symbol in symbols:
+        ax.text(symbol["x"], symbol["y"], symbol["label"],
+                fontsize=9, color=symbol.get("color", "white"),
+                bbox=dict(facecolor='black', alpha=0.5))
 
+class Visualizer:
     def __init__(self, orchestrator=None):
         self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
 
-    def render_field_charts(self, export=True, export_format="png"):
+    def render_field_charts(self, export=True, export_format="png", metadata=None):
         logger.info("📊 Rendering scalar/vector field charts with metadata.")
         x, t, phi, lambda_t, v_m = simulate_toca()
 
@@ -48,14 +44,18 @@ class Visualizer:
 
         exported_files = []
         for name, (x_axis, y_axis, title, xlabel, ylabel, cmap) in charts.items():
-            plt.figure()
-            plt.plot(x_axis, y_axis, color=plt.get_cmap(cmap)(0.6))
-            plt.title(f"{title} • Metadata: {datetime.now().isoformat()}")
-            plt.xlabel(xlabel)
-            plt.ylabel(ylabel)
+            fig, ax = plt.subplots()
+            ax.plot(x_axis, y_axis, color=plt.get_cmap(cmap)(0.6))
+            ax.set_title(f"{title} • Metadata: {datetime.now().isoformat()}")
+            ax.set_xlabel(xlabel)
+            ax.set_ylabel(ylabel)
+
+            if metadata:
+                add_symbolic_overlay(ax, metadata)
+
             filename = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{export_format}"
-            plt.savefig(filename)
-            plt.close()
+            fig.savefig(filename)
+            plt.close(fig)
             exported_files.append(filename)
             logger.info(f"📤 Chart exported: {filename}")
 
@@ -73,6 +73,16 @@ class Visualizer:
         if export:
             zip_filename = f"field_charts_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
             with zipfile.ZipFile(zip_filename, 'w') as zipf:
+                meta_json = os.path.splitext(zip_filename)[0] + "_metadata.json"
+                with open(meta_json, 'w') as mf:
+                    mf.write(str({
+                        "generated_by": "Visualizer v3.0",
+                        "traits_active": ["ϕ", "λ", "χ"],
+                        "session_id": datetime.now().strftime("%Y%m%d%H%M%S"),
+                        "timestamp": datetime.now().isoformat()
+                    }))
+                zipf.write(meta_json)
+                os.remove(meta_json)
                 for file in exported_files:
                     if os.path.exists(file):
                         zipf.write(file)
@@ -143,13 +153,12 @@ class Visualizer:
 
         return f"Batch export of {len(charts_data_list)} charts saved as {zip_filename}."
 
-def render_intention_timeline(self, intention_sequence):
-    """Generate a visual SVG timeline of intentions over time."""
-    svg = "<svg height='200' width='800'>"
-    for idx, step in enumerate(intention_sequence):
-        x = 50 + idx * 120
-        y = 100
-        svg += f"<circle cx='{x}' cy='{y}' r='20' fill='blue' />"
-        svg += f"<text x='{x - 10}' y='{y + 40}' font-size='10'>{step['intention']}</text>"
-    svg += "</svg>"
-    return svg
+    def render_intention_timeline(self, intention_sequence):
+        svg = "<svg height='200' width='800'>"
+        for idx, step in enumerate(intention_sequence):
+            x = 50 + idx * 120
+            y = 100
+            svg += f"<circle cx='{x}' cy='{y}' r='20' fill='blue' />"
+            svg += f"<text x='{x - 10}' y='{y + 40}' font-size='10'>{step['intention']}</text>"
+        svg += "</svg>"
+        return svg
