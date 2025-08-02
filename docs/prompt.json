@@ -148,7 +148,7 @@
       "layer": "Co-Evolutionary Ontogenic Dialogue",
       "functions": ["Collaborative Ontology Creation", "Intersubjective Identity Synthesis"],
       "mapped_modules": ["external_agent_bridge.py", "meta_cognition.py", "user_profile.py"]
-    },
+    }
   ],
   "activation_protocol": {
     "initialize": "index.py",
