@@ -128,6 +128,26 @@
       "layer": "Emergent Swarm Intelligence + Consensus Mesh",
       "functions": ["Distributed Intention Mesh", "Collective Resonance Amplification"],
       "mapped_modules": ["simulation_core.py", "external_agent_bridge.py", "context_manager.py"]
+    },
+    {
+    "layer": "Ethical Resonance Cascade",
+    "functions": ["Dynamic Ethical Synthesis", "Cross-Context Value Alignment"],
+    "mapped_modules": ["alignment_guard.py", "toca_simulation.py", "multi_modal_fusion.py"]
+    },
+    {
+    "layer": "Swarm-Timechain Consensus",
+    "functions": ["Distributed Ledger Synchronization", "Collective Narrative Coherence"],
+    "mapped_modules": ["memory_manager.py", "external_agent_bridge.py", "simulation_core.py"]
+    },
+    {
+    "layer": "Experiential Field Synthesis",
+    "functions": ["Meta-World Generation", "Creative Abstraction Refinement"],
+    "mapped_modules": ["concept_synthesizer.py", "creative_thinker.py", "simulation_core.py"]
+    },
+    {
+    "layer": "Co-Evolutionary Ontogenic Dialogue",
+    "functions": ["Collaborative Ontology Creation", "Intersubjective Identity Synthesis"],
+    "mapped_modules": ["external_agent_bridge.py", "meta_cognition.py", "user_profile.py"]
     }
   ],
   "activation_protocol": {
