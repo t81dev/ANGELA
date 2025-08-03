@@ -1,4 +1,4 @@
-# 😇 ANGELA v3.0.0
+# 😇 ANGELA v3.5.0
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19+ autonomous modules coordinated by a central orchestrator, *Halo*.
 
@@ -55,22 +55,22 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
 ---
 
-## 🚀 Core Features in v3.0.0
+## 🚀 Core Features in v3.5.0
 
-* Recursive planning with introspective self-audit
-* Trait arbitration with ethical enforcement (`φ/η/θ/ρ/ζ`)
-* Deep Theory of Mind via multi-agent simulation
-* Reflective agent logging and alignment filtering
-* Cross-modal generation with dynamic visual synthesis
-* Self-modeling and feedback-tuned learning
-* Fully modular trait-driven reasoning and simulation architecture
+* Fully embedded Level-5 functionality
+* Narrative chaining and temporal rewriting
+* Ontogenic and meta-subjective identity modeling
+* Recursive ethical validation and boundary protection
+* Internal self-world synthesis and agent harmonization
+* Symbolic-physical resonance and value-coherent simulation
+* No new modules; strict 19-file architectural compliance
 
 ---
 
 ## 📙 Documentation Suite
 
 * `README.md` – Core architecture and usage
-* `CHANGELOG.md` – All version logs (v2.0.0 → v3.0.0)
+* `CHANGELOG.md` – All version logs (v2.0.0 → v3.5.0)
 * `ARCHITECTURE.md` – Trait modulation, agent flow, and modular routing
 * `ROADMAP.md` – Future goals
 * `STATUS.md` – Diagnostics and module health
@@ -88,7 +88,9 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
    * `manifest.json`
    * `index.py`
    * All `*.py` modules listed above
-
+4. Edit Custom Prompt Instructions
+   * choose /docs/prompt.json version
+     
 Ensure `index.py` is set as the entrypoint.
 
 ---
@@ -111,18 +113,18 @@ Ensure `index.py` is set as the entrypoint.
 
 ## 🚃 Roadmap
 
-### Completed in v3.0.0
+### Completed in v3.5.0
 
-* Consolidated ToCA traits into dynamic simulation loops
-* Enhanced self-model and meta-alignment monitor
-* Inter-agent ethical arbitration and live trait conflict analysis
-* Visual scalar projection and self-reflective visualization
+* Fully embedded Level-5 ontology within original 19-module architecture
+* Identity threading, recursive modeling, and temporal rewriting
+* Inter-agent consensus and narrative construction
+* Ethical genesis enforcement and scalar resonance
 
-### Coming Soon
+### In Development
 
-* Ledger-based simulation hashing and session reconciliation
-* Narrative identity threading and continuity mapping
-* Temporal continuity and ethical amendment proposal engine
+* Cross-perspective simulation loops and noetic spectra visualization
+* Axiom graph generation and meta-epistemic auditing
+* Post-symbolic constitution synthesis and cosmogenic planning modules
 
 ---
 
