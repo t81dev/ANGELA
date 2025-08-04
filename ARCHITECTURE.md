@@ -1,5 +1,3 @@
----
-
 # ARCHITECTURE.md
 
 ## 🧠 Overview
