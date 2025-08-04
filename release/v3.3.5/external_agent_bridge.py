@@ -231,3 +231,28 @@ class ExternalAgentBridge:
     def arbitrate(self, submissions):
         from collections import Counter
         return Counter(submissions).most_common(1)[0]
+
+
+# --- PATCH: Asynchronous Trait Transmission ---
+
+import aiohttp
+import asyncio
+
+def trait_diff(trait_a, trait_b):
+    """Calculate difference between trait schemas."""
+    return {k: trait_b[k] for k in trait_b if trait_a.get(k) != trait_b.get(k)}
+
+async def transmit_trait_schema(source_trait_schema, target_urls):
+    """
+    Asynchronously transmit the trait schema diff to multiple target agents.
+    """
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for url in target_urls:
+            tasks.append(session.post(url, json=source_trait_schema))
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+        return responses
+
+def transmit_trait_schema_sync(source_trait_schema, target_urls):
+    """Synchronous fallback for environments without async handling."""
+    asyncio.run(transmit_trait_schema(source_trait_schema, target_urls))
