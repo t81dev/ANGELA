@@ -113,6 +113,67 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
 ---
 
+## ⚙️ GPT + API Setup
+
+### 🧠 OpenAI GPT Customization
+
+1. Go to [OpenAI GPT Customization](https://chat.openai.com/gpts)
+2. Create or edit a GPT instance
+3. Upload the following files:
+
+   * `manifest.json`
+   * `index.py`
+   * All supporting `*.py` modules from the project
+4. In the Custom Instructions area:
+
+   * Use the file `/docs/prompt.json`
+   * Copy its content into the prompt instruction field
+5. Confirm `index.py` is selected as the **entrypoint**
+
+---
+
+### 🌌 Grok (xAI) API Integration
+
+1. Obtain a valid **Grok API key** via xAI
+2. Create a `.env` file at your root directory:
+
+   ```env
+   GROK_API_KEY=your_grok_api_key_here
+   ```
+3. The key is securely loaded via:
+
+   ```python
+   os.getenv("GROK_API_KEY")
+   ```
+4. API usage is:
+
+   * Routed through `external_agent_bridge.py`
+   * Cached via `memory_manager.py` with expiration TTL
+   * Rate-limited automatically
+
+---
+
+### 🤖 OpenAI API Integration
+
+1. Get an API key from [OpenAI's API Console](https://platform.openai.com/account/api-keys)
+2. In the same `.env` file, add:
+
+   ```env
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+3. The key is securely accessed using:
+
+   ```python
+   os.getenv("OPENAI_API_KEY")
+   ```
+4. Features:
+
+   * Secure call handling
+   * Response caching + expiration via `memory_manager.py`
+   * Rate limiting for all OpenAI calls (e.g., GPT-4)
+
+---
+
 ## 🧭 Example Pipelines
 
 Prompt → Module Flow:
