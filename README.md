@@ -104,12 +104,12 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
    * `manifest.json`
    * `index.py`
-   * All `*.py` modules listed above
+   * All other `*.py` modules listed above
+    
 4. Edit Custom Prompt Instructions
 
-   * Choose `/docs/prompt.json` version
-
-Ensure `index.py` is set as the entrypoint.
+   * Choose `/docs/prompt.json'
+   * Copy and paste into custom prompt instruction area
 
 ---
 
