@@ -113,24 +113,8 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
 ---
 
-## ⚙️ GPT + API Setup
+## ⚙️ API Setup
 
-### 🧠 OpenAI GPT Customization
-
-1. Go to [OpenAI GPT Customization](https://chat.openai.com/gpts)
-2. Create or edit a GPT instance
-3. Upload the following files:
-
-   * `manifest.json`
-   * `index.py`
-   * All supporting `*.py` modules from the project
-4. In the Custom Instructions area:
-
-   * Use the file `/docs/prompt.json`
-   * Copy its content into the prompt instruction field
-5. Confirm `index.py` is selected as the **entrypoint**
-
----
 
 ### 🌌 Grok (xAI) API Integration
 
