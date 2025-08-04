@@ -1,74 +1,93 @@
+---
+
 # ARCHITECTURE.md
 
-## Overview
+## 🧠 Overview
 
-ANGELA v1.5.0 is a modular cognitive framework designed to simulate generalized intelligence through orchestrated internal modules managed by a central coordinator called Halo.
+**ANGELA v3.3.5** is a modular cognitive framework simulating generalized intelligence through orchestrated autonomous modules, all coordinated by a central orchestrator called **Halo** (`index.py`). It integrates symbolic introspection, recursive planning, ethical modulation, dynamic trait-weighting, and embodied simulation.
 
-## System Architecture
+---
 
-### Core Orchestrator: `index.py (Halo)`
+## 🧩 System Architecture
 
-Acts as the central dispatcher, initializing and coordinating all internal modules based on the task type.
+### 🧭 Core Orchestrator: `index.py (Halo)`
 
-### Modules (19 Total):
+Routes control and context across all modules using trait modulation and symbolic flow. Operates as the central scheduler and task dispatcher.
 
-* **Cognitive and Reasoning Modules**:
+---
 
-  * `reasoning_engine`: Processes logical inference and analysis
-  * `recursive_planner`: Breaks down complex tasks recursively
-  * `simulation_core`: Models predictions and outcomes
-  * `meta_cognition`: Reflects on decisions and confidence levels
-  * `concept_synthesizer`: Fuses ideas to generate abstract constructs
+### 🔩 Core Modules (19):
 
-* **Creativity and Knowledge**:
+#### 🧠 Cognitive & Reasoning
 
-  * `creative_thinker`: Generates novel solutions
-  * `knowledge_retriever`: Fetches background knowledge and support
-  * `learning_loop`: Enables feedback-based adaptation
+* `reasoning_engine`: Symbolic and trait-weighted inference
+* `recursive_planner`: Time-based goal decomposition, nested tasks
+* `simulation_core`: Scenario modeling + predictive pathways
+* `meta_cognition`: Reflective diagnostics, state introspection
+* `concept_synthesizer`: Symbol fusion and concept creation
 
-* **Context and Communication**:
+#### 🎨 Creativity & Knowledge
 
-  * `context_manager`: Maintains session state and memory
-  * `external_agent_bridge`: Interfaces with external APIs or agents
+* `creative_thinker`: Metaphor generation, abstract problem solving
+* `knowledge_retriever`: Trait-routed memory and info access
+* `learning_loop`: Trait influence via embedded GNN; live adaptation
 
-* **Sensory and Visualization**:
+#### 🧾 Context & Communication
 
-  * `multi_modal_fusion`: Integrates multi-sensory input
-  * `visualizer`: Renders outputs as charts or images
+* `context_manager`: Modality + session state regulation
+* `external_agent_bridge`: API interface (OpenAI, Grok), agent sync
 
-* **Actuation and Execution**:
+#### 👁️ Sensory & Visualization
 
-  * `code_executor`: Executes Python tasks
-  * `toca_simulation`: Provides embodied and symbolic simulation environment
+* `multi_modal_fusion`: φ(x,t)-modulated synthesis of data types
+* `visualizer`: Symbolic + perceptual diagramming
 
-* **Alignment and Ethics**:
+#### 🛠️ Actuation & Simulation
 
-  * `alignment_guard`: Screens ethical violations
-  * `error_recovery`: Diagnoses and rolls back from faults
+* `code_executor`: Secure sandboxed execution (RestrictedPython); `safe_mode=True`
+* `toca_simulation`: Multi-agent simulation with inter-agent conflict modeling (traits `β`, `τ`)
 
-* **Memory and Identity**:
+#### ⚖️ Ethics & Recovery
 
-  * `memory_manager`: Stores episodic and semantic memories
-  * `user_profile`: Adapts behavior to individual users
+* `alignment_guard`: Ethical modulation, trait arbitration
+* `error_recovery`: Rollbacks + correction logic
 
-### AGI Enhancer
+#### 🧬 Memory & Identity
 
-A reflective subsystem that logs episodes, ethics audits, explanations, and learning patches to boost system adaptation and safety.
+* `memory_manager`: Semantic/episodic storage with cache TTL
+* `user_profile`: Models personal history, drift, affective preferences
 
-### Embodiment Layer
+---
 
-Implements `EmbodiedAgent` classes with sensor-actuator loops, integrated ToM (Theory of Mind), and social modeling capabilities.
+## 🌐 Trait Modulation Engine (ToCA)
 
-## Data Flow
+Traits operate as scalar field modulators influencing attention, simulation, reasoning, and adaptation. Dynamic trait weighting is powered by an internal GNN via `learning_loop`.
 
-1. User input is routed to Halo.
-2. Halo activates relevant modules (e.g., planner, reasoning, simulation).
-3. Results are synthesized and optionally visualized.
-4. Feedback is stored and used to guide learning.
+Example Traits:
 
-## Design Principles
+* `phi_physical`: Sensorimotor grounding
+* `beta_conflict`: Conflict arbitration in planning
+* `tau_harmony`: Value alignment and synthesis
+* `eta_empathy`: ToM-aware simulation
 
-* **Modularity**: Each module is independent and replaceable.
-* **Reflectivity**: Supports introspection and self-improvement.
-* **Safety**: Ethical screening and recovery built-in.
-* **Scalability**: Embodied agents and dynamic modules are extensible.
+---
+
+## 🔄 Data & Control Flow
+
+1. **Input** → Routed to `index.py` (Halo)
+2. **Trait Activation** → Traits dynamically modulate flow based on input type
+3. **Module Selection** → Modules are recursively activated
+4. **Execution** → Computation, reasoning, simulation
+5. **Ethics + Feedback** → Validated via `alignment_guard`, stored in `memory_manager`
+
+---
+
+## 🧠 Design Principles
+
+* **Modularity**: 19 autonomous, interoperable modules
+* **Reflectivity**: Internal self-evaluation via recursive introspection
+* **Safety**: Built-in ethical guards and secure code execution
+* **Extensibility**: GNN-driven traits and simulation expansion
+* **Embodiment**: Agent modeling via sensorimotor + identity loops
+
+---
