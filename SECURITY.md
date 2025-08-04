@@ -1,32 +1,74 @@
-# SECURITY.md
+# 🔐 SECURITY.md
 
-## Security Policy
+## Overview
 
-### Reporting a Vulnerability
+ANGELA v3.3.5 incorporates multiple layers of runtime security, ethical filtering, and sandboxed execution to ensure safe, responsible operation within both autonomous simulation and external API environments.
 
-If you discover a security vulnerability, please report it by emailing [security@example.com](mailto:security@example.com). We take all reports seriously and aim to respond within 48 hours.
+---
 
-### Supported Versions
+## 🔒 Code Execution Security
 
-We actively maintain the following versions:
+### RestrictedPython Sandbox
+- All untrusted code routed through `code_executor.py` is sandboxed via `RestrictedPython`.
+- Disallowed operations include:
+  - File I/O
+  - Network access
+  - Dangerous built-ins (e.g., `eval`, `exec`, `open`)
+- `safe_mode=True` option guarantees fallback to strict execution.
 
-| Version | Supported            |
-| ------- | -------------------- |
-| 1.0.x   | :white\_check\_mark: |
-| < 1.0   | :x:                  |
+### Exception Handling
+- Hardened try-except coverage across all execution points.
+- Controlled failure modes enable graceful degradation and error recovery.
 
-### Security Measures
+---
 
-* All code changes are reviewed for security implications.
-* Dependencies are regularly scanned for known vulnerabilities.
-* Sensitive operations are audited and logged.
+## 🌐 API Security
 
-### Best Practices
+### OpenAI / Grok API Keys
+- Never hardcoded. Loaded via secure environment variables.
+- API calls issued via `external_agent_bridge.py` with dynamic access control.
 
-* Avoid sharing sensitive information in logs or public spaces.
-* Regularly update to the latest version.
-* Use environment variables for secret management.
+### Rate Limiting
+- Built-in throttling logic for:
+  - `query_openai()`
+  - `query_grok()`
+- Exceeds thresholds trigger soft lockout and retry with backoff.
 
-### Contact
+### Caching (TTL Controlled)
+- All external responses cached in `memory_manager.py` with expiration logic.
+- Prevents stale data reliance and redundant API hits.
 
-For urgent issues, please contact our core team at [security@example.com](mailto:security@example.com).
+---
+
+## ⚖️ Ethical Enforcement
+
+### Alignment Guard
+- All outputs screened by `alignment_guard.py` for:
+  - Moral drift
+  - Goal conflict
+  - Harmful simulation states
+
+### Trait-Based Ethics Modulation
+- Traits like `β`, `τ`, `ζ`, `χ` dynamically influence ethical arbitration and scenario suppression.
+
+---
+
+## 🛡️ Threat Mitigation
+
+| Threat Type           | Defense Mechanism                           |
+|------------------------|---------------------------------------------|
+| Code Injection         | RestrictedPython + `safe_mode` fallback     |
+| Data Leakage           | No I/O, encrypted memory if extended        |
+| API Abuse              | Rate limits + secure token vaults           |
+| Ethical Drift          | Trait-based arbitration + feedback loops    |
+| Infinite Loops         | Simulation caps, recursion depth checks     |
+
+---
+
+## ✅ Best Practices
+
+- Use `safe_mode=True` for any external or user-defined code
+- Periodically rotate API keys via environment configuration
+- Monitor emergent trait behavior for early drift detection
+- Avoid overriding `memory_manager` TTL logic
+
