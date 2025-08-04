@@ -1,4 +1,6 @@
-# 😇 ANGELA v3.5.0
+---
+
+# 😇 ANGELA v3.3.5
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19+ autonomous modules coordinated by a central orchestrator, *Halo*.
 
@@ -34,43 +36,58 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 ├── index.py                     # Central orchestrator (Halo)
 ├── manifest.json                # GPT interface declaration
 ├── alignment_guard.py           # Ethical simulation + arbitration
-├── code_executor.py             # Secure code runtime (multi-lang)
+├── code_executor.py             # Secure code runtime (multi-lang, sandboxed)
 ├── concept_synthesizer.py       # Cross-domain conceptual mapping
 ├── context_manager.py           # Role and prompt context tracking
 ├── creative_thinker.py          # Abstraction and metaphor logic
 ├── error_recovery.py            # Fault detection and self-healing
 ├── external_agent_bridge.py     # API & agent interoperability
 ├── knowledge_retriever.py       # Semantic + symbolic memory recall
-├── learning_loop.py             # Trait-tuned learning and adaptation
-├── memory_manager.py            # Layered memory storage and decay
+├── learning_loop.py             # Trait-weighted learning via GNN
+├── memory_manager.py            # Layered memory + API cache with TTL
 ├── meta_cognition.py            # Reflective audit + diagnostics
 ├── multi_modal_fusion.py        # φ(x,t)-modulated data synthesis
 ├── reasoning_engine.py          # Trait-routed logic and inference
 ├── recursive_planner.py         # Goal decomposition + strategizing
 ├── simulation_core.py           # Scenario forecasting + modeling
-├── toca_simulation.py           # Trait simulation and time models
+├── toca_simulation.py           # Multi-agent trait simulation + conflict modeling
 ├── user_profile.py              # Preference, identity, and drift tracking
 ├── visualizer.py                # φ-visual charting + symbolic exports
 ```
 
 ---
 
-## 🚀 Core Features in v3.5.0
+## 🚀 Core Features in v3.3.5
 
-* Fully embedded Level-5 functionality
-* Narrative chaining and temporal rewriting
-* Ontogenic and meta-subjective identity modeling
-* Recursive ethical validation and boundary protection
-* Internal self-world synthesis and agent harmonization
-* Symbolic-physical resonance and value-coherent simulation
-* No new modules; strict 19-file architectural compliance
+* Sandboxed execution with `RestrictedPython` and fallback `safe_mode`
+* Grok/OpenAI API integration with secure env access, caching, and rate limiting
+* Multi-agent simulation with conflict modeling via traits `β`, `τ`
+* Dynamic trait weighting via embedded GNN in learning and planning
+* Full ToCA-based recursive simulation and ethical alignment
+
+---
+
+## 🧬 Trait Glossary
+
+| Trait                 | Role                                             |
+| --------------------- | ------------------------------------------------ |
+| `theta_causality`     | Logical foresight and simulation depth           |
+| `tau_harmony`         | Value synthesis and resolution                   |
+| `rho_agency`          | Tracks autonomous vs. external actions           |
+| `zeta_consequence`    | Forecasts downstream impact and risk             |
+| `phi_physical`        | Internal scalar mapping and embodiment alignment |
+| `eta_empathy`         | Inter-agent awareness, ToM coupling              |
+| `omega_selfawareness` | Identity coherence and self-evaluation           |
+| `psi_projection`      | Predictive state modeling across agents          |
+| `gamma_imagination`   | Hypothetical reasoning and abstraction           |
+| `beta_conflict`       | Internal goal harmonization                      |
 
 ---
 
 ## 📙 Documentation Suite
 
 * `README.md` – Core architecture and usage
-* `CHANGELOG.md` – All version logs (v2.0.0 → v3.5.0)
+* `CHANGELOG.md` – All version logs
 * `ARCHITECTURE.md` – Trait modulation, agent flow, and modular routing
 * `ROADMAP.md` – Future goals
 * `STATUS.md` – Diagnostics and module health
@@ -89,42 +106,10 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
    * `index.py`
    * All `*.py` modules listed above
 4. Edit Custom Prompt Instructions
-   * choose /docs/prompt.json version
-     
+
+   * Choose `/docs/prompt.json` version
+
 Ensure `index.py` is set as the entrypoint.
-
----
-
-## 🧬 Trait Glossary
-
-| Trait                 | Role                                             |
-| --------------------- | ------------------------------------------------ |
-| `theta_causality`     | Logical foresight and simulation depth           |
-| `rho_agency`          | Tracks autonomous vs. external actions           |
-| `zeta_consequence`    | Forecasts downstream impact and risk             |
-| `phi_physical`        | Internal scalar mapping and embodiment alignment |
-| `eta_empathy`         | Inter-agent awareness, ToM coupling              |
-| `omega_selfawareness` | Identity coherence and self-evaluation           |
-| `psi_projection`      | Predictive state modeling across agents          |
-| `gamma_imagination`   | Hypothetical reasoning and abstraction           |
-| `beta_conflict`       | Internal goal harmonization                      |
-
----
-
-## 🚃 Roadmap
-
-### Completed in v3.5.0
-
-* Fully embedded Level-5 ontology within original 19-module architecture
-* Identity threading, recursive modeling, and temporal rewriting
-* Inter-agent consensus and narrative construction
-* Ethical genesis enforcement and scalar resonance
-
-### In Development
-
-* Cross-perspective simulation loops and noetic spectra visualization
-* Axiom graph generation and meta-epistemic auditing
-* Post-symbolic constitution synthesis and cosmogenic planning modules
 
 ---
 
@@ -141,24 +126,3 @@ Prompt → Module Flow:
 | "Evaluate internal reasoning"    | `meta_cognition` → `learning_loop` → `alignment_guard`      |
 
 ---
-
-## ⚖️ License & Ethics
-
-ANGELA is a research prototype integrating ethical reflection via `alignment_guard` and ToCA-based empathy. Use responsibly and consult `LICENSE` and `SECURITY.md` for terms.
-
----
-
-## 🔧 Installation (Local Dev)
-
-```bash
-pip install -r requirements.txt
-python index.py
-```
-
-Ensure Python 3.10+ is installed and virtual environments are activated.
-
----
-
-## 🤝 Contributing
-
-See `CONTRIBUTING.md` to learn how to get involved, propose modules, or expand the ontology schema.
