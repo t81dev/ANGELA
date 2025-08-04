@@ -252,3 +252,21 @@ class SimulationCore:
 
     def execute(self):
         return f"Simulating in: {self.current_world}" if self.current_world else "No world set"
+
+
+# --- PATCH: Entropy Validation for Topology Modes ---
+
+import math
+
+def validate_entropy(distribution):
+    """Calculate Shannon entropy and validate against dynamic threshold."""
+    entropy = -sum(p * math.log2(p) for p in distribution if p > 0)
+    threshold = math.log2(len(distribution)) * 0.75  # 75% of max entropy
+    return entropy >= threshold
+
+def select_topology_mode(modes, metrics):
+    """Select topology mode with entropy validation check."""
+    for mode, distribution in metrics.items():
+        if validate_entropy(distribution):
+            return mode
+    return 'fallback'
