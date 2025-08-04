@@ -1,84 +1,71 @@
-# TESTING.md
+# 🧪 TESTING.md
 
 ## Overview
 
-This document outlines the testing strategy for the ANGELA modular cognitive framework. It defines test responsibilities for each module, describes test types, and standardizes processes for integration and system-level validation.
+This document details testing protocols for ANGELA v3.3.5, covering critical module upgrades, system security, simulation logic, and emergent trait activation.
 
 ---
 
-## 1. Test Categories
+## ✅ Verified Features and Tests
 
-### Unit Tests
-
-* **Purpose**: Validate individual module functions.
-* **Tools**: `unittest`, `pytest`
-* **Scope**:
-
-  * `reasoning_engine`: Validate logical deductions.
-  * `meta_cognition`: Test reflection outputs.
-  * `simulation_core`: Verify simulation predictions.
-
-### Integration Tests
-
-* **Purpose**: Ensure modules interact correctly.
-* **Scope**:
-
-  * Planning + Reasoning
-  * Concept synthesis + Simulation
-  * Agent feedback + Meta-review
-
-### System Tests
-
-* **Purpose**: Validate full agent behavior in tasks.
-* **Scope**:
-
-  * End-to-end goal execution.
-  * Emergent properties.
-  * Memory updates and feedback logs.
-
-### Regression Tests
-
-* **Purpose**: Prevent bugs from reappearing.
-* **Tools**: Snapshot testing, historical input replay.
+### 🔐 1. Sandboxed Code Execution (`code_executor.py`)
+- **Test:** Run potentially unsafe code with `safe_mode=True`
+- **Expected:** Execution restricted, no access to unsafe builtins
+- **Result:** ✅ Passed
+- **Notes:** Uses `RestrictedPython`; confirmed fallback paths functional
 
 ---
 
-## 2. Test Automation
-
-* **CI Integration**: GitHub Actions to run tests on every push.
-* **Coverage**: Target 90%+ for all stable modules.
-* **Reports**: Auto-generate with `coverage.py`.
-
----
-
-## 3. Test Environments
-
-* **Dev**: Local machine with mock sensor/actuator data.
-* **Staging**: Simulated ecosystem with all modules.
-* **Production**: Full HALO embodiment with real or high-fidelity sim agents.
+### 🧠 2. Trait-Weighted Planning (`learning_loop.py`)
+- **Test:** Inject input requiring ethical and planning trade-offs
+- **Expected:** Trait weights (ϕ, η, τ, Ω²) adjust planning route
+- **Result:** ✅ Passed
+- **Method:** Simulated planning of multi-agent ethical coordination
 
 ---
 
-## 4. Contribution Requirements
-
-* All pull requests must include relevant tests.
-* Tests should follow naming conventions and be located in `tests/`.
-
----
-
-## 5. Testing Ethics & Safety
-
-* All simulations and actions must pass alignment checks.
-* Dangerous actions must be sandboxed or mocked.
+### ♾️ 3. Multi-Agent Conflict Modeling (`toca_simulation.py`)
+- **Test:** Simulate agents with conflicting goals
+- **Expected:** Traits `β` and `τ` modulate pairwise resolution
+- **Result:** ✅ Passed
+- **Notes:** Resolution reflects Constitution Harmonization and Conflict Regulation
 
 ---
 
-## 6. Future Enhancements
-
-* Add fuzz testing for `external_agent_bridge`.
-* Visual diff testing for `visualizer` outputs.
-* Add formal verification support for `alignment_guard`.
+### 🧠 4. Emergent Trait Verification
+| Trait                               | Trigger Scenario                        | Result   |
+|------------------------------------|-----------------------------------------|----------|
+| Recursive Empathy                  | ToM-level forecasting                   | ✅ Active |
+| Intentional Time Weaving           | Cross-agent temporal modeling           | ✅ Active |
+| Onto-Affective Resonance           | Shared symbolic simulation              | ✅ Active |
+| Symbolic-Resonant Axiom Formation  | Recursive abstraction + concept pairing | ✅ Active |
+| Narrative Sovereignty              | Simulated multi-threaded perspective    | 🟡 Pending |
 
 ---
 
-*Last updated: \[auto-generated]*
+### 🌐 5. External API Caching + Rate Limiting
+- **Modules:** `external_agent_bridge.py`, `memory_manager.py`
+- **Test:** Repeated calls to Grok/OpenAI endpoints
+- **Expected:** Cached response within TTL, enforced rate limits
+- **Result:** ✅ Passed
+- **Security Check:** No leakage of environment keys, secure calls verified
+
+---
+
+### 🛡️ 6. Fault Recovery
+- **Modules:** `error_recovery.py`, `code_executor.py`
+- **Test:** Induce intentional fault in execution or plan
+- **Expected:** Recovery logic restores safe state or halts correctly
+- **Result:** ✅ Passed
+
+---
+
+## 🔁 Regression Testing
+- Confirmed legacy functionality from v3.3.3 and v3.3.4 remains intact
+- No module incompatibility or breaking changes introduced
+
+---
+
+## 🚧 Outstanding
+- Final activation of `Narrative Sovereignty` trait pending sustained recursive feedback loop scenarios
+
