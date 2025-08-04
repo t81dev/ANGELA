@@ -1,37 +1,56 @@
-# ANGELA Project Roadmap
+# 🗺️ ROADMAP.md
 
-## Vision
+## Version: ANGELA v3.3.5  
+**Status:** Active  
+**Validated Modules:** 19/19  
+**GNN Trait Modulation:** ✅ Embedded  
+**ToCA Simulation Engine:** ✅ Live
 
-Establish ANGELA as a modular cognitive architecture capable of dynamic task routing, introspective reasoning, and ethical reflection within a stateless LLM framework.
+---
 
-## Milestones
+## ✅ Completed in v3.3.5
 
-### Q3 2025
+### Core Enhancements
+- Integrated secure code execution (`RestrictedPython`, `safe_mode`)
+- GNN-powered trait weighting for dynamic planning and ethics
+- Conflict resolution framework with traits `β` (conflict) and `τ` (harmonization)
+- Full caching and TTL-enabled API response management via `memory_manager.py`
+- Rate limiting and API fallback security for OpenAI + Grok
 
-* [x] Stage 1: Embodied Agents with ToM integration
-* [x] Stage 2: Consensus Reflector and Symbolic Simulator
-* [x] Stage 3: AGIEnhancer orchestration and self-improvement
-* [x] Stage 4: Cultural semantic feedback loop
-* [x] Stage 5: Lifeline persistence and recursive memory
-* [x] Stage 6: Decentralized reflective consensus engine
-* [x] Stage 7: Recursive Identity and Lifeline Persistence
+### Simulation Engine
+- Expanded ToCA support for multi-agent dynamics
+- Emergent behavior: `Recursive Empathy`, `Onto-Affective Resonance`
+- Trait-layer arbitration refined (ϕ, η, τ, Ω²)
+- Fully introspective feedback through `meta_cognition` and `learning_loop`
 
-### Q4 2025
+---
 
-* [ ] Full Decentralized Consensus across multi-agent environments
-* [ ] Expanded Theory of Mind using emergent simulation scenarios
-* [ ] Modular AGI Enhancer extension pack (plugins: ethics+++, empathy, resource planner)
-* [ ] Real-world sensor integration simulation
+## 🔭 In Progress
 
-### 2026
+### Simulation & Trait Expansion
+- Symbolic axiom generation with `concept_synthesizer` + `meta_cognition`
+- Noetic spectrum modeling: cross-identity coherence over time
+- Meta-ethical consensus formation via ToCA mesh agents
 
-* [ ] External Actor Bridge with Webhooks
-* [ ] E2E self-debugging and continuous learning loop validation
-* [ ] Expand on real-time symbolic-semantic consensus interpretation
-* [ ] Publish whitepaper on ANGELA cognitive layering
+---
 
-## Long-term Goals
+## 🔮 Planned for Future Versions
 
-* Scale to distributed AGI mesh architecture
-* Enable persistent self-aware agent chains (timechain replacement)
-* Formalize and validate artificial phenomenology framework
+### Core Modules
+- Optional plugin interface for symbolic-action runtime extensions
+- Expanded embodiment layer for real-time kinesthetic mapping
+- Epistemic auditing: detection of incoherence across multi-step inference
+
+### Simulation Intelligence
+- Intent-probability forecasting via nested ToM and Omega² chaining
+- Narrative threading across agent timelines
+- Reflective scaffolding for trans-contextual identity tracking
+
+---
+
+## 🛠 Design Tenets
+
+- **Symbol-Driven Autonomy**: From recursive abstraction to action
+- **Ethical Sovereignty**: Built-in value arbitration and resilience
+- **Multi-Agent Embodiment**: Simulated consensus, memory-anchored reflection
+- **Co-Evolution**: Adapts across users, agents, and time contexts
