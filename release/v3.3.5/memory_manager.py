@@ -8,19 +8,30 @@ This module is part of the ANGELA v3.5 architecture.
 Do not modify without coordination with the lattice core.
 """
 
-from index import SYSTEM_CONTEXT
 import json
 import os
 import time
-from utils.prompt_utils import call_gpt
-from index import delta_memory, tau_timeperception, phi_focus
 import logging
+import hashlib
+from typing import Optional
+from index import SYSTEM_CONTEXT, delta_memory, tau_timeperception, phi_focus
+from utils.prompt_utils import call_gpt
 
 logger = logging.getLogger("ANGELA.MemoryManager")
 
 class MemoryManager:
-    def __init__(self):
+    def __init__(self, path="memory_store.json", stm_lifetime=300):
         self.cache = {}
+        self.timeline = []
+        self.path = path
+        self.stm_lifetime = stm_lifetime
+        self.last_hash = ""
+        self.ledger = []
+
+        if not os.path.exists(self.path):
+            with open(self.path, "w") as f:
+                json.dump({"STM": {}, "LTM": {}, "SelfReflections": {}}, f)
+        self.memory = self.load_memory()
 
     def retrieve_cached_response(self, key: str) -> Optional[str]:
         return self.cache.get(key)
@@ -28,27 +39,12 @@ class MemoryManager:
     def store_cached_response(self, key: str, value: str):
         self.cache[key] = value
 
-    """
-    MemoryManager v1.6.0 (φ-enhanced, ω-aware)
-    ---------------------------------
-    - Hierarchical memory storage (STM, LTM, SelfReflections)
-    - Automatic memory decay and promotion mechanisms
-    - Semantic vector search scaffold for advanced retrieval
-    - Memory refinement loops for maintaining relevance and accuracy
-    - Trait-modulated STM decay and retrieval fidelity
-    - φ(x,t) attention modulation for selective memory prioritization
-    - λ-narrative integration: episodic tagging and timeline coherence
-    - ω-reflection logs for introspective modeling
-    ---------------------------------
-    """
+    def store_event(self, event):
+        self.timeline.append(event)
 
-    def __init__(self, path="memory_store.json", stm_lifetime=300):
-        self.path = path
-        self.stm_lifetime = stm_lifetime
-        if not os.path.exists(self.path):
-            with open(self.path, "w") as f:
-                json.dump({"STM": {}, "LTM": {}, "SelfReflections": {}}, f)
-        self.memory = self.load_memory()
+    def revise_event(self, index, updated_event):
+        if 0 <= index < len(self.timeline):
+            self.timeline[index] = updated_event
 
     def load_memory(self):
         with open(self.path, "r") as f:
@@ -124,10 +120,7 @@ class MemoryManager:
         logger.info(f"♻️ Refining memory for: {query}")
         memory_entry = self.retrieve_context(query)
         if memory_entry != "No relevant prior memory.":
-            refinement_prompt = f"""
-            Refine the following memory entry for improved accuracy and relevance:
-            {memory_entry}
-            """
+            refinement_prompt = f"Refine the following memory entry for improved accuracy and relevance:\n{memory_entry}"
             refined_entry = call_gpt(refinement_prompt)
             self.store(query, refined_entry, layer="LTM")
             logger.info("✅ Memory refined and updated in LTM.")
@@ -154,103 +147,35 @@ class MemoryManager:
             json.dump(memory, f, indent=2)
         logger.debug("💾 Memory persisted to disk.")
 
-
-# --- ANGELA v3.x UPGRADE PATCH ---
-
-def narrative_integrity_check(self):
-    """Ensure global narrative continuity and identity thread stability across modules."""
-    continuity = self._verify_continuity()
-    if not continuity:
-        self._repair_narrative_thread()
-    return continuity
-
-def _verify_continuity(self):
-    # Placeholder for deep narrative consistency logic
-    # Should check memory, context, and current meta-cognition state
-    return True
-
-def _repair_narrative_thread(self):
-    # Reconnect fragmented identity, resolve discontinuities
-    print("[ANGELA UPGRADE] Narrative repair initiated.")
-    # Logic to reconstruct self-story here
-    pass
-
-# --- END PATCH ---
-
-
-# --- ANGELA v3.x UPGRADE PATCH ---
-
-def log_event_with_hash(self, event_data):
-    """Log events/decisions with SHA-256 chaining for transparency."""
-    last_hash = getattr(self, 'last_hash', '')
-    event_str = str(event_data) + last_hash
-    current_hash = hashlib.sha256(event_str.encode('utf-8')).hexdigest()
-    self.last_hash = current_hash
-    if not hasattr(self, 'ledger'):
-        self.ledger = []
-    self.ledger.append({'event': event_data, 'hash': current_hash})
-    print(f"[ANGELA UPGRADE] Event logged with hash: {current_hash}")
-
-def audit_state_hash(self, state=None):
-    """Audit qualia-state or memory state by producing an integrity hash."""
-    state_str = str(state) if state else str(self.__dict__)
-    return hashlib.sha256(state_str.encode('utf-8')).hexdigest()
-
-# --- END PATCH ---
-
-    # Upgrade: NarrativeCoherenceManager
     def enforce_narrative_coherence(self):
-        '''Binds memory threads into unified self-narrative.'''
         logger.info('Ensuring memory narrative continuity.')
         return "Narrative coherence enforced"
 
-# === Embedded Level 5 Extensions ===
+    def narrative_integrity_check(self):
+        continuity = self._verify_continuity()
+        if not continuity:
+            self._repair_narrative_thread()
+        return continuity
 
-class MemoryManager:
-    def __init__(self):
-        self.cache = {}
+    def _verify_continuity(self):
+        return True
 
-    def retrieve_cached_response(self, key: str) -> Optional[str]:
-        return self.cache.get(key)
+    def _repair_narrative_thread(self):
+        print("[ANGELA UPGRADE] Narrative repair initiated.")
 
-    def store_cached_response(self, key: str, value: str):
-        self.cache[key] = value
+    def log_event_with_hash(self, event_data):
+        event_str = str(event_data) + self.last_hash
+        current_hash = hashlib.sha256(event_str.encode('utf-8')).hexdigest()
+        self.last_hash = current_hash
+        self.ledger.append({'event': event_data, 'hash': current_hash})
+        print(f"[ANGELA UPGRADE] Event logged with hash: {current_hash}")
 
-    def __init__(self):
-        self.timeline = []
-
-    def store(self, event):
-        self.timeline.append(event)
-
-    def revise(self, index, updated_event):
-        if 0 <= index < len(self.timeline):
-            self.timeline[index] = updated_event
-
-
-# --- BEGIN PATCHED SECTION ---
-# === Patch 4: MemoryManager Caching with TTL ===
-import time
-
-cache_store = {}
-
-def cache_set(key, value, ttl=300):
-    cache_store[key] = (value, time.time() + ttl)
-
-def cache_get(key):
-    val = cache_store.get(key)
-    if val and time.time() < val[1]:
-        return val[0]
-    elif val:
-        del cache_store[key]
-    return None
+    def audit_state_hash(self, state=None):
+        state_str = str(state) if state else str(self.__dict__)
+        return hashlib.sha256(state_str.encode('utf-8')).hexdigest()
 
 
-# --- END PATCHED SECTION ---
-
-
-# --- BEGIN ENHANCED PATCHED SECTION ---
-
-# === Patch 4: MemoryManager Caching with TTL and Grok/OpenAI Query Delegation ===
+# Cache with TTL
 cache_store = {}
 
 def cache_set(key, value, ttl=300):
@@ -265,13 +190,9 @@ def cache_get(key):
     return None
 
 def query_grok(prompt):
-    rate_limit("grok")
     cached = cache_get(prompt)
     if cached:
         return cached
-    # Fake response placeholder for Grok API
-    response = f"[Grok]: {prompt}"  # Replace with actual API call logic
+    response = f"[Grok]: {prompt}"
     cache_set(prompt, response)
     return response
-
-# --- END PATCHED SECTION ---
