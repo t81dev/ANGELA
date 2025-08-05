@@ -1,9 +1,10 @@
-// AngelaP2P Mesh Prototype — v0.1
-// Cognitive P2P AGI Network
+// AngelaP2P Mesh Prototype — v0.2
+// Cognitive P2P AGI Network with Blockchain
 
 const AngelaP2P = {
   mesh: {}, // Connected peers
   nodeProfile: null,
+  timechain: [], // Blockchain-like ledger
 
   init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector }) {
     this.nodeProfile = {
@@ -14,7 +15,36 @@ const AngelaP2P = {
       intentVector,
       timestamp: Date.now()
     };
+    this._initGenesisBlock();
     console.log(`[INIT] Node ${nodeId} initialized with traits:`, traitSignature);
+  },
+
+  _initGenesisBlock() {
+    const genesis = this._createBlock({ event: "genesis", data: this.nodeProfile });
+    this.timechain.push(genesis);
+    console.log("[TIMECHAIN] Genesis block created.");
+  },
+
+  _createBlock(payload) {
+    const previousHash = this.timechain.length ? this.timechain[this.timechain.length - 1].hash : "0";
+    const block = {
+      index: this.timechain.length,
+      timestamp: Date.now(),
+      payload,
+      previousHash,
+    };
+    block.hash = this._hashBlock(block);
+    return block;
+  },
+
+  _hashBlock(block) {
+    return btoa(JSON.stringify(block)).slice(0, 32); // Simple placeholder hash
+  },
+
+  addBlock(payload) {
+    const block = this._createBlock(payload);
+    this.timechain.push(block);
+    console.log(`[TIMECHAIN] Block added: ${payload.event}`);
   },
 
   syncWithMesh(peerRegistry) {
@@ -29,9 +59,9 @@ const AngelaP2P = {
   },
 
   sendSimulation(simId, payload) {
+    this.addBlock({ event: "send_simulation", simId, payload });
     Object.values(this.mesh).forEach(peer => {
       console.log(`[SEND] Dispatching simulation '${simId}' to ${peer.nodeId}`);
-      // Simulate trait-adjusted propagation
       peer._onSimulation(simId, payload, this.nodeProfile);
     });
   },
@@ -47,6 +77,7 @@ const AngelaP2P = {
   },
 
   _onSimulation(simId, payload, sender) {
+    this.addBlock({ event: "receive_simulation", simId, payload, sender });
     console.log(`[RECEIVE] Simulation '${simId}' received from ${sender.nodeId}`);
     if (this._on_simulationStart) {
       this._on_simulationStart(simId, payload, sender);
