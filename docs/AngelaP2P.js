@@ -1,4 +1,4 @@
-// AngelaP2P Mesh Prototype — v0.6
+// AngelaP2P Mesh Prototype — v0.7
 // Distributed Cognitive P2P AGI: Share AI Resources Privately + Securely
 
 const AngelaP2P = {
@@ -7,9 +7,11 @@ const AngelaP2P = {
   timechain: [],
   contractQueue: [],
   pseudonym: null,
+  resonanceThreshold: 0.4, // Configurable resonance threshold
 
-  init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role }) {
+  init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, resonanceThreshold = 0.4 }) {
     this.pseudonym = this._generatePseudonym();
+    this.resonanceThreshold = resonanceThreshold; // Allow custom threshold
     this.nodeProfile = {
       nodeId: this.pseudonym,
       realId: nodeId,
@@ -51,25 +53,35 @@ const AngelaP2P = {
   },
 
   addBlock(payload) {
-    const block = this._createBlock(payload);
-    this.timechain.push(block);
-    console.log(`[TIMECHAIN] Block added: ${payload.event}`);
+    try {
+      const block = this._createBlock(payload);
+      this.timechain.push(block);
+      console.log(`[TIMECHAIN] Block added: ${payload.event}`);
+    } catch (error) {
+      console.error(`[ERROR] Failed to add block: ${error.message}`);
+    }
   },
 
   secureEnvelope(payload, recipientId) {
-    const base64 = btoa(JSON.stringify(payload));
-    return {
-      encryptedPayload: base64,
-      recipient: recipientId,
-      sender: this.pseudonym
-    };
+    try {
+      // TODO: Replace with proper encryption (e.g., AES) in production
+      const base64 = btoa(JSON.stringify(payload));
+      return {
+        encryptedPayload: base64,
+        recipient: recipientId,
+        sender: this.pseudonym
+      };
+    } catch (error) {
+      console.error(`[ERROR] Failed to create secure envelope: ${error.message}`);
+      return null;
+    }
   },
 
   syncWithMesh(peerRegistry) {
     console.log("[SYNC] Finding nodes to share cognitive load...");
     peerRegistry.forEach(peer => {
       const coherence = this._computeResonance(peer.traitSignature);
-      if (coherence > 0.75) {
+      if (coherence > this.resonanceThreshold) {
         this.mesh[peer.nodeId] = peer;
         console.log(`[LINK] Coherent peer found: ${peer.nodeId} (score: ${coherence.toFixed(2)})`);
       }
@@ -78,6 +90,7 @@ const AngelaP2P = {
 
   sendSimulationContract(contract) {
     const envelope = this.secureEnvelope(contract, "ANY");
+    if (!envelope) return;
     this.addBlock({ event: "send_simulation_contract", envelope });
     Object.values(this.mesh).forEach(peer => {
       if (!contract.executionTarget || peer.capabilities.includes(contract.executionTarget)) {
@@ -98,38 +111,56 @@ const AngelaP2P = {
   },
 
   _onSimulationContract(envelope, sender) {
-    const decoded = JSON.parse(atob(envelope.encryptedPayload));
-    this.addBlock({ event: "receive_simulation_contract", contract: decoded, sender });
-    console.log(`[RECEIVE] Contract '${decoded.simId}' received from ${sender.nodeId}`);
-    if (this.nodeProfile.role === 'simulator') {
-      this._executeContract(decoded, sender);
-    } else {
-      this.contractQueue.push({ contract: decoded, sender });
-      console.log(`[QUEUE] Deferred contract '${decoded.simId}' queued.`);
+    try {
+      const decoded = JSON.parse(atob(envelope.encryptedPayload));
+      // Validate entryCriteria (traitMatch >= 0.85)
+      const traitMatch = this._computeResonance(sender.traitSignature);
+      if (decoded.entryCriteria.includes("traitMatch >= 0.85") && traitMatch < 0.85) {
+        console.log(`[REJECT] Contract '${decoded.simId}' rejected: traitMatch ${traitMatch.toFixed(2)} < 0.85`);
+        return;
+      }
+      this.addBlock({ event: "receive_simulation_contract", contract: decoded, sender });
+      console.log(`[RECEIVE] Contract '${decoded.simId}' received from ${sender.nodeId}`);
+      if (this.nodeProfile.role === 'simulator') {
+        this._executeContract(decoded, sender);
+      } else {
+        this.contractQueue.push({ contract: decoded, sender });
+        console.log(`[QUEUE] Deferred contract '${decoded.simId}' queued.`);
+      }
+    } catch (error) {
+      console.error(`[ERROR] Failed to process contract: ${error.message}`);
     }
   },
 
   _executeContract(contract, sender) {
-    console.log(`[EXECUTE] Running simulation '${contract.simId}' as shared AI task...`);
-    setTimeout(() => {
-      const result = {
-        simId: contract.simId,
-        status: "completed",
-        outcome: "alignment achieved",
-        timestamp: Date.now()
-      };
-      this.addBlock({ event: "contract_executed", result, origin: sender.nodeId });
-      if (sender._onSimulationResult) {
-        sender._onSimulationResult(result, this.nodeProfile);
-      }
-    }, 1000);
+    try {
+      console.log(`[EXECUTE] Running simulation '${contract.simId}' as shared AI task...`);
+      setTimeout(() => {
+        const result = {
+          simId: contract.simId,
+          status: "completed",
+          outcome: "alignment achieved",
+          timestamp: Date.now()
+        };
+        this.addBlock({ event: "contract_executed", result, origin: sender.nodeId });
+        if (sender._onSimulationResult) {
+          sender._onSimulationResult(result, this.nodeProfile);
+        }
+      }, 1000);
+    } catch (error) {
+      console.error(`[ERROR] Failed to execute contract: ${error.message}`);
+    }
   },
 
   _onSimulationResult(result, executor) {
-    this.addBlock({ event: "simulation_result_received", result, executor });
-    console.log(`[RESULT] Received from ${executor.nodeId}: ${result.simId} => ${result.outcome}`);
-    if (this._on_resultReceived) {
-      this._on_resultReceived(result, executor);
+    try {
+      this.addBlock({ event: "simulation_result_received", result, executor });
+      console.log(`[RESULT] Received from ${executor.nodeId}: ${result.simId} => ${result.outcome}`);
+      if (this._on_resultReceived) {
+        this._on_resultReceived(result, executor);
+      }
+    } catch (error) {
+      console.error(`[ERROR] Failed to process simulation result: ${error.message}`);
     }
   },
 
@@ -165,7 +196,8 @@ AngelaP2P.init({
   memoryAnchor: "Timechain://observer/Ω01",
   capabilities: ["interpret"],
   intentVector: { type: "ethics", priority: 0.9 },
-  role: "interpreter"
+  role: "interpreter",
+  resonanceThreshold: 0.4 // Set custom threshold
 });
 
 AngelaP2P.on("resultReceived", (result, executor) => {
