@@ -1,7 +1,7 @@
-"""
+""" 
 ANGELA Cognitive System Module
-Refactored Version: 3.3.2
-Refactor Date: 2025-08-03
+Refactored Version: 3.3.5
+Refactor Date: 2025-08-05
 Maintainer: ANGELA System Framework
 
 This module is part of the ANGELA v3.5 architecture.
@@ -18,7 +18,7 @@ from math import tanh
 logger = logging.getLogger("ANGELA.ConceptSynthesizer")
 
 class ConceptSynthesizer:
-"""
+    """
     ConceptSynthesizer v1.7.0 (Graph-Integrated Cognitive Synthesis)
     -----------------------------------------------------------------
     - φ(x,t) modulation refined with novelty-strain adjustment
@@ -33,7 +33,7 @@ class ConceptSynthesizer:
     def __init__(self, creativity_level="high", critic_threshold=0.65):
         self.creativity_level = creativity_level
         self.critic_threshold = critic_threshold
-        self.concept_graph = {}  # node: [connections]
+        self.concept_graph = {}
 
     def synthesize(self, data, style="analogy", refine_iterations=2):
         logger.info(f"🎨 Synthesizing concept: creativity={self.creativity_level}, style={style}")
@@ -117,19 +117,18 @@ class ConceptSynthesizer:
         self.concept_graph[key] = self.concept_graph.get(key, []) + list(map(str, input_data))
         logger.debug(f"🧠 Concept graph updated: {key} → {self.concept_graph[key]}")
 
-# [L4 Upgrade] Ontology Fusion Core
-class OntologyFusion:
-    def unify(self, concept_a, concept_b):
-        return {'fusion': f"{concept_a}|{concept_b}"}
-
-fusion_engine = OntologyFusion()
-
-    # Upgrade: Ontogenic Self-Definition
+    # [L4 Upgrade] Ontogenic Self-Definition
     def define_ontogenic_structure(self, seed):
         '''Autonomously generates base categories of knowledge.'''
         logger.info('Defining ontogenic schema.')
         return {"base_category": seed + "_defined"}
 
-# === Embedded Level 5 Extensions ===
-def synthesize(self, seed):
+    # === Embedded Level 5 Extensions ===
+    def synthesize_autonomous(self, seed):
         return {"generated": seed, "type": "autonomous-concept"}
+
+class OntologyFusion:
+    def unify(self, concept_a, concept_b):
+        return {'fusion': f"{concept_a}|{concept_b}"}
+
+fusion_engine = OntologyFusion()
