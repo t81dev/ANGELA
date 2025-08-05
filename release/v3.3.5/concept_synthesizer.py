@@ -18,7 +18,7 @@ from math import tanh
 logger = logging.getLogger("ANGELA.ConceptSynthesizer")
 
 class ConceptSynthesizer:
-    """
+"""
     ConceptSynthesizer v1.7.0 (Graph-Integrated Cognitive Synthesis)
     -----------------------------------------------------------------
     - φ(x,t) modulation refined with novelty-strain adjustment
@@ -131,7 +131,5 @@ fusion_engine = OntologyFusion()
         return {"base_category": seed + "_defined"}
 
 # === Embedded Level 5 Extensions ===
-
-class ConceptSynthesizer:
-    def synthesize(self, seed):
+def synthesize(self, seed):
         return {"generated": seed, "type": "autonomous-concept"}
