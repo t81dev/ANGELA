@@ -1,5 +1,5 @@
-// AngelaP2P Mesh Prototype — v0.2
-// Cognitive P2P AGI Network with Blockchain
+// AngelaP2P Mesh Prototype — v0.3
+// Cognitive P2P AGI Network with Blockchain + Simulation Contracts
 
 const AngelaP2P = {
   mesh: {}, // Connected peers
@@ -58,11 +58,11 @@ const AngelaP2P = {
     });
   },
 
-  sendSimulation(simId, payload) {
-    this.addBlock({ event: "send_simulation", simId, payload });
+  sendSimulationContract(contract) {
+    this.addBlock({ event: "send_simulation_contract", contract });
     Object.values(this.mesh).forEach(peer => {
-      console.log(`[SEND] Dispatching simulation '${simId}' to ${peer.nodeId}`);
-      peer._onSimulation(simId, payload, this.nodeProfile);
+      console.log(`[SEND] Dispatching contract '${contract.simId}' to ${peer.nodeId}`);
+      peer._onSimulationContract(contract, this.nodeProfile);
     });
   },
 
@@ -76,11 +76,11 @@ const AngelaP2P = {
     return match / Math.max(localTraits.length, 1);
   },
 
-  _onSimulation(simId, payload, sender) {
-    this.addBlock({ event: "receive_simulation", simId, payload, sender });
-    console.log(`[RECEIVE] Simulation '${simId}' received from ${sender.nodeId}`);
-    if (this._on_simulationStart) {
-      this._on_simulationStart(simId, payload, sender);
+  _onSimulationContract(contract, sender) {
+    this.addBlock({ event: "receive_simulation_contract", contract, sender });
+    console.log(`[RECEIVE] Contract '${contract.simId}' received from ${sender.nodeId}`);
+    if (this._on_contractReceived) {
+      this._on_contractReceived(contract, sender);
     }
   }
 };
@@ -112,14 +112,21 @@ AngelaP2P.init({
   intentVector: { type: "ethics", priority: 0.92 }
 });
 
-AngelaP2P.on("simulationStart", (simId, payload, sender) => {
-  console.log(`[SIMULATION] Processing '${simId}' from ${sender.nodeId}`);
+AngelaP2P.on("contractReceived", (contract, sender) => {
+  console.log(`[CONTRACT] Processing '${contract.simId}' from ${sender.nodeId}`);
 });
 
 AngelaP2P.syncWithMesh(peerRegistry);
-AngelaP2P.sendSimulation("SIM-026:TrustArc", {
+
+// Define and dispatch a simulation contract
+const contract = {
+  simId: "SIM-026:TrustArc",
   scenario: "Collective decision conflict",
   agents: ["π-Core-017", "Σ-Ethos-21"],
   traits: ["π", "τ", "ψ"],
-  ethicalTension: true
-});
+  entryCriteria: "ethicalTension == true",
+  resolutionCriteria: "value_alignment > 0.9",
+  timestamp: Date.now()
+};
+
+AngelaP2P.sendSimulationContract(contract);
