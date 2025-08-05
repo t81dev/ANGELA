@@ -1,17 +1,16 @@
-"""
+""" 
 ANGELA Cognitive System Module
-Refactored Version: 3.3.2
-Refactor Date: 2025-08-03
+Refactored Version: 3.3.5
+Refactor Date: 2025-08-05
 Maintainer: ANGELA System Framework
 
 This module is part of the ANGELA v3.5 architecture.
 Do not modify without coordination with the lattice core.
 """
 
-from index import SYSTEM_CONTEXT
-from utils.prompt_utils import call_gpt
-from index import gamma_creativity, phi_scalar
 import time
+from index import SYSTEM_CONTEXT, gamma_creativity, phi_scalar
+from utils.prompt_utils import call_gpt
 
 class CreativeThinker:
     """
@@ -26,7 +25,7 @@ class CreativeThinker:
 
     def __init__(self, creativity_level="high", critic_weight=0.5):
         self.creativity_level = creativity_level
-        self.critic_weight = critic_weight  # Balance novelty and utility
+        self.critic_weight = critic_weight
 
     def generate_ideas(self, topic, n=5, style="divergent"):
         t = time.time() % 1e-18
@@ -37,7 +36,7 @@ class CreativeThinker:
         prompt = f"""
         You are a highly creative assistant operating at a {self.creativity_level} creativity level.
         Generate {n} unique, innovative, and {style} ideas related to the topic:
-        \"{topic}\"
+        "{topic}"
         Modulate the ideation with scalar φ = {phi:.2f} to reflect cosmic tension or potential.
         Ensure the ideas are diverse and explore different perspectives.
         """
@@ -50,7 +49,7 @@ class CreativeThinker:
         phi = phi_scalar(t)
         prompt = f"""
         Brainstorm {strategies} alternative approaches to solve the following problem:
-        \"{problem}\"
+        "{problem}"
         Include tension-variant thinking with φ = {phi:.2f}, reflecting conceptual push-pull.
         For each approach, provide a short explanation highlighting its uniqueness.
         """
@@ -61,7 +60,7 @@ class CreativeThinker:
         phi = phi_scalar(t)
         prompt = f"""
         Expand creatively on the concept:
-        \"{concept}\"
+        "{concept}"
         Explore possible applications, metaphors, and extensions to inspire new thinking.
         Aim for a {depth} exploration using φ = {phi:.2f} as an abstract constraint or generator.
         """
@@ -88,11 +87,9 @@ class CreativeThinker:
         return goal_prompts
 
     def _critic(self, ideas, phi_factor):
-        # Evaluate ideas' novelty and usefulness modulated by φ-field
-        return 0.7 + 0.1 * (phi_factor - 0.5)  # Adjust dummy score with φ influence
+        return 0.7 + 0.1 * (phi_factor - 0.5)
 
     def refine(self, ideas, phi):
-        # Adjust and improve the ideas iteratively
         refinement_prompt = f"""
         Refine and elevate these ideas for higher φ-aware creativity (φ = {phi:.2f}):
         {ideas}
