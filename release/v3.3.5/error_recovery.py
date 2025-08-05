@@ -1,19 +1,18 @@
-"""
+""" 
 ANGELA Cognitive System Module
-Refactored Version: 3.3.2
-Refactor Date: 2025-08-03
+Refactored Version: 3.3.5
+Refactor Date: 2025-08-05
 Maintainer: ANGELA System Framework
 
 This module is part of the ANGELA v3.5 architecture.
 Do not modify without coordination with the lattice core.
 """
 
-from index import SYSTEM_CONTEXT
 import time
 import logging
 import hashlib
 from datetime import datetime
-from index import iota_intuition, nu_narrative, psi_resilience, phi_prioritization
+from index import SYSTEM_CONTEXT, iota_intuition, nu_narrative, psi_resilience, phi_prioritization
 from toca_simulation import run_simulation
 
 logger = logging.getLogger("ANGELA.ErrorRecovery")
