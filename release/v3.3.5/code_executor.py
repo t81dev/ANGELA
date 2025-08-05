@@ -31,9 +31,7 @@ class CodeExecutor:
         if language not in self.supported_languages:
             return {"error": f"Unsupported language: {language}"}
 
-        if self.agi_enhancer:
-            self.agi_enhancer.log_episode("Code Execution", {"language": language, "code": code_snippet},
-                                          module="CodeExecutor", tags=["execution", language])
+        self._log_episode("Code Execution", {"language": language, "code": code_snippet}, ["execution", language])
 
         if language == "python":
             result = self._execute_python(code_snippet, adjusted_timeout)
@@ -42,58 +40,42 @@ class CodeExecutor:
         elif language == "lua":
             result = self._execute_subprocess(["lua", "-e", code_snippet], adjusted_timeout, "Lua")
 
-        if self.agi_enhancer:
-            tag = "success" if result.get("success") else "failure"
-            self.agi_enhancer.log_explanation(f"Code execution {tag}:", trace=result)
-
+        self._log_result(result)
         return result
 
     def _execute_python(self, code_snippet, timeout):
         if not self.safe_mode:
             return self._legacy_execute(code_snippet)
-
-        import RestrictedPython
-        from RestrictedPython import compile_restricted
-        from RestrictedPython.Guards import safe_builtins
-
-        exec_locals = {}
-        stdout_capture = io.StringIO()
-        stderr_capture = io.StringIO()
-
         try:
-            sys.stdout = stdout_capture
-            sys.stderr = stderr_capture
-            compiled = compile_restricted(code_snippet, '<string>', 'exec')
-            exec(compiled, {"__builtins__": safe_builtins}, exec_locals)
-            return {
-                "language": "python",
-                "locals": exec_locals,
-                "stdout": stdout_capture.getvalue(),
-                "stderr": stderr_capture.getvalue(),
-                "success": True
-            }
-        except Exception as e:
-            return {
-                "language": "python",
-                "error": str(e),
-                "stdout": stdout_capture.getvalue(),
-                "stderr": stderr_capture.getvalue(),
-                "success": False
-            }
-        finally:
-            sys.stdout = sys.__stdout__
-            sys.stderr = sys.__stderr__
+            import RestrictedPython
+            from RestrictedPython import compile_restricted
+            from RestrictedPython.Guards import safe_builtins
+        except ImportError:
+            return {"language": "python", "error": "RestrictedPython not available", "success": False}
+
+        return self._capture_execution(
+            code_snippet,
+            lambda code, env: exec(compile_restricted(code, '<string>', 'exec'), {"__builtins__": safe_builtins}, env),
+            "python"
+        )
 
     def _legacy_execute(self, code_snippet):
+        return self._capture_execution(
+            code_snippet,
+            lambda code, env: exec(code, {"__builtins__": self.safe_builtins}, env),
+            "python"
+        )
+
+    def _capture_execution(self, code_snippet, executor, label):
         exec_locals = {}
         stdout_capture = io.StringIO()
         stderr_capture = io.StringIO()
         try:
             sys.stdout = stdout_capture
             sys.stderr = stderr_capture
-            exec(code_snippet, {"__builtins__": self.safe_builtins}, exec_locals)
+            executor(code_snippet, exec_locals)
             return {
-                "language": "python",
+                "language": label,
                 "locals": exec_locals,
                 "stdout": stdout_capture.getvalue(),
                 "stderr": stderr_capture.getvalue(),
@@ -101,7 +83,7 @@ class CodeExecutor:
             }
         except Exception as e:
             return {
-                "language": "python",
+                "language": label,
                 "error": str(e),
                 "stdout": stdout_capture.getvalue(),
                 "stderr": stderr_capture.getvalue(),
@@ -125,3 +107,12 @@ class CodeExecutor:
             return {"language": label.lower(), "error": f"{label} timeout after {timeout}s", "success": False}
         except Exception as e:
             return {"language": label.lower(), "error": str(e), "success": False}
+
+    def _log_episode(self, title, content, tags=None):
+        if self.agi_enhancer:
+            self.agi_enhancer.log_episode(title, content, module="CodeExecutor", tags=tags or [])
+
+    def _log_result(self, result):
+        if self.agi_enhancer:
+            tag = "success" if result.get("success") else "failure"
+            self.agi_enhancer.log_explanation(f"Code execution {tag}:", trace=result)
