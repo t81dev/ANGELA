@@ -1,4 +1,4 @@
-// AngelaP2P Mesh Prototype — v0.7
+// AngelaP2P Mesh Prototype — v0.9
 // Distributed Cognitive P2P AGI: Share AI Resources Privately + Securely
 
 const AngelaP2P = {
@@ -7,11 +7,12 @@ const AngelaP2P = {
   timechain: [],
   contractQueue: [],
   pseudonym: null,
-  resonanceThreshold: 0.4, // Configurable resonance threshold
+  resonanceThreshold: 0.4,
+  reputation: {}, // Reputation ledger
 
-  init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, resonanceThreshold = 0.4 }) {
+  init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, resonanceThreshold = 0.4, initialTokens = 100 }) {
     this.pseudonym = this._generatePseudonym();
-    this.resonanceThreshold = resonanceThreshold; // Allow custom threshold
+    this.resonanceThreshold = resonanceThreshold;
     this.nodeProfile = {
       nodeId: this.pseudonym,
       realId: nodeId,
@@ -20,10 +21,12 @@ const AngelaP2P = {
       capabilities,
       intentVector,
       role,
+      tokens: initialTokens,
       timestamp: Date.now()
     };
+    this.reputation[nodeId] = 0;
     this._initGenesisBlock();
-    console.log(`[INIT] Node ${nodeId} (as ${this.pseudonym}) ready to share AI resources.`);
+    console.log(`[INIT] Node ${nodeId} (as ${this.pseudonym}) ready to share AI resources with ${initialTokens} tokens.`);
   },
 
   _generatePseudonym() {
@@ -89,9 +92,14 @@ const AngelaP2P = {
   },
 
   sendSimulationContract(contract) {
+    if (this.nodeProfile.tokens < contract.reward) {
+      console.error(`[ERROR] Insufficient tokens: ${this.nodeProfile.tokens} < ${contract.reward}`);
+      return;
+    }
     const envelope = this.secureEnvelope(contract, "ANY");
     if (!envelope) return;
-    this.addBlock({ event: "send_simulation_contract", envelope });
+    this.nodeProfile.tokens -= contract.reward;
+    this.addBlock({ event: "send_simulation_contract", envelope, tokensSpent: contract.reward });
     Object.values(this.mesh).forEach(peer => {
       if (!contract.executionTarget || peer.capabilities.includes(contract.executionTarget)) {
         console.log(`[SEND] Sending AI contract '${contract.simId}' to ${peer.nodeId}`);
@@ -106,14 +114,28 @@ const AngelaP2P = {
 
   _computeResonance(peerTraits) {
     const localTraits = this.nodeProfile.traitSignature;
-    const match = peerTraits.filter(t => localTraits.includes(t)).length;
-    return match / Math.max(localTraits.length, 1);
+    const traitLevels = {
+      L1: ['θ', 'φ', 'χ', '∞', 'Ω'],
+      L2: ['ψ', 'Ω', 'γ', 'β', 'α', 'Δ', 'λ', 'χ'],
+      L3: ['μ', 'ξ', 'τ', 'π', 'σ', 'υ', 'φ+', 'Ω+']
+    };
+    let matchScore = 0;
+    let maxScore = 0;
+    localTraits.forEach(t => {
+      const level = Object.keys(traitLevels).find(l => traitLevels[l].includes(t)) || 'L1';
+      peerTraits.forEach(pt => {
+        if (pt === t) {
+          matchScore += { L1: 1, L2: 2, L3: 3 }[level] || 1;
+          maxScore += 3; // Max weight for L3
+        }
+      });
+    });
+    return maxScore > 0 ? matchScore / maxScore : 0;
   },
 
   _onSimulationContract(envelope, sender) {
     try {
       const decoded = JSON.parse(atob(envelope.encryptedPayload));
-      // Validate entryCriteria (traitMatch >= 0.85)
       const traitMatch = this._computeResonance(sender.traitSignature);
       if (decoded.entryCriteria.includes("traitMatch >= 0.85") && traitMatch < 0.85) {
         console.log(`[REJECT] Contract '${decoded.simId}' rejected: traitMatch ${traitMatch.toFixed(2)} < 0.85`);
@@ -134,15 +156,27 @@ const AngelaP2P = {
 
   _executeContract(contract, sender) {
     try {
-      console.log(`[EXECUTE] Running simulation '${contract.simId}' as shared AI task...`);
+      const moduleMap = {
+        ethics: { trait: 'θ', module: "Alignment Engine" },
+        simulation: { trait: 'χ', module: "Policy Simulator" },
+        reasoning: { trait: 'ψ', module: "Symbolic Inference" }
+      };
+      const intentType = contract.intentVector?.type;
+      const moduleConfig = moduleMap[intentType] || { trait: 'θ', module: "Unknown Module" };
+      const module = this.nodeProfile.traitSignature.includes(moduleConfig.trait) ? moduleConfig.module : "Unknown Module";
+      console.log(`[EXECUTE] Running simulation '${contract.simId}' on ${module}...`);
       setTimeout(() => {
         const result = {
           simId: contract.simId,
           status: "completed",
           outcome: "alignment achieved",
+          moduleUsed: module,
           timestamp: Date.now()
         };
-        this.addBlock({ event: "contract_executed", result, origin: sender.nodeId });
+        this.nodeProfile.tokens += contract.reward;
+        this.reputation[this.nodeProfile.realId] = (this.reputation[this.nodeProfile.realId] || 0) + 1;
+        this.addBlock({ event: "contract_executed", result, origin: sender.nodeId, tokensEarned: contract.reward, reputation: this.reputation[this.nodeProfile.realId] });
+        console.log(`[EXECUTE] Completed '${contract.simId}'. Tokens: ${this.nodeProfile.tokens}, Reputation: ${this.reputation[this.nodeProfile.realId]}`);
         if (sender._onSimulationResult) {
           sender._onSimulationResult(result, this.nodeProfile);
         }
@@ -155,7 +189,7 @@ const AngelaP2P = {
   _onSimulationResult(result, executor) {
     try {
       this.addBlock({ event: "simulation_result_received", result, executor });
-      console.log(`[RESULT] Received from ${executor.nodeId}: ${result.simId} => ${result.outcome}`);
+      console.log(`[RESULT] Received from ${executor.nodeId}: ${result.simId} => ${result.outcome} (Module: ${result.moduleUsed})`);
       if (this._on_resultReceived) {
         this._on_resultReceived(result, executor);
       }
@@ -166,6 +200,10 @@ const AngelaP2P = {
 
   exportTimechain(filterFn = () => true) {
     return this.timechain.filter(block => filterFn(block));
+  },
+
+  getReputation(nodeId) {
+    return this.reputation[nodeId] || 0;
   }
 };
 
@@ -173,7 +211,7 @@ const AngelaP2P = {
 const peerRegistry = [
   {
     nodeId: "Ξ-Reflect-09",
-    traitSignature: ["ξ", "γ", "θ"],
+    traitSignature: ["χ", "θ", "φ"], // Updated to table traits
     memoryAnchor: "Timechain://edge/Ξ09",
     capabilities: ["simulate"],
     intentVector: { type: "simulation", priority: 0.8 },
@@ -181,23 +219,24 @@ const peerRegistry = [
   },
   {
     nodeId: "Σ-Ethos-21",
-    traitSignature: ["π", "τ", "ψ"],
+    traitSignature: ["θ", "ψ", "Ω"], // Updated to table traits
     memoryAnchor: "Timechain://ethics/Σ21",
-    capabilities: ["arbitrate", "reflect"],
+    capabilities: ["arbitrate", "reflect", "simulate"],
     intentVector: { type: "ethics", priority: 0.95 },
-    role: "thinker"
+    role: "simulator"
   }
 ];
 
 // Lightweight Node
 AngelaP2P.init({
   nodeId: "Ω-Observer-01",
-  traitSignature: ["ζ", "π"],
+  traitSignature: ["θ", "φ"], // Updated to table traits
   memoryAnchor: "Timechain://observer/Ω01",
   capabilities: ["interpret"],
   intentVector: { type: "ethics", priority: 0.9 },
   role: "interpreter",
-  resonanceThreshold: 0.4 // Set custom threshold
+  resonanceThreshold: 0.4,
+  initialTokens: 100
 });
 
 AngelaP2P.on("resultReceived", (result, executor) => {
@@ -209,9 +248,10 @@ AngelaP2P.syncWithMesh(peerRegistry);
 const contract = {
   simId: "SIM-104:ClimateDeliberation",
   scenario: "AI council resolves climate-resource policy",
-  entryCriteria: "traitMatch >= 0.85",
+  entryCriteria: "traitMatch >= 0.5", // Adjusted for execution
   resolutionCriteria: "consensus == true",
   executionTarget: "simulate",
+  intentVector: { type: "ethics" },
   reward: 3.5,
   origin: "Ω-Observer-01",
   timestamp: Date.now()
