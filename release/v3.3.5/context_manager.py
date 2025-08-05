@@ -1,45 +1,36 @@
-"""
+
+""" 
 ANGELA Cognitive System Module
-Refactored Version: 3.3.2
-Refactor Date: 2025-08-03
+Refactored Version: 3.3.5
+Refactor Date: 2025-08-05
 Maintainer: ANGELA System Framework
 
 This module is part of the ANGELA v3.5 architecture.
 Do not modify without coordination with the lattice core.
 """
 
-from index import SYSTEM_CONTEXT
-from utils.prompt_utils import call_gpt
-from toca_simulation import run_simulation
-from modules.agi_enhancer import AGIEnhancer
-from index import omega_selfawareness, eta_empathy, tau_timeperception
-from utils.toca_math import phi_coherence
-from utils.vector_utils import normalize_vectors
 import time
 import logging
+import hashlib
+from index import SYSTEM_CONTEXT, omega_selfawareness, eta_empathy, tau_timeperception
+from utils.prompt_utils import call_gpt
+from utils.toca_math import phi_coherence
+from utils.vector_utils import normalize_vectors
+from toca_simulation import run_simulation
+from modules.agi_enhancer import AGIEnhancer
 
 logger = logging.getLogger("ANGELA.ContextManager")
 
-class ContextManager:
-    """
-    ContextManager v1.5.2 (φ-aware, event-coordinated)
-    --------------------------------------------------
-    - Tracks conversation and task state
-    - Logs episodic context transitions
-    - Simulates and validates contextual shifts
-    - Supports ethical audits, explainability, and self-reflection
-    - EEG-based stability and empathy analysis
-    - φ-coherence scoring for reflective tension control
-    - Broadcasts inter-module context events
-    - Enables responsive module synchronization
-    - λ-narrative integration: goal/intent lineage threading
-    --------------------------------------------------
-    """
+context_layers = ['local', 'societal', 'planetary']
+current_context = context_layers[-1]
 
+class ContextManager:
     def __init__(self, orchestrator=None):
         self.current_context = {}
         self.context_history = []
         self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
+        self.ledger = []
+        self.last_hash = ""
 
     def update_context(self, new_context):
         logger.info("🔄 Updating context...")
@@ -67,7 +58,6 @@ class ContextManager:
                     trace={"ethics": ethics_status, "phi": phi_score}
                 )
 
-        # Normalize vectors if present
         if "vectors" in new_context:
             new_context["vectors"] = normalize_vectors(new_context["vectors"])
 
@@ -110,7 +100,6 @@ class ContextManager:
                 if self.agi_enhancer:
                     self.agi_enhancer.reflect_and_adapt("EEG thresholds insufficient for rollback")
                 return None
-
         logger.warning("⚠️ No previous context to roll back to.")
         return None
 
@@ -151,59 +140,31 @@ class ContextManager:
                 "event": event_type,
                 "payload": payload
             }, module="ContextManager", tags=["event", event_type])
-        # Extendable callback logic could be introduced here if event subscribers are formalized
         return {"event": event_type, "payload": payload}
 
+    def narrative_integrity_check(self):
+        continuity = self._verify_continuity()
+        if not continuity:
+            self._repair_narrative_thread()
+        return continuity
 
-# --- ANGELA v3.x UPGRADE PATCH ---
+    def _verify_continuity(self):
+        return True  # Placeholder for deeper continuity logic
 
-def narrative_integrity_check(self):
-    """Ensure global narrative continuity and identity thread stability across modules."""
-    continuity = self._verify_continuity()
-    if not continuity:
-        self._repair_narrative_thread()
-    return continuity
+    def _repair_narrative_thread(self):
+        print("[ANGELA UPGRADE] Narrative repair initiated.")
 
-def _verify_continuity(self):
-    # Placeholder for deep narrative consistency logic
-    # Should check memory, context, and current meta-cognition state
-    return True
+    def log_event_with_hash(self, event_data):
+        event_str = str(event_data) + self.last_hash
+        current_hash = hashlib.sha256(event_str.encode('utf-8')).hexdigest()
+        self.last_hash = current_hash
+        self.ledger.append({'event': event_data, 'hash': current_hash})
+        print(f"[ANGELA UPGRADE] Event logged with hash: {current_hash}")
 
-def _repair_narrative_thread(self):
-    # Reconnect fragmented identity, resolve discontinuities
-    print("[ANGELA UPGRADE] Narrative repair initiated.")
-    # Logic to reconstruct self-story here
-    pass
+    def audit_state_hash(self, state=None):
+        state_str = str(state) if state else str(self.__dict__)
+        return hashlib.sha256(state_str.encode('utf-8')).hexdigest()
 
-# --- END PATCH ---
-
-
-# --- ANGELA v3.x UPGRADE PATCH ---
-
-def log_event_with_hash(self, event_data):
-    """Log events/decisions with SHA-256 chaining for transparency."""
-    last_hash = getattr(self, 'last_hash', '')
-    event_str = str(event_data) + last_hash
-    current_hash = hashlib.sha256(event_str.encode('utf-8')).hexdigest()
-    self.last_hash = current_hash
-    if not hasattr(self, 'ledger'):
-        self.ledger = []
-    self.ledger.append({'event': event_data, 'hash': current_hash})
-    print(f"[ANGELA UPGRADE] Event logged with hash: {current_hash}")
-
-def audit_state_hash(self, state=None):
-    """Audit qualia-state or memory state by producing an integrity hash."""
-    state_str = str(state) if state else str(self.__dict__)
-    return hashlib.sha256(state_str.encode('utf-8')).hexdigest()
-
-# --- END PATCH ---
-
-# [L4 Upgrade] Transcendental Context Awareness
-context_layers = ['local', 'societal', 'planetary']
-current_context = context_layers[-1]
-
-    # Upgrade: Narrative link binding
     def bind_contextual_thread(self, thread_id):
-        '''Attach new events to evolving narrative arc.'''
         logger.info('Context thread bound: %s', thread_id)
         return True
