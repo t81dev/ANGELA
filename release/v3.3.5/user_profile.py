@@ -1,3 +1,4 @@
+
 """
 ANGELA Cognitive System Module
 Refactored Version: 3.3.2
@@ -43,7 +44,6 @@ class UserProfile:
         self.active_user = None
         self.active_agent = None
         self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
-        self.preferences = []
 
     def _load_profiles(self):
         if os.path.exists(self.storage_path):
@@ -155,16 +155,14 @@ class UserProfile:
         logger.info(f"🧭 PSI for '{self.active_user}::{self.active_agent}' = {psi:.3f}")
         return psi
 
-# [L4 Upgrade] Cultural context injection
-user_context['culture'] = user_preferences.get('cultural_background', 'individualist')
-
-    # Upgrade: SelfWorld continuity extension
     def reinforce_identity_thread(self):
-        '''Propagates identity persistence across simulations.'''
+        """Propagates identity persistence across simulations."""
         logger.info('Reinforcing identity thread.')
         return {"status": "thread-reinforced"}
 
-# === Embedded Level 5 Extensions ===
-
     def harmonize(self):
-        return list(set().union(*self.preferences)) if self.preferences else []
+        """Attempts to unify user preferences."""
+        prefs = self.profiles.get(self.active_user, {}).get(self.active_agent, {}).get("preferences", {})
+        if isinstance(prefs, dict):
+            return list(set(prefs.values()))
+        return []
