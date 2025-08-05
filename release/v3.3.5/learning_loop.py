@@ -52,21 +52,24 @@ class LearningLoop:
                     logger.warning(f"❌ Rejected goal: {goal['intent']} (simulation failed)")
         return activated
         
+    
     def update_model(self, session_data):
-        logger.info("\ud83d\udcca [LearningLoop] Analyzing session performance...")
+        logger.info("[LearningLoop] Analyzing session performance...")
 
         t = time.time() % 1e-18
         phi = phi_scalar(t)
         eta = eta_feedback(t)
-        logger.debug(f"\u03d5-scalar: {phi:.3f}, η-feedback: {eta:.3f}")
+        entropy = 0.1  # Injected entropy for adaptive modulation
+        logger.debug(f"ϕ-scalar: {phi:.3f}, η-feedback: {eta:.3f}, entropy: {entropy:.2f}")
 
-        modulation_index = (phi + eta) / 2
+        modulation_index = ((phi + eta) / 2) + (entropy * (0.5 - abs(phi - eta)))
         self.meta_learning_rate *= (1 + modulation_index - 0.5)
 
         trace = {
             "timestamp": time.time(),
             "phi": phi,
             "eta": eta,
+            "entropy": entropy,
             "modulation_index": modulation_index,
             "learning_rate": self.meta_learning_rate
         }
@@ -78,12 +81,13 @@ class LearningLoop:
 
         weak_modules = self._find_weak_modules(session_data.get("module_stats", {}))
         if weak_modules:
-            logger.warning(f"\u26a0\ufe0f Weak modules detected: {weak_modules}")
+            logger.warning(f"⚠️ Weak modules detected: {weak_modules}")
             self._propose_module_refinements(weak_modules, trace)
 
         self._detect_capability_gaps(session_data.get("input"), session_data.get("output"))
         self._consolidate_knowledge()
         self._check_narrative_integrity()
+
 
     def propose_autonomous_goal(self):
         logger.info("\ud83c\udfaf [LearningLoop] Proposing autonomous goal.")
@@ -248,14 +252,3 @@ def log_epistemic_revision(self, info, context):
 if 'epistemic_monitor' in globals():
     epistemic_monitor.revise_framework(simulated_outcome)
 
-# === Embedded Level 5 Extensions ===
-
-class LearningLoop:
-    def __init__(self):
-        self.memory = []
-
-    def imprint(self, data):
-        self.memory.append(data)
-
-    def construct_narrative(self):
-        return " -> ".join(self.memory)
