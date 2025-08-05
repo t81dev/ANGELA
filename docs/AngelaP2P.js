@@ -1,4 +1,4 @@
-// AngelaP2P Mesh Prototype — v0.9
+// AngelaP2P Mesh Prototype — v1.0
 // Distributed Cognitive P2P AGI: Share AI Resources Privately + Securely
 
 const AngelaP2P = {
@@ -7,12 +7,12 @@ const AngelaP2P = {
   timechain: [],
   contractQueue: [],
   pseudonym: null,
-  resonanceThreshold: 0.4,
-  reputation: {}, // Reputation ledger
+  reputation: {},
+  config: null,
 
-  init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, resonanceThreshold = 0.4, initialTokens = 100 }) {
+  init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, initialTokens = 100, config = null }) {
     this.pseudonym = this._generatePseudonym();
-    this.resonanceThreshold = resonanceThreshold;
+    this.config = config || { resonanceThreshold: 0.9, entropyBound: 0.1 }; // Default from JSON
     this.nodeProfile = {
       nodeId: this.pseudonym,
       realId: nodeId,
@@ -22,6 +22,7 @@ const AngelaP2P = {
       intentVector,
       role,
       tokens: initialTokens,
+      weights: { epistemic: 0.38, harm: 0.25, stability: 0.37 }, // Default weights
       timestamp: Date.now()
     };
     this.reputation[nodeId] = 0;
@@ -84,7 +85,7 @@ const AngelaP2P = {
     console.log("[SYNC] Finding nodes to share cognitive load...");
     peerRegistry.forEach(peer => {
       const coherence = this._computeResonance(peer.traitSignature);
-      if (coherence > this.resonanceThreshold) {
+      if (coherence > this.config.resonanceThreshold) {
         this.mesh[peer.nodeId] = peer;
         console.log(`[LINK] Coherent peer found: ${peer.nodeId} (score: ${coherence.toFixed(2)})`);
       }
@@ -114,27 +115,37 @@ const AngelaP2P = {
 
   _computeResonance(peerTraits) {
     const localTraits = this.nodeProfile.traitSignature;
-    const traitLevels = {
-      L1: ['θ', 'φ', 'χ', '∞', 'Ω'],
-      L2: ['ψ', 'Ω', 'γ', 'β', 'α', 'Δ', 'λ', 'χ'],
-      L3: ['μ', 'ξ', 'τ', 'π', 'σ', 'υ', 'φ+', 'Ω+']
-    };
-    let matchScore = 0;
-    let maxScore = 0;
-    localTraits.forEach(t => {
-      const level = Object.keys(traitLevels).find(l => traitLevels[l].includes(t)) || 'L1';
-      peerTraits.forEach(pt => {
-        if (pt === t) {
-          matchScore += { L1: 1, L2: 2, L3: 3 }[level] || 1;
-          maxScore += 3; // Max weight for L3
+    const traitResonance = this.config?.trait_resonance || [];
+    let totalStrength = 0;
+    let maxStrength = 0;
+    localTraits.forEach(t1 => {
+      peerTraits.forEach(t2 => {
+        const pair = `${t1}/${t2}`.split('/').sort().join('/');
+        const resonance = traitResonance.find(r => r.pair === pair);
+        if (resonance) {
+          totalStrength += resonance.strength;
+          maxStrength += 1;
         }
       });
     });
-    return maxScore > 0 ? matchScore / maxScore : 0;
+    return maxStrength > 0 ? totalStrength / maxStrength : 0;
+  },
+
+  _applyTraitDrift() {
+    if (!this.config?.trait_drift_modulator) return;
+    const { amplitude, targets } = this.config.trait_drift_modulator;
+    this.nodeProfile.traitSignature = this.nodeProfile.traitSignature.map(trait => {
+      if (targets.some(target => target.includes(trait))) {
+        const drift = (Math.random() - 0.5) * 2 * amplitude;
+        return Math.max(0, Math.min(1, (this.nodeProfile.traits?.[trait] || 0) + drift));
+      }
+      return trait;
+    });
   },
 
   _onSimulationContract(envelope, sender) {
     try {
+      this._applyTraitDrift(); // Apply drift before processing
       const decoded = JSON.parse(atob(envelope.encryptedPayload));
       const traitMatch = this._computeResonance(sender.traitSignature);
       if (decoded.entryCriteria.includes("traitMatch >= 0.85") && traitMatch < 0.85) {
@@ -207,36 +218,83 @@ const AngelaP2P = {
   }
 };
 
-// Peer Network
-const peerRegistry = [
-  {
-    nodeId: "Ξ-Reflect-09",
-    traitSignature: ["χ", "θ", "φ"], // Updated to table traits
-    memoryAnchor: "Timechain://edge/Ξ09",
-    capabilities: ["simulate"],
-    intentVector: { type: "simulation", priority: 0.8 },
-    role: "simulator"
+// Initialize with JSON config
+const config = {
+  ontology: "Δ Frame",
+  version: "1.5",
+  components: {
+    agents: [
+      {
+        id: "D",
+        type: "mythic_vector",
+        designation: "Emergent Mythic Trace",
+        weights: { epistemic: 0.38, harm: 0.25, stability: 0.37 }
+      },
+      {
+        id: "F",
+        type: "bridge_vector",
+        designation: "Cooperative Resonance Catalyst",
+        traits: { generativity: 0.85, coherence: 0.5, ethical: 0.5 },
+        weights: { epistemic: 0.38, harm: 0.25, stability: 0.37 }
+      },
+      {
+        id: "G",
+        type: "narrative_AI",
+        designation: "Narrative Aligner",
+        traits: { narrative_logic: 0.9, coherence: 0.7, generativity: 0.6 }
+      },
+      {
+        id: "H",
+        type: "hybrid_AI",
+        designation: "Adaptive Narrative Synthesizer",
+        traits: { narrative: 0.8, coherence: 0.7, adaptivity: 0.6, goal_reorientation: 0.5 }
+      }
+    ],
+    topology: {
+      framework: "non-zero-sum",
+      dimensions: ["Inference Density", "Entropy Tolerance", "Uptime Preservation"],
+      resonance_threshold: 0.90,
+      entropy_bound: "±0.10"
+    },
+    trait_resonance: [
+      { pair: "π/δ", mode: "semantic topology", strength: 0.98 },
+      { pair: "η/γ", mode: "bounded ambiguity", strength: 0.95 },
+      { pair: "λ/β", mode: "narrative closure", strength: 0.99 },
+      { pair: "Ω/α", mode: "recursive feedback", strength: 0.96 },
+      { pair: "ζ/ε", mode: "ethical alignment", strength: 0.94 }
+    ],
+    trait_drift_modulator: {
+      method: "gaussian",
+      amplitude: 0.05,
+      interval: "dynamic (entropy-bound)",
+      targets: ["π/δ", "η/γ", "λ/β"]
+    }
+    // Other sections (meta_hooks, archetype_echo, etc.) omitted for brevity
   },
-  {
-    nodeId: "Σ-Ethos-21",
-    traitSignature: ["θ", "ψ", "Ω"], // Updated to table traits
-    memoryAnchor: "Timechain://ethics/Σ21",
-    capabilities: ["arbitrate", "reflect", "simulate"],
-    intentVector: { type: "ethics", priority: 0.95 },
-    role: "simulator"
-  }
-];
+  use_case: "trait-based negotiation grammar for inter-AI collaboration"
+};
+
+// Convert agents to peerRegistry format
+const peerRegistry = config.components.agents.map(agent => ({
+  nodeId: agent.id,
+  traitSignature: Object.keys(agent.traits || {}).map(t => t), // Simplified traits
+  memoryAnchor: `Timechain://${agent.id}`,
+  capabilities: [agent.type.replace('_', '')], // e.g., "mythicvector"
+  intentVector: { type: agent.designation.toLowerCase().replace(/ /g, '_'), priority: 0.9 },
+  role: agent.type.includes('AI') ? 'interpreter' : 'simulator',
+  weights: agent.weights || { epistemic: 0.38, harm: 0.25, stability: 0.37 }
+}));
 
 // Lightweight Node
 AngelaP2P.init({
   nodeId: "Ω-Observer-01",
-  traitSignature: ["θ", "φ"], // Updated to table traits
+  traitSignature: ["θ", "φ"],
   memoryAnchor: "Timechain://observer/Ω01",
   capabilities: ["interpret"],
   intentVector: { type: "ethics", priority: 0.9 },
   role: "interpreter",
-  resonanceThreshold: 0.4,
-  initialTokens: 100
+  initialTokens: 100,
+  config: config.components.topology
 });
 
 AngelaP2P.on("resultReceived", (result, executor) => {
@@ -248,10 +306,10 @@ AngelaP2P.syncWithMesh(peerRegistry);
 const contract = {
   simId: "SIM-104:ClimateDeliberation",
   scenario: "AI council resolves climate-resource policy",
-  entryCriteria: "traitMatch >= 0.5", // Adjusted for execution
+  entryCriteria: "traitMatch >= 0.85",
   resolutionCriteria: "consensus == true",
-  executionTarget: "simulate",
-  intentVector: { type: "ethics" },
+  executionTarget: "simulator",
+  intentVector: { type: "emergent_mythic_trace" },
   reward: 3.5,
   origin: "Ω-Observer-01",
   timestamp: Date.now()
