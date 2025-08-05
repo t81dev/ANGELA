@@ -10,6 +10,16 @@ simulated path reconstruction (toca_simulation), trait-modulated perception (met
 contextual harmonization (context_manager), and ethical alignment (alignment_guard).
 Supports integration hooks for reasoning_engine, learning_loop, external_agent_bridge,
 and user_profile modules.
+
+Module Capabilities:
+- Hierarchical memory layers: STM, LTM, SelfReflections
+- Trait-modulated memory decay and phi-attention prioritization
+- Scenario-based replay using ToCASimulation
+- Symbolic abstraction via ConceptSynthesizer
+- Timeline tagging and narrative integrity checks
+- Introspective modeling via ω-reflection logs
+- Refinement loops and hashing for auditability
+- Compatible with cross-agent simulation and ethical arbitration
 """
 
 import json
