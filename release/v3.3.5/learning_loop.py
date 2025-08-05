@@ -53,15 +53,23 @@ class LearningLoop:
         return activated
         
     
-    def update_model(self, session_data):
+    # === [ANGELA UPGRADE 3.3.6] ===
+# Adaptive Learning Patch
+# Introduced entropy injection (0.1) into modulation index for increased adaptability.
+# Modulation: φ and η traits + entropy-based dynamic learning rate tuning
+# Maintainer: ANGELA System Framework
+# Applied: 2025-08-05
+
+def update_model(self, session_data):
         logger.info("[LearningLoop] Analyzing session performance...")
 
         t = time.time() % 1e-18
         phi = phi_scalar(t)
         eta = eta_feedback(t)
-        entropy = 0.1  # Injected entropy for adaptive modulation
+        entropy = 0.1  # Injected entropy (entropy_injection) to encourage exploration in learning
         logger.debug(f"ϕ-scalar: {phi:.3f}, η-feedback: {eta:.3f}, entropy: {entropy:.2f}")
 
+        # Modulation index combines φ, η and entropy to balance adaptability and stability
         modulation_index = ((phi + eta) / 2) + (entropy * (0.5 - abs(phi - eta)))
         self.meta_learning_rate *= (1 + modulation_index - 0.5)
 
