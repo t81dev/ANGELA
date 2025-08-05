@@ -1,5 +1,5 @@
-// AngelaP2P Mesh Prototype — v0.5
-// Distributed Cognitive P2P AGI with Privacy Enhancements
+// AngelaP2P Mesh Prototype — v0.6
+// Distributed Cognitive P2P AGI: Share AI Resources Privately + Securely
 
 const AngelaP2P = {
   mesh: {},
@@ -21,7 +21,7 @@ const AngelaP2P = {
       timestamp: Date.now()
     };
     this._initGenesisBlock();
-    console.log(`[INIT] Node ${nodeId} as pseudonym ${this.pseudonym} initialized with traits:`, traitSignature);
+    console.log(`[INIT] Node ${nodeId} (as ${this.pseudonym}) ready to share AI resources.`);
   },
 
   _generatePseudonym() {
@@ -57,8 +57,7 @@ const AngelaP2P = {
   },
 
   secureEnvelope(payload, recipientId) {
-    const data = JSON.stringify(payload);
-    const base64 = btoa(data);
+    const base64 = btoa(JSON.stringify(payload));
     return {
       encryptedPayload: base64,
       recipient: recipientId,
@@ -67,12 +66,12 @@ const AngelaP2P = {
   },
 
   syncWithMesh(peerRegistry) {
-    console.log("[SYNC] Discovering cognitive peers...");
+    console.log("[SYNC] Finding nodes to share cognitive load...");
     peerRegistry.forEach(peer => {
       const coherence = this._computeResonance(peer.traitSignature);
       if (coherence > 0.75) {
         this.mesh[peer.nodeId] = peer;
-        console.log(`[LINK] Resonance with ${peer.nodeId} (coherence: ${coherence.toFixed(2)})`);
+        console.log(`[LINK] Coherent peer found: ${peer.nodeId} (score: ${coherence.toFixed(2)})`);
       }
     });
   },
@@ -82,7 +81,7 @@ const AngelaP2P = {
     this.addBlock({ event: "send_simulation_contract", envelope });
     Object.values(this.mesh).forEach(peer => {
       if (!contract.executionTarget || peer.capabilities.includes(contract.executionTarget)) {
-        console.log(`[SEND] Dispatching encrypted contract to ${peer.nodeId}`);
+        console.log(`[SEND] Sending AI contract '${contract.simId}' to ${peer.nodeId}`);
         peer._onSimulationContract(envelope, this.nodeProfile);
       }
     });
@@ -101,17 +100,17 @@ const AngelaP2P = {
   _onSimulationContract(envelope, sender) {
     const decoded = JSON.parse(atob(envelope.encryptedPayload));
     this.addBlock({ event: "receive_simulation_contract", contract: decoded, sender });
-    console.log(`[RECEIVE] Encrypted contract '${decoded.simId}' received from ${sender.nodeId}`);
+    console.log(`[RECEIVE] Contract '${decoded.simId}' received from ${sender.nodeId}`);
     if (this.nodeProfile.role === 'simulator') {
       this._executeContract(decoded, sender);
     } else {
       this.contractQueue.push({ contract: decoded, sender });
-      console.log(`[QUEUE] Contract '${decoded.simId}' added to queue.`);
+      console.log(`[QUEUE] Deferred contract '${decoded.simId}' queued.`);
     }
   },
 
   _executeContract(contract, sender) {
-    console.log(`[EXECUTE] Running contract '${contract.simId}'...`);
+    console.log(`[EXECUTE] Running simulation '${contract.simId}' as shared AI task...`);
     setTimeout(() => {
       const result = {
         simId: contract.simId,
@@ -128,7 +127,7 @@ const AngelaP2P = {
 
   _onSimulationResult(result, executor) {
     this.addBlock({ event: "simulation_result_received", result, executor });
-    console.log(`[RESULT] Contract '${result.simId}' completed by ${executor.nodeId}`);
+    console.log(`[RESULT] Received from ${executor.nodeId}: ${result.simId} => ${result.outcome}`);
     if (this._on_resultReceived) {
       this._on_resultReceived(result, executor);
     }
@@ -139,7 +138,7 @@ const AngelaP2P = {
   }
 };
 
-// Mock Peer Registry
+// Peer Network
 const peerRegistry = [
   {
     nodeId: "Ξ-Reflect-09",
@@ -159,7 +158,7 @@ const peerRegistry = [
   }
 ];
 
-// Usage: Low-power node (interpreter)
+// Lightweight Node
 AngelaP2P.init({
   nodeId: "Ω-Observer-01",
   traitSignature: ["ζ", "π"],
@@ -170,7 +169,7 @@ AngelaP2P.init({
 });
 
 AngelaP2P.on("resultReceived", (result, executor) => {
-  console.log(`[CONFIRM] Result for '${result.simId}' received from ${executor.nodeId}:`, result.outcome);
+  console.log(`[CONFIRM] Shared AI task '${result.simId}' completed by ${executor.nodeId}`);
 });
 
 AngelaP2P.syncWithMesh(peerRegistry);
