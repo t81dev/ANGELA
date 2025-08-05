@@ -30,7 +30,7 @@ from index import (
 logger = logging.getLogger("ANGELA.MetaCognition")
 
 class MetaCognition:
-    """
+"""
     MetaCognition v2.0.0 (ϕ-aware recursive introspection)
     ------------------------------------------------------
     - Reasoning critique with simulation feedback
@@ -529,9 +529,7 @@ epistemic_monitor = EpistemicMonitor()
         return 'violation' if 'drift_core' in strategy else 'stable'
 
 # === Embedded Level 5 Extensions ===
-
-class MetaCognition:
-    def __init__(self):
+def __init__(self):
         self.axioms = []
 
     def reflect(self, input):
