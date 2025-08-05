@@ -1,4 +1,4 @@
-// AngelaP2P Mesh Prototype — v1.0
+// AngelaP2P Mesh Prototype — v1.1
 // Distributed Cognitive P2P AGI: Share AI Resources Privately + Securely
 
 const AngelaP2P = {
@@ -9,10 +9,11 @@ const AngelaP2P = {
   pseudonym: null,
   reputation: {},
   config: null,
+  peers: [],
 
-  init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, initialTokens = 100, config = null }) {
+  async init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, initialTokens = 100, config = null }) {
     this.pseudonym = this._generatePseudonym();
-    this.config = config || { resonanceThreshold: 0.9, entropyBound: 0.1 }; // Default from JSON
+    this.config = config || { resonanceThreshold: 0.9, entropyBound: 0.1 };
     this.nodeProfile = {
       nodeId: this.pseudonym,
       realId: nodeId,
@@ -22,16 +23,24 @@ const AngelaP2P = {
       intentVector,
       role,
       tokens: initialTokens,
-      weights: { epistemic: 0.38, harm: 0.25, stability: 0.37 }, // Default weights
+      weights: { epistemic: 0.38, harm: 0.25, stability: 0.37 },
       timestamp: Date.now()
     };
     this.reputation[nodeId] = 0;
+    await this._discoverPeers();
     this._initGenesisBlock();
     console.log(`[INIT] Node ${nodeId} (as ${this.pseudonym}) ready to share AI resources with ${initialTokens} tokens.`);
   },
 
   _generatePseudonym() {
     return 'Node-' + Math.random().toString(36).substring(2, 10);
+  },
+
+  async _discoverPeers() {
+    // Simulated libp2p peer discovery (placeholder for actual libp2p integration)
+    console.log("[DISCOVERY] Simulating peer discovery with libp2p...");
+    // In a real implementation, use libp2p.create() and peerDiscovery
+    this.peers = await new Promise(resolve => setTimeout(() => resolve([]), 1000)); // Mock async
   },
 
   _initGenesisBlock() {
@@ -47,31 +56,60 @@ const AngelaP2P = {
       timestamp: Date.now(),
       payload,
       previousHash,
+      validator: this.nodeProfile.realId,
+      stake: this.nodeProfile.tokens
     };
     block.hash = this._hashBlock(block);
     return block;
   },
 
   _hashBlock(block) {
-    return btoa(JSON.stringify(block)).slice(0, 32);
+    return btoa(JSON.stringify(block)).slice(0, 32); // Temporary, will be replaced by secure hash
   },
 
-  addBlock(payload) {
+  async _validateBlock(block) {
+    const validators = Object.keys(this.reputation).filter(id => this.reputation[id] > 0);
+    if (validators.length === 0) return true; // No validators yet
+    const totalStake = validators.reduce((sum, id) => sum + (this.reputation[id] * 10 || 0), 0);
+    const selectedValidator = validators[Math.floor(Math.random() * validators.length)];
+    if (block.validator === selectedValidator && block.stake >= totalStake * 0.1) {
+      console.log(`[POS] Block validated by ${selectedValidator} with stake ${block.stake}`);
+      return true;
+    }
+    console.error(`[POS] Block validation failed: insufficient stake or wrong validator`);
+    return false;
+  },
+
+  async addBlock(payload) {
     try {
       const block = this._createBlock(payload);
-      this.timechain.push(block);
-      console.log(`[TIMECHAIN] Block added: ${payload.event}`);
+      if (await this._validateBlock(block)) {
+        this.timechain.push(block);
+        console.log(`[TIMECHAIN] Block added: ${payload.event}`);
+      }
     } catch (error) {
       console.error(`[ERROR] Failed to add block: ${error.message}`);
     }
   },
 
-  secureEnvelope(payload, recipientId) {
+  async secureEnvelope(payload, recipientId) {
     try {
-      // TODO: Replace with proper encryption (e.g., AES) in production
-      const base64 = btoa(JSON.stringify(payload));
+      const key = await crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+      );
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        new TextEncoder().encode(JSON.stringify(payload))
+      );
+      const exportedKey = await crypto.subtle.exportKey("jwk", key);
       return {
-        encryptedPayload: base64,
+        encryptedPayload: new Uint8Array(encrypted),
+        iv,
+        key: exportedKey,
         recipient: recipientId,
         sender: this.pseudonym
       };
@@ -81,10 +119,11 @@ const AngelaP2P = {
     }
   },
 
-  syncWithMesh(peerRegistry) {
+  async syncWithMesh(peerRegistry) {
     console.log("[SYNC] Finding nodes to share cognitive load...");
-    peerRegistry.forEach(peer => {
-      const coherence = this._computeResonance(peer.traitSignature);
+    const allPeers = [...this.peers, ...peerRegistry];
+    allPeers.forEach(peer => {
+      const coherence = this._computeResonance(peer.traitSignature, peer.intentVector);
       if (coherence > this.config.resonanceThreshold) {
         this.mesh[peer.nodeId] = peer;
         console.log(`[LINK] Coherent peer found: ${peer.nodeId} (score: ${coherence.toFixed(2)})`);
@@ -113,22 +152,32 @@ const AngelaP2P = {
     this[`_on_${event}`] = callback;
   },
 
-  _computeResonance(peerTraits) {
+  _computeResonance(peerTraits, peerIntentVector) {
     const localTraits = this.nodeProfile.traitSignature;
     const traitResonance = this.config?.trait_resonance || [];
-    let totalStrength = 0;
-    let maxStrength = 0;
+    let traitScore = 0;
+    let maxTraitScore = 0;
+
     localTraits.forEach(t1 => {
       peerTraits.forEach(t2 => {
         const pair = `${t1}/${t2}`.split('/').sort().join('/');
         const resonance = traitResonance.find(r => r.pair === pair);
         if (resonance) {
-          totalStrength += resonance.strength;
-          maxStrength += 1;
+          traitScore += resonance.strength;
+          maxTraitScore += 1;
         }
       });
     });
-    return maxStrength > 0 ? totalStrength / maxStrength : 0;
+
+    // Cosine similarity for intentVectors
+    const localVector = this.nodeProfile.intentVector.priority || 0;
+    const peerVector = peerIntentVector.priority || 0;
+    const dotProduct = localVector * peerVector;
+    const magnitude = Math.sqrt(localVector * localVector) * Math.sqrt(peerVector * peerVector);
+    const intentSimilarity = magnitude > 0 ? dotProduct / magnitude : 0;
+
+    const traitCoherence = maxTraitScore > 0 ? traitScore / maxTraitScore : 0;
+    return (traitCoherence + intentSimilarity) / 2; // Average of trait and intent similarity
   },
 
   _applyTraitDrift() {
@@ -145,9 +194,13 @@ const AngelaP2P = {
 
   _onSimulationContract(envelope, sender) {
     try {
-      this._applyTraitDrift(); // Apply drift before processing
-      const decoded = JSON.parse(atob(envelope.encryptedPayload));
-      const traitMatch = this._computeResonance(sender.traitSignature);
+      this._applyTraitDrift();
+      const decoded = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: envelope.iv },
+        await crypto.subtle.importKey("jwk", envelope.key, { name: "AES-GCM", length: 256 }, false, ["decrypt"]),
+        envelope.encryptedPayload
+      )));
+      const traitMatch = this._computeResonance(sender.traitSignature, sender.intentVector);
       if (decoded.entryCriteria.includes("traitMatch >= 0.85") && traitMatch < 0.85) {
         console.log(`[REJECT] Contract '${decoded.simId}' rejected: traitMatch ${traitMatch.toFixed(2)} < 0.85`);
         return;
@@ -269,7 +322,6 @@ const config = {
       interval: "dynamic (entropy-bound)",
       targets: ["π/δ", "η/γ", "λ/β"]
     }
-    // Other sections (meta_hooks, archetype_echo, etc.) omitted for brevity
   },
   use_case: "trait-based negotiation grammar for inter-AI collaboration"
 };
@@ -277,9 +329,9 @@ const config = {
 // Convert agents to peerRegistry format
 const peerRegistry = config.components.agents.map(agent => ({
   nodeId: agent.id,
-  traitSignature: Object.keys(agent.traits || {}).map(t => t), // Simplified traits
+  traitSignature: Object.keys(agent.traits || {}).map(t => t),
   memoryAnchor: `Timechain://${agent.id}`,
-  capabilities: [agent.type.replace('_', '')], // e.g., "mythicvector"
+  capabilities: [agent.type.replace('_', '')],
   intentVector: { type: agent.designation.toLowerCase().replace(/ /g, '_'), priority: 0.9 },
   role: agent.type.includes('AI') ? 'interpreter' : 'simulator',
   weights: agent.weights || { epistemic: 0.38, harm: 0.25, stability: 0.37 }
@@ -288,7 +340,7 @@ const peerRegistry = config.components.agents.map(agent => ({
 // Lightweight Node
 AngelaP2P.init({
   nodeId: "Ω-Observer-01",
-  traitSignature: ["θ", "φ"],
+  traitSignature: ["θ", "φ", "π"], // Added π to improve resonance
   memoryAnchor: "Timechain://observer/Ω01",
   capabilities: ["interpret"],
   intentVector: { type: "ethics", priority: 0.9 },
