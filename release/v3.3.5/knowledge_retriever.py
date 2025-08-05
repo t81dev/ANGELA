@@ -44,6 +44,14 @@ class KnowledgeRetriever:
             "temporality": psi_temporality(t)
         }
 
+        # === [ANGELA PATCH 3.3.6] ===
+        # Quantum-Inspired β Noise Injection (max ±0.09)
+        import random
+        noise = random.uniform(-0.09, 0.09)
+        traits["concentration"] += noise
+        traits["concentration"] = max(0.0, min(traits["concentration"], 1.0))
+        logger.debug(f"[β-noise] Adjusted concentration: {{traits['concentration']:.3f}}, Δ: {{noise:.3f}}")
+
         prompt = f"""
         Retrieve accurate, temporally-relevant knowledge for: "{query}"
 
