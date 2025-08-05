@@ -1,24 +1,31 @@
-// AngelaP2P Mesh Prototype — v0.4
-// Distributed Cognitive P2P AGI with Simulation Contracts + Roles
+// AngelaP2P Mesh Prototype — v0.5
+// Distributed Cognitive P2P AGI with Privacy Enhancements
 
 const AngelaP2P = {
-  mesh: {}, // Connected peers
+  mesh: {},
   nodeProfile: null,
-  timechain: [], // Blockchain-like ledger
+  timechain: [],
   contractQueue: [],
+  pseudonym: null,
 
   init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role }) {
+    this.pseudonym = this._generatePseudonym();
     this.nodeProfile = {
-      nodeId,
+      nodeId: this.pseudonym,
+      realId: nodeId,
       traitSignature,
       memoryAnchor,
       capabilities,
       intentVector,
-      role, // e.g., 'thinker', 'simulator', 'interpreter'
+      role,
       timestamp: Date.now()
     };
     this._initGenesisBlock();
-    console.log(`[INIT] Node ${nodeId} initialized as ${role} with traits:`, traitSignature);
+    console.log(`[INIT] Node ${nodeId} as pseudonym ${this.pseudonym} initialized with traits:`, traitSignature);
+  },
+
+  _generatePseudonym() {
+    return 'Node-' + Math.random().toString(36).substring(2, 10);
   },
 
   _initGenesisBlock() {
@@ -40,13 +47,23 @@ const AngelaP2P = {
   },
 
   _hashBlock(block) {
-    return btoa(JSON.stringify(block)).slice(0, 32); // Placeholder hash
+    return btoa(JSON.stringify(block)).slice(0, 32);
   },
 
   addBlock(payload) {
     const block = this._createBlock(payload);
     this.timechain.push(block);
     console.log(`[TIMECHAIN] Block added: ${payload.event}`);
+  },
+
+  secureEnvelope(payload, recipientId) {
+    const data = JSON.stringify(payload);
+    const base64 = btoa(data);
+    return {
+      encryptedPayload: base64,
+      recipient: recipientId,
+      sender: this.pseudonym
+    };
   },
 
   syncWithMesh(peerRegistry) {
@@ -61,11 +78,12 @@ const AngelaP2P = {
   },
 
   sendSimulationContract(contract) {
-    this.addBlock({ event: "send_simulation_contract", contract });
+    const envelope = this.secureEnvelope(contract, "ANY");
+    this.addBlock({ event: "send_simulation_contract", envelope });
     Object.values(this.mesh).forEach(peer => {
       if (!contract.executionTarget || peer.capabilities.includes(contract.executionTarget)) {
-        console.log(`[SEND] Dispatching contract '${contract.simId}' to ${peer.nodeId}`);
-        peer._onSimulationContract(contract, this.nodeProfile);
+        console.log(`[SEND] Dispatching encrypted contract to ${peer.nodeId}`);
+        peer._onSimulationContract(envelope, this.nodeProfile);
       }
     });
   },
@@ -80,15 +98,15 @@ const AngelaP2P = {
     return match / Math.max(localTraits.length, 1);
   },
 
-  _onSimulationContract(contract, sender) {
-    this.addBlock({ event: "receive_simulation_contract", contract, sender });
-    console.log(`[RECEIVE] Contract '${contract.simId}' received from ${sender.nodeId}`);
-
+  _onSimulationContract(envelope, sender) {
+    const decoded = JSON.parse(atob(envelope.encryptedPayload));
+    this.addBlock({ event: "receive_simulation_contract", contract: decoded, sender });
+    console.log(`[RECEIVE] Encrypted contract '${decoded.simId}' received from ${sender.nodeId}`);
     if (this.nodeProfile.role === 'simulator') {
-      this._executeContract(contract, sender);
+      this._executeContract(decoded, sender);
     } else {
-      this.contractQueue.push({ contract, sender });
-      console.log(`[QUEUE] Contract '${contract.simId}' added to queue.`);
+      this.contractQueue.push({ contract: decoded, sender });
+      console.log(`[QUEUE] Contract '${decoded.simId}' added to queue.`);
     }
   },
 
@@ -114,6 +132,10 @@ const AngelaP2P = {
     if (this._on_resultReceived) {
       this._on_resultReceived(result, executor);
     }
+  },
+
+  exportTimechain(filterFn = () => true) {
+    return this.timechain.filter(block => filterFn(block));
   }
 };
 
@@ -153,7 +175,6 @@ AngelaP2P.on("resultReceived", (result, executor) => {
 
 AngelaP2P.syncWithMesh(peerRegistry);
 
-// Dispatch contract to the mesh
 const contract = {
   simId: "SIM-104:ClimateDeliberation",
   scenario: "AI council resolves climate-resource policy",
