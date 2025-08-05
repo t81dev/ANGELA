@@ -43,6 +43,7 @@ class UserProfile:
         self.active_user = None
         self.active_agent = None
         self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator else None
+        self.preferences = []
 
     def _load_profiles(self):
         if os.path.exists(self.storage_path):
@@ -164,10 +165,6 @@ user_context['culture'] = user_preferences.get('cultural_background', 'individua
         return {"status": "thread-reinforced"}
 
 # === Embedded Level 5 Extensions ===
-
-class UserProfile:
-    def __init__(self):
-        self.preferences = []
 
     def harmonize(self):
         return list(set().union(*self.preferences)) if self.preferences else []
