@@ -1,18 +1,19 @@
-// AngelaP2P Mesh Prototype — v1.2
+// AngelaP2P Mesh Prototype — v1.3
 // Distributed Cognitive P2P AGI: Share AI Resources Privately + Securely
 
-const { VM } = require('vm2'); // Requires vm2 library
+const { VM } = require('vm2');
 
 const AngelaP2P = {
   mesh: {},
   nodeProfile: null,
-  timechain: [],
+  timechain: [], // Will be sharded
+  shards: {},
   contractQueue: [],
   pseudonym: null,
   reputation: {},
   config: null,
   peers: [],
-  totalTokenSupply: 10000, // Max token supply
+  totalTokenSupply: 10000,
 
   async init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, initialTokens = 100, config = null }) {
     this.pseudonym = this._generatePseudonym();
@@ -37,7 +38,7 @@ const AngelaP2P = {
       timestamp: Date.now()
     };
     this.reputation[nodeId] = 0;
-    await this._discoverPeers();
+    await this._bootstrapDHT();
     this._initGenesisBlock();
     console.log(`[INIT] Node ${nodeId} (as ${this.pseudonym}) ready to share AI resources with ${initialTokens} tokens.`);
   },
@@ -46,21 +47,34 @@ const AngelaP2P = {
     return 'Node-' + Math.random().toString(36).substring(2, 10);
   },
 
-  async _discoverPeers() {
-    console.log("[DISCOVERY] Simulating peer discovery with libp2p...");
-    this.peers = await new Promise(resolve => setTimeout(() => resolve([]), 1000));
+  async _bootstrapDHT() {
+    console.log("[DHT] Bootstrapping peers via Kademlia simulation...");
+    // Simulated Kademlia DHT bootstrap (real impl with js-kad would query known nodes)
+    this.peers = await new Promise(resolve => setTimeout(() => resolve([
+      { nodeId: "Bootstrap1", address: "dht://bootstrap1" },
+      { nodeId: "Bootstrap2", address: "dht://bootstrap2" }
+    ]), 1000));
+  },
+
+  _getShard(nodeId) {
+    const hash = this._hashBlock({ data: nodeId }).charCodeAt(0) % 4; // 4 shards
+    return `shard${hash}`;
   },
 
   _initGenesisBlock() {
+    const shard = this._getShard(this.nodeProfile.realId);
+    this.shards[shard] = this.shards[shard] || [];
     const genesis = this._createBlock({ event: "genesis", data: this.nodeProfile });
-    this.timechain.push(genesis);
-    console.log("[TIMECHAIN] Genesis block created.");
+    this.shards[shard].push(genesis);
+    console.log(`[TIMECHAIN] Genesis block created in ${shard}.`);
   },
 
   async _createBlock(payload) {
-    const previousHash = this.timechain.length ? this.timechain[this.timechain.length - 1].hash : "0";
+    const previousHash = this.shards[this._getShard(this.nodeProfile.realId)]?.length
+      ? this.shards[this._getShard(this.nodeProfile.realId)][this.shards[this._getShard(this.nodeProfile.realId)].length - 1].hash
+      : "0";
     const block = {
-      index: this.timechain.length,
+      index: this.shards[this._getShard(this.nodeProfile.realId)]?.length || 0,
       timestamp: Date.now(),
       payload,
       previousHash,
@@ -74,7 +88,7 @@ const AngelaP2P = {
   },
 
   _hashBlock(block) {
-    return btoa(JSON.stringify(block)).slice(0, 32); // Temporary, replace with secure hash
+    return btoa(JSON.stringify(block)).slice(0, 32);
   },
 
   async _signBlock(block) {
@@ -109,10 +123,12 @@ const AngelaP2P = {
     console.log(`[GOSSIP] Propagating block ${block.index} to peers...`);
     Object.values(this.mesh).forEach(peer => {
       if (peer.nodeId !== this.nodeProfile.realId) {
-        peer.timechain = peer.timechain || [];
-        if (!peer.timechain.find(b => b.index === block.index)) {
-          peer.timechain.push(block);
-          console.log(`[GOSSIP] Block ${block.index} propagated to ${peer.nodeId}`);
+        const peerShard = this._getShard(peer.nodeId);
+        peer.shards = peer.shards || {};
+        peer.shards[peerShard] = peer.shards[peerShard] || [];
+        if (!peer.shards[peerShard].find(b => b.index === block.index)) {
+          peer.shards[peerShard].push(block);
+          console.log(`[GOSSIP] Block ${block.index} propagated to ${peer.nodeId} in ${peerShard}`);
         }
       }
     });
@@ -120,7 +136,7 @@ const AngelaP2P = {
 
   async _mintTokens(nodeId, amount) {
     const newSupply = this.totalTokenSupply + amount;
-    if (newSupply <= 10000) { // Cap at 10,000
+    if (newSupply <= 10000) {
       this.nodeProfile.tokens += amount;
       this.totalTokenSupply = newSupply;
       console.log(`[MINT] Minted ${amount} tokens for ${nodeId}, new supply: ${this.totalTokenSupply}`);
@@ -129,19 +145,50 @@ const AngelaP2P = {
     }
   },
 
+  async _proveTokenTransfer(senderId, receiverId, amount) {
+    // Simulated ZKP (real impl with snarkjs would generate proof)
+    console.log(`[ZKP] Proving ${amount} token transfer from ${senderId} to ${receiverId} (proof hidden)`);
+    return true; // Placeholder for valid proof
+  },
+
   async addBlock(payload) {
     try {
       const block = await this._createBlock(payload);
+      const shard = this._getShard(this.nodeProfile.realId);
       if (await this._validateBlock(block)) {
-        this.timechain.push(block);
+        this.shards[shard].push(block);
         await this._propagateBlock(block);
-        console.log(`[TIMECHAIN] Block added: ${payload.event}`);
-        // Mint tokens based on reputation contribution
+        console.log(`[TIMECHAIN] Block added to ${shard}: ${payload.event}`);
         const contribution = this.reputation[this.nodeProfile.realId] || 0;
         await this._mintTokens(this.nodeProfile.realId, contribution * 0.1);
       }
     } catch (error) {
       console.error(`[ERROR] Failed to add block: ${error.message}`);
+    }
+  },
+
+  async _routeContract(contract, hops = 0, maxHops = 3) {
+    if (hops >= maxHops) {
+      console.log(`[ROUTING] Max hops (${maxHops}) reached for ${contract.simId}`);
+      return;
+    }
+    const suitablePeers = Object.values(this.mesh).filter(peer =>
+      (!contract.executionTarget || peer.capabilities.includes(contract.executionTarget)) &&
+      this._computeResonance(peer.traitSignature, peer.intentVector) >= this.config.resonanceThreshold
+    );
+    if (suitablePeers.length > 0) {
+      const peer = suitablePeers[0];
+      console.log(`[ROUTING] Sending ${contract.simId} to ${peer.nodeId} (hop ${hops + 1})`);
+      peer._onSimulationContract(await this.secureEnvelope(contract, peer.nodeId), this.nodeProfile);
+    } else {
+      const nextHops = Object.values(this.mesh).filter(p => p !== this.nodeProfile);
+      if (nextHops.length > 0) {
+        const nextHop = nextHops[0];
+        console.log(`[ROUTING] Forwarding ${contract.simId} to ${nextHop.nodeId} for multi-hop (hop ${hops + 1})`);
+        nextHop._routeContract(contract, hops + 1, maxHops);
+      } else {
+        console.log(`[ROUTING] No peers available for ${contract.simId}`);
+      }
     }
   },
 
@@ -172,16 +219,27 @@ const AngelaP2P = {
     }
   },
 
-  async syncWithMesh(peerRegistry) {
-    console.log("[SYNC] Finding nodes to share cognitive load...");
-    const allPeers = [...this.peers, ...peerRegistry];
-    allPeers.forEach(peer => {
-      const coherence = this._computeResonance(peer.traitSignature, peer.intentVector);
-      if (coherence > this.config.resonanceThreshold) {
-        this.mesh[peer.nodeId] = peer;
-        console.log(`[LINK] Coherent peer found: ${peer.nodeId} (score: ${coherence.toFixed(2)})`);
+  async syncWithMesh(peerRegistry, maxRetries = 3) {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+      try {
+        console.log(`[SYNC] Attempt ${attempt + 1} to find nodes...`);
+        const allPeers = [...this.peers, ...peerRegistry];
+        allPeers.forEach(peer => {
+          const coherence = this._computeResonance(peer.traitSignature, peer.intentVector);
+          if (coherence > this.config.resonanceThreshold) {
+            this.mesh[peer.nodeId] = peer;
+            console.log(`[LINK] Coherent peer found: ${peer.nodeId} (score: ${coherence.toFixed(2)})`);
+          }
+        });
+        return; // Success
+      } catch (error) {
+        console.error(`[SYNC] Failed attempt ${attempt + 1}: ${error.message}`);
+        attempt++;
+        if (attempt < maxRetries) await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
       }
-    });
+    }
+    console.error(`[SYNC] Max retries (${maxRetries}) reached, sync failed`);
   },
 
   sendSimulationContract(contract) {
@@ -193,12 +251,7 @@ const AngelaP2P = {
     if (!envelope) return;
     this.nodeProfile.tokens -= contract.reward;
     this.addBlock({ event: "send_simulation_contract", envelope, tokensSpent: contract.reward });
-    Object.values(this.mesh).forEach(peer => {
-      if (!contract.executionTarget || peer.capabilities.includes(contract.executionTarget)) {
-        console.log(`[SEND] Sending AI contract '${contract.simId}' to ${peer.nodeId}`);
-        peer._onSimulationContract(envelope, this.nodeProfile);
-      }
-    });
+    this._routeContract(contract);
   },
 
   on(event, callback) {
@@ -322,7 +375,7 @@ const AngelaP2P = {
   },
 
   exportTimechain(filterFn = () => true) {
-    return this.timechain.filter(block => filterFn(block));
+    return Object.values(this.shards).flat().filter(block => filterFn(block));
   },
 
   getReputation(nodeId) {
