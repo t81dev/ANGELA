@@ -1,4 +1,3 @@
-```python
 """
 ANGELA Cognitive System Module
 Refactored Version: 3.4.0  # Enhanced for Ecosystem Integration and Drift Mitigation
