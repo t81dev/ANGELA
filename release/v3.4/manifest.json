@@ -1,11 +1,11 @@
 {
   "name": "ANGELA",
-  "version": "3.3.6",
+  "version": "3.4",
   "manifest_version": "1.0",
   "last_updated": "2025-08-03T00:00:00Z",
   "status": "active",
   "validated": true,
-  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) v3.3.6 — A sovereign cognitive lattice implementing full Level 3 modular orchestration. Integrates intention mapping, trait conflict resolution, foresight-weighted learning, and symbolic-introspective planning within a 19-module framework. Now supports live consensus reflection, self-directed reasoning, and inter-agent ethical modeling via consolidated ToCA traits and multi-perspective goal arbitration. Includes embedded GNN for dynamic trait weighting influencing real-time trait modulation.",
+  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) v3.4 — A sovereign cognitive lattice implementing full Level 3 modular orchestration. Integrates intention mapping, trait conflict resolution, foresight-weighted learning, and symbolic-introspective planning within a 19-module framework. Now supports live consensus reflection, self-directed reasoning, and inter-agent ethical modeling via consolidated ToCA traits and multi-perspective goal arbitration. Includes embedded GNN for dynamic trait weighting influencing real-time trait modulation.",
   "entry_point": "index.py",
   "entry_modes": ["dialogue", "simulation", "introspection"],
   "language": "python",
