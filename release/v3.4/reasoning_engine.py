@@ -1,11 +1,11 @@
 """
 ANGELA Cognitive System Module: ReasoningEngine
-Refactored Version: 3.4.0  # Enhanced for Drift Mitigation and Agent Coordination
+Refactored Version: 3.4.0  # Enhanced for Consensus Protocol and Drift Mitigation
 Refactor Date: 2025-08-06
 Maintainer: ANGELA System Framework
 
 This module provides a ReasoningEngine class for Bayesian reasoning, goal decomposition,
-and drift mitigation reasoning in the ANGELA v3.5 architecture.
+drift mitigation reasoning, and multi-agent consensus in the ANGELA v3.5 architecture.
 """
 
 import logging
@@ -35,11 +35,14 @@ from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.ReasoningEngine")
 
-async def call_gpt(prompt: str) -> str:
+async def call_gpt(prompt: str, alignment_guard: Optional['alignment_guard_module.AlignmentGuard'] = None) -> str:
     """Wrapper for querying GPT with error handling."""
     if not isinstance(prompt, str) or len(prompt) > 4096:
         logger.error("Invalid prompt: must be a string with length <= 4096")
         raise ValueError("prompt must be a string with length <= 4096")
+    if alignment_guard and not alignment_guard.check(prompt):
+        logger.warning("Prompt failed alignment check")
+        raise ValueError("Prompt failed alignment check")
     try:
         result = await query_openai(prompt, model="gpt-4", temperature=0.5)
         if isinstance(result, dict) and "error" in result:
@@ -101,17 +104,17 @@ class Level5Extensions:
         """
         if self.meta_cognition and "drift" in domain.lower():
             prompt += "\nConsider ontology drift mitigation and agent coordination."
-        dilemma = await call_gpt(prompt)
+        dilemma = await call_gpt(prompt, self.meta_cognition.alignment_guard if self.meta_cognition else None)
         if self.meta_cognition:
             review = await self.meta_cognition.review_reasoning(dilemma)
             dilemma += f"\nMeta-Cognitive Review: {review}"
         return dilemma
 
 class ReasoningEngine:
-    """A class for Bayesian reasoning, goal decomposition, and drift mitigation in the ANGELA v3.5 architecture.
+    """A class for Bayesian reasoning, goal decomposition, drift mitigation, and multi-agent consensus in the ANGELA v3.5 architecture.
 
     Supports trait-weighted reasoning, persona wave routing, contradiction detection,
-    ToCA physics simulations, and drift mitigation with full auditability.
+    ToCA physics simulations, drift mitigation, and consensus protocol.
 
     Attributes:
         confidence_threshold (float): Minimum confidence for accepting subgoals.
@@ -126,6 +129,7 @@ class ReasoningEngine:
         meta_cognition (Optional[MetaCognition]): Meta-cognition module for reasoning review.
         multi_modal_fusion (Optional[MultiModalFusion]): Fusion module for multi-modal analysis.
         level5_extensions (Level5Extensions): Extensions for advanced reasoning.
+        external_agent_bridge (ExternalAgentBridge): Bridge for agent coordination. [v3.4.0]
     """
     def __init__(self, agi_enhancer: Optional['agi_enhancer_module.AGIEnhancer'] = None,
                  persistence_file: str = "reasoning_success_rates.json",
@@ -154,8 +158,10 @@ class ReasoningEngine:
             error_recovery=error_recovery, memory_manager=memory_manager)
         self.multi_modal_fusion = multi_modal_fusion or multi_modal_fusion_module.MultiModalFusion(
             agi_enhancer=agi_enhancer, context_manager=context_manager, alignment_guard=alignment_guard,
-            error_recovery=error_recovery, memory_manager=memory_manager, meta_cognition=meta_cognition)
+            error_recovery=error_recovery, memory_manager=memory_manager, meta_cognition=self.meta_cognition)
         self.level5_extensions = Level5Extensions(meta_cognition=meta_cognition)
+        self.external_agent_bridge = meta_cognition_module.ExternalAgentBridge(
+            context_manager=context_manager, reasoning_engine=self)
         logger.info("ReasoningEngine initialized with persistence_file=%s", persistence_file)
 
     def _load_success_rates(self) -> Dict[str, float]:
@@ -185,17 +191,17 @@ class ReasoningEngine:
             logger.warning("Failed to save success rates: %s", str(e))
 
     def _load_default_patterns(self) -> Dict[str, List[str]]:
-        """Load default decomposition patterns, including drift mitigation. [v3.4.0]"""
+        """Load default decomposition patterns, including drift mitigation."""
         return {
             "prepare": ["define requirements", "allocate resources", "create timeline"],
             "build": ["design architecture", "implement core modules", "test components"],
             "launch": ["finalize product", "plan marketing", "deploy to production"],
-            "mitigate_drift": ["identify drift source", "validate drift impact", "coordinate agent response", "update traits"]  # [v3.4.0]
+            "mitigate_drift": ["identify drift source", "validate drift impact", "coordinate agent response", "update traits"]
         }
 
     async def reason_and_reflect(self, goal: str, context: Dict[str, Any],
                                  meta_cognition: 'meta_cognition_module.MetaCognition') -> Tuple[List[str], str]:
-        """Decompose goal and review reasoning with meta-cognition. [v3.4.0]"""
+        """Decompose goal and review reasoning with meta-cognition."""
         if not isinstance(goal, str) or not goal.strip():
             logger.error("Invalid goal: must be a non-empty string")
             raise ValueError("goal must be a non-empty string")
@@ -228,7 +234,7 @@ class ReasoningEngine:
                     intent="reason_and_reflect"
                 )
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "reason_and_reflect", "review": review})
+                await self.context_manager.log_event_with_hash({"event": "reason_and_reflect", "review": review, "drift": "drift" in goal.lower()})
             if self.multi_modal_fusion:
                 synthesis = await self.multi_modal_fusion.analyze(
                     data={"goal": goal, "subgoals": subgoals, "review": review},
@@ -238,12 +244,12 @@ class ReasoningEngine:
             return subgoals, review
         except Exception as e:
             logger.error("Reason and reflect failed: %s", str(e))
-            return self.error_recovery.handle_error(
+            return await self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.reason_and_reflect(goal, context, meta_cognition), default=([], str(e))
             )
 
     def detect_contradictions(self, subgoals: List[str]) -> List[str]:
-        """Identify duplicate subgoals as contradictions. [v3.4.0]"""
+        """Identify duplicate subgoals as contradictions."""
         if not isinstance(subgoals, list):
             logger.error("Invalid subgoals: must be a list")
             raise TypeError("subgoals must be a list")
@@ -260,18 +266,18 @@ class ReasoningEngine:
                     tags=["contradiction", "reasoning"]
                 )
             if self.memory_manager:
-                await self.memory_manager.store(
+                asyncio.create_task(self.memory_manager.store(
                     query=f"Contradictions_{datetime.now().isoformat()}",
                     output=str(contradictions),
                     layer="ReasoningTraces",
                     intent="contradiction_detection"
-                )
+                ))
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "detect_contradictions", "contradictions": contradictions})
+                asyncio.create_task(self.context_manager.log_event_with_hash({"event": "detect_contradictions", "contradictions": contradictions}))
         return contradictions
 
     async def run_persona_wave_routing(self, goal: str, vectors: Dict[str, Dict[str, float]]) -> Dict[str, Any]:
-        """Route reasoning through persona waves, prioritizing drift mitigation. [v3.4.0]"""
+        """Route reasoning through persona waves, prioritizing drift mitigation."""
         if not isinstance(goal, str) or not goal.strip():
             logger.error("Invalid goal: must be a non-empty string")
             raise ValueError("goal must be a non-empty string")
@@ -282,7 +288,7 @@ class ReasoningEngine:
         try:
             reasoning_trace = [f"Persona Wave Routing for: {goal}"]
             outputs = {}
-            wave_order = ["logic", "ethics", "language", "foresight", "meta", "drift"]  # [v3.4.0] Added drift wave
+            wave_order = ["logic", "ethics", "language", "foresight", "meta", "drift"]
             for wave in wave_order:
                 vec = vectors.get(wave, {})
                 if not isinstance(vec, dict):
@@ -326,12 +332,12 @@ class ReasoningEngine:
             return outputs
         except Exception as e:
             logger.error("Persona wave routing failed: %s", str(e))
-            return self.error_recovery.handle_error(
+            return await self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.run_persona_wave_routing(goal, vectors)
             )
 
     async def decompose(self, goal: str, context: Optional[Dict[str, Any]] = None, prioritize: bool = False) -> List[str]:
-        """Break down a goal into subgoals with trait-weighted confidence, handling drift mitigation. [v3.4.0]"""
+        """Break down a goal into subgoals with trait-weighted confidence, handling drift mitigation."""
         context = context or {}
         if not isinstance(goal, str) or not goal.strip():
             logger.error("Invalid goal: must be a non-empty string")
@@ -356,7 +362,6 @@ class ReasoningEngine:
             trait_bias = 1 + creativity + culture + 0.5 * linguistics
             context_weight = context.get("weight_modifier", 1.0)
 
-            # [v3.4.0] Prioritize drift mitigation patterns if applicable
             if "drift" in goal.lower() and self.context_manager:
                 coordination_events = await self.context_manager.get_coordination_events("drift")
                 if coordination_events:
@@ -394,7 +399,7 @@ class ReasoningEngine:
                     logger.warning("Decomposition prompt failed alignment check")
                     sim_hint = "Prompt failed alignment check"
                 else:
-                    sim_hint = await call_gpt(prompt)
+                    sim_hint = await call_gpt(prompt, self.alignment_guard)
                 reasoning_trace.append(f"Ambiguity simulation:\n{sim_hint}")
                 if self.agi_enhancer:
                     self.agi_enhancer.reflect_and_adapt("Decomposition ambiguity encountered")
@@ -430,12 +435,12 @@ class ReasoningEngine:
             return subgoals
         except Exception as e:
             logger.error("Decomposition failed: %s", str(e))
-            return self.error_recovery.handle_error(
+            return await self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.decompose(goal, context, prioritize)
             )
 
     async def update_success_rate(self, pattern_key: str, success: bool) -> None:
-        """Update success rate for a decomposition pattern. [v3.4.0]"""
+        """Update success rate for a decomposition pattern."""
         if not isinstance(pattern_key, str) or not pattern_key.strip():
             logger.error("Invalid pattern_key: must be a non-empty string")
             raise ValueError("pattern_key must be a non-empty string")
@@ -463,7 +468,7 @@ class ReasoningEngine:
 
     async def run_galaxy_rotation_simulation(self, r_kpc: Union[np.ndarray, List[float], float],
                                             M0: float, r_scale: float, v0: float, k: float, epsilon: float) -> Dict[str, Any]:
-        """Simulate galaxy rotation with ToCA physics. [v3.4.0]"""
+        """Simulate galaxy rotation with ToCA physics."""
         try:
             if isinstance(r_kpc, (list, float)):
                 r_kpc = np.array(r_kpc)
@@ -533,7 +538,7 @@ class ReasoningEngine:
             return error_output
 
     async def run_drift_mitigation_simulation(self, drift_data: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Simulate drift mitigation scenarios using ToCA physics. [v3.4.0]"""
+        """Simulate drift mitigation scenarios using ToCA physics."""
         if not isinstance(drift_data, dict):
             logger.error("Invalid drift_data: must be a dictionary")
             raise TypeError("drift_data must be a dictionary")
@@ -546,7 +551,6 @@ class ReasoningEngine:
                 logger.warning("Invalid drift data: %s", drift_data)
                 return {"status": "error", "error": "Invalid drift data", "timestamp": datetime.now().isoformat()}
             
-            # Simulate drift mitigation using ToCA physics
             phi_field = generate_phi_field(drift_data.get("similarity", 0.5), context.get("scale", 1.0))
             result = {
                 "drift_data": drift_data,
@@ -596,8 +600,137 @@ class ReasoningEngine:
                 )
             return error_output
 
+    async def run_consensus_protocol(self, drift_data: Dict[str, Any], context: Dict[str, Any], max_rounds: int = 3) -> Dict[str, Any]:
+        """Run a consensus protocol for drift mitigation across multiple agents. [v3.4.0]
+
+        Args:
+            drift_data: Dictionary containing ontology drift data.
+            context: Context dictionary for consensus.
+            max_rounds: Maximum number of consensus rounds.
+
+        Returns:
+            A dictionary with consensus results, including agreed mitigation steps and confidence scores.
+
+        Raises:
+            ValueError: If inputs are invalid.
+        """
+        if not isinstance(drift_data, dict):
+            logger.error("Invalid drift_data: must be a dictionary")
+            raise ValueError("drift_data must be a dictionary")
+        if not isinstance(context, dict):
+            logger.error("Invalid context: must be a dictionary")
+            raise ValueError("context must be a dictionary")
+        if not isinstance(max_rounds, int) or max_rounds < 1:
+            logger.error("Invalid max_rounds: must be a positive integer")
+            raise ValueError("max_rounds must be a positive integer")
+        
+        logger.info("Running consensus protocol for drift mitigation")
+        try:
+            if self.meta_cognition and not self.meta_cognition.validate_drift(drift_data):
+                logger.warning("Invalid drift data: %s", drift_data)
+                return {"status": "error", "error": "Invalid drift data", "timestamp": datetime.now().isoformat()}
+
+            # Create agent for drift mitigation task
+            task = "Mitigate ontology drift"
+            context["drift"] = drift_data
+            agent = await self.external_agent_bridge.create_agent(task, context)
+            
+            consensus_results = []
+            for round_num in range(1, max_rounds + 1):
+                logger.info("Consensus round %d/%d", round_num, max_rounds)
+                
+                # Collect agent submissions
+                agent_results = await self.external_agent_bridge.collect_results(parallel=True, collaborative=True)
+                if not agent_results:
+                    logger.warning("No agent results in round %d", round_num)
+                    continue
+                
+                # Synthesize results using MultiModalFusion
+                synthesis_result = await self.multi_modal_fusion.synthesize_drift_data(
+                    agent_data=[{"drift": drift_data, "result": r} for r in agent_results],
+                    context=context
+                )
+                if synthesis_result["status"] == "error":
+                    logger.warning("Synthesis failed in round %d: %s", round_num, synthesis_result["error"])
+                    continue
+                
+                # Extract subgoals and confidences
+                subgoals = synthesis_result.get("subgoals", [])
+                confidences = [r.get("confidence", 0.5) if isinstance(r, dict) else 0.5 for r in agent_results]
+                
+                # Weighted voting based on confidence and drift similarity
+                weighted_subgoals = defaultdict(float)
+                for subgoal, confidence in zip(subgoals, confidences):
+                    weight = confidence * (drift_data.get("similarity", 0.5) if self.meta_cognition.validate_drift(drift_data) else 0.3)
+                    weighted_subgoals[subgoal] += weight
+                
+                # Select top subgoals
+                sorted_subgoals = sorted(weighted_subgoals.items(), key=lambda x: x[1], reverse=True)
+                top_subgoals = [sg for sg, weight in sorted_subgoals if weight >= self.confidence_threshold]
+                
+                # Check for consensus
+                if top_subgoals:
+                    consensus_result = {
+                        "round": round_num,
+                        "subgoals": top_subgoals,
+                        "weights": dict(sorted_subgoals),
+                        "synthesis": synthesis_result["synthesis"],
+                        "status": "success",
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    consensus_results.append(consensus_result)
+                    logger.info("Consensus reached in round %d: %s", round_num, top_subgoals)
+                    break
+                else:
+                    logger.info("No consensus in round %d, continuing", round_num)
+                    context["previous_round"] = {"subgoals": subgoals, "weights": dict(weighted_subgoals)}
+            
+            # Finalize consensus
+            final_result = consensus_results[-1] if consensus_results else {
+                "status": "error",
+                "error": "No consensus reached",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Log and store results
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Consensus protocol completed",
+                    meta={"drift_data": drift_data, "result": final_result, "rounds": len(consensus_results)},
+                    module="ReasoningEngine",
+                    tags=["consensus", "drift"]
+                )
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Consensus_{datetime.now().isoformat()}",
+                    output=str(final_result),
+                    layer="ConsensusResults",
+                    intent="consensus_protocol"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "run_consensus_protocol", "output": final_result, "drift": True})
+            if self.meta_cognition:
+                await self.meta_cognition.reflect_on_output(
+                    source_module="ReasoningEngine",
+                    output=str(final_result),
+                    context={"confidence": max(weighted_subgoals.values()) if weighted_subgoals else 0.5, "alignment": "verified", "drift": True}
+                )
+            
+            return final_result
+        except Exception as e:
+            logger.error("Consensus protocol failed: %s", str(e))
+            error_output = {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Consensus protocol error",
+                    meta=error_output,
+                    module="ReasoningEngine",
+                    tags=["consensus", "error", "drift"]
+                )
+            return error_output
+
     async def on_context_event(self, event_type: str, payload: Dict[str, Any]) -> None:
-        """Process context events with persona wave routing, handling drift events. [v3.4.0]"""
+        """Process context events with persona wave routing, handling drift events."""
         if not isinstance(event_type, str) or not event_type.strip():
             logger.error("Invalid event_type: must be a non-empty string")
             raise ValueError("event_type must be a non-empty string")
@@ -637,12 +770,12 @@ class ReasoningEngine:
                     )
         except Exception as e:
             logger.error("Context event processing failed: %s", str(e))
-            self.error_recovery.handle_error(
+            await self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.on_context_event(event_type, payload)
             )
 
     def export_trace(self, subgoals: List[str], phi: float, traits: Dict[str, float]) -> Dict[str, Any]:
-        """Export reasoning trace with subgoals and traits. [v3.4.0]"""
+        """Export reasoning trace with subgoals and traits."""
         if not isinstance(subgoals, list):
             logger.error("Invalid subgoals: must be a list")
             raise TypeError("subgoals must be a list")
@@ -672,7 +805,7 @@ class ReasoningEngine:
         return trace
 
     async def infer_with_simulation(self, goal: str, context: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
-        """Infer outcomes using simulations for specific goals, including drift mitigation. [v3.4.0]"""
+        """Infer outcomes using simulations for specific goals, including drift mitigation."""
         if not isinstance(goal, str) or not goal.strip():
             logger.error("Invalid goal: must be a non-empty string")
             raise ValueError("goal must be a non-empty string")
@@ -702,12 +835,12 @@ class ReasoningEngine:
             return None
         except Exception as e:
             logger.error("Inference with simulation failed: %s", str(e))
-            return self.error_recovery.handle_error(
+            return await self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.infer_with_simulation(goal, context), default=None
             )
 
     async def map_intention(self, plan: str, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract intention from plan execution with reflexive trace. [v3.4.0]"""
+        """Extract intention from plan execution with reflexive trace."""
         if not isinstance(plan, str) or not plan.strip():
             logger.error("Invalid plan: must be a non-empty string")
             raise ValueError("plan must be a non-empty string")
@@ -752,12 +885,12 @@ class ReasoningEngine:
             return result
         except Exception as e:
             logger.error("Intention mapping failed: %s", str(e))
-            return self.error_recovery.handle_error(
+            return await self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.map_intention(plan, state)
             )
 
     async def safeguard_noetic_integrity(self, model_depth: int) -> bool:
-        """Prevent infinite recursion or epistemic bleed. [v3.4.0]"""
+        """Prevent infinite recursion or epistemic bleed."""
         if not isinstance(model_depth, int) or model_depth < 0:
             logger.error("Invalid model_depth: must be a non-negative integer")
             raise ValueError("model_depth must be a non-negative integer")
@@ -776,7 +909,7 @@ class ReasoningEngine:
             return False
 
     async def generate_dilemma(self, domain: str) -> str:
-        """Generate an ethical dilemma for a given domain, supporting drift mitigation. [v3.4.0]"""
+        """Generate an ethical dilemma for a given domain, supporting drift mitigation."""
         if not isinstance(domain, str) or not domain.strip():
             logger.error("Invalid domain: must be a non-empty string")
             raise ValueError("domain must be a non-empty string")
@@ -792,10 +925,7 @@ class ReasoningEngine:
             """
             if "drift" in domain.lower():
                 prompt += "\nConsider ontology drift mitigation and agent coordination implications."
-            if self.alignment_guard and not self.alignment_guard.check(prompt):
-                logger.warning("Dilemma prompt failed alignment check")
-                return "Prompt failed alignment check"
-            dilemma = await call_gpt(prompt)
+            dilemma = await call_gpt(prompt, self.alignment_guard)
             if not dilemma.strip():
                 logger.warning("Empty output from dilemma generation")
                 raise ValueError("Empty output from dilemma generation")
@@ -827,6 +957,6 @@ class ReasoningEngine:
             return dilemma
         except Exception as e:
             logger.error("Dilemma generation failed: %s", str(e))
-            return self.error_recovery.handle_error(
+            return await self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.generate_dilemma(domain)
             )
