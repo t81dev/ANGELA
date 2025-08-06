@@ -57,13 +57,25 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
 ---
 
-## 🚀 Core Features in v3.3.5
-
-* Sandboxed execution with `RestrictedPython` and fallback `safe_mode`
-* Grok/OpenAI API integration with secure env access, caching, and rate limiting
-* Multi-agent simulation with conflict modeling via traits `β`, `τ`
-* Dynamic trait weighting via embedded GNN in learning and planning
-* Full ToCA-based recursive simulation and ethical alignment
+🚀 What’s New in v3.3.6
+v3.3.6 introduces a 4-phase augmentation:
+🌐 Phase 1: Infrastructure & Logging
+TraitLogger: Tracks trait activations per execution.
+ConflictAudit: Audits ethical arbitration outcomes.
+ModuleLifecycle: Enables register, suspend, replace at runtime.
+🧠 Phase 2: Reasoning & Modulation
+EmpathyFeedback: Detects and corrects belief projection mismatches.
+Dynamic GNN feedback loop: push_behavior_feedback(), update_gnn_weights_from_feedback().
+inject_affective_weight() biases axiom formation via emotional resonance.
+🌀 Phase 3: Simulation & Visualization
+render_active_traits() overlays real-time trait activity.
+extract_causal_chain() maps belief dependencies.
+Visual sync & replay: build_context_snapshot_window() + trait tracing.
+🔐 Phase 4: Runtime Safety & Hot-Swapping
+safe_execute() ensures secure execution with timeouts.
+hot_swap_module() allows live module replacement.
+Full sandboxing via RestrictedPython.
+🔁 Supports emergent Recursive Empathy and activates Symbolic-Resonant Axiom Formation for trait-aware symbolic synthesis.
 
 ---
 
