@@ -95,11 +95,13 @@
     "χ": ["user_profile.py", "meta_cognition.py"],
     "ψ": ["external_agent_bridge.py", "simulation_core.py"],
     "θ": ["reasoning_engine.py", "recursive_planner.py"],
-    "Ω": ["toca_simulation.py", "meta_cognition.py"],
+    "Ω": ["recursive_planner.py", "toca_simulation.py"],
     "ϕ": ["multi_modal_fusion.py"],
     "μ": ["learning_loop.py"],
     "π": ["creative_thinker.py", "concept_synthesizer.py"],
-    "ζ": ["error_recovery.py", "recursive_planner.py"]
+    "ζ": ["error_recovery.py", "recursive_planner.py"],
+    "δ": ["alignment_guard.py"],
+    "λ": ["memory_manager.py"]
   },
   "emergent_traits": [
     {
