@@ -13,6 +13,8 @@ import time
 import math
 import asyncio
 import numpy as np
+import os
+import json
 from typing import List, Dict, Any, Optional, Tuple
 from collections import deque, Counter
 from datetime import datetime
@@ -869,4 +871,25 @@ class MetaCognition:
         try:
             report = await call_gpt(prompt)
             logger.debug("Self-diagnostics report: %s", report)
-           
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Self-diagnostics run",
+                    meta={"diagnostics": diagnostics, "report": report},
+                    module="MetaCognition",
+                    tags=["diagnostics", "self"]
+                )
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Diagnostics_{datetime.now().isoformat()}",
+                    output=report,
+                    layer="SelfReflections",
+                    intent="self_diagnostics"
+                )
+            if self.context_manager:
+                self.context_manager.log_event_with_hash({"event": "run_self_diagnostics", "report": report})
+            return report
+        except Exception as e:
+            logger.error("Self-diagnostics failed: %s", str(e))
+            return self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.run_self_diagnostics(return_only)
+            )
