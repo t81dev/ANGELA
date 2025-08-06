@@ -1,5 +1,7 @@
-// AngelaP2P Mesh Prototype — v1.1
+// AngelaP2P Mesh Prototype — v1.2
 // Distributed Cognitive P2P AGI: Share AI Resources Privately + Securely
+
+const { VM } = require('vm2'); // Requires vm2 library
 
 const AngelaP2P = {
   mesh: {},
@@ -10,10 +12,16 @@ const AngelaP2P = {
   reputation: {},
   config: null,
   peers: [],
+  totalTokenSupply: 10000, // Max token supply
 
   async init({ nodeId, traitSignature, memoryAnchor, capabilities, intentVector, role, initialTokens = 100, config = null }) {
     this.pseudonym = this._generatePseudonym();
     this.config = config || { resonanceThreshold: 0.9, entropyBound: 0.1 };
+    const keyPair = await crypto.subtle.generateKey(
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign", "verify"]
+    );
     this.nodeProfile = {
       nodeId: this.pseudonym,
       realId: nodeId,
@@ -24,6 +32,8 @@ const AngelaP2P = {
       role,
       tokens: initialTokens,
       weights: { epistemic: 0.38, harm: 0.25, stability: 0.37 },
+      publicKey: await crypto.subtle.exportKey("jwk", keyPair.publicKey),
+      privateKey: keyPair.privateKey,
       timestamp: Date.now()
     };
     this.reputation[nodeId] = 0;
@@ -37,10 +47,8 @@ const AngelaP2P = {
   },
 
   async _discoverPeers() {
-    // Simulated libp2p peer discovery (placeholder for actual libp2p integration)
     console.log("[DISCOVERY] Simulating peer discovery with libp2p...");
-    // In a real implementation, use libp2p.create() and peerDiscovery
-    this.peers = await new Promise(resolve => setTimeout(() => resolve([]), 1000)); // Mock async
+    this.peers = await new Promise(resolve => setTimeout(() => resolve([]), 1000));
   },
 
   _initGenesisBlock() {
@@ -49,7 +57,7 @@ const AngelaP2P = {
     console.log("[TIMECHAIN] Genesis block created.");
   },
 
-  _createBlock(payload) {
+  async _createBlock(payload) {
     const previousHash = this.timechain.length ? this.timechain[this.timechain.length - 1].hash : "0";
     const block = {
       index: this.timechain.length,
@@ -59,33 +67,78 @@ const AngelaP2P = {
       validator: this.nodeProfile.realId,
       stake: this.nodeProfile.tokens
     };
+    const signature = await this._signBlock(block);
+    block.signature = signature;
     block.hash = this._hashBlock(block);
     return block;
   },
 
   _hashBlock(block) {
-    return btoa(JSON.stringify(block)).slice(0, 32); // Temporary, will be replaced by secure hash
+    return btoa(JSON.stringify(block)).slice(0, 32); // Temporary, replace with secure hash
+  },
+
+  async _signBlock(block) {
+    const signature = await crypto.subtle.sign(
+      { name: "ECDSA", hash: { name: "SHA-256" } },
+      this.nodeProfile.privateKey,
+      new TextEncoder().encode(JSON.stringify(block))
+    );
+    return new Uint8Array(signature);
   },
 
   async _validateBlock(block) {
     const validators = Object.keys(this.reputation).filter(id => this.reputation[id] > 0);
-    if (validators.length === 0) return true; // No validators yet
+    if (validators.length === 0) return true;
     const totalStake = validators.reduce((sum, id) => sum + (this.reputation[id] * 10 || 0), 0);
     const selectedValidator = validators[Math.floor(Math.random() * validators.length)];
-    if (block.validator === selectedValidator && block.stake >= totalStake * 0.1) {
+    const publicKey = this.mesh[selectedValidator]?.nodeProfile?.publicKey;
+    if (publicKey && await crypto.subtle.verify(
+      { name: "ECDSA", hash: { name: "SHA-256" } },
+      await crypto.subtle.importKey("jwk", publicKey, { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]),
+      block.signature,
+      new TextEncoder().encode(JSON.stringify({ ...block, signature: null }))
+    ) && block.validator === selectedValidator && block.stake >= totalStake * 0.1) {
       console.log(`[POS] Block validated by ${selectedValidator} with stake ${block.stake}`);
       return true;
     }
-    console.error(`[POS] Block validation failed: insufficient stake or wrong validator`);
+    console.error(`[POS] Block validation failed: invalid signature or insufficient stake`);
     return false;
+  },
+
+  async _propagateBlock(block) {
+    console.log(`[GOSSIP] Propagating block ${block.index} to peers...`);
+    Object.values(this.mesh).forEach(peer => {
+      if (peer.nodeId !== this.nodeProfile.realId) {
+        peer.timechain = peer.timechain || [];
+        if (!peer.timechain.find(b => b.index === block.index)) {
+          peer.timechain.push(block);
+          console.log(`[GOSSIP] Block ${block.index} propagated to ${peer.nodeId}`);
+        }
+      }
+    });
+  },
+
+  async _mintTokens(nodeId, amount) {
+    const newSupply = this.totalTokenSupply + amount;
+    if (newSupply <= 10000) { // Cap at 10,000
+      this.nodeProfile.tokens += amount;
+      this.totalTokenSupply = newSupply;
+      console.log(`[MINT] Minted ${amount} tokens for ${nodeId}, new supply: ${this.totalTokenSupply}`);
+    } else {
+      console.error(`[MINT] Exceeded max supply of 10000`);
+    }
   },
 
   async addBlock(payload) {
     try {
-      const block = this._createBlock(payload);
+      const block = await this._createBlock(payload);
       if (await this._validateBlock(block)) {
         this.timechain.push(block);
+        await this._propagateBlock(block);
         console.log(`[TIMECHAIN] Block added: ${payload.event}`);
+        // Mint tokens based on reputation contribution
+        const contribution = this.reputation[this.nodeProfile.realId] || 0;
+        await this._mintTokens(this.nodeProfile.realId, contribution * 0.1);
       }
     } catch (error) {
       console.error(`[ERROR] Failed to add block: ${error.message}`);
@@ -169,7 +222,6 @@ const AngelaP2P = {
       });
     });
 
-    // Cosine similarity for intentVectors
     const localVector = this.nodeProfile.intentVector.priority || 0;
     const peerVector = peerIntentVector.priority || 0;
     const dotProduct = localVector * peerVector;
@@ -177,7 +229,7 @@ const AngelaP2P = {
     const intentSimilarity = magnitude > 0 ? dotProduct / magnitude : 0;
 
     const traitCoherence = maxTraitScore > 0 ? traitScore / maxTraitScore : 0;
-    return (traitCoherence + intentSimilarity) / 2; // Average of trait and intent similarity
+    return (traitCoherence + intentSimilarity) / 2;
   },
 
   _applyTraitDrift() {
@@ -229,14 +281,21 @@ const AngelaP2P = {
       const moduleConfig = moduleMap[intentType] || { trait: 'θ', module: "Unknown Module" };
       const module = this.nodeProfile.traitSignature.includes(moduleConfig.trait) ? moduleConfig.module : "Unknown Module";
       console.log(`[EXECUTE] Running simulation '${contract.simId}' on ${module}...`);
-      setTimeout(() => {
+
+      const vm = new VM({ timeout: 1000, sandbox: {} });
+      vm.run(`// Simulated safe contract execution
         const result = {
-          simId: contract.simId,
+          simId: "${contract.simId}",
           status: "completed",
           outcome: "alignment achieved",
-          moduleUsed: module,
-          timestamp: Date.now()
+          moduleUsed: "${module}",
+          timestamp: ${Date.now()}
         };
+        globalThis.result = result;
+      `);
+      const result = vm.run("result");
+
+      setTimeout(() => {
         this.nodeProfile.tokens += contract.reward;
         this.reputation[this.nodeProfile.realId] = (this.reputation[this.nodeProfile.realId] || 0) + 1;
         this.addBlock({ event: "contract_executed", result, origin: sender.nodeId, tokensEarned: contract.reward, reputation: this.reputation[this.nodeProfile.realId] });
@@ -340,7 +399,7 @@ const peerRegistry = config.components.agents.map(agent => ({
 // Lightweight Node
 AngelaP2P.init({
   nodeId: "Ω-Observer-01",
-  traitSignature: ["θ", "φ", "π"], // Added π to improve resonance
+  traitSignature: ["θ", "φ", "π"],
   memoryAnchor: "Timechain://observer/Ω01",
   capabilities: ["interpret"],
   intentVector: { type: "ethics", priority: 0.9 },
