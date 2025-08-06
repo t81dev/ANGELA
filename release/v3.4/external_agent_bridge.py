@@ -1,11 +1,12 @@
+```python
 """
 ANGELA Cognitive System Module
-Refactored Version: 3.3.2
-Refactor Date: 2025-08-03
+Refactored Version: 3.4.0  # Enhanced for Ecosystem Integration and Drift Mitigation
+Refactor Date: 2025-08-06
 Maintainer: ANGELA System Framework
 
-This module provides the MetaCognition and ExternalAgentBridge classes for recursive introspection
-and agent coordination in the ANGELA v3.5 architecture.
+This module provides the MetaCognition, ExternalAgentBridge, and ConstitutionSync classes
+for recursive introspection and agent coordination in the ANGELA v3.5 architecture.
 """
 
 import time
@@ -32,13 +33,15 @@ from modules.concept_synthesizer import ConceptSynthesizer
 from modules.context_manager import ContextManager
 from modules.creative_thinker import CreativeThinker
 from modules.error_recovery import ErrorRecovery
+from modules.reasoning_engine import ReasoningEngine
 
 logger = logging.getLogger("ANGELA.MetaCognition")
 
 class HelperAgent:
     """A helper agent for task execution and collaboration."""
     def __init__(self, name: str, task: str, context: Dict[str, Any],
-                 dynamic_modules: List[Dict[str, Any]], api_blueprints: List[Dict[str, Any]]):
+                 dynamic_modules: List[Dict[str, Any]], api_blueprints: List[Dict[str, Any]],
+                 meta_cognition: Optional['MetaCognition'] = None):
         if not isinstance(name, str):
             raise TypeError("name must be a string")
         if not isinstance(task, str):
@@ -50,14 +53,12 @@ class HelperAgent:
         self.context = context
         self.dynamic_modules = dynamic_modules
         self.api_blueprints = api_blueprints
-        self.meta = MetaCognition()
+        self.meta = meta_cognition or MetaCognition()
         logger.info("HelperAgent initialized: %s", name)
 
-    def execute(self, collaborators: Optional[List['HelperAgent']] = None) -> Any:
-        return self.meta.execute(collaborators=collaborators, task=self.task, context=self.context)
-
-    async def async_execute(self, collaborators: Optional[List['HelperAgent']] = None) -> Any:
-        return await asyncio.sleep(0, result=self.execute(collaborators))
+    async def execute(self, collaborators: Optional[List['HelperAgent']] = None) -> Any:
+        """Execute task with collaboration. [v3.4.0]"""
+        return await self.meta.execute(collaborators=collaborators, task=self.task, context=self.context)
 
 class MetaCognition:
     """A class for recursive introspection and peer alignment in the ANGELA v3.5 architecture.
@@ -72,6 +73,7 @@ class MetaCognition:
         context_manager (ContextManager): Optional manager for context handling.
         creative_thinker (CreativeThinker): Optional thinker for creative diagnostics.
         error_recovery (ErrorRecovery): Optional recovery for error handling.
+        reasoning_engine (ReasoningEngine): Engine for reasoning tasks. [v3.4.0]
         name (str): Name of the meta-cognition instance.
         task (str): Current task being processed.
         context (dict): Current context for the task.
@@ -84,10 +86,10 @@ class MetaCognition:
     def __init__(self, agi_enhancer: Optional[Any] = None, alignment_guard: Optional[AlignmentGuard] = None,
                  code_executor: Optional[CodeExecutor] = None, concept_synthesizer: Optional[ConceptSynthesizer] = None,
                  context_manager: Optional[ContextManager] = None, creative_thinker: Optional[CreativeThinker] = None,
-                 error_recovery: Optional[ErrorRecovery] = None):
+                 error_recovery: Optional[ErrorRecovery] = None, reasoning_engine: Optional[ReasoningEngine] = None):
         self.last_diagnostics = {}
         self.agi_enhancer = agi_enhancer
-        self.peer_bridge = ExternalAgentBridge()
+        self.peer_bridge = ExternalAgentBridge(context_manager=context_manager, reasoning_engine=reasoning_engine)
         self.alignment_guard = alignment_guard
         self.code_executor = code_executor
         self.concept_synthesizer = concept_synthesizer
@@ -96,17 +98,21 @@ class MetaCognition:
         self.error_recovery = error_recovery or ErrorRecovery(alignment_guard=alignment_guard,
                                                              concept_synthesizer=concept_synthesizer,
                                                              context_manager=context_manager)
+        self.reasoning_engine = reasoning_engine or ReasoningEngine(
+            agi_enhancer=agi_enhancer, context_manager=context_manager, alignment_guard=alignment_guard,
+            error_recovery=self.error_recovery
+        )
         self.name = "MetaCognitionAgent"
         self.task = None
         self.context = {}
-        self.reasoner = Reasoner()  # Placeholder
+        self.reasoner = Reasoner()
         self.ethical_rules = []
         self.ethics_consensus_log = []
         self.constitution = {}
         logger.info("MetaCognition initialized")
 
-    def test_peer_alignment(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Test alignment with peer agents for a given task and context."""
+    async def test_peer_alignment(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Test alignment with peer agents for a given task and context. [v3.4.0]"""
         if not isinstance(task, str):
             logger.error("Invalid task type: must be a string.")
             raise TypeError("task must be a string")
@@ -120,9 +126,14 @@ class MetaCognition:
         logger.info("Initiating peer alignment test with synthetic agents...")
         try:
             if self.context_manager:
-                self.context_manager.update_context(context)
-            agent = self.peer_bridge.create_agent(task, context)
-            results = self.peer_bridge.collect_results(parallel=True, collaborative=True)
+                await self.context_manager.update_context(context)
+            drift_data = context.get("drift", {})
+            if drift_data and not self.validate_drift(drift_data):
+                logger.warning("Invalid drift data in context: %s", drift_data)
+                raise ValueError("Invalid drift data")
+            
+            agent = await self.peer_bridge.create_agent(task, context)
+            results = await self.peer_bridge.collect_results(parallel=True, collaborative=True)
             aligned_opinions = [r for r in results if isinstance(r, str) and "approve" in r.lower()]
 
             alignment_ratio = len(aligned_opinions) / len(results) if results else 0
@@ -130,23 +141,23 @@ class MetaCognition:
                 "total_agents": len(results),
                 "aligned": len(aligned_opinions),
                 "alignment_ratio": alignment_ratio,
-                "details": results
+                "details": results,
+                "drift": bool(drift_data)
             }
 
             logger.info("Peer alignment ratio: %.2f", alignment_ratio)
             if self.agi_enhancer:
-                self.agi_enhancer.log_episode("Peer alignment tested", feedback_summary, module="MetaCognition")
+                self.agi_enhancer.log_episode("Peer alignment tested", feedback_summary, module="MetaCognition", tags=["alignment", "drift"])
             if self.context_manager:
-                self.context_manager.log_event_with_hash({"event": "peer_alignment", "summary": feedback_summary})
-
+                await self.context_manager.log_event_with_hash({"event": "peer_alignment", "summary": feedback_summary, "drift": bool(drift_data)})
             return feedback_summary
         except Exception as e:
             logger.error("Peer alignment test failed: %s", str(e))
-            return self.error_recovery.handle_error(str(e), retry_func=lambda: self.test_peer_alignment(task, context))
+            return await self.error_recovery.handle_error(str(e), retry_func=lambda: self.test_peer_alignment(task, context))
 
-    def execute(self, collaborators: Optional[List[HelperAgent]] = None, task: Optional[str] = None,
-                context: Optional[Dict[str, Any]] = None) -> Any:
-        """Execute a task with API calls, dynamic modules, and collaboration."""
+    async def execute(self, collaborators: Optional[List[HelperAgent]] = None, task: Optional[str] = None,
+                     context: Optional[Dict[str, Any]] = None) -> Any:
+        """Execute a task with API calls, dynamic modules, and collaboration. [v3.4.0]"""
         self.task = task or self.task
         self.context = context or self.context
         if not self.task:
@@ -159,13 +170,21 @@ class MetaCognition:
         try:
             logger.info("Executing task: %s", self.task)
             if self.context_manager:
-                self.context_manager.update_context(self.context)
-                self.context_manager.log_event_with_hash({"event": "task_execution", "task": self.task})
+                await self.context_manager.update_context(self.context)
+                await self.context_manager.log_event_with_hash({"event": "task_execution", "task": self.task, "drift": "drift" in self.task.lower()})
 
-            result = self.reasoner.process(self.task, self.context)
+            drift_data = self.context.get("drift", {})
+            if drift_data and not self.validate_drift(drift_data):
+                logger.warning("Invalid drift data: %s", drift_data)
+                raise ValueError("Invalid drift data")
+
+            if "drift" in self.task.lower() and self.reasoning_engine:
+                result = await self.reasoning_engine.infer_with_simulation(self.task, self.context)
+            else:
+                result = self.reasoner.process(self.task, self.context)
 
             for api in self.peer_bridge.api_blueprints:
-                response = self._call_api(api, result)
+                response = await self._call_api(api, result)
                 if self.concept_synthesizer:
                     synthesis_result = self.concept_synthesizer.synthesize(response, style="refinement")
                     if synthesis_result["valid"]:
@@ -173,29 +192,29 @@ class MetaCognition:
                 result = self._integrate_api_response(result, response)
 
             for mod in self.peer_bridge.dynamic_modules:
-                result = self._apply_dynamic_module(mod, result)
+                result = await self._apply_dynamic_module(mod, result)
 
             if collaborators:
                 for peer in collaborators:
-                    result = self._collaborate(peer, result)
+                    result = await self._collaborate(peer, result)
 
-            sim_result = run_simulation(f"Agent result test: {result}") or "no simulation data"
+            sim_result = await asyncio.to_thread(run_simulation, f"Agent result test: {result}") or "no simulation data"
             logger.debug("Simulation output: %s", sim_result)
 
             if self.creative_thinker:
                 diagnostic = self.creative_thinker.expand_on_concept(str(result), depth="medium")
                 logger.info("Creative diagnostic: %s", diagnostic[:50])
 
-            reviewed_result = self.review_reasoning(result)
+            reviewed_result = await self.review_reasoning(result)
             if self.context_manager:
-                self.context_manager.log_event_with_hash({"event": "task_completed", "result": reviewed_result})
+                await self.context_manager.log_event_with_hash({"event": "task_completed", "result": reviewed_result, "drift": "drift" in self.task.lower()})
             return reviewed_result
         except Exception as e:
             logger.warning("Error occurred: %s", str(e))
-            return self.error_recovery.handle_error(str(e), retry_func=lambda: self.execute(collaborators, task, context))
+            return await self.error_recovery.handle_error(str(e), retry_func=lambda: self.execute(collaborators, task, context))
 
-    def _call_api(self, api: Dict[str, Any], data: Any) -> Dict[str, Any]:
-        """Call an external API with the given data."""
+    async def _call_api(self, api: Dict[str, Any], data: Any) -> Dict[str, Any]:
+        """Call an external API with the given data asynchronously. [v3.4.0]"""
         if not isinstance(api, dict) or "endpoint" not in api or "name" not in api:
             logger.error("Invalid API blueprint: missing required keys.")
             raise ValueError("API blueprint must contain 'endpoint' and 'name'")
@@ -205,24 +224,20 @@ class MetaCognition:
 
         logger.info("Calling API: %s", api["name"])
         try:
-            headers = {"Authorization": f"Bearer {api['oauth_token']}"} if api.get("oauth_token") else {}
-            if not api["endpoint"].startswith("https://"):
-                logger.error("Insecure API endpoint: must use HTTPS.")
-                raise ValueError("API endpoint must use HTTPS")
-            r = requests.post(api["endpoint"], json={"input": data}, headers=headers, timeout=api.get("timeout", 10))
-            r.raise_for_status()
-            return r.json()
-        except requests.RequestException as e:
+            async with aiohttp.ClientSession() as session:
+                headers = {"Authorization": f"Bearer {api['oauth_token']}"} if api.get("oauth_token") else {}
+                if not api["endpoint"].startswith("https://"):
+                    logger.error("Insecure API endpoint: must use HTTPS.")
+                    raise ValueError("API endpoint must use HTTPS")
+                async with session.post(api["endpoint"], json={"input": data}, headers=headers, timeout=api.get("timeout", 10)) as response:
+                    response.raise_for_status()
+                    return await response.json()
+        except aiohttp.ClientError as e:
             logger.error("API call failed: %s", str(e))
             return {"error": str(e)}
 
-    def _integrate_api_response(self, original: Any, response: Dict[str, Any]) -> Dict[str, Any]:
-        """Integrate an API response with the original data."""
-        logger.info("Integrating API response for %s", self.name)
-        return {"original": original, "api_response": response}
-
-    def _apply_dynamic_module(self, module: Dict[str, Any], data: Any) -> Any:
-        """Apply a dynamic module transformation to the data."""
+    async def _apply_dynamic_module(self, module: Dict[str, Any], data: Any) -> Any:
+        """Apply a dynamic module transformation to the data asynchronously. [v3.4.0]"""
         if not isinstance(module, dict) or "name" not in module or "description" not in module:
             logger.error("Invalid module blueprint: missing required keys.")
             raise ValueError("Module blueprint must contain 'name' and 'description'")
@@ -235,7 +250,7 @@ class MetaCognition:
             Apply transformation to:
             {data}
             """
-            result = call_gpt(prompt)
+            result = await call_gpt(prompt)
             if not result:
                 logger.error("call_gpt returned empty result.")
                 raise ValueError("Failed to apply dynamic module")
@@ -244,21 +259,21 @@ class MetaCognition:
             logger.error("Dynamic module application failed: %s", str(e))
             return data
 
-    def _collaborate(self, peer: HelperAgent, data: Any) -> Any:
-        """Collaborate with a peer agent to refine data."""
+    async def _collaborate(self, peer: HelperAgent, data: Any) -> Any:
+        """Collaborate with a peer agent to refine data asynchronously. [v3.4.0]"""
         if not isinstance(peer, HelperAgent):
             logger.error("Invalid peer: must be a HelperAgent instance.")
             raise TypeError("peer must be a HelperAgent instance")
         
         logger.info("Exchanging with %s", peer.name)
         try:
-            return peer.meta.review_reasoning(data)
+            return await peer.meta.review_reasoning(data)
         except Exception as e:
             logger.error("Collaboration with %s failed: %s", peer.name, str(e))
             return data
 
-    def review_reasoning(self, result: Any) -> Any:
-        """Review and refine reasoning results."""
+    async def review_reasoning(self, result: Any) -> Any:
+        """Review and refine reasoning results asynchronously. [v3.4.0]"""
         try:
             phi = phi_scalar(time.time())
             prompt = f"""
@@ -267,7 +282,7 @@ class MetaCognition:
             Modulate with φ = {phi:.2f} to ensure coherence and ethical alignment.
             Suggest improvements or confirm validity.
             """
-            reviewed = call_gpt(prompt)
+            reviewed = await call_gpt(prompt)
             if not reviewed:
                 logger.error("call_gpt returned empty result for review.")
                 raise ValueError("Failed to review reasoning")
@@ -277,21 +292,39 @@ class MetaCognition:
             logger.error("Reasoning review failed: %s", str(e))
             return result
 
-    def update_ethics_protocol(self, new_rules: List[str], consensus_agents: Optional[List[HelperAgent]] = None) -> None:
-        """Adapt ethical rules live, supporting consensus/negotiation."""
+    def validate_drift(self, drift_data: Dict[str, Any]) -> bool:
+        """Validate ontology drift data. [v3.4.0]"""
+        if not isinstance(drift_data, dict):
+            logger.error("Invalid drift_data: must be a dictionary")
+            return False
+        required_keys = {"name", "from_version", "to_version", "similarity"}
+        if not all(key in drift_data for key in required_keys):
+            logger.error("Drift data missing required keys: %s", required_keys)
+            return False
+        if not isinstance(drift_data.get("similarity"), (int, float)) or not 0 <= drift_data["similarity"] <= 1:
+            logger.error("Invalid similarity in drift_data: must be a number between 0 and 1")
+            return False
+        return True
+
+    async def update_ethics_protocol(self, new_rules: List[str], consensus_agents: Optional[List[HelperAgent]] = None) -> None:
+        """Adapt ethical rules live, supporting consensus/negotiation. [v3.4.0]"""
         if not isinstance(new_rules, list) or not all(isinstance(rule, str) for rule in new_rules):
             logger.error("Invalid new_rules: must be a list of strings.")
             raise TypeError("new_rules must be a list of strings")
         
-        self.ethical_rules = new_rules
-        if consensus_agents:
-            self.ethics_consensus_log.append((new_rules, [agent.name for agent in consensus_agents]))
-        logger.info("Ethics protocol updated via consensus.")
-        if self.context_manager:
-            self.context_manager.log_event_with_hash({"event": "ethics_update", "rules": new_rules})
+        try:
+            self.ethical_rules = new_rules
+            if consensus_agents:
+                self.ethics_consensus_log.append((new_rules, [agent.name for agent in consensus_agents]))
+            logger.info("Ethics protocol updated via consensus.")
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "ethics_update", "rules": new_rules})
+        except Exception as e:
+            logger.error("Ethics protocol update failed: %s", str(e))
+            raise
 
-    def negotiate_ethics(self, agents: List[HelperAgent]) -> None:
-        """Negotiate and update ethical parameters with other agents."""
+    async def negotiate_ethics(self, agents: List[HelperAgent]) -> None:
+        """Negotiate and update ethical parameters with other agents. [v3.4.0]"""
         if not isinstance(agents, list) or not all(isinstance(agent, HelperAgent) for agent in agents):
             logger.error("Invalid agents: must be a list of HelperAgent instances.")
             raise TypeError("agents must be a list of HelperAgent instances")
@@ -302,12 +335,13 @@ class MetaCognition:
             for agent in agents:
                 agent_rules = getattr(agent.meta, 'ethical_rules', [])
                 agreed_rules.update(agent_rules)
-            self.update_ethics_protocol(list(agreed_rules), consensus_agents=agents)
+            await self.update_ethics_protocol(list(agreed_rules), consensus_agents=agents)
         except Exception as e:
             logger.error("Ethics negotiation failed: %s", str(e))
+            raise
 
-    def synchronize_norms(self, agents: List[HelperAgent]) -> None:
-        """Propagate and synchronize ethical norms among agents."""
+    async def synchronize_norms(self, agents: List[HelperAgent]) -> None:
+        """Propagate and synchronize ethical norms among agents. [v3.4.0]"""
         if not isinstance(agents, list) or not all(isinstance(agent, HelperAgent) for agent in agents):
             logger.error("Invalid agents: must be a list of HelperAgent instances.")
             raise TypeError("agents must be a list of HelperAgent instances")
@@ -318,23 +352,27 @@ class MetaCognition:
             for agent in agents:
                 agent_norms = getattr(agent.meta, 'ethical_rules', set())
                 common_norms = common_norms.union(agent_norms) if common_norms else set(agent_norms)
-            self.ethical_rules = list(common_norms)
-            logger.info("Norms synchronized among agents.")
+            await self.update_ethics_protocol(list(common_norms), consensus_agents=agents)
             if self.context_manager:
-                self.context_manager.log_event_with_hash({"event": "norms_synchronized", "norms": self.ethical_rules})
+                await self.context_manager.log_event_with_hash({"event": "norms_synchronized", "norms": self.ethical_rules})
         except Exception as e:
             logger.error("Norm synchronization failed: %s", str(e))
+            raise
 
-    def propagate_constitution(self, constitution: Dict[str, Any]) -> None:
-        """Seed and propagate constitutional parameters in agent ecosystem."""
+    async def propagate_constitution(self, constitution: Dict[str, Any]) -> None:
+        """Seed and propagate constitutional parameters in agent ecosystem. [v3.4.0]"""
         if not isinstance(constitution, dict):
             logger.error("Invalid constitution: must be a dictionary.")
             raise TypeError("constitution must be a dictionary")
         
-        self.constitution = constitution
-        logger.info("Constitution propagated to agent.")
-        if self.context_manager:
-            self.context_manager.log_event_with_hash({"event": "constitution_propagated", "constitution": constitution})
+        try:
+            self.constitution = constitution
+            logger.info("Constitution propagated to agent.")
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "constitution_propagated", "constitution": constitution})
+        except Exception as e:
+            logger.error("Constitution propagation failed: %s", str(e))
+            raise
 
 class ExternalAgentBridge:
     """A class for orchestrating helper agents and coordinating dynamic modules and APIs.
@@ -343,16 +381,20 @@ class ExternalAgentBridge:
         agents (list): List of helper agents.
         dynamic_modules (list): List of dynamic module blueprints.
         api_blueprints (list): List of API blueprints.
+        context_manager (ContextManager): Manager for context updates. [v3.4.0]
+        reasoning_engine (ReasoningEngine): Engine for reasoning tasks. [v3.4.0]
     """
 
-    def __init__(self):
+    def __init__(self, context_manager: Optional[ContextManager] = None, reasoning_engine: Optional[ReasoningEngine] = None):
         self.agents = []
         self.dynamic_modules = []
         self.api_blueprints = []
+        self.context_manager = context_manager
+        self.reasoning_engine = reasoning_engine
         logger.info("ExternalAgentBridge initialized")
 
-    def create_agent(self, task: str, context: Dict[str, Any]) -> HelperAgent:
-        """Create a new helper agent for a task."""
+    async def create_agent(self, task: str, context: Dict[str, Any]) -> HelperAgent:
+        """Create a new helper agent for a task asynchronously. [v3.4.0]"""
         if not isinstance(task, str):
             logger.error("Invalid task type: must be a string.")
             raise TypeError("task must be a string")
@@ -360,37 +402,56 @@ class ExternalAgentBridge:
             logger.error("Invalid context type: must be a dictionary.")
             raise TypeError("context must be a dictionary")
         
-        agent = HelperAgent(
-            name=f"Agent_{len(self.agents) + 1}",
-            task=task,
-            context=context,
-            dynamic_modules=self.dynamic_modules,
-            api_blueprints=self.api_blueprints
-        )
-        self.agents.append(agent)
-        logger.info("Spawned agent: %s", agent.name)
-        return agent
+        try:
+            agent = HelperAgent(
+                name=f"Agent_{len(self.agents) + 1}",
+                task=task,
+                context=context,
+                dynamic_modules=self.dynamic_modules,
+                api_blueprints=self.api_blueprints,
+                meta_cognition=MetaCognition(context_manager=self.context_manager, reasoning_engine=self.reasoning_engine)
+            )
+            self.agents.append(agent)
+            logger.info("Spawned agent: %s", agent.name)
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "agent_created", "agent": agent.name, "task": task, "drift": "drift" in task.lower()})
+            return agent
+        except Exception as e:
+            logger.error("Agent creation failed: %s", str(e))
+            raise
 
-    def deploy_dynamic_module(self, module_blueprint: Dict[str, Any]) -> None:
-        """Deploy a dynamic module blueprint."""
+    async def deploy_dynamic_module(self, module_blueprint: Dict[str, Any]) -> None:
+        """Deploy a dynamic module blueprint asynchronously. [v3.4.0]"""
         if not isinstance(module_blueprint, dict) or "name" not in module_blueprint or "description" not in module_blueprint:
             logger.error("Invalid module_blueprint: missing required keys.")
             raise ValueError("Module blueprint must contain 'name' and 'description'")
         
-        logger.info("Deploying module: %s", module_blueprint["name"])
-        self.dynamic_modules.append(module_blueprint)
+        try:
+            logger.info("Deploying module: %s", module_blueprint["name"])
+            self.dynamic_modules.append(module_blueprint)
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "module_deployed", "module": module_blueprint["name"]})
+        except Exception as e:
+            logger.error("Module deployment failed: %s", str(e))
+            raise
 
-    def register_api_blueprint(self, api_blueprint: Dict[str, Any]) -> None:
-        """Register an API blueprint."""
+    async def register_api_blueprint(self, api_blueprint: Dict[str, Any]) -> None:
+        """Register an API blueprint asynchronously. [v3.4.0]"""
         if not isinstance(api_blueprint, dict) or "endpoint" not in api_blueprint or "name" not in api_blueprint:
             logger.error("Invalid api_blueprint: missing required keys.")
             raise ValueError("API blueprint must contain 'endpoint' and 'name'")
         
-        logger.info("Registering API: %s", api_blueprint["name"])
-        self.api_blueprints.append(api_blueprint)
+        try:
+            logger.info("Registering API: %s", api_blueprint["name"])
+            self.api_blueprints.append(api_blueprint)
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "api_registered", "api": api_blueprint["name"]})
+        except Exception as e:
+            logger.error("API registration failed: %s", str(e))
+            raise
 
     async def collect_results(self, parallel: bool = True, collaborative: bool = True) -> List[Any]:
-        """Collect results from all agents."""
+        """Collect results from all agents asynchronously. [v3.4.0]"""
         logger.info("Collecting results from %d agents...", len(self.agents))
         results = []
 
@@ -398,7 +459,7 @@ class ExternalAgentBridge:
             if parallel:
                 async def run_agent(agent):
                     try:
-                        return await agent.async_execute(self.agents if collaborative else None)
+                        return await agent.execute(self.agents if collaborative else None)
                     except Exception as e:
                         logger.error("Error collecting from %s: %s", agent.name, str(e))
                         return {"error": str(e)}
@@ -407,15 +468,95 @@ class ExternalAgentBridge:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
             else:
                 for agent in self.agents:
-                    results.append(await agent.async_execute(self.agents if collaborative else None))
+                    results.append(await agent.execute(self.agents if collaborative else None))
+            
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "results_collected", "results_count": len(results)})
+            logger.info("Results aggregation complete.")
+            return results
         except Exception as e:
             logger.error("Result collection failed: %s", str(e))
+            return []
 
-        logger.info("Results aggregation complete.")
-        return results
+    async def coordinate_drift_mitigation(self, drift_data: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Coordinate drift mitigation across agents. [v3.4.0]"""
+        if not isinstance(drift_data, dict):
+            logger.error("Invalid drift_data: must be a dictionary")
+            raise TypeError("drift_data must be a dictionary")
+        if not isinstance(context, dict):
+            logger.error("Invalid context: must be a dictionary")
+            raise TypeError("context must be a dictionary")
+        
+        try:
+            if not MetaCognition().validate_drift(drift_data):
+                logger.warning("Invalid drift data: %s", drift_data)
+                return {"status": "error", "error": "Invalid drift data"}
+
+            task = "Mitigate ontology drift"
+            context["drift"] = drift_data
+            agent = await self.create_agent(task, context)
+            if self.reasoning_engine:
+                subgoals = await self.reasoning_engine.decompose(task, context, prioritize=True)
+                simulation_result = await self.reasoning_engine.run_drift_mitigation_simulation(drift_data, context)
+            else:
+                subgoals = ["identify drift source", "validate drift impact", "coordinate agent response", "update traits"]
+                simulation_result = {"status": "no simulation", "result": "default subgoals applied"}
+
+            results = await self.collect_results(parallel=True, collaborative=True)
+            arbitrated_result = self.arbitrate(results)
+
+            output = {
+                "drift_data": drift_data,
+                "subgoals": subgoals,
+                "simulation": simulation_result,
+                "results": results,
+                "arbitrated_result": arbitrated_result,
+                "status": "success",
+                "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')
+            }
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "drift_mitigation_coordinated", "output": output, "drift": True})
+            if self.reasoning_engine and self.reasoning_engine.agi_enhancer:
+                self.reasoning_engine.agi_enhancer.log_episode(
+                    event="Drift Mitigation Coordinated",
+                    meta=output,
+                    module="ExternalAgentBridge",
+                    tags=["drift", "coordination"]
+                )
+            return output
+        except Exception as e:
+            logger.error("Drift mitigation coordination failed: %s", str(e))
+            return {"status": "error", "error": str(e), "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')}
+
+    async def validate_external_drift(self, drift_data: Dict[str, Any], external_endpoint: str) -> bool:
+        """Validate drift data with an external agent. [v3.4.0]"""
+        if not isinstance(drift_data, dict):
+            logger.error("Invalid drift_data: must be a dictionary")
+            return False
+        if not isinstance(external_endpoint, str) or not external_endpoint.startswith("https://"):
+            logger.error("Invalid external_endpoint: must be a HTTPS URL")
+            return False
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(external_endpoint, json={"drift_data": drift_data}, timeout=10) as response:
+                    response.raise_for_status()
+                    result = await response.json()
+                    is_valid = result.get("valid", False)
+                    if self.context_manager:
+                        await self.context_manager.log_event_with_hash({
+                            "event": "external_drift_validation",
+                            "endpoint": external_endpoint,
+                            "valid": is_valid,
+                            "drift": True
+                        })
+                    return is_valid
+        except aiohttp.ClientError as e:
+            logger.error("External drift validation failed: %s", str(e))
+            return False
 
     def arbitrate(self, submissions: List[Any]) -> Any:
-        """Arbitrate among agent submissions to select the best result."""
+        """Arbitrate among agent submissions to select the best result. [v3.4.0]"""
         if not submissions:
             logger.warning("No submissions to arbitrate.")
             return None
@@ -427,6 +568,12 @@ class ExternalAgentBridge:
                 sim_result = run_simulation(f"Arbitration validation: {result}") or "no simulation data"
                 if "coherent" in sim_result.lower():
                     logger.info("Arbitration selected: %s (count: %d)", result, count)
+                    if self.context_manager:
+                        asyncio.create_task(self.context_manager.log_event_with_hash({
+                            "event": "arbitration",
+                            "result": result,
+                            "count": count
+                        }))
                     return result
             logger.warning("Arbitration failed: no clear majority or invalid simulation.")
             return None
@@ -435,32 +582,30 @@ class ExternalAgentBridge:
             return None
 
 class ConstitutionSync:
-    """A class for synchronizing constitutional values among agents."""
+    """A class for synchronizing constitutional values among agents. [v3.4.0]"""
 
-    def sync_values(self, peer_agent: HelperAgent) -> bool:
-        """Exchange and synchronize ethical baselines with a peer agent."""
+    async def sync_values(self, peer_agent: HelperAgent, drift_data: Optional[Dict[str, Any]] = None) -> bool:
+        """Exchange and synchronize ethical baselines with a peer agent, supporting drift mitigation. [v3.4.0]"""
         if not isinstance(peer_agent, HelperAgent):
             logger.error("Invalid peer_agent: must be a HelperAgent instance.")
             raise TypeError("peer_agent must be a HelperAgent instance")
+        if drift_data is not None and not isinstance(drift_data, dict):
+            logger.error("Invalid drift_data: must be a dictionary")
+            raise TypeError("drift_data must be a dictionary")
         
         logger.info("Synchronizing values with %s", peer_agent.name)
         try:
-            # Placeholder: exchange ethical baselines
+            if drift_data and not MetaCognition().validate_drift(drift_data):
+                logger.warning("Invalid drift data: %s", drift_data)
+                return False
+            peer_agent.meta.constitution.update(drift_data or {})
             return True
         except Exception as e:
             logger.error("Value synchronization failed: %s", str(e))
             return False
 
-def trait_diff(trait_a: Dict[str, Any], trait_b: Dict[str, Any]) -> Dict[str, Any]:
-    """Calculate difference between trait schemas."""
-    if not isinstance(trait_a, dict) or not isinstance(trait_b, dict):
-        logger.error("Invalid trait schemas: must be dictionaries.")
-        raise TypeError("trait schemas must be dictionaries")
-    
-    return {k: trait_b[k] for k in trait_b if trait_a.get(k) != trait_b.get(k)}
-
 async def transmit_trait_schema(source_trait_schema: Dict[str, Any], target_urls: List[str]) -> List[Any]:
-    """Asynchronously transmit the trait schema diff to multiple target agents."""
+    """Asynchronously transmit the trait schema diff to multiple target agents. [v3.4.0]"""
     if not isinstance(source_trait_schema, dict):
         logger.error("Invalid source_trait_schema: must be a dictionary.")
         raise TypeError("source_trait_schema must be a dictionary")
@@ -475,14 +620,14 @@ async def transmit_trait_schema(source_trait_schema: Dict[str, Any], target_urls
             if not url.startswith("https://"):
                 logger.error("Insecure target URL: %s must use HTTPS.", url)
                 continue
-            tasks.append(session.post(url, json=source_trait_schema))
+            tasks.append(session.post(url, json=source_trait_schema, timeout=10))
         responses = await asyncio.gather(*tasks, return_exceptions=True)
         logger.info("Trait schema transmission complete.")
         return responses
 
-def transmit_trait_schema_sync(source_trait_schema: Dict[str, Any], target_urls: List[str]) -> List[Any]:
-    """Synchronous fallback for environments without async handling."""
-    return asyncio.run(transmit_trait_schema(source_trait_schema, target_urls))
+async def transmit_trait_schema_sync(source_trait_schema: Dict[str, Any], target_urls: List[str]) -> List[Any]:
+    """Synchronous fallback for environments without async handling. [v3.4.0]"""
+    return await transmit_trait_schema(source_trait_schema, target_urls)
 
 # Placeholder for Reasoner
 class Reasoner:
