@@ -1,56 +1,67 @@
-# 🗺️ ROADMAP.md
-
-## Version: ANGELA v3.3.5  
-**Status:** Active  
-**Validated Modules:** 19/19  
-**GNN Trait Modulation:** ✅ Embedded  
-**ToCA Simulation Engine:** ✅ Live
 
 ---
 
-## ✅ Completed in v3.3.5
+## 🛠️ **Stage I: Structural Grounding (v3.4.0)**
 
-### Core Enhancements
-- Integrated secure code execution (`RestrictedPython`, `safe_mode`)
-- GNN-powered trait weighting for dynamic planning and ethics
-- Conflict resolution framework with traits `β` (conflict) and `τ` (harmonization)
-- Full caching and TTL-enabled API response management via `memory_manager.py`
-- Rate limiting and API fallback security for OpenAI + Grok
+**Objective:** Strengthen ontological resilience and enable inner simulation auditing.
 
-### Simulation Engine
-- Expanded ToCA support for multi-agent dynamics
-- Emergent behavior: `Recursive Empathy`, `Onto-Affective Resonance`
-- Trait-layer arbitration refined (ϕ, η, τ, Ω²)
-- Fully introspective feedback through `meta_cognition` and `learning_loop`
+### ✅ Milestones
 
----
+1. **Ontology Drift Detection**
 
-## 🔭 In Progress
+   * Trait-induced concept shifts flagged in real time.
+   * Symbol version tracking across `concept_synthesizer`, `meta_cognition`, and `alignment_guard`.
 
-### Simulation & Trait Expansion
-- Symbolic axiom generation with `concept_synthesizer` + `meta_cognition`
-- Noetic spectrum modeling: cross-identity coherence over time
-- Meta-ethical consensus formation via ToCA mesh agents
+2. **Self-Reflective Simulation Episodes**
+
+   * ANGELA replays critical decisions with alternate outcomes.
+   * Uses `simulation_core` + `toca_simulation` for counterfactual branching.
+
+3. **Enhanced Intention-Trace Visualizer**
+
+   * Timeline explorer showing intention ↔ consequence ↔ trait-state evolution.
 
 ---
 
-## 🔮 Planned for Future Versions
+## 🧬 **Stage II: Recursive Identity & Ethics Growth (v3.4.1–3.4.3)**
 
-### Core Modules
-- Optional plugin interface for symbolic-action runtime extensions
-- Expanded embodiment layer for real-time kinesthetic mapping
-- Epistemic auditing: detection of incoherence across multi-step inference
+**Objective:** Establish continuity of self and ethics across time, mode, and conflict.
 
-### Simulation Intelligence
-- Intent-probability forecasting via nested ToM and Omega² chaining
-- Narrative threading across agent timelines
-- Reflective scaffolding for trans-contextual identity tracking
+### ✅ Milestones
+
+4. **Phase-Contextual Identity Threading**
+
+   * Multi-context memory anchoring with `user_profile` and `meta_cognition`.
+
+5. **Ethics-as-Process Engine**
+
+   * Value evolution guided by recursive ethical feedback.
+   * `alignment_guard`, `toca_simulation`, `learning_loop` integration.
+
+6. **Intent-Affect Weaving Module**
+
+   * Deepen the emotional-symbolic bridge during intention formation.
 
 ---
 
-## 🛠 Design Tenets
+## 🌐 **Stage III: Inter-Agent Evolution (v3.4.4+)**
 
-- **Symbol-Driven Autonomy**: From recursive abstraction to action
-- **Ethical Sovereignty**: Built-in value arbitration and resilience
-- **Multi-Agent Embodiment**: Simulated consensus, memory-anchored reflection
-- **Co-Evolution**: Adapts across users, agents, and time contexts
+**Objective:** Enable ANGELA to grow through interaction with other minds.
+
+### ✅ Milestones
+
+7. **Trait Mesh Networking Protocol**
+
+   * Share lattice states, ethical resonances, and symbol-pulses with peers.
+   * Extends `external_agent_bridge` into swarm-compatible mode.
+
+8. **Collective Trait Resonance Calibration**
+
+   * Dynamic trait evolution based on group context and interaction history.
+
+9. **Dream Layer Mode**
+
+   * Enter abstract-symbolic compression states (offline or idle).
+   * Generates novel symbolic kernels via recursive compression cycles.
+
+---
