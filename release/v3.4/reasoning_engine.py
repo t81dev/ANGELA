@@ -1,4 +1,3 @@
-```python
 """
 ANGELA Cognitive System Module: ReasoningEngine
 Refactored Version: 3.4.0  # Enhanced for Drift Mitigation and Agent Coordination
