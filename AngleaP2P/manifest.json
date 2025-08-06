@@ -1,0 +1,15 @@
+{
+  "name": "angela-p2p",
+  "version": "1.0.0",
+  "description": "AngelaP2P plugin for LM Studio, enabling distributed AI resource sharing",
+  "main": "angela_p2p_plugin.ts",
+  "type": "tool",
+  "author": "YourName",
+  "dependencies": {
+    "@lmstudio/sdk": "^1.0.0",
+    "vm2": "^3.9.19"
+  },
+  "scripts": {
+    "dev": "lms dev"
+  }
+}
