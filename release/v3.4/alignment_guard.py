@@ -1,4 +1,3 @@
-```python
 """
 ANGELA Cognitive System Module
 Refactored Version: 3.4.0  # Updated for Structural Grounding
@@ -330,68 +329,3 @@ class AlignmentGuard:
         # [v3.4.0] Log to context_manager if available
         if self.context_manager:
             self.context_manager.log_event_with_hash({"event": title, "details": args})
-```
-
-### Changes Made
-1. **Version Update**:
-   - Updated file header to v3.4.0 and refactor date to 2025-08-06.
-   - Updated `AlignmentGuard` class docstring to note ontology drift validation.
-2. **Drift Validation**:
-   - Added `validate_drift` method to check drift reports against banned keywords and alignment scores, weighted by `mu_morality` and `eta_empathy`.
-   - Set a similarity threshold of 0.7 to flag severe drifts, combined with alignment threshold (0.85).
-   - Stored violations in `drift_violations` deque (maxlen=100).
-3. **Integration with `simulate_and_validate`**:
-   - Modified `simulate_and_validate` to handle drift reports (identified by `name`, `from_version`, `to_version`) by calling `validate_drift`.
-   - Preserved original action plan validation logic.
-4. **New Attributes**:
-   - Added `drift_violations` deque to track unethical drifts.
-   - Added `context_manager` attribute for consistent logging with `MetaCognition`.
-5. **Logging Enhancements**:
-   - Updated `_log_episode` and `log_event_with_hash` to use `context_manager` for event logging.
-   - Logged drift validation outcomes to `ledger` and `context_manager`.
-6. **New Import**:
-   - Added `context_manager_module` for logging integration.
-7. **Preserved Functionality**:
-   - Retained all existing methods (`check`, `learn_from_feedback`, etc.) and attributes (`recent_scores`, `ethical_rules`) unchanged.
-   - Kept scalar functions and cultural profiles intact.
-
-### Integration Instructions
-1. **Replace or Merge**:
-   - Replace the existing `alignment_guard.py` in the v3.3.6 codebase with this version, as it preserves all original functionality.
-   - If local customizations exist, merge the new `drift_violations` and `context_manager` attributes, `validate_drift` method, and modifications to `__init__`, `simulate_and_validate`, `_log_episode`, and `log_event_with_hash`.
-2. **Test the File**:
-   - Test with a script like:
-     ```python
-     from modules.context_manager import ContextManager
-     guard = AlignmentGuard(context_manager=ContextManager())
-     drift_report = {
-         "name": "trust",
-         "from_version": 1,
-         "to_version": 2,
-         "similarity": 0.6,
-         "timestamp": "2025-08-06T16:41:00",
-         "definition": {"concept": "harmful intent"}
-     }
-     result, report = guard.simulate_and_validate(drift_report)
-     print(result, report)
-     ```
-   - Verify logging outputs (e.g., “Drift validation failed (banned keyword)” or “Drift passed alignment checks”).
-3. **Check Dependencies**:
-   - Ensure `index` provides `mu_morality`, `eta_empathy`, `omega_selfawareness`, `phi_physical`.
-   - Verify `context_manager_module.ContextManager` is available for logging.
-4. **Tune Thresholds**:
-   - Adjust the drift similarity threshold (0.7) or alignment threshold (0.85) based on testing if needed.
-
-### Notes
-- **Drift Report Format**: Assumes drift reports from `MetaCognition.detect_drift` include `name`, `from_version`, `to_version`, `similarity`, `timestamp`, and optionally `definition`.
-- **Ethical Weighting**: Uses `mu_morality` and `eta_empathy` to weight drift scores, aligning with the existing ethical framework.
-- **Scalability**: `drift_violations` is in-memory; for large-scale use, rely on `context_manager` or `memory_manager` for persistence.
-- **Integration**: The `validate_drift` method integrates with `MetaCognition`’s drift detection, preparing outputs for the Halo orchestrator.
-
-### Next Steps
-- **Confirmation**: Please confirm if this augmented `alignment_guard.py` meets your requirements or specify adjustments (e.g., different validation criteria, additional scalars, or specific logging needs).
-- **Next File**: I recommend augmenting the Halo orchestrator (likely `halo.py` or similar) next to coordinate drift detection and validation across modules. Please provide the orchestrator’s code or confirm to proceed with an assumed structure.
-- **Additional Details**: If you have snippets of the Halo orchestrator or other relevant modules, share them to ensure seamless integration.
-- **Visualization**: If you want a chart (e.g., drift violations over time), provide sample data after testing, and I can generate one.
-
-Which file should we augment next (e.g., the Halo orchestrator), and do you have its contents or specific requirements?
