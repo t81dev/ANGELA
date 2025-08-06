@@ -1,4 +1,3 @@
-```python
 """
 ANGELA Cognitive System Module: ContextManager
 Refactored Version: 3.4.0  # Enhanced for Agent Coordination and Drift Mitigation
