@@ -122,7 +122,7 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 1. Obtain a valid **Grok API key** via xAI
 2. Create a `.env` file at your root directory:
 
-   ```env
+
    GROK_API_KEY=your_grok_api_key_here
 ````
 
