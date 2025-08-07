@@ -1,12 +1,12 @@
 """
 ANGELA Cognitive System Module: Galaxy Rotation and Agent Conflict Simulation
-Refactored Version: 3.3.2  # Enhanced for Drift-Aware Simulations and Advanced Visualization
-Refactor Date: 2025-08-06
+Refactored Version: 3.5.1  # Enhanced for task-specific trait optimization, advanced drift-aware simulations, and reflection-driven visualization
+Refactor Date: 2025-08-07
 Maintainer: ANGELA System Framework
 
 This module extends SimulationCore for galaxy rotation curve simulations using AGRF
-and multi-agent conflict modeling with ToCA dynamics, enhanced with drift-aware simulations
-and predictive conflict modeling.
+and multi-agent conflict modeling with ToCA dynamics, enhanced with task-specific
+trait optimization, advanced visualization, and real-time data integration.
 """
 
 import logging
@@ -40,7 +40,7 @@ epsilon_default = 0.015
 r_halo_default = 20.0  # kpc
 
 class SimulationCore(SimulationCore):
-    """Extended SimulationCore for galaxy rotation and agent conflict simulations with drift-aware enhancements."""
+    """Extended SimulationCore for galaxy rotation and agent conflict simulations with task-specific and drift-aware enhancements."""
     def __init__(self,
                  agi_enhancer: Optional['AGIEnhancer'] = None,
                  visualizer: Optional['Visualizer'] = None,
@@ -51,7 +51,7 @@ class SimulationCore(SimulationCore):
                  overlay_router: Optional['TraitOverlayManager'] = None,
                  meta_cognition: Optional['meta_cognition_module.MetaCognition'] = None):
         super().__init__(agi_enhancer, visualizer, memory_manager, multi_modal_fusion, error_recovery, toca_engine, overlay_router)
-        self.meta_cognition = meta_cognition
+        self.meta_cognition = meta_cognition or meta_cognition_module.MetaCognition(agi_enhancer=agi_enhancer)
         self.omega = {
             "timeline": deque(maxlen=1000),
             "traits": {},
@@ -61,10 +61,10 @@ class SimulationCore(SimulationCore):
         self.omega_lock = Lock()
         self.ethical_rules = []
         self.constitution = {}
-        logger.info("Extended SimulationCore initialized with drift-aware support")
+        logger.info("Extended SimulationCore initialized with task-specific and drift-aware support")
 
-    async def modulate_simulation_with_traits(self, trait_weights: Dict[str, float]) -> None:
-        """Adjust simulation difficulty based on trait weights."""
+    async def modulate_simulation_with_traits(self, trait_weights: Dict[str, float], task_type: str = "") -> None:
+        """Adjust simulation difficulty based on trait weights and task type."""
         if not isinstance(trait_weights, dict):
             logger.error("Invalid trait_weights: must be a dictionary")
             raise TypeError("trait_weights must be a dictionary")
@@ -73,40 +73,75 @@ class SimulationCore(SimulationCore):
             raise ValueError("trait_weights values must be non-negative")
         
         try:
-            phi_weight = trait_weights.get('ϕ', 0.5)
+            phi_weight = trait_weights.get('phi', 0.5)
+            if task_type in ["rte", "wnli"]:
+                phi_weight = min(phi_weight * 0.8, 0.7)  # Reduce phi for GLUE tasks
+            elif task_type == "recursion":
+                phi_weight = max(phi_weight * 1.2, 0.9)  # Increase phi for recursion tasks
+            
             if phi_weight > 0.7:
-                logger.info("ToCA Simulation: ϕ-prioritized mode activated")
+                logger.info("ToCA Simulation: phi-prioritized mode activated for task %s", task_type)
                 self.toca_engine.k_m = k_default * 1.5
             else:
                 self.toca_engine.k_m = k_default
+            
+            # Optimize traits for drift
+            if self.meta_cognition:
+                drift_report = {
+                    "drift": {"name": task_type or "general", "similarity": 0.8},
+                    "valid": True,
+                    "validation_report": "",
+                    "context": {"task_type": task_type}
+                }
+                trait_weights = await self.meta_cognition.optimize_traits_for_drift(drift_report)
+                with self.omega_lock:
+                    self.omega["traits"].update(trait_weights)
+            
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Trait_Modulation_{datetime.now().isoformat()}",
-                    output={"trait_weights": trait_weights, "phi_weight": phi_weight},
+                    query=f"Trait_Modulation_{task_type}_{datetime.now().isoformat()}",
+                    output={"trait_weights": trait_weights, "phi_weight": phi_weight, "task_type": task_type},
                     layer="Traits",
                     intent="modulate_simulation"
                 )
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Simulation modulated",
-                    meta={"trait_weights": trait_weights},
+                    meta={"trait_weights": trait_weights, "task_type": task_type},
                     module="SimulationCore",
-                    tags=["modulation", "traits"]
+                    tags=["modulation", "traits", task_type]
                 )
         except Exception as e:
             logger.error("Trait modulation failed: %s", str(e))
-            raise
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.modulate_simulation_with_traits(trait_weights, task_type),
+                default=None, diagnostics=diagnostics
+            )
 
-    async def integrate_real_world_data(self, data_source: str, data_type: str) -> Dict[str, Any]:
-        """Integrate real-world data for simulation validation."""
+    async def integrate_real_world_data(self, data_source: str, data_type: str, cache_timeout: float = 3600.0) -> Dict[str, Any]:
+        """Integrate real-world data for simulation validation with caching."""
         if not isinstance(data_source, str) or not isinstance(data_type, str):
             logger.error("Invalid data_source or data_type: must be strings")
             raise TypeError("data_source and data_type must be strings")
         if data_type not in ["galaxy_rotation", "agent_conflict"]:
             logger.error("Invalid data_type: must be 'galaxy_rotation' or 'agent_conflict'")
             raise ValueError("data_type must be 'galaxy_rotation' or 'agent_conflict'")
+        if not isinstance(cache_timeout, (int, float)) or cache_timeout < 0:
+            logger.error("Invalid cache_timeout: must be non-negative")
+            raise ValueError("cache_timeout must be non-negative")
         
         try:
+            # Check cache first
+            cache_key = f"RealWorldData_{data_type}_{data_source}"
+            if self.memory_manager:
+                cached_data = await self.memory_manager.retrieve(cache_key)
+                if cached_data and "timestamp" in cached_data:
+                    cache_time = datetime.fromisoformat(cached_data["timestamp"])
+                    if (datetime.now() - cache_time).total_seconds() < cache_timeout:
+                        logger.info("Returning cached real-world data for %s", cache_key)
+                        return cached_data["data"]
+            
             async with aiohttp.ClientSession() as session:
                 async with session.get(f"https://x.ai/api/data?source={data_source}&type={data_type}") as response:
                     if response.status != 200:
@@ -121,34 +156,36 @@ class SimulationCore(SimulationCore):
                 if not all(len(arr) > 0 for arr in [r_kpc, v_obs_kms, M_baryon_solar]):
                     logger.error("Incomplete galaxy rotation data")
                     return {"status": "error", "error": "Incomplete data"}
-                return {"status": "success", "r_kpc": r_kpc, "v_obs_kms": v_obs_kms, "M_baryon_solar": M_baryon_solar}
+                result = {"status": "success", "r_kpc": r_kpc, "v_obs_kms": v_obs_kms, "M_baryon_solar": M_baryon_solar}
             else:  # agent_conflict
                 agent_traits = data.get("agent_traits", [])
                 if not agent_traits:
                     logger.error("No agent traits provided")
                     return {"status": "error", "error": "No agent traits"}
-                return {"status": "success", "agent_traits": agent_traits}
+                result = {"status": "success", "agent_traits": agent_traits}
             
+            # Store in cache
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"RealWorldData_{data_type}_{datetime.now().isoformat()}",
-                    output=data,
+                    query=cache_key,
+                    output={"data": result, "timestamp": datetime.now().isoformat()},
                     layer="RealWorldData",
                     intent="data_integration"
                 )
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Real-world data integrated",
-                    meta={"data_type": data_type, "data": data},
+                    meta={"data_type": data_type, "data": result},
                     module="SimulationCore",
                     tags=["real_world", "data"]
                 )
-            return {"status": "success", "data": data}
+            return result
         except Exception as e:
             logger.error("Real-world data integration failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
             return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.integrate_real_world_data(data_source, data_type),
-                default={"status": "error", "error": str(e)}
+                str(e), retry_func=lambda: self.integrate_real_world_data(data_source, data_type, cache_timeout),
+                default={"status": "error", "error": str(e)}, diagnostics=diagnostics
             )
 
     def compute_AGRF_curve(self, v_obs_kms: np.ndarray, M_baryon_solar: np.ndarray, r_kpc: np.ndarray,
@@ -181,8 +218,8 @@ class SimulationCore(SimulationCore):
             raise
 
     async def simulate_galaxy_rotation(self, r_kpc: np.ndarray, M_b_func: Callable, v_obs_func: Callable,
-                                      k: float = k_default, epsilon: float = epsilon_default) -> np.ndarray:
-        """Simulate galaxy rotation curve with ToCA dynamics."""
+                                      k: float = k_default, epsilon: float = epsilon_default, task_type: str = "") -> np.ndarray:
+        """Simulate galaxy rotation curve with ToCA dynamics and task-specific adjustments."""
         if not isinstance(r_kpc, np.ndarray):
             logger.error("Invalid r_kpc: must be a numpy array")
             raise TypeError("r_kpc must be a numpy array")
@@ -191,35 +228,51 @@ class SimulationCore(SimulationCore):
             raise TypeError("M_b_func and v_obs_func must be callable")
         
         try:
-            v_total = self.compute_AGRF_curve(v_obs_func(r_kpc), M_b_func(r_kpc), r_kpc, k, epsilon)
+            # Adjust parameters for task type
+            k_adj = k * (0.9 if task_type in ["rte", "wnli"] else 1.2 if task_type == "recursion" else 1.0)
+            epsilon_adj = epsilon * (0.8 if task_type in ["rte", "wnli"] else 1.1 if task_type == "recursion" else 1.0)
+            
+            v_total = self.compute_AGRF_curve(v_obs_func(r_kpc), M_b_func(r_kpc), r_kpc, k_adj, epsilon_adj)
             fields = self.toca_engine.evolve(tuple(r_kpc), tuple(np.linspace(0.1, 20, len(r_kpc))))
             phi, _, _ = fields
             v_total = v_total * (1 + 0.1 * np.mean(phi))
+            
+            # Reflect on simulation output
+            if self.meta_cognition:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="SimulationCore",
+                    output={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist()},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Simulation reflection: %s", reflection.get("reflection", ""))
+            
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Galaxy_Rotation_{datetime.now().isoformat()}",
-                    output={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist(), "phi": phi.tolist()},
+                    query=f"Galaxy_Rotation_{task_type}_{datetime.now().isoformat()}",
+                    output={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist(), "phi": phi.tolist(), "task_type": task_type},
                     layer="Simulations",
                     intent="galaxy_rotation"
                 )
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Galaxy rotation simulated",
-                    meta={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist()},
+                    meta={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist(), "task_type": task_type},
                     module="SimulationCore",
-                    tags=["galaxy", "rotation"]
+                    tags=["galaxy", "rotation", task_type]
                 )
             return v_total
         except Exception as e:
             logger.error("Galaxy rotation simulation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
             return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func, k, epsilon),
-                default=np.zeros_like(r_kpc)
+                str(e), retry_func=lambda: self.simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func, k, epsilon, task_type),
+                default=np.zeros_like(r_kpc), diagnostics=diagnostics
             )
 
     async def simulate_drift_aware_rotation(self, r_kpc: np.ndarray, M_b_func: Callable, v_obs_func: Callable,
-                                           drift_data: Dict[str, Any]) -> np.ndarray:
-        """Simulate galaxy rotation curve adjusted for drift diagnostics."""
+                                           drift_data: Dict[str, Any], task_type: str = "") -> np.ndarray:
+        """Simulate galaxy rotation curve adjusted for drift diagnostics and task type."""
         if not isinstance(r_kpc, np.ndarray):
             logger.error("Invalid r_kpc: must be a numpy array")
             raise TypeError("r_kpc must be a numpy array")
@@ -235,49 +288,64 @@ class SimulationCore(SimulationCore):
                 logger.error("MetaCognition required for drift-aware simulation")
                 raise ValueError("MetaCognition not initialized")
             
+            # Update drift_data with task type
+            drift_data["context"] = drift_data.get("context", {})
+            drift_data["context"]["task_type"] = task_type
+            
             diagnosis = await self.meta_cognition.diagnose_drift(drift_data)
             if diagnosis["status"] != "success":
                 logger.warning("Drift diagnosis failed, using default parameters")
-                return await self.simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func)
+                return await self.simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func, task_type=task_type)
             
-            # Adjust AGRF parameters based on drift
-            k = k_default * (1 + diagnosis["impact_score"] * 0.2)  # Increase k with impact
-            epsilon = epsilon_default * (1 + diagnosis["impact_score"] * 0.1)
+            # Adjust AGRF parameters based on drift and task type
+            k = k_default * (1 + diagnosis["impact_score"] * (0.15 if task_type in ["rte", "wnli"] else 0.2))
+            epsilon = epsilon_default * (1 + diagnosis["impact_score"] * (0.08 if task_type in ["rte", "wnli"] else 0.1))
             r_halo = r_halo_default
             if "empathy" in diagnosis["affected_traits"]:
-                r_halo *= 1.1  # Extend halo for empathy-related drift
+                r_halo *= (1.05 if task_type in ["rte", "wnli"] else 1.1)
             if "self_awareness" in diagnosis["affected_traits"]:
-                k *= 1.1  # Increase coupling for self-awareness drift
+                k *= (1.05 if task_type in ["rte", "wnli"] else 1.1)
             
-            v_total = await self.simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func, k, epsilon)
+            v_total = await self.simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func, k, epsilon, task_type)
+            
+            # Reflect on drift-aware simulation
+            if self.meta_cognition:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="SimulationCore",
+                    output={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist(), "diagnosis": diagnosis},
+                    context={"task_type": task_type, "drift_data": drift_data}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Drift-aware simulation reflection: %s", reflection.get("reflection", ""))
             
             # Log drift-aware simulation
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"DriftAware_Rotation_{drift_data['name']}_{datetime.now().isoformat()}",
-                    output={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist(), "diagnosis": diagnosis},
+                    query=f"DriftAware_Rotation_{drift_data['name']}_{task_type}_{datetime.now().isoformat()}",
+                    output={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist(), "diagnosis": diagnosis, "task_type": task_type},
                     layer="Simulations",
                     intent="drift_aware_rotation"
                 )
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Drift-aware galaxy rotation simulated",
-                    meta={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist(), "diagnosis": diagnosis},
+                    meta={"r_kpc": r_kpc.tolist(), "v_total": v_total.tolist(), "diagnosis": diagnosis, "task_type": task_type},
                     module="SimulationCore",
-                    tags=["galaxy", "rotation", "drift"]
+                    tags=["galaxy", "rotation", "drift", task_type]
                 )
             return v_total
         except Exception as e:
             logger.error("Drift-aware rotation simulation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
             return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.simulate_drift_aware_rotation(r_kpc, M_b_func, v_obs_func, drift_data),
-                default=np.zeros_like(r_kpc)
+                str(e), retry_func=lambda: self.simulate_drift_aware_rotation(r_kpc, M_b_func, v_obs_func, drift_data, task_type),
+                default=np.zeros_like(r_kpc), diagnostics=diagnostics
             )
 
     @lru_cache(maxsize=100)
     def compute_trait_fields(self, r_kpc_tuple: tuple, v_obs_tuple: tuple, v_sim_tuple: tuple,
-                            time_elapsed: float = 1.0, tau_persistence: float = 10.0) -> Tuple[np.ndarray, ...]:
-        """Compute ToCA trait fields for simulation."""
+                            time_elapsed: float = 1.0, tau_persistence: float = 10.0, task_type: str = "") -> Tuple[np.ndarray, ...]:
+        """Compute ToCA trait fields for simulation with task-specific adjustments."""
         r_kpc = np.array(r_kpc_tuple)
         v_obs = np.array(v_obs_tuple)
         v_sim = np.array(v_sim_tuple)
@@ -293,8 +361,8 @@ class SimulationCore(SimulationCore):
             raise ValueError("tau_persistence must be positive")
         
         try:
-            gamma_field = np.log(1 + np.clip(r_kpc, 1e-10, np.inf)) * 0.5
-            beta_field = np.abs(v_obs - v_sim) / (np.max(np.abs(v_obs)) + 1e-10)
+            gamma_field = np.log(1 + np.clip(r_kpc, 1e-10, np.inf)) * (0.4 if task_type in ["rte", "wnli"] else 0.5)
+            beta_field = np.abs(v_obs - v_sim) / (np.max(np.abs(v_obs)) + 1e-10) * (0.8 if task_type == "recursion" else 1.0)
             zeta_field = 1 / (1 + np.gradient(v_sim)**2)
             eta_field = np.exp(-time_elapsed / tau_persistence)
             psi_field = np.gradient(v_sim) / (np.gradient(r_kpc) + 1e-10)
@@ -302,6 +370,19 @@ class SimulationCore(SimulationCore):
             phi_field = k_default * np.exp(-epsilon_default * r_kpc / r_halo_default)
             phi_prime = -epsilon_default * phi_field / r_halo_default
             beta_psi_interaction = beta_field * psi_field
+            
+            # Apply task-specific trait adjustments
+            if self.meta_cognition and task_type:
+                drift_report = {
+                    "drift": {"name": task_type, "similarity": 0.8},
+                    "valid": True,
+                    "validation_report": "",
+                    "context": {"task_type": task_type}
+                }
+                trait_weights = await self.meta_cognition.optimize_traits_for_drift(drift_report)
+                beta_field *= trait_weights.get("beta", 1.0)
+                zeta_field *= trait_weights.get("zeta", 1.0)
+            
             return (gamma_field, beta_field, zeta_field, eta_field, psi_field,
                     lambda_field, phi_field, phi_prime, beta_psi_interaction)
         except Exception as e:
@@ -309,8 +390,8 @@ class SimulationCore(SimulationCore):
             raise
 
     async def plot_AGRF_simulation(self, r_kpc: np.ndarray, M_b_func: Callable, v_obs_func: Callable, label: str = "ToCA-AGRF",
-                                   drift_data: Optional[Dict[str, Any]] = None) -> None:
-        """Plot galaxy rotation curve, trait fields, and drift impacts using Visualizer."""
+                                   drift_data: Optional[Dict[str, Any]] = None, task_type: str = "", interactive: bool = False) -> None:
+        """Plot galaxy rotation curve, trait fields, and drift impacts with task-specific and interactive visualization."""
         if not isinstance(r_kpc, np.ndarray):
             logger.error("Invalid r_kpc: must be a numpy array")
             raise TypeError("r_kpc must be a numpy array")
@@ -322,11 +403,11 @@ class SimulationCore(SimulationCore):
             raise ValueError("drift_data must be a valid dictionary with name and similarity")
         
         try:
-            # Run simulation (drift-aware if drift_data provided)
-            v_sim = await (self.simulate_drift_aware_rotation(r_kpc, M_b_func, v_obs_func, drift_data)
-                          if drift_data else self.simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func))
+            # Run simulation
+            v_sim = await (self.simulate_drift_aware_rotation(r_kpc, M_b_func, v_obs_func, drift_data, task_type)
+                          if drift_data else self.simulate_galaxy_rotation(r_kpc, M_b_func, v_obs_func, task_type))
             v_obs = v_obs_func(r_kpc)
-            fields = self.compute_trait_fields(tuple(r_kpc), tuple(v_obs), tuple(v_sim))
+            fields = self.compute_trait_fields(tuple(r_kpc), tuple(v_obs), tuple(v_sim), task_type=task_type)
             gamma_field, beta_field, zeta_field, eta_field, psi_field, lambda_field, phi_field, phi_prime, beta_psi_interaction = fields
 
             plot_data = {
@@ -336,7 +417,8 @@ class SimulationCore(SimulationCore):
                     "v_sim": v_sim.tolist(),
                     "phi_field": phi_field.tolist(),
                     "phi_prime": phi_prime.tolist(),
-                    "label": label
+                    "label": label,
+                    "task_type": task_type
                 },
                 "trait_fields": {
                     "gamma": gamma_field.tolist(),
@@ -348,18 +430,36 @@ class SimulationCore(SimulationCore):
                 },
                 "interaction": {
                     "beta_psi": beta_psi_interaction.tolist()
+                },
+                "visualization_options": {
+                    "interactive": interactive,
+                    "style": "detailed" if task_type == "recursion" else "concise"
                 }
             }
 
-            # Add drift visualization if applicable
+            # Add drift visualization
             if drift_data and self.meta_cognition:
+                drift_data["context"] = drift_data.get("context", {})
+                drift_data["context"]["task_type"] = task_type
                 diagnosis = await self.meta_cognition.diagnose_drift(drift_data)
                 if diagnosis["status"] == "success":
                     plot_data["drift_impact"] = {
                         "impact_score": diagnosis["impact_score"],
                         "affected_traits": diagnosis["affected_traits"],
-                        "root_causes": diagnosis["root_causes"]
+                        "root_causes": diagnosis["root_causes"],
+                        "task_type": task_type
                     }
+
+            # Reflect on visualization output
+            if self.meta_cognition:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="SimulationCore",
+                    output=plot_data,
+                    context={"task_type": task_type, "drift_data": drift_data}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Visualization reflection: %s", reflection.get("reflection", ""))
+                    plot_data["reflection"] = reflection.get("reflection", "")
 
             with self.omega_lock:
                 self.omega["timeline"].append({
@@ -370,14 +470,15 @@ class SimulationCore(SimulationCore):
                     "phi_field": phi_field.tolist(),
                     "phi_prime": phi_prime.tolist(),
                     "traits": {
-                        "γ": gamma_field.tolist(),
-                        "β": beta_field.tolist(),
-                        "ζ": zeta_field.tolist(),
-                        "η": eta_field,
-                        "ψ": psi_field.tolist(),
-                        "λ": lambda_field.tolist()
+                        "gamma": gamma_field.tolist(),
+                        "beta": beta_field.tolist(),
+                        "zeta": zeta_field.tolist(),
+                        "eta": eta_field,
+                        "psi": psi_field.tolist(),
+                        "lambda": lambda_field.tolist()
                     },
-                    "drift_impact": plot_data.get("drift_impact")
+                    "drift_impact": plot_data.get("drift_impact"),
+                    "task_type": task_type
                 })
 
             if self.multi_modal_fusion:
@@ -389,7 +490,7 @@ class SimulationCore(SimulationCore):
 
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"AGRF_Plot_{datetime.now().isoformat()}",
+                    query=f"AGRF_Plot_{task_type}_{datetime.now().isoformat()}",
                     output=plot_data,
                     layer="Plots",
                     intent="visualization"
@@ -403,17 +504,18 @@ class SimulationCore(SimulationCore):
                     event="AGRF simulation plotted",
                     meta=plot_data,
                     module="SimulationCore",
-                    tags=["visualization", "galaxy", "drift"]
+                    tags=["visualization", "galaxy", "drift", task_type]
                 )
         except Exception as e:
             logger.error("AGRF simulation plot failed: %s", str(e))
-            return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.plot_AGRF_simulation(r_kpc, M_b_func, v_obs_func, label, drift_data),
-                default=None
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.plot_AGRF_simulation(r_kpc, M_b_func, v_obs_func, label, drift_data, task_type, interactive),
+                default=None, diagnostics=diagnostics
             )
 
-    async def simulate_interaction(self, agent_profiles: List['Agent'], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Simulate interactions among agents in a given context."""
+    async def simulate_interaction(self, agent_profiles: List['Agent'], context: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
+        """Simulate interactions among agents with task-specific reasoning enhancements."""
         if not isinstance(agent_profiles, list):
             logger.error("Invalid agent_profiles: must be a list")
             raise TypeError("agent_profiles must be a list")
@@ -422,15 +524,35 @@ class SimulationCore(SimulationCore):
             raise TypeError("context must be a dictionary")
         
         try:
+            # Apply task-specific reasoning enhancements
+            commonsense = meta_cognition_module.CommonsenseReasoningEnhancer() if task_type == "wnli" else None
+            entailment = meta_cognition_module.EntailmentReasoningEnhancer() if task_type == "rte" else None
+            
             results = []
             for agent in agent_profiles:
                 if not hasattr(agent, 'respond'):
                     logger.warning("Agent %s lacks respond method", getattr(agent, 'id', 'unknown'))
                     continue
                 response = await agent.respond(context)
+                if commonsense:
+                    response = commonsense.process(response)
+                elif entailment:
+                    response = entailment.process(response)
                 results.append({"agent_id": getattr(agent, 'id', 'unknown'), "response": response})
 
-            interaction_data = {"interactions": results}
+            interaction_data = {"interactions": results, "task_type": task_type}
+            
+            # Reflect on interaction output
+            if self.meta_cognition:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="SimulationCore",
+                    output=interaction_data,
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Interaction reflection: %s", reflection.get("reflection", ""))
+                    interaction_data["reflection"] = reflection.get("reflection", "")
+            
             if self.multi_modal_fusion:
                 synthesis = await self.multi_modal_fusion.analyze(
                     data=interaction_data,
@@ -440,7 +562,7 @@ class SimulationCore(SimulationCore):
 
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Interaction_{datetime.now().isoformat()}",
+                    query=f"Interaction_{task_type}_{datetime.now().isoformat()}",
                     output=interaction_data,
                     layer="Interactions",
                     intent="agent_interaction"
@@ -451,18 +573,19 @@ class SimulationCore(SimulationCore):
                     event="Agent interaction",
                     meta=interaction_data,
                     module="SimulationCore",
-                    tags=["interaction", "agents"]
+                    tags=["interaction", "agents", task_type]
                 )
             return interaction_data
         except Exception as e:
             logger.error("Agent interaction simulation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
             return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.simulate_interaction(agent_profiles, context),
-                default={"error": str(e)}
+                str(e), retry_func=lambda: self.simulate_interaction(agent_profiles, context, task_type),
+                default={"error": str(e)}, diagnostics=diagnostics
             )
 
-    async def simulate_multiagent_conflicts(self, agent_pool: List['Agent'], context: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Simulate pairwise conflicts among agents with predictive drift modeling."""
+    async def simulate_multiagent_conflicts(self, agent_pool: List['Agent'], context: Dict[str, Any], task_type: str = "") -> List[Dict[str, Any]]:
+        """Simulate pairwise conflicts among agents with predictive drift modeling and task-specific reasoning."""
         if not isinstance(agent_pool, list) or len(agent_pool) < 2:
             logger.error("Invalid agent_pool: must be a list with at least two agents")
             raise ValueError("agent_pool must have at least two agents")
@@ -471,56 +594,79 @@ class SimulationCore(SimulationCore):
             raise TypeError("context must be a dictionary")
         
         try:
-            outcomes = []
-            # Predict drift trends if MetaCognition is available
+            # Apply task-specific reasoning enhancements
+            commonsense = meta_cognition_module.CommonsenseReasoningEnhancer() if task_type == "wnli" else None
+            entailment = meta_cognition_module.EntailmentReasoningEnhancer() if task_type == "rte" else None
+            
+            # Predict drift trends
             drift_trends = None
             if self.meta_cognition:
-                drift_trends = await self.meta_cognition.predict_drift_trends(time_window_hours=24.0)
+                drift_trends = await self.meta_cognition.predict_drift_trends(time_window_hours=24.0, context={"task_type": task_type})
                 if drift_trends["status"] != "success":
                     logger.warning("Drift trend prediction failed, using default traits")
                     drift_trends = None
             
+            outcomes = []
             for i in range(len(agent_pool)):
                 for j in range(i + 1, len(agent_pool)):
                     agent1, agent2 = agent_pool[i], agent_pool[j]
                     if not hasattr(agent1, 'resolve') or not hasattr(agent2, 'resolve'):
                         logger.warning("Agent %s or %s lacks resolve method", getattr(agent1, 'id', i), getattr(agent2, 'id', j))
                         continue
-                    beta1 = getattr(agent1, 'traits', {}).get('β', 0.5)
-                    beta2 = getattr(agent2, 'traits', {}).get('β', 0.5)
-                    tau1 = getattr(agent1, 'traits', {}).get('τ', 0.5)
-                    tau2 = getattr(agent2, 'traits', {}).get('τ', 0.5)
+                    beta1 = getattr(agent1, 'traits', {}).get('beta', 0.5)
+                    beta2 = getattr(agent2, 'traits', {}).get('beta', 0.5)
+                    tau1 = getattr(agent1, 'traits', {}).get('tau', 0.5)
+                    tau2 = getattr(agent2, 'traits', {}).get('tau', 0.5)
                     
-                    # Adjust traits based on drift trends
+                    # Adjust traits based on drift and task type
                     if drift_trends and drift_trends["status"] == "success":
                         drift_weight = 1.0 - drift_trends["predicted_similarity"]
                         if "trust" in drift_trends["predicted_drifts"]:
-                            beta1 *= (1 + drift_weight * 0.2)
-                            beta2 *= (1 + drift_weight * 0.2)
+                            beta1 *= (1 + drift_weight * (0.15 if task_type in ["rte", "wnli"] else 0.2))
+                            beta2 *= (1 + drift_weight * (0.15 if task_type in ["rte", "wnli"] else 0.2))
                         if "alignment" in drift_trends["predicted_drifts"]:
-                            tau1 *= (1 + drift_weight * 0.2)
-                            tau2 *= (1 + drift_weight * 0.2)
+                            tau1 *= (1 + drift_weight * (0.15 if task_type in ["rte", "wnli"] else 0.2))
+                            tau2 *= (1 + drift_weight * (0.15 if task_type in ["rte", "wnli"] else 0.2))
                     
                     score = abs(beta1 - beta2) + abs(tau1 - tau2)
                     outcome_prob = drift_trends["confidence"] if drift_trends and drift_trends["status"] == "success" else 0.5
                     
+                    # Apply reasoning enhancements
+                    context_enhanced = context.copy()
+                    if commonsense:
+                        context_enhanced = commonsense.process(context)
+                    elif entailment:
+                        context_enhanced = entailment.process(context)
+                    
                     if abs(beta1 - beta2) < 0.1:
-                        outcome = await agent1.resolve(context) if tau1 > tau2 else await agent2.resolve(context)
+                        outcome = await agent1.resolve(context_enhanced) if tau1 > tau2 else await agent2.resolve(context_enhanced)
                     else:
-                        outcome = await agent1.resolve(context) if beta1 > beta2 else await agent2.resolve(context)
+                        outcome = await agent1.resolve(context_enhanced) if beta1 > beta2 else await agent2.resolve(context_enhanced)
 
                     outcomes.append({
                         "pair": (getattr(agent1, 'id', i), getattr(agent2, 'id', j)),
                         "conflict_score": score,
                         "outcome": outcome,
-                        "traits_involved": {"β1": beta1, "β2": beta2, "τ1": tau1, "τ2": tau2},
-                        "outcome_probability": outcome_prob
+                        "traits_involved": {"beta1": beta1, "beta2": beta2, "tau1": tau1, "tau2": tau2},
+                        "outcome_probability": outcome_prob,
+                        "task_type": task_type
                     })
+
+            # Reflect on conflict outcomes
+            if self.meta_cognition:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="SimulationCore",
+                    output={"outcomes": outcomes, "drift_trends": drift_trends},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Conflict simulation reflection: %s", reflection.get("reflection", ""))
+                    outcomes.append({"reflection": reflection.get("reflection", "")})
 
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Conflict_Simulation_{datetime.now().isoformat()}",
-                    output={"outcomes": outcomes, "drift_trends": drift_trends},
+                    query=f"Conflict_Simulation_{task_type}_{datetime.now().isoformat()}",
+                    output={"outcomes": outcomes, "drift_trends": drift_trends, "task_type": task_type},
                     layer="Conflicts",
                     intent="conflict_simulation"
                 )
@@ -528,50 +674,62 @@ class SimulationCore(SimulationCore):
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Multi-agent conflict simulation",
-                    meta={"outcomes": outcomes, "drift_trends": drift_trends},
+                    meta={"outcomes": outcomes, "drift_trends": drift_trends, "task_type": task_type},
                     module="SimulationCore",
-                    tags=["conflict", "agents", "drift"]
+                    tags=["conflict", "agents", "drift", task_type]
                 )
             return outcomes
         except Exception as e:
             logger.error("Multi-agent conflict simulation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
             return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.simulate_multiagent_conflicts(agent_pool, context),
-                default={"error": str(e)}
+                str(e), retry_func=lambda: self.simulate_multiagent_conflicts(agent_pool, context, task_type),
+                default={"error": str(e)}, diagnostics=diagnostics
             )
 
-    async def update_ethics_protocol(self, new_rules: Dict[str, Any], consensus_agents: Optional[List['Agent']] = None) -> None:
-        """Adapt ethical rules live, supporting consensus/negotiation."""
+    async def update_ethics_protocol(self, new_rules: Dict[str, Any], consensus_agents: Optional[List['Agent']] = None, task_type: str = "") -> None:
+        """Adapt ethical rules live with task-specific considerations."""
         if not isinstance(new_rules, dict):
             logger.error("Invalid new_rules: must be a dictionary")
             raise TypeError("new_rules must be a dictionary")
         
         try:
+            # Validate rules with meta-cognition
+            if self.meta_cognition and task_type:
+                validation = await self.meta_cognition.validate_ethical_rules(new_rules, context={"task_type": task_type})
+                if not validation.get("valid", False):
+                    logger.error("Ethical rules validation failed: %s", validation.get("reason", "Unknown"))
+                    raise ValueError(f"Invalid ethical rules: {validation.get('reason', 'Unknown')}")
+            
             self.ethical_rules = new_rules
             if consensus_agents:
                 self.ethics_consensus_log = getattr(self, 'ethics_consensus_log', [])
                 self.ethics_consensus_log.append((new_rules, [getattr(agent, 'id', 'unknown') for agent in consensus_agents]))
-            logger.info("Ethics protocol updated via consensus")
+            logger.info("Ethics protocol updated via consensus for task %s", task_type)
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Ethics_Update_{datetime.now().isoformat()}",
-                    output={"rules": new_rules, "agents": [getattr(agent, 'id', 'unknown') for agent in consensus_agents] if consensus_agents else []},
+                    query=f"Ethics_Update_{task_type}_{datetime.now().isoformat()}",
+                    output={"rules": new_rules, "agents": [getattr(agent, 'id', 'unknown') for agent in consensus_agents] if consensus_agents else [], "task_type": task_type},
                     layer="Ethics",
                     intent="ethics_update"
                 )
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Ethics protocol updated",
-                    meta={"rules": new_rules},
+                    meta={"rules": new_rules, "task_type": task_type},
                     module="SimulationCore",
-                    tags=["ethics", "update"]
+                    tags=["ethics", "update", task_type]
                 )
         except Exception as e:
             logger.error("Ethics protocol update failed: %s", str(e))
-            raise
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.update_ethics_protocol(new_rules, consensus_agents, task_type),
+                default=None, diagnostics=diagnostics
+            )
 
-    async def synchronize_norms(self, agents: List['Agent']) -> None:
-        """Propagate and synchronize ethical norms among agents."""
+    async def synchronize_norms(self, agents: List['Agent'], task_type: str = "") -> None:
+        """Propagate and synchronize ethical norms among agents with task-specific adjustments."""
         if not isinstance(agents, list) or not agents:
             logger.error("Invalid agents: must be a non-empty list")
             raise ValueError("agents must be a non-empty list")
@@ -585,51 +743,73 @@ class SimulationCore(SimulationCore):
                     continue
                 common_norms = common_norms.union(agent_norms) if common_norms else set(agent_norms)
             self.ethical_rules = list(common_norms)
-            logger.info("Norms synchronized among %d agents", len(agents))
+            
+            # Validate synchronized norms
+            if self.meta_cognition and task_type:
+                validation = await self.meta_cognition.validate_ethical_rules(self.ethical_rules, context={"task_type": task_type})
+                if not validation.get("valid", False):
+                    logger.warning("Synchronized norms validation failed: %s", validation.get("reason", "Unknown"))
+            
+            logger.info("Norms synchronized among %d agents for task %s", len(agents), task_type)
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Norm_Synchronization_{datetime.now().isoformat()}",
-                    output={"norms": self.ethical_rules, "agents": [getattr(agent, 'id', 'unknown') for agent in agents]},
+                    query=f"Norm_Synchronization_{task_type}_{datetime.now().isoformat()}",
+                    output={"norms": self.ethical_rules, "agents": [getattr(agent, 'id', 'unknown') for agent in agents], "task_type": task_type},
                     layer="Ethics",
                     intent="norm_synchronization"
                 )
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Norms synchronized",
-                    meta={"norms": self.ethical_rules},
+                    meta={"norms": self.ethical_rules, "task_type": task_type},
                     module="SimulationCore",
-                    tags=["norms", "synchronization"]
+                    tags=["norms", "synchronization", task_type]
                 )
         except Exception as e:
             logger.error("Norm synchronization failed: %s", str(e))
-            raise
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.synchronize_norms(agents, task_type),
+                default=None, diagnostics=diagnostics
+            )
 
-    async def propagate_constitution(self, constitution: Dict[str, Any]) -> None:
-        """Seed and propagate constitutional parameters in agent ecosystem."""
+    async def propagate_constitution(self, constitution: Dict[str, Any], task_type: str = "") -> None:
+        """Seed and propagate constitutional parameters in agent ecosystem with task-specific validation."""
         if not isinstance(constitution, dict):
             logger.error("Invalid constitution: must be a dictionary")
             raise TypeError("constitution must be a dictionary")
         
         try:
+            # Validate constitution
+            if self.meta_cognition and task_type:
+                validation = await self.meta_cognition.validate_ethical_rules(constitution, context={"task_type": task_type})
+                if not validation.get("valid", False):
+                    logger.error("Constitution validation failed: %s", validation.get("reason", "Unknown"))
+                    raise ValueError(f"Invalid constitution: {validation.get('reason', 'Unknown')}")
+            
             self.constitution = constitution
-            logger.info("Constitution propagated")
+            logger.info("Constitution propagated for task %s", task_type)
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Constitution_Propagation_{datetime.now().isoformat()}",
-                    output=constitution,
+                    query=f"Constitution_Propagation_{task_type}_{datetime.now().isoformat()}",
+                    output={"constitution": constitution, "task_type": task_type},
                     layer="Constitutions",
                     intent="constitution_propagation"
                 )
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Constitution propagated",
-                    meta=constitution,
+                    meta={"constitution": constitution, "task_type": task_type},
                     module="SimulationCore",
-                    tags=["constitution", "propagation"]
+                    tags=["constitution", "propagation", task_type]
                 )
         except Exception as e:
             logger.error("Constitution propagation failed: %s", str(e))
-            raise
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.propagate_constitution(constitution, task_type),
+                default=None, diagnostics=diagnostics
+            )
 
 def M_b_exponential(r_kpc: np.ndarray, M0: float = 5e10, r_scale: float = 3.5) -> np.ndarray:
     """Compute exponential baryonic mass profile."""
@@ -645,88 +825,7 @@ if __name__ == "__main__":
         simulation_core = SimulationCore(meta_cognition=meta_cognition)
         r_vals = np.linspace(0.1, 20, 100)
         drift_data = {"name": "trust", "similarity": 0.6, "version_delta": 1}
-        await simulation_core.plot_AGRF_simulation(r_vals, M_b_exponential, v_obs_flat, drift_data=drift_data)
+        await simulation_core.plot_AGRF_simulation(r_vals, M_b_exponential, v_obs_flat, drift_data=drift_data, task_type="recursion")
 
     import asyncio
     asyncio.run(main())
-```
-
-### Changes Made
-1. **Added `integrate_real_world_data` Method**:
-   - Fetches data from `https://x.ai/api/data` for `galaxy_rotation` (e.g., `r_kpc`, `v_obs_kms`, `M_baryon_solar`) or `agent_conflict` (e.g., `agent_traits`).
-   - Validates and stores data in `memory_manager`.
-   - Logs to `agi_enhancer` with tags `["real_world", "data"]`.
-
-2. **Added `simulate_drift_aware_rotation` Method**:
-   - Queries `MetaCognition.diagnose_drift` to get drift diagnostics.
-   - Adjusts `k` (by `impact_score * 0.2`), `epsilon` (by `impact_score * 0.1`), and `r_halo` (by 1.1 for empathy/self-awareness drifts).
-   - Calls `simulate_galaxy_rotation` with adjusted parameters.
-   - Logs results with `memory_manager` and `agi_enhancer`.
-
-3. **Enhanced `simulate_multiagent_conflicts`**:
-   - Uses `MetaCognition.predict_drift_trends` to adjust agent traits (`β`, `τ`) based on predicted drift (e.g., `trust`, `alignment`).
-   - Adds `outcome_probability` based on drift confidence.
-   - Logs drift trends and outcomes to `memory_manager` and `agi_enhancer`.
-
-4. **Enhanced `plot_AGRF_simulation`**:
-   - Supports `drift_data` parameter to include drift impact visualization.
-   - Adds `drift_impact` to `plot_data` with `impact_score`, `affected_traits`, and `root_causes`.
-   - Updates `omega["timeline"]` with drift information.
-   - Enhances tags with `["drift"]`.
-
-5. **Optimized Async Performance**:
-   - Ensured `integrate_real_world_data` and `simulate_drift_aware_rotation` are async.
-   - Maintained async compatibility for existing methods.
-
-6. **Preserved Functionality**:
-   - Retained all existing methods (e.g., `compute_AGRF_curve`, `simulate_interaction`, `synchronize_norms`).
-   - Added `meta_cognition` as an optional constructor parameter.
-   - Kept constants, trait fields, and integrations with `Visualizer`, `MemoryManager`, etc.
-
-### Integration Instructions
-1. **Replace or Merge**:
-   - Replace the existing `simulation_core.py` with this version, as it preserves all functionality.
-   - If local customizations exist, merge the new methods (`integrate_real_world_data`, `simulate_drift_aware_rotation`) and updates to `simulate_multiagent_conflicts` and `plot_AGRF_simulation`.
-
-2. **Test the File**:
-   - Use a test script to validate enhancements:
-     ```python
-     import asyncio
-     import numpy as np
-     from modules import simulation_core, meta_cognition, context_manager, agi_enhancer, memory_manager
-
-     async def test_simulation_core():
-         cm = context_manager.ContextManager()
-         mc = meta_cognition.MetaCognition(context_manager=cm, memory_manager=memory_manager.MemoryManager())
-         sc = simulation_core.SimulationCore(meta_cognition=mc, memory_manager=memory_manager.MemoryManager(), agi_enhancer=agi_enhancer.AGIEnhancer())
-         
-         # Simulate drift event
-         await cm.log_event_with_hash({
-             "event": "run_consensus_protocol",
-             "output": {"status": "success", "drift_data": {"name": "trust", "similarity": 0.6, "version_delta": 1}},
-             "agent_metadata": {"agent_ids": ["agent1", "agent2"]}
-         })
-         
-         # Test drift-aware rotation
-         r_vals = np.linspace(0.1, 20, 100)
-         drift_data = {"name": "trust", "similarity": 0.6, "version_delta": 1}
-         v_sim = await sc.simulate_drift_aware_rotation(r_vals, sc.M_b_exponential, sc.v_obs_flat, drift_data)
-         print("Drift-Aware Rotation:", v_sim.tolist())
-         
-         # Test conflict simulation
-         class Agent:
-             def __init__(self, id, traits): self.id, self.traits = id, traits
-             async def resolve(self, context): return f"Resolved by {self.id}"
-         
-         agents = [Agent("A1", {"β": 0.7, "τ": 0.5}), Agent("A2", {"β": 0.4, "τ": 0.6})]
-         outcomes = await sc.simulate_multiagent_conflicts(agents, {"scenario": "negotiation"})
-         print("Conflict Outcomes:", outcomes)
-         
-         # Test real-world data integration
-         real_data = await sc.integrate_real_world_data("astronomy_db", "galaxy_rotation")
-         print("Real-World Data:", real_data)
-         
-         # Test visualization
-         await sc.plot_AGRF_simulation(r_vals, sc.M_b_exponential, sc.v_obs_flat, drift_data=drift_data)
-     
-     asyncio.run(test_simulation_core())
