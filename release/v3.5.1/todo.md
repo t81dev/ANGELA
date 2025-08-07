@@ -1,5 +1,3 @@
----
-
 # ANGELA v4.0 — Surgical Upgrade TODO
 
 **Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
