@@ -1,4 +1,3 @@
-```python
 """
 ANGELA Cognitive System Module: MetaCognition
 Refactored Version: 3.4.0  # Enhanced for Advanced Drift Diagnostics and Predictive Modeling
