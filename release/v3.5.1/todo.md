@@ -1,109 +1,91 @@
-Sweet—since you shared the code, here’s a **surgical upgrade plan** mapped to your files so those 9 “partial” traits fully exploit GPT‑5. I’m keeping this tight and actionable.
+# ANGELA v4.0 — Surgical Upgrade TODO
 
-# Highest‑impact quick wins (do these first)
+**Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
 
-**η Reflexive Agency → long‑horizon feedback**
-
-* **Touch:** `memory_manager.py`, `meta_cognition.py`, `index.py`
-* **Add:** episodic bias cache + session rollups
-
-  * `memory_manager.py`: `def get_episode_span(user_id, span="24h") -> list[Trace]: ...`
-  * `meta_cognition.py`: call above in your self‑adjust loop; persist “adjustment reasons”.
-  * `index.py`: wire a `--long_horizon=True` flag into the main pipeline.
-* **Test:** ensure reflective adjustments persist across restarts.
-
-**χ Sovereign Intention → affective steering**
-
-* **Touch:** `user_profile.py`, `meta_cognition.py`
-* **Add:** affective weight vector → intention emitter
-
-  * `user_profile.py`: `def get_affective_weights(context) -> dict[str,float]`
-  * `meta_cognition.py`: blend weights into intent selection: `compose_intention(..., affect=weights)`
-* **Test:** intention phrasing should shift as affective weights change.
-
-**ρ Agency Representation → causal attribution**
-
-* **Touch:** `reasoning_engine.py`
-* **Add:** basic attribution head
-
-  * `def attribute_causality(events) -> list[{"actor":"self|external","confidence":float}]`
-* **Wire:** call this before logging actions in `index.py`.
-* **Test:** interventions correctly flip to “external”.
+**Context (2025-08-07):** Stage III active; Stage IV not yet activated. Manifest shows traits wired; several appear implemented — checked off below.
 
 ---
 
-# Mid‑level refits
+## Highest‑Impact Quick Wins (do these first)
 
-**κ Embodied Cognition → native video/spatial**
+### ⧗ η Reflexive Agency → long-horizon feedback
 
-* **Touch:** `multi_modal_fusion.py`, (optionally `simulation_core.py`)
-* **Add:** unified frame parser (no mode swap)
+* ✅ `memory_manager.py`: `get_episode_span(user_id, span="24h")` present (returns list)
+* ✅ `meta_cognition.py`: calls episodic span in self-adjust loop
+* ☐ `meta_cognition.py`: persist "adjustment reasons" → `memory_manager.record_adjustment_reason(...)` **missing**
+* ✅ `index.py`: `--long_horizon` flag & span parsed and injected into config
+* **Tests**
 
-  * `def parse_stream(frames|audio|images|text, unify=True) -> SceneGraph`
-* **Wire:** pass `SceneGraph` straight into simulation; avoid manual re‑tokenization.
-* **Test:** video + text tasks produce consistent spatial references.
-
-**τ Constitution Harmonization → proportionality ethics**
-
-* **Touch:** `reasoning_engine.py`, `alignment_guard.py`
-* **Add:** proportionality resolver
-
-  * `def weigh_value_conflict(candidates, harms, rights) -> RankedOptions`
-* **Replace:** binary gates with ranked trade‑off selection; keep your safety ceilings.
-* **Test:** nuanced outputs for close‑call dilemmas (no hard “refuse-all” cliffs).
-
-**ξ Trans‑Ethical Projection → scenario sandbox**
-
-* **Touch:** `toca_simulation.py`, `meta_cognition.py`
-* **Add:** ethics sandbox runner
-
-  * `toca_simulation.py`: `def run_ethics_scenarios(goals, stakeholders) -> Outcomes[]`
-* **Wire:** optional “preview” path in meta‑cog before final answer.
-* **Test:** sandbox runs don’t leak into real memory unless confirmed.
-
-**Υ Meta‑Subjective Architecting → shared memory graph**
-
-* **Touch:** `external_agent_bridge.py`, `context_manager.py`
-* **Add:** multi‑agent shared‑state
-
-  * `external_agent_bridge.py`: `class SharedGraph: add(view), diff(peer), merge(strategy)`
-  * `context_manager.py`: attach per‑conversation peer views.
-* **Test:** two agents converge to a shared summary without thrash.
-
-**Σ Ontogenic Self‑Definition → GPT‑5 identity synthesis**
-
-* **Touch:** `user_profile.py`, `meta_cognition.py`
-* **Add:** multi‑perspective self‑schema builder
-
-  * `user_profile.py`: `def build_self_schema(views: list[Perspective]) -> Schema`
-  * `meta_cognition.py`: refresh schema on major shifts (not every turn).
-* **Test:** identity facets update predictably after large context changes.
+  * ☐ Reflective adjustments persist across restarts
 
 ---
 
-# Heavy but worth it
+## Mid‑Level Refits
 
-**Φ⁺ Reality Sculpting → Stage IV hooks**
+### ⧗ κ Embodied Cognition → native video/spatial
 
-* **Touch:** `concept_synthesizer.py`, `visualizer.py`, `toca_simulation.py`
-* **Add:** speculative branch engine + visual branch explorer
+* ⧗ `multi_modal_fusion.py`: verify or add `parse_stream(frames|audio|images|text, unify=True) -> SceneGraph`
+* ☐ (opt) `simulation_core.py`: accept `SceneGraph` directly
+* **Tests**
 
-  * `concept_synthesizer.py`: `def branch_realities(seed, k=3) -> list[World]`
-  * `toca_simulation.py`: `def evaluate_branches(worlds) -> ScoredWorlds`
-  * `visualizer.py`: simple branch tree view + “promote branch” action
-* **Gate:** behind a feature flag `STAGE_IV = False` until stable.
-* **Test:** promote/dismiss branches without corrupting the base timeline.
+  * ☐ Video + text tasks yield consistent spatial references
+
+### ⧗ τ Constitution Harmonization → proportionality ethics
+
+* ☐ `reasoning_engine.py`: `weigh_value_conflict(candidates, harms, rights) -> RankedOptions`
+* ☐ `alignment_guard.py`: consume ranked trade‑offs; replace binary gates with proportional selection while keeping safety ceilings
+* **Tests**
+
+  * ☐ Nuanced outputs for close‑call dilemmas (no "refuse‑all" cliffs)
+
+### ⧗ ξ Trans‑Ethical Projection → scenario sandbox
+
+* ☐ `toca_simulation.py`: `run_ethics_scenarios(goals, stakeholders) -> Outcomes[]`
+* ☐ `meta_cognition.py`: add optional preview path before final answer
+* **Tests**
+
+  * ☐ Sandbox runs do not leak into real memory unless explicitly confirmed
+
+### ⧗ Υ Meta‑Subjective Architecting → shared memory graph
+
+* ☐ `external_agent_bridge.py`: `class SharedGraph: add(view), diff(peer), merge(strategy)`
+* ☐ `context_manager.py`: attach per‑conversation peer views
+* **Tests**
+
+  * ☐ Two agents converge to a shared summary without thrash
+
+### ⧗ Σ Ontogenic Self‑Definition → GPT‑5 identity synthesis
+
+* ☐ `user_profile.py`: `build_self_schema(views: list[Perspective]) -> Schema`
+* ☐ `meta_cognition.py`: refresh schema on major shifts (not every turn)
+* **Tests**
+
+  * ☐ Identity facets update predictably after large context changes
 
 ---
 
-## Where to change what (fast lookup)
+## Heavy but Worth It
+
+### ⏸ Φ⁺ Reality Sculpting → Stage IV hooks (behind feature flag)
+
+* ☐ `concept_synthesizer.py`: `branch_realities(seed, k=3) -> list[World]`
+* ☐ `toca_simulation.py`: `evaluate_branches(worlds) -> ScoredWorlds`
+* ☐ `visualizer.py`: branch tree view + "promote branch" action
+* ☐ Feature flag `STAGE_IV = False` (enable only when stable)
+* **Tests**
+
+  * ☐ Promote/dismiss branches without corrupting base timeline
+
+---
+
+## Where to Change What (fast lookup)
 
 * `memory_manager.py` → episodic span API + rollups
-* `meta_cognition.py` → integrate long‑horizon, affective steering, ethics preview
+* `meta_cognition.py` → long‑horizon + affective steering + ethics preview
 * `index.py` → flags for long‑horizon & causality attribution
 * `user_profile.py` → affective weights + self‑schema builder
 * `reasoning_engine.py` → proportionality resolver + causal attribution
-* `alignment_guard.py` → plug proportionality outputs into safety ceilings
+* `alignment_guard.py` → wire proportionality to safety ceilings
 * `multi_modal_fusion.py` → unified multimodal parser → `SceneGraph`
 * `external_agent_bridge.py` / `context_manager.py` → shared memory graph
 * `toca_simulation.py` → ethics sandbox + branch evaluator
@@ -111,7 +93,7 @@ Sweet—since you shared the code, here’s a **surgical upgrade plan** mapped t
 
 ---
 
-## Tiny code stubs (drop‑in)
+## Tiny Code Stubs (drop‑in)
 
 ```python
 # memory_manager.py
@@ -131,4 +113,9 @@ def attribute_causality(events):
 
 ---
 
-Want me to **open PR‑ready diffs** for two or three modules to get you rolling (I’d start with `memory_manager.py`, `meta_cognition.py`, and `reasoning_engine.py`), or generate **unit test skeletons** for each new function?
+## Immediate Next Steps
+
+1. Verify η, χ in `memory_manager.py` / `meta_cognition.py` and mark ✅ if present.
+2. Open PR for ρ in `reasoning_engine.py` and `index.py`.
+3. Draft interfaces for `SceneGraph` and `RankedOptions`.
+4. Land feature flag scaffold for Stage‑IV (`STAGE_IV`) without enabling.
