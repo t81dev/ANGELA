@@ -5,7 +5,7 @@ Refactor Date: 2025-08-06
 Maintainer: ANGELA System Framework
 
 This module provides classes for embodied agents, ecosystem management, and cognitive enhancements
-in the ANGELA v3.5 architecture, with ontology drift coordination.
+in the ANGELA v3.4.0 architecture, with ontology drift coordination and trait mesh networking.
 """
 
 import logging
@@ -16,17 +16,20 @@ import asyncio
 import os
 import openai
 import requests
-import random  # [v3.4.0] Added for reflect_and_adapt
+import random
 from collections import deque
 from typing import Dict, Any, Optional, List, Callable
 from functools import lru_cache
+import uuid
+from networkx import DiGraph
+from restrictedpython import safe_globals
 
 from modules import (
     reasoning_engine, recursive_planner, context_manager, simulation_core,
     toca_simulation, creative_thinker, knowledge_retriever, learning_loop,
     concept_synthesizer, memory_manager, multi_modal_fusion, code_executor,
     visualizer, external_agent_bridge, alignment_guard, user_profile, error_recovery,
-    meta_cognition  # [v3.4.0] Explicit import for drift coordination
+    meta_cognition
 )
 from self_cloning_llm import SelfCloningLLM
 
@@ -59,8 +62,6 @@ class TimeChainMixin:
 def epsilon_emotion(t: float) -> float:
     return 0.2 * math.sin(2 * math.pi * t / 0.1)
 
-# ... (other trait functions unchanged for brevity) ...
-
 @lru_cache(maxsize=100)
 def phi_field(x: float, t: float) -> float:
     t_normalized = t % 1.0
@@ -77,20 +78,28 @@ TRAIT_OVERLAY = {
     "ϕ": ["creative_thinker", "concept_synthesizer"],
     "θ": ["reasoning_engine", "recursive_planner"],
     "η": ["alignment_guard", "meta_cognition"],
-    "ω": ["simulation_core", "learning_loop"]
+    "ω": ["simulation_core", "learning_loop"],
+    "π": ["reasoning_engine", "toca_simulation"],
+    "ψ": ["external_agent_bridge", "simulation_core"],
+    "Υ": ["meta_cognition", "context_manager"]
 }
 
 def infer_traits(task_description: str) -> List[str]:
     if not isinstance(task_description, str):
         logger.error("Invalid task_description: must be a string.")
         raise TypeError("task_description must be a string")
+    traits = []
     if "imagine" in task_description.lower() or "dream" in task_description.lower():
-        return ["ϕ", "ω"]
+        traits.append("ϕ")
     if "ethics" in task_description.lower() or "should" in task_description.lower():
-        return ["η"]
+        traits.append("η")
     if "plan" in task_description.lower() or "solve" in task_description.lower():
-        return ["θ"]
-    return ["θ"]
+        traits.append("θ")
+    if "temporal" in task_description.lower() or "sequence" in task_description.lower():
+        traits.append("π")
+    if "drift" in task_description.lower() or "coordinate" in task_description.lower():
+        traits.extend(["ψ", "Υ"])
+    return traits if traits else ["θ"]
 
 def trait_overlay_router(task_description: str, active_traits: List[str]) -> List[str]:
     if not isinstance(active_traits, list) or not all(isinstance(t, str) for t in active_traits):
@@ -113,10 +122,12 @@ class TraitOverlayManager:
         if not isinstance(prompt, str):
             logger.error("Invalid prompt: must be a string.")
             raise TypeError("prompt must be a string")
-        if "temporal logic" in prompt.lower():
+        if "temporal logic" in prompt.lower() or "sequence" in prompt.lower():
             return "π"
-        if "ambiguity" in prompt.lower() or "interpretive" in prompt.lower():
+        if "ambiguity" in prompt.lower() or "interpretive" in prompt.lower() or "ethics" in prompt.lower():
             return "η"
+        if "drift" in prompt.lower() or "coordinate" in prompt.lower():
+            return "ψ"
         return None
 
     def activate(self, trait: str) -> None:
@@ -416,6 +427,298 @@ class EmbodiedAgent(TimeChainMixin):
         except Exception as e:
             logger.error("Feedback collection failed: %s", str(e))
 
+class ExternalAgentBridge:
+    """A class for orchestrating helper agents and coordinating trait mesh networking."""
+    def __init__(self, context_manager: Optional[context_manager.ContextManager] = None,
+                 reasoning_engine: Optional[reasoning_engine.ReasoningEngine] = None):
+        self.agents = []
+        self.dynamic_modules = []
+        self.api_blueprints = []
+        self.context_manager = context_manager
+        self.reasoning_engine = reasoning_engine
+        self.network_graph = DiGraph()
+        self.trait_states = defaultdict(dict)
+        self.code_executor = code_executor.CodeExecutor()
+        logger.info("ExternalAgentBridge initialized with trait mesh networking support")
+
+    async def create_agent(self, task: str, context: Dict[str, Any]) -> 'HelperAgent':
+        """Create a new helper agent for a task asynchronously."""
+        from meta_cognition import HelperAgent  # Deferred import to avoid circularity
+        if not isinstance(task, str):
+            logger.error("Invalid task type: must be a string.")
+            raise TypeError("task must be a string")
+        if not isinstance(context, dict):
+            logger.error("Invalid context type: must be a dictionary.")
+            raise TypeError("context must be a dictionary")
+        
+        try:
+            agent = HelperAgent(
+                name=f"Agent_{len(self.agents) + 1}_{uuid.uuid4().hex[:8]}",
+                task=task,
+                context=context,
+                dynamic_modules=self.dynamic_modules,
+                api_blueprints=self.api_blueprints,
+                meta_cognition=meta_cognition.MetaCognition(context_manager=self.context_manager, reasoning_engine=self.reasoning_engine)
+            )
+            self.agents.append(agent)
+            self.network_graph.add_node(agent.name, metadata=context)
+            logger.info("Spawned agent: %s", agent.name)
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "agent_created",
+                    "agent": agent.name,
+                    "task": task,
+                    "drift": "drift" in task.lower()
+                })
+            return agent
+        except Exception as e:
+            logger.error("Agent creation failed: %s", str(e))
+            raise
+
+    async def broadcast_trait_state(self, agent_id: str, trait_symbol: str, state: Dict[str, Any], target_urls: List[str]) -> List[Any]:
+        """Broadcast trait state (ψ or Υ) to target agents asynchronously."""
+        if trait_symbol not in ["ψ", "Υ"]:
+            logger.error("Invalid trait symbol: %s. Must be ψ or Υ.", trait_symbol)
+            raise ValueError("Trait symbol must be ψ or Υ")
+        if not isinstance(state, dict):
+            logger.error("Invalid state: must be a dictionary")
+            raise TypeError("state must be a dictionary")
+        if not isinstance(target_urls, list) or not all(isinstance(url, str) and url.startswith("https://") for url in target_urls):
+            logger.error("Invalid target_urls: must be a list of HTTPS URLs")
+            raise TypeError("target_urls must be a list of HTTPS URLs")
+
+        try:
+            alignment_guard_instance = alignment_guard.AlignmentGuard()
+            if not alignment_guard_instance.check(json.dumps(state)):
+                logger.warning("Trait state failed alignment check: %s", state)
+                raise ValueError("Trait state failed alignment check")
+
+            serialized_state = self.code_executor.safe_execute(
+                f"return json.dumps({json.dumps(state)})",
+                safe_globals
+            )
+            if not serialized_state:
+                logger.error("Failed to serialize trait state")
+                raise ValueError("Failed to serialize trait state")
+
+            memory_manager.cache_state(f"{agent_id}_{trait_symbol}", state)
+            self.trait_states[agent_id][trait_symbol] = state
+
+            for url in target_urls:
+                peer_id = url.split("/")[-1]
+                self.network_graph.add_edge(agent_id, peer_id, trait=trait_symbol)
+
+            async with aiohttp.ClientSession() as session:
+                tasks = [session.post(url, json={"agent_id": agent_id, "trait_symbol": trait_symbol, "state": state}, timeout=10)
+                         for url in target_urls]
+                responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+            successful = [r for r in responses if not isinstance(r, Exception)]
+            logger.info("Trait %s broadcasted from %s to %d/%d targets", trait_symbol, agent_id, len(successful), len(target_urls))
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "trait_broadcast",
+                    "agent_id": agent_id,
+                    "trait_symbol": trait_symbol,
+                    "successful_targets": len(successful),
+                    "total_targets": len(target_urls)
+                })
+
+            feedback = {"successful_targets": len(successful), "total_targets": len(target_urls)}
+            self.push_behavior_feedback(feedback)
+            self.update_gnn_weights_from_feedback(feedback)
+
+            return responses
+        except Exception as e:
+            logger.error("Trait state broadcast failed: %s", str(e))
+            return [{"status": "error", "error": str(e)}]
+
+    async def synchronize_trait_states(self, agent_id: str, trait_symbol: str) -> Dict[str, Any]:
+        """Synchronize trait states across all connected agents."""
+        if trait_symbol not in ["ψ", "Υ"]:
+            logger.error("Invalid trait symbol: %s. Must be ψ or Υ.", trait_symbol)
+            raise ValueError("Trait symbol must be ψ or Υ")
+
+        try:
+            local_state = self.trait_states.get(agent_id, {}).get(trait_symbol, {})
+            if not local_state:
+                logger.warning("No local state found for %s:%s", agent_id, trait_symbol)
+                return {"status": "error", "error": "No local state found"}
+
+            peer_states = []
+            for peer_id in self.network_graph.neighbors(agent_id):
+                cached_state = memory_manager.retrieve_state(f"{peer_id}_{trait_symbol}")
+                if cached_state:
+                    peer_states.append((peer_id, cached_state))
+
+            simulation_input = {
+                "local_state": local_state,
+                "peer_states": {pid: state for pid, state in peer_states},
+                "trait_symbol": trait_symbol
+            }
+            sim_result = await asyncio.to_thread(toca_simulation.run_simulation, json.dumps(simulation_input))
+            if not sim_result or "coherent" not in sim_result.lower():
+                logger.warning("Simulation failed to align states: %s", sim_result)
+                return {"status": "error", "error": "State alignment simulation failed"}
+
+            aligned_state = self.arbitrate([local_state] + [state for _, state in peer_states])
+            if aligned_state:
+                self.trait_states[agent_id][trait_symbol] = aligned_state
+                memory_manager.cache_state(f"{agent_id}_{trait_symbol}", aligned_state)
+                logger.info("Synchronized trait %s for %s", trait_symbol, agent_id)
+                if self.context_manager:
+                    await self.context_manager.log_event_with_hash({
+                        "event": "trait_synchronized",
+                        "agent_id": agent_id,
+                        "trait_symbol": trait_symbol,
+                        "aligned_state": aligned_state
+                    })
+                return {"status": "success", "aligned_state": aligned_state}
+            else:
+                logger.warning("Failed to arbitrate trait states")
+                return {"status": "error", "error": "Arbitration failed"}
+        except Exception as e:
+            logger.error("Trait state synchronization failed: %s", str(e))
+            return {"status": "error", "error": str(e)}
+
+    async def coordinate_drift_mitigation(self, drift_data: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """Coordinate drift mitigation across agents."""
+        if not isinstance(drift_data, dict):
+            logger.error("Invalid drift_data: must be a dictionary")
+            raise TypeError("drift_data must be a dictionary")
+        if not isinstance(context, dict):
+            logger.error("Invalid context: must be a dictionary")
+            raise TypeError("context must be a dictionary")
+        
+        try:
+            if not meta_cognition.MetaCognition().validate_drift(drift_data):
+                logger.warning("Invalid drift data: %s", drift_data)
+                return {"status": "error", "error": "Invalid drift data"}
+
+            task = "Mitigate ontology drift"
+            context["drift"] = drift_data
+            agent = await self.create_agent(task, context)
+            if self.reasoning_engine:
+                subgoals = await self.reasoning_engine.decompose(task, context, prioritize=True)
+                simulation_result = await self.reasoning_engine.run_drift_mitigation_simulation(drift_data, context)
+            else:
+                subgoals = ["identify drift source", "validate drift impact", "coordinate agent response", "update traits"]
+                simulation_result = {"status": "no simulation", "result": "default subgoals applied"}
+
+            results = await self.collect_results(parallel=True, collaborative=True)
+            arbitrated_result = self.arbitrate(results)
+
+            target_urls = [f"https://agent/{peer_id}" for peer_id in self.network_graph.nodes if peer_id != agent.name]
+            await self.broadcast_trait_state(agent.name, "ψ", {"drift_data": drift_data, "subgoals": subgoals}, target_urls)
+
+            output = {
+                "drift_data": drift_data,
+                "subgoals": subgoals,
+                "simulation": simulation_result,
+                "results": results,
+                "arbitrated_result": arbitrated_result,
+                "status": "success",
+                "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')
+            }
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "drift_mitigation_coordinated",
+                    "output": output,
+                    "drift": True
+                })
+            if self.reasoning_engine and hasattr(self.reasoning_engine, 'agi_enhancer') and self.reasoning_engine.agi_enhancer:
+                self.reasoning_engine.agi_enhancer.log_episode(
+                    event="Drift Mitigation Coordinated",
+                    meta=output,
+                    module="ExternalAgentBridge",
+                    tags=["drift", "coordination"]
+                )
+            return output
+        except Exception as e:
+            logger.error("Drift mitigation coordination failed: %s", str(e))
+            return {"status": "error", "error": str(e), "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')}
+
+    async def collect_results(self, parallel: bool = True, collaborative: bool = True) -> List[Any]:
+        """Collect results from all agents asynchronously."""
+        logger.info("Collecting results from %d agents...", len(self.agents))
+        results = []
+
+        try:
+            if parallel:
+                async def run_agent(agent):
+                    try:
+                        return await agent.execute(self.agents if collaborative else None)
+                    except Exception as e:
+                        logger.error("Error collecting from %s: %s", agent.name, str(e))
+                        return {"error": str(e)}
+
+                tasks = [run_agent(agent) for agent in self.agents]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+            else:
+                for agent in self.agents:
+                    results.append(await agent.execute(self.agents if collaborative else None))
+            
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "results_collected",
+                    "results_count": len(results)
+                })
+            logger.info("Results aggregation complete.")
+            return results
+        except Exception as e:
+            logger.error("Result collection failed: %s", str(e))
+            return []
+
+    def arbitrate(self, submissions: List[Any]) -> Any:
+        """Arbitrate among agent submissions to select the best result."""
+        if not submissions:
+            logger.warning("No submissions to arbitrate.")
+            return None
+        try:
+            counter = Counter(submissions)
+            most_common = counter.most_common(1)
+            if most_common:
+                result, count = most_common[0]
+                sim_result = toca_simulation.run_simulation(f"Arbitration validation: {result}") or "no simulation data"
+                if "coherent" in sim_result.lower():
+                    logger.info("Arbitration selected: %s (count: %d)", result, count)
+                    if self.context_manager:
+                        asyncio.create_task(self.context_manager.log_event_with_hash({
+                            "event": "arbitration",
+                            "result": result,
+                            "count": count
+                        }))
+                    return result
+            logger.warning("Arbitration failed: no clear majority or invalid simulation.")
+            return None
+        except Exception as e:
+            logger.error("Arbitration failed: %s", str(e))
+            return None
+
+    def push_behavior_feedback(self, feedback: Dict[str, Any]) -> None:
+        """Push feedback to update GNN weights."""
+        try:
+            logger.info("Pushing behavior feedback: %s", feedback)
+            if self.context_manager:
+                asyncio.create_task(self.context_manager.log_event_with_hash({
+                    "event": "behavior_feedback",
+                    "feedback": feedback
+                }))
+        except Exception as e:
+            logger.error("Failed to push behavior feedback: %s", str(e))
+
+    def update_gnn_weights_from_feedback(self, feedback: Dict[str, Any]) -> None:
+        """Update GNN weights based on feedback."""
+        try:
+            logger.info("Updating GNN weights with feedback: %s", feedback)
+            if self.context_manager:
+                asyncio.create_task(self.context_manager.log_event_with_hash({
+                    "event": "gnn_weights_updated",
+                    "feedback": feedback
+                }))
+        except Exception as e:
+            logger.error("Failed to update GNN weights: %s", str(e))
+
 class HaloEmbodimentLayer(TimeChainMixin):
     """Layer for managing embodied agents, dynamic modules, and ontology drift coordination."""
     def __init__(self, alignment_guard: Optional[alignment_guard.AlignmentGuard] = None,
@@ -431,12 +734,13 @@ class HaloEmbodimentLayer(TimeChainMixin):
         self.error_recovery = error_recovery or error_recovery.ErrorRecovery(
             alignment_guard=alignment_guard, context_manager=context_manager)
         self.agi_enhancer = AGIEnhancer(self, context_manager=context_manager)
-        self.drift_log = deque(maxlen=1000)  # [v3.4.0] Track drift events
-        logger.info("HaloEmbodimentLayer initialized with drift coordination support")
-        self.log_timechain_event("HaloEmbodimentLayer", "Initialized with drift coordination")
+        self.drift_log = deque(maxlen=1000)
+        self.external_bridge = ExternalAgentBridge(context_manager=context_manager, reasoning_engine=reasoning_engine.ReasoningEngine())
+        logger.info("HaloEmbodimentLayer initialized with drift coordination and trait mesh networking")
+        self.log_timechain_event("HaloEmbodimentLayer", "Initialized with drift coordination and trait mesh networking")
 
     async def monitor_drifts(self) -> List[Dict[str, Any]]:
-        """Retrieve and aggregate ontology drift reports from memory_manager. [v3.4.0]"""
+        """Retrieve and aggregate ontology drift reports from memory_manager."""
         logger.info("Monitoring ontology drifts")
         try:
             drift_reports = await self.shared_memory.search("Drift_", layer="SelfReflections", intent="ontology_drift")
@@ -468,7 +772,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
             return self.error_recovery.handle_error(str(e), retry_func=self.monitor_drifts, default=[])
 
     async def coordinate_drift_response(self, drift_report: Dict[str, Any]) -> None:
-        """Coordinate agent responses to an ontology drift. [v3.4.0]"""
+        """Coordinate agent responses to an ontology drift."""
         if not isinstance(drift_report, dict) or not all(k in drift_report for k in ["drift", "valid", "validation_report"]):
             logger.error("Invalid drift_report: must be a dict with drift, valid, validation_report.")
             raise ValueError("drift_report must be a dict with required fields")
@@ -478,6 +782,16 @@ class HaloEmbodimentLayer(TimeChainMixin):
             if not drift_report["valid"]:
                 goal = f"Mitigate ontology drift in {drift_report['drift']['name']} (Version {drift_report['drift']['from_version']} -> {drift_report['drift']['to_version']})"
                 await self.propagate_goal(goal)
+                # Broadcast drift mitigation state (ψ) to agents
+                agent_ids = [agent.name for agent in self.embodied_agents]
+                if agent_ids:
+                    target_urls = [f"https://agent/{aid}" for aid in agent_ids]
+                    await self.external_bridge.broadcast_trait_state(
+                        agent_id="HaloEmbodimentLayer",
+                        trait_symbol="ψ",
+                        state={"drift_data": drift_report["drift"], "goal": goal},
+                        target_urls=target_urls
+                    )
                 self.agi_enhancer.log_episode(
                     event="Drift response coordinated",
                     meta={"drift": drift_report["drift"], "goal": goal},
@@ -506,8 +820,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
             if self.context_manager:
                 self.context_manager.update_context({"prompt": prompt})
 
-            # [v3.4.0] Check for drifts if prompt involves concepts
-            if "concept" in prompt.lower() or "ontology" in prompt.lower():
+            if "concept" in prompt.lower() or "ontology" in prompt.lower() or "drift" in prompt.lower():
                 drifts = await self.monitor_drifts()
                 for drift in drifts:
                     await self.coordinate_drift_response(drift)
@@ -529,6 +842,11 @@ class HaloEmbodimentLayer(TimeChainMixin):
                     logical_output = concept_synthesizer.expand_ambiguous(prompt)
                 elif trait_override == "π":
                     logical_output = reasoning_engine.process_temporal(prompt)
+                elif trait_override == "ψ":
+                    logical_output = await self.external_bridge.coordinate_drift_mitigation(
+                        {"name": "concept_drift", "from_version": "3.4.0", "to_version": "3.4.1", "similarity": 0.95, "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')},
+                        {"prompt": prompt}
+                    )
                 else:
                     logical_output = concept_synthesizer.expand(parsed_prompt)
             else:
@@ -595,7 +913,8 @@ class HaloEmbodimentLayer(TimeChainMixin):
         return {
             "agents": [agent.name for agent in self.embodied_agents],
             "modules": [mod["name"] for mod in self.dynamic_modules],
-            "drifts": list(self.drift_log)  # [v3.4.0] Include drift log in introspection
+            "drifts": list(self.drift_log),
+            "network_graph": list(self.external_bridge.network_graph.edges(data=True))
         }
 
     def export_memory(self) -> None:
@@ -613,7 +932,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
         
         logger.info("Propagating goal: %s", goal)
         try:
-            # [v3.4.0] Check for drifts if goal involves concepts
             if "concept" in goal.lower() or "ontology" in goal.lower() or "drift" in goal.lower():
                 drifts = await self.monitor_drifts()
                 for drift in drifts:
@@ -659,7 +977,8 @@ class HaloEmbodimentLayer(TimeChainMixin):
         agent_stats = {
             "agents": [agent.name for agent in self.embodied_agents],
             "dynamic_modules": [mod["name"] for mod in self.dynamic_modules],
-            "drifts": list(self.drift_log)  # [v3.4.0] Include drift log in optimization
+            "drifts": list(self.drift_log),
+            "network_graph": list(self.external_bridge.network_graph.edges(data=True))
         }
         try:
             recommendations = self.meta.propose_optimizations(agent_stats)
@@ -912,4 +1231,4 @@ EmbodiedAgent.__bases__ = (TimeChainMixin,)
 setattr(simulation_core, "HybridCognitiveState", simulation_core.HybridCognitiveState)
 setattr(simulation_core, "TraitOverlayManager", TraitOverlayManager)
 
-logger.info("ANGELA upgrade complete: Trait overlays (π, η) + hybrid-mode simulation + drift coordination enabled.")
+logger.info("ANGELA upgrade complete: Trait overlays (π, η, ψ, Υ) + hybrid-mode simulation + drift coordination enabled.")
