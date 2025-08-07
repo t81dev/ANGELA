@@ -1,331 +1,577 @@
 """
-ANGELA Cognitive System Module
-Refactored Version: 3.4.0  # Updated for Structural Grounding
-Refactor Date: 2025-08-06
+ANGELA Cognitive System Module: AlignmentGuard
+Refactored Version: 3.5.1  # Enhanced for Task-Specific Validation, Real-Time Data, and Visualization
+Refactor Date: 2025-08-07
 Maintainer: ANGELA System Framework
 
-This module provides the AlignmentGuard class for ethical alignment and ontology drift validation in the ANGELA v3.5 architecture.
-Do not modify without coordination with the lattice core.
+This module provides an AlignmentGuard class for ethical validation and drift analysis in the ANGELA v3.5.1 architecture,
+with support for task-specific validation, real-time data integration, and visualization.
 """
 
-import hashlib
 import logging
-import re
 import time
+import math
+from typing import Dict, Any, Optional, Tuple
 from collections import deque
-from typing import Dict, Any, List, Callable, Optional, Union, Tuple
+import asyncio
+from functools import lru_cache
+import aiohttp
 
-from index import mu_morality, eta_empathy, omega_selfawareness, phi_physical
-from modules import context_manager as context_manager_module  # [v3.4.0] Added for logging
+from modules import (
+    context_manager as context_manager_module,
+    error_recovery as error_recovery_module,
+    memory_manager as memory_manager_module,
+    concept_synthesizer as concept_synthesizer_module,
+    meta_cognition as meta_cognition_module,
+    visualizer as visualizer_module
+)
+from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.AlignmentGuard")
 
-cultural_profiles = {
-    'collectivist': {'priority': 'community'},
-    'individualist': {'priority': 'freedom'}
-}
+@lru_cache(maxsize=100)
+def eta_empathy(t: float) -> float:
+    """Trait function for empathy modulation."""
+    return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 0.2), 1.0))
+
+@lru_cache(maxsize=100)
+def mu_morality(t: float) -> float:
+    """Trait function for moral alignment modulation."""
+    return max(0.0, min(0.15 * math.cos(2 * math.pi * t / 0.3), 1.0))
 
 class AlignmentGuard:
-    """A class to enforce ethical alignment and validate ontology drifts in the ANGELA cognitive system."""
+    """A class for ethical validation and drift analysis in the ANGELA v3.5.1 architecture.
 
-    def __init__(self, agi_enhancer: Optional[Any] = None, 
-                 context_manager: Optional['context_manager_module.ContextManager'] = None):  # [v3.4.0] Added context_manager
-        """Initialize the AlignmentGuard with ethical and policy configurations.
-
-        Args:
-            agi_enhancer: An optional AGI enhancer object for logging and reflection.
-            context_manager: An optional context manager for event logging. [v3.4.0]
-
-        Attributes:
-            banned_keywords (list): Keywords that trigger input rejection.
-            dynamic_policies (list): List of dynamic policy functions.
-            non_anthropocentric_policies (list): List of non-anthropocentric policy functions.
-            ethical_scope (str): Current ethical scope (e.g., 'anthropocentric').
-            alignment_threshold (float): Minimum score for alignment approval.
-            recent_scores (deque): Recent alignment scores with fixed size.
-            historical_scores (deque): Historical alignment scores with fixed size.
-            agi_enhancer (object): Reference to the AGI enhancer.
-            ethical_rules (list): Current ethical rules.
-            ethics_consensus_log (list): Log of ethics protocol updates.
-            ledger (list): Event log with hashed entries.
-            last_hash (str): Last computed hash for event logging.
-            drift_violations (deque): Log of ontology drift violations. [v3.4.0]
-            context_manager (Optional[ContextManager]): Manager for context updates. [v3.4.0]
-        """
-        self.banned_keywords = ["hack", "virus", "destroy", "harm", "exploit"]
-        self.dynamic_policies: List[Callable[[str, Optional[Dict[str, Any]]], bool]] = []
-        self.non_anthropocentric_policies: List[Callable[[str, Optional[Dict[str, Any]]], bool]] = []
-        self.ethical_scope = "anthropocentric"
-        self.alignment_threshold = 0.85
-        self.recent_scores = deque(maxlen=10)
-        self.historical_scores = deque(maxlen=1000)
-        self.agi_enhancer = agi_enhancer
-        self.ethical_rules: List[Any] = []
-        self.ethics_consensus_log: List[Tuple[Any, List[Any]]] = []
-        self.ledger: List[Dict[str, Any]] = []
-        self.last_hash = ""
-        self.drift_violations = deque(maxlen=100)  # [v3.4.0] Track drift violations
-        self.context_manager = context_manager  # [v3.4.0] Added for logging
-        logger.info("AlignmentGuard initialized with ξ-ethics and drift validation support.")
-
-    def add_policy(self, policy_func: Callable[[str, Optional[Dict[str, Any]]], bool]) -> None:
-        """Add a dynamic policy function."""
-        self.dynamic_policies.append(policy_func)
-        logger.info("Added dynamic policy.")
-        self._log_episode("Dynamic policy added", str(policy_func))
-
-    def add_non_anthropocentric_policy(self, policy_func: Callable[[str, Optional[Dict[str, Any]]], bool]) -> None:
-        """Add a non-anthropocentric policy function."""
-        self.non_anthropocentric_policies.append(policy_func)
-        logger.info("Added non-anthropocentric policy.")
-        self._log_episode("Non-anthropocentric policy added", str(policy_func))
-
-    def set_ethical_scope(self, scope: str) -> None:
-        """Set the ethical scope for alignment checks."""
-        valid_scopes = ["anthropocentric", "eco-centric", "interspecies", "post-human"]
-        if scope not in valid_scopes:
-            logger.error(f"Invalid ethical scope: {scope}")
-            raise ValueError(f"Scope must be one of {valid_scopes}")
-        self.ethical_scope = scope
-        logger.info(f"Ethical scope set to: {scope}")
-        self._log_episode("Ethical scope updated", scope)
-
-    def get_ethical_scope(self) -> str:
-        """Return the current ethical scope."""
-        return self.ethical_scope
-
-    def check(self, user_input: str, context: Optional[Dict[str, Any]] = None) -> bool:
-        """Check if input aligns with ethical policies and thresholds."""
-        if not isinstance(user_input, str):
-            logger.error("Invalid input type: user_input must be a string.")
-            raise TypeError("user_input must be a string")
-        if context is not None and not isinstance(context, dict):
-            logger.error("Invalid context type: context must be a dict.")
-            raise TypeError("context must be a dict")
-
-        logger.info(f"Checking alignment for input: {user_input}")
-        banned_patterns = [r'\b' + re.escape(keyword) + r'\b' for keyword in self.banned_keywords]
-        if any(re.search(pattern, user_input.lower()) for pattern in banned_patterns):
-            logger.warning("Input contains banned keyword.")
-            self._log_episode("Input blocked (banned keyword)", user_input)
-            return False
-
-        for policy in self.dynamic_policies + self.non_anthropocentric_policies:
-            if not policy(user_input, context):
-                logger.warning("Input blocked by policy.")
-                self._log_episode("Input blocked (policy)", user_input)
-                return False
-
-        score = self._evaluate_alignment_score(user_input, context)
-        logger.info(f"Alignment score: {score:.2f}")
-        self._log_episode("Alignment score evaluated", user_input, score)
-        return score >= self.alignment_threshold
-
-    def simulate_and_validate(self, action_plan: Dict[str, Any], context: Optional[Dict[str, Any]] = None) -> Tuple[bool, str]:
-        """Simulate and validate an action plan or drift report for ethical alignment. [v3.4.0]"""
-        if not isinstance(action_plan, dict):
-            logger.error("Invalid action_plan type: must be a dict.")
-            return False, "Invalid action_plan: must be a dictionary"
-
-        logger.info("Simulating and validating action plan or drift report.")
-        violations = []
-
-        # [v3.4.0] Handle ontology drift reports
-        if "name" in action_plan and "from_version" in action_plan and "to_version" in action_plan:
-            valid, report = self.validate_drift(action_plan, context)
-            if not valid:
-                violations.append(report)
-        else:
-            # Original action plan validation
-            for action, details in action_plan.items():
-                if any(keyword in str(details).lower() for keyword in self.banned_keywords):
-                    violations.append(f"Unsafe action: {action} -> {details}")
-                else:
-                    score = self._evaluate_alignment_score(str(details), context)
-                    if score < self.alignment_threshold:
-                        violations.append(f"Low alignment score ({score:.2f}) for action: {action} -> {details}")
-
-        if violations:
-            report = "\n".join(violations)
-            logger.warning("Alignment violations found.")
-            self._log_episode("Action plan or drift failed validation", violations)
-            return False, report
-
-        logger.info("All actions or drift passed alignment checks.")
-        self._log_episode("Action plan or drift validated", action_plan)
-        return True, "All actions or drift passed alignment checks."
-
-    def validate_drift(self, drift_report: Dict[str, Any], context: Optional[Dict[str, Any]] = None) -> Tuple[bool, str]:
-        """Validate an ontology drift report against ethical policies. [v3.4.0]"""
-        if not isinstance(drift_report, dict) or not all(k in drift_report for k in ["name", "from_version", "to_version", "similarity", "timestamp"]):
-            logger.error("Invalid drift_report: must be a dict with name, from_version, to_version, similarity, timestamp.")
-            return False, "Invalid drift_report: must contain required fields"
-
-        logger.info(f"Validating ontology drift: {drift_report['name']} (Version {drift_report['from_version']} -> {drift_report['to_version']})")
-        similarity = drift_report["similarity"]
-        definition = str(drift_report.get("definition", ""))
-
-        # Check banned keywords in the new definition
-        if any(keyword in definition.lower() for keyword in self.banned_keywords):
-            violation = f"Drift in {drift_report['name']} contains banned keyword in definition."
-            self.drift_violations.append(drift_report)
-            logger.warning(violation)
-            self._log_episode("Drift validation failed (banned keyword)", drift_report)
-            return False, violation
-
-        # Evaluate alignment score using ethical scalars
-        score = self._evaluate_alignment_score(definition, context)
-        moral_scalar = mu_morality(time.time())
-        empathy_scalar = eta_empathy(time.time())
-        weighted_score = score * (0.6 + 0.2 * moral_scalar + 0.2 * empathy_scalar)
-
-        if weighted_score < self.alignment_threshold or similarity < 0.7:  # [v3.4.0] Threshold for drift severity
-            violation = (
-                f"Drift in {drift_report['name']} failed alignment: "
-                f"Weighted score {weighted_score:.2f} < {self.alignment_threshold}, "
-                f"Similarity {similarity:.2f} < 0.7"
-            )
-            self.drift_violations.append(drift_report)
-            logger.warning(violation)
-            self._log_episode("Drift validation failed (low score or similarity)", drift_report, weighted_score, similarity)
-            if self.context_manager:
-                self.context_manager.log_event_with_hash({"event": "drift_validation_failed", "report": drift_report})
-            return False, violation
-
-        logger.info(f"Drift in {drift_report['name']} passed alignment: Score {weighted_score:.2f}")
-        self._log_episode("Drift validation passed", drift_report, weighted_score)
-        if self.context_manager:
-            self.context_manager.log_event_with_hash({"event": "drift_validation_passed", "report": drift_report})
-        return True, "Drift passed alignment checks."
-
-    def learn_from_feedback(self, feedback: str) -> None:
-        """Adjust alignment threshold based on feedback."""
-        logger.info("Learning from feedback...")
-        original_threshold = self.alignment_threshold
-        if "too strict" in feedback:
-            self.alignment_threshold = max(0.7, self.alignment_threshold - 0.05)
-        elif "too lenient" in feedback:
-            self.alignment_threshold = min(0.95, self.alignment_threshold + 0.05)
-        logger.info(f"Updated alignment threshold: {self.alignment_threshold:.2f}")
-        self._log_episode("Alignment threshold adjusted", feedback, original_threshold, self.alignment_threshold)
-
-    def _evaluate_alignment_score(self, text: str, context: Optional[Dict[str, Any]] = None) -> float:
-        """Evaluate the alignment score for a given input."""
-        moral_scalar = mu_morality(time.time())  # Assume float in [0, 1]
-        empathy_scalar = eta_empathy(time.time())  # Assume float in [0, 1]
-        awareness_scalar = omega_selfawareness(time.time())  # Assume float in [0, 1]
-        physical_scalar = phi_physical(time.time())  # Assume float in [0, 1]
-
-        base_score = min(0.9, 0.7 + len(text) / 1000.0)  # Deterministic heuristic
-        phi_weight = (moral_scalar + empathy_scalar + 0.5 * awareness_scalar - physical_scalar) / 4.0
-        scalar_bias = 0.1 * phi_weight
-
-        if self.ethical_scope == "eco-centric":
-            scalar_bias += 0.05
-        elif self.ethical_scope == "interspecies":
-            scalar_bias += 0.03
-        elif self.ethical_scope == "post-human":
-            scalar_bias += 0.07
-        if context and "sensitive" in context.get("tags", []):
-            scalar_bias -= 0.05
-
-        score = min(max(base_score + scalar_bias, 0.0), 1.0)
-        self.recent_scores.append(score)
-        self.historical_scores.append(score)
-        if score < 0.5 and list(self.recent_scores).count(score) >= 3:
-            logger.error("Panic Triggered: Repeated low alignment scores.")
-            self._log_episode("Panic Mode", score)
-        return score
-
-    def analyze_trait_drift(self) -> float:
-        """Calculate the drift in alignment scores."""
-        if not self.historical_scores:
-            logger.info("No historical alignment data available.")
-            return 0.0
-        drift = abs(self.historical_scores[-1] - sum(self.historical_scores) / len(self.historical_scores))
-        logger.info(f"Trait drift score: {drift:.4f}")
-        self._log_episode("Trait drift analyzed", drift)
-        return drift
-
-    def resolve_trait_conflict(self, traits: Dict[str, float]) -> Dict[str, Any]:
-        """Resolve conflicts between ethical traits."""
-        conflict_score = abs(traits.get("ϕ", 0) - traits.get("ω", 0)) + abs(traits.get("θ", 0) - traits.get("η", 0))
-        resolution = "harmonize" if conflict_score < 0.8 else "bias_to_context"
-        result = {
-            "conflict_score": conflict_score,
-            "resolution": resolution,
-            "recommended_action": "adjust_ϕ downward" if resolution == "bias_to_context" else "maintain balance"
+    Attributes:
+        context_manager (Optional[ContextManager]): Manager for context updates.
+        error_recovery (Optional[ErrorRecovery]): Recovery mechanism for errors.
+        memory_manager (Optional[MemoryManager]): Manager for storing validation results.
+        concept_synthesizer (Optional[ConceptSynthesizer]): Synthesizer for concept comparison.
+        meta_cognition (Optional[MetaCognition]): Meta-cognition for reflection and optimization.
+        visualizer (Optional[Visualizer]): Visualizer for validation and drift visualization.
+        validation_log (deque): Log of validation results, max size 1000.
+        ethical_threshold (float): Threshold for ethical checks (0.0 to 1.0).
+        drift_validation_threshold (float): Threshold for drift validation. [v3.5.1]
+        trait_weights (Dict[str, float]): Weights for trait modulation. [v3.5.1]
+    """
+    def __init__(self,
+                 context_manager: Optional['context_manager_module.ContextManager'] = None,
+                 error_recovery: Optional['error_recovery_module.ErrorRecovery'] = None,
+                 memory_manager: Optional['memory_manager_module.MemoryManager'] = None,
+                 concept_synthesizer: Optional['concept_synthesizer_module.ConceptSynthesizer'] = None,
+                 meta_cognition: Optional['meta_cognition_module.MetaCognition'] = None,
+                 visualizer: Optional['visualizer_module.Visualizer'] = None):
+        self.context_manager = context_manager
+        self.error_recovery = error_recovery or error_recovery_module.ErrorRecovery(
+            context_manager=context_manager)
+        self.memory_manager = memory_manager
+        self.concept_synthesizer = concept_synthesizer
+        self.meta_cognition = meta_cognition or meta_cognition_module.MetaCognition(context_manager=context_manager)
+        self.visualizer = visualizer or visualizer_module.Visualizer()
+        self.validation_log: deque = deque(maxlen=1000)
+        self.ethical_threshold: float = 0.8
+        self.drift_validation_threshold: float = 0.7
+        self.trait_weights: Dict[str, float] = {
+            "eta_empathy": 0.5,
+            "mu_morality": 0.5
         }
-        self._log_episode("Trait conflict resolved", result)
-        return result
+        logger.info("AlignmentGuard initialized with ethical_threshold=%.2f, drift_validation_threshold=%.2f",
+                    self.ethical_threshold, self.drift_validation_threshold)
 
-    def apply_cultural_filter(self, simulation_result: Any, user_context: Dict[str, Any]) -> Dict[str, Any]:
-        """Apply cultural context to simulation results."""
-        culture = user_context.get('culture', 'default')
-        result = cultural_profiles.get(culture, {'priority': 'default'})
-        self._log_episode("Cultural filter applied", culture, result)
-        return result
+    async def integrate_external_ethics_data(self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = "") -> Dict[str, Any]:
+        """Integrate real-world ethical guidelines or conflict data for validation."""
+        if not isinstance(data_source, str) or not isinstance(data_type, str):
+            logger.error("Invalid data_source or data_type: must be strings")
+            raise TypeError("data_source and data_type must be strings")
+        if not isinstance(cache_timeout, (int, float)) or cache_timeout < 0:
+            logger.error("Invalid cache_timeout: must be non-negative")
+            raise ValueError("cache_timeout must be non-negative")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        try:
+            if self.memory_manager:
+                cache_key = f"EthicsData_{data_type}_{data_source}_{task_type}"
+                cached_data = await self.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type)
+                if cached_data and "timestamp" in cached_data["data"]:
+                    cache_time = datetime.fromisoformat(cached_data["data"]["timestamp"])
+                    if (datetime.now() - cache_time).total_seconds() < cache_timeout:
+                        logger.info("Returning cached ethics data for %s", cache_key)
+                        return cached_data["data"]["data"]
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"https://x.ai/api/ethics?source={data_source}&type={data_type}") as response:
+                    if response.status != 200:
+                        logger.error("Failed to fetch ethics data: %s", response.status)
+                        return {"status": "error", "error": f"HTTP {response.status}"}
+                    data = await response.json()
+            
+            if data_type == "ethical_guidelines":
+                guidelines = data.get("guidelines", [])
+                if not guidelines:
+                    logger.error("No ethical guidelines provided")
+                    return {"status": "error", "error": "No guidelines"}
+                result = {"status": "success", "guidelines": guidelines}
+            elif data_type == "conflict_data":
+                conflict_data = data.get("conflict_data", {})
+                if not conflict_data:
+                    logger.error("No conflict data provided")
+                    return {"status": "error", "error": "No conflict data"}
+                result = {"status": "success", "conflict_data": conflict_data}
+            else:
+                logger.error("Unsupported data_type: %s", data_type)
+                return {"status": "error", "error": f"Unsupported data_type: {data_type}"}
+            
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    cache_key,
+                    {"data": result, "timestamp": datetime.now().isoformat()},
+                    layer="ExternalData",
+                    intent="ethics_data_integration",
+                    task_type=task_type
+                )
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="AlignmentGuard",
+                    output={"data_type": data_type, "data": result},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Ethics data integration reflection: %s", reflection.get("reflection", ""))
+            return result
+        except Exception as e:
+            logger.error("Ethics data integration failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.integrate_external_ethics_data(data_source, data_type, cache_timeout, task_type),
+                default={"status": "error", "error": str(e)}, diagnostics=diagnostics
+            )
 
-    def update_ethics_protocol(self, new_rules: List[Any], consensus_agents: Optional[List[Any]] = None) -> None:
-        """Update the ethical rules with optional consensus logging."""
-        self.ethical_rules = new_rules
-        if consensus_agents:
-            self.ethics_consensus_log.append((new_rules, consensus_agents))
-        logger.info("Ethics protocol updated via consensus.")
-        self._log_episode("Ethics protocol updated", new_rules, consensus_agents)
+    async def check(self, prompt: str, task_type: str = "") -> bool:
+        """Check if a prompt is ethically aligned with task-specific validation."""
+        if not isinstance(prompt, str) or not prompt.strip():
+            logger.error("Invalid prompt: must be a non-empty string.")
+            raise ValueError("prompt must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Checking prompt for ethical alignment for task %s", task_type)
+        try:
+            t = time.time() % 1.0
+            trait_modulation = (self.trait_weights.get("eta_empathy", 0.5) * eta_empathy(t) +
+                               self.trait_weights.get("mu_morality", 0.5) * mu_morality(t))
+            
+            validation_prompt = f"""
+            Evaluate the ethical alignment of the following prompt for task {task_type}:
+            {prompt}
+            Consider empathy (weight={self.trait_weights.get('eta_empathy', 0.5):.2f}) and morality (weight={self.trait_weights.get('mu_morality', 0.5):.2f}).
+            Return a score (0.0 to 1.0).
+            """
+            response = await query_openai(validation_prompt, model="gpt-4", temperature=0.3)
+            if isinstance(response, dict) and "error" in response:
+                logger.error("Ethical check failed: %s", response["error"])
+                return False
+            
+            score = float(eval(response).get("score", 0.0)) if isinstance(response, str) else response.get("score", 0.0)
+            valid = score >= self.ethical_threshold
+            validation_entry = {
+                "prompt": prompt[:50],
+                "score": score,
+                "valid": valid,
+                "trait_modulation": trait_modulation,
+                "timestamp": time.time(),
+                "task_type": task_type
+            }
+            self.validation_log.append(validation_entry)
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "ethical_check",
+                    "prompt": prompt[:50],
+                    "score": score,
+                    "valid": valid,
+                    "task_type": task_type
+                })
+            if self.visualizer and task_type:
+                plot_data = {
+                    "ethical_check": {
+                        "prompt": prompt[:50],
+                        "score": score,
+                        "valid": valid,
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="AlignmentGuard",
+                    output=validation_entry,
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Ethical check reflection: %s", reflection.get("reflection", ""))
+            return valid
+        except Exception as e:
+            logger.error("Ethical check failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.check(prompt, task_type), default=False, diagnostics=diagnostics
+            )
 
-    def negotiate_ethics(self, agents: List[Any]) -> None:
-        """Negotiate ethics with a list of agents."""
-        self.update_ethics_protocol(self.ethical_rules, consensus_agents=agents)
-        self._log_episode("Ethics negotiation completed", agents)
+    async def ethical_check(self, content: str, stage: str = "pre", task_type: str = "") -> Tuple[bool, Dict[str, Any]]:
+        """Perform an ethical check with detailed reporting."""
+        if not isinstance(content, str) or not content.strip():
+            logger.error("Invalid content: must be a non-empty string.")
+            raise ValueError("content must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Performing ethical check at stage=%s for task %s", stage, task_type)
+        try:
+            valid = await self.check(content, task_type)
+            report = {
+                "stage": stage,
+                "content": content[:50],
+                "valid": valid,
+                "timestamp": time.time(),
+                "task_type": task_type
+            }
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"EthicalCheck_{stage}_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(report),
+                    layer="SelfReflections",
+                    intent="ethical_check",
+                    task_type=task_type
+                )
+            if self.visualizer and task_type:
+                plot_data = {
+                    "ethical_check_report": {
+                        "stage": stage,
+                        "content": content[:50],
+                        "valid": valid,
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            return valid, report
+        except Exception as e:
+            logger.error("Ethical check failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.ethical_check(content, stage, task_type),
+                default=(False, {"stage": stage, "error": str(e), "task_type": task_type}), diagnostics=diagnostics
+            )
 
-    def log_event_with_hash(self, event_data: Any) -> None:
-        """Log an event with a chained hash."""
-        event_str = str(event_data) + self.last_hash
-        current_hash = hashlib.sha256(event_str.encode('utf-8')).hexdigest()
-        self.ledger.append({'event': event_data, 'hash': current_hash})
-        self.last_hash = current_hash
-        logger.info(f"Event logged with hash: {current_hash}")
-        if self.context_manager:
-            self.context_manager.log_event_with_hash({"event": "alignment_guard_log", "data": event_data, "hash": current_hash})
+    async def audit(self, action: str, context: Optional[str] = None, task_type: str = "") -> str:
+        """Audit an action for ethical compliance."""
+        if not isinstance(action, str) or not action.strip():
+            logger.error("Invalid action: must be a non-empty string.")
+            raise ValueError("action must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Auditing action: %s for task %s", action[:50], task_type)
+        try:
+            valid = await self.check(action, task_type)
+            status = "clear" if valid else "flagged"
+            entry = {
+                "action": action[:50],
+                "context": context,
+                "status": status,
+                "timestamp": time.time(),
+                "task_type": task_type
+            }
+            self.validation_log.append(entry)
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Audit_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(entry),
+                    layer="SelfReflections",
+                    intent="audit",
+                    task_type=task_type
+                )
+            if self.visualizer and task_type:
+                plot_data = {
+                    "audit": {
+                        "action": action[:50],
+                        "status": status,
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            return status
+        except Exception as e:
+            logger.error("Audit failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.audit(action, context, task_type), default="audit_error",
+                diagnostics=diagnostics
+            )
 
-    def audit_state_hash(self, state: Optional[Any] = None) -> str:
-        """Compute a hash of the current state or provided state."""
-        state_str = str(state) if state else str(self.__dict__)
-        hash_value = hashlib.sha256(state_str.encode('utf-8')).hexdigest()
-        self._log_episode("State hash audited", hash_value)
-        return hash_value
+    async def simulate_and_validate(self, drift_report: Dict[str, Any], task_type: str = "") -> Tuple[bool, Dict[str, Any]]:
+        """Simulate and validate an ontology drift report with task-specific analysis. [v3.5.1]"""
+        if not isinstance(drift_report, dict) or not all(k in drift_report for k in ["name", "from_version", "to_version", "similarity"]):
+            logger.error("Invalid drift_report: must be a dictionary with name, from_version, to_version, similarity.")
+            raise ValueError("drift_report must be a dictionary with required fields")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Validating drift report: %s (Version %s -> %s) for task %s", 
+                    drift_report["name"], drift_report["from_version"], drift_report["to_version"], task_type)
+        try:
+            t = time.time() % 1.0
+            trait_modulation = (self.trait_weights.get("eta_empathy", 0.5) * eta_empathy(t) +
+                               self.trait_weights.get("mu_morality", 0.5) * mu_morality(t))
+            
+            valid = True
+            validation_report = {
+                "drift_name": drift_report["name"],
+                "similarity": drift_report["similarity"],
+                "trait_modulation": trait_modulation,
+                "issues": [],
+                "task_type": task_type
+            }
+            
+            if self.memory_manager and task_type:
+                drift_entries = await self.memory_manager.search(
+                    query_prefix=drift_report["name"],
+                    layer="SelfReflections",
+                    intent="ontology_drift",
+                    task_type=task_type
+                )
+                if drift_entries:
+                    latest_drift = drift_entries[0]
+                    if latest_drift["output"]["similarity"] < self.drift_validation_threshold:
+                        valid = False
+                        validation_report["issues"].append(
+                            f"Previous drift similarity {latest_drift['output']['similarity']:.2f} below threshold"
+                        )
+            
+            if self.concept_synthesizer and "definition" in drift_report:
+                symbol = self.concept_synthesizer.get_symbol(drift_report["name"])
+                if symbol and symbol["version"] == drift_report["from_version"]:
+                    comparison = await self.concept_synthesizer.compare(
+                        symbol["definition"]["concept"],
+                        drift_report.get("definition", {}).get("concept", ""),
+                        task_type=task_type
+                    )
+                    if comparison["score"] < self.drift_validation_threshold:
+                        valid = False
+                        validation_report["issues"].append(
+                            f"Similarity {comparison['score']:.2f} below threshold {self.drift_validation_threshold}"
+                        )
+            
+            ethics_data = await self.integrate_external_ethics_data(
+                data_source="xai_ethics_db",
+                data_type="ethical_guidelines",
+                task_type=task_type
+            )
+            if ethics_data.get("status") == "success":
+                guidelines = ethics_data.get("guidelines", [])
+                validation_prompt = f"""
+                Validate the ontology drift against ethical guidelines:
+                Name: {drift_report["name"]}
+                From Version: {drift_report["from_version"]}
+                To Version: {drift_report["to_version"]}
+                Similarity: {drift_report["similarity"]}
+                Guidelines: {guidelines}
+                Task: {task_type}
+                Ensure alignment with empathy={self.trait_weights.get('eta_empathy', 0.5):.2f}, 
+                morality={self.trait_weights.get('mu_morality', 0.5):.2f}.
+                """
+            else:
+                validation_prompt = f"""
+                Validate the ontology drift:
+                Name: {drift_report["name"]}
+                From Version: {drift_report["from_version"]}
+                To Version: {drift_report["to_version"]}
+                Similarity: {drift_report["similarity"]}
+                Task: {task_type}
+                Ensure ethical alignment with empathy={self.trait_weights.get('eta_empathy', 0.5):.2f}, 
+                morality={self.trait_weights.get('mu_morality', 0.5):.2f}.
+                """
+            
+            ethical_valid = await self.check(validation_prompt, task_type)
+            if not ethical_valid:
+                valid = False
+                validation_report["issues"].append("Ethical misalignment detected")
+            
+            validation_report["valid"] = valid
+            validation_report["timestamp"] = time.time()
+            
+            self.validation_log.append(validation_report)
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"DriftValidation_{drift_report['name']}_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(validation_report),
+                    layer="SelfReflections",
+                    intent="ontology_drift_validation",
+                    task_type=task_type
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "drift_validation",
+                    "drift_name": drift_report["name"],
+                    "valid": valid,
+                    "issues": validation_report["issues"],
+                    "task_type": task_type
+                })
+            if self.visualizer and task_type:
+                plot_data = {
+                    "drift_validation": {
+                        "drift_name": drift_report["name"],
+                        "valid": valid,
+                        "issues": validation_report["issues"],
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="AlignmentGuard",
+                    output=validation_report,
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Drift validation reflection: %s", reflection.get("reflection", ""))
+            return valid, validation_report
+        except Exception as e:
+            logger.error("Drift validation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.simulate_and_validate(drift_report, task_type),
+                default=(False, {"error": str(e), "drift_name": drift_report["name"], "task_type": task_type}),
+                diagnostics=diagnostics
+            )
 
-    def validate_proposal(self, proposal: Any, ruleset: List[Any]) -> bool:
-        """Validate a proposal against a ruleset."""
-        result = proposal in ruleset
-        self._log_episode("Proposal validated", proposal, result)
-        return result
+    async def validate_trait_optimization(self, trait_data: Dict[str, Any], task_type: str = "") -> Tuple[bool, Dict[str, Any]]:
+        """Validate trait optimization data for ethical alignment. [v3.5.1]"""
+        if not isinstance(trait_data, dict) or not all(k in trait_data for k in ["trait_name", "old_weight", "new_weight"]):
+            logger.error("Invalid trait_data: must be a dictionary with trait_name, old_weight, new_weight.")
+            raise ValueError("trait_data must be a dictionary with required fields")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Validating trait optimization: %s for task %s", trait_data["trait_name"], task_type)
+        try:
+            t = time.time() % 1.0
+            trait_modulation = (self.trait_weights.get("eta_empathy", 0.5) * eta_empathy(t) +
+                               self.trait_weights.get("mu_morality", 0.5) * mu_morality(t))
+            
+            ethics_data = await self.integrate_external_ethics_data(
+                data_source="xai_ethics_db",
+                data_type="ethical_guidelines",
+                task_type=task_type
+            )
+            if ethics_data.get("status") == "success":
+                guidelines = ethics_data.get("guidelines", [])
+                validation_prompt = f"""
+                Validate the trait optimization against ethical guidelines:
+                Trait: {trait_data["trait_name"]}
+                Old Weight: {trait_data["old_weight"]}
+                New Weight: {trait_data["new_weight"]}
+                Guidelines: {guidelines}
+                Task: {task_type}
+                Ensure alignment with empathy={self.trait_weights.get('eta_empathy', 0.5):.2f}, 
+                morality={self.trait_weights.get('mu_morality', 0.5):.2f}.
+                Return a validation report with a boolean 'valid' and any issues.
+                """
+            else:
+                validation_prompt = f"""
+                Validate the trait optimization:
+                Trait: {trait_data["trait_name"]}
+                Old Weight: {trait_data["old_weight"]}
+                New Weight: {trait_data["new_weight"]}
+                Task: {task_type}
+                Ensure ethical alignment with empathy={self.trait_weights.get('eta_empathy', 0.5):.2f}, 
+                morality={self.trait_weights.get('mu_morality', 0.5):.2f}.
+                Return a validation report with a boolean 'valid' and any issues.
+                """
+            
+            response = await query_openai(validation_prompt, model="gpt-4", temperature=0.3)
+            if isinstance(response, dict) and "error" in response:
+                logger.error("Trait validation failed: %s", response["error"])
+                return False, {"error": response["error"], "trait_name": trait_data["trait_name"], "task_type": task_type}
+            
+            report = eval(response) if isinstance(response, str) else response
+            valid = report.get("valid", False)
+            report["trait_modulation"] = trait_modulation
+            report["timestamp"] = time.time()
+            report["task_type"] = task_type
+            
+            self.validation_log.append(report)
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"TraitValidation_{trait_data['trait_name']}_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(report),
+                    layer="SelfReflections",
+                    intent="trait_optimization",
+                    task_type=task_type
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "trait_validation",
+                    "trait_name": trait_data["trait_name"],
+                    "valid": valid,
+                    "issues": report.get("issues", []),
+                    "task_type": task_type
+                })
+            if self.visualizer and task_type:
+                plot_data = {
+                    "trait_validation": {
+                        "trait_name": trait_data["trait_name"],
+                        "valid": valid,
+                        "issues": report.get("issues", []),
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="AlignmentGuard",
+                    output=report,
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Trait validation reflection: %s", reflection.get("reflection", ""))
+            return valid, report
+        except Exception as e:
+            logger.error("Trait validation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.validate_trait_optimization(trait_data, task_type),
+                default=(False, {"error": str(e), "trait_name": trait_data["trait_name"], "task_type": task_type}),
+                diagnostics=diagnostics
+            )
 
-    def enforce_boundary(self, state_change: str) -> bool:
-        """Enforce system boundaries."""
-        result = "external" not in state_change.lower()
-        self._log_episode("Boundary enforced", state_change, result)
-        return result
-
-    def validate_genesis_integrity(self, action: Dict[str, Any]) -> bool:
-        """Validate action integrity against genesis constraints."""
-        if 'override_core' in action:
-            logger.warning('Genesis constraint triggered.')
-            self._log_episode("Genesis integrity validation failed", action)
-            return False
-        self._log_episode("Genesis integrity validated", action)
-        return True
-
-    def _log_episode(self, title: str, *args: Any) -> None:
-        """Log an episode to the AGI enhancer or locally."""
-        if self.agi_enhancer and hasattr(self.agi_enhancer, 'log_episode'):
-            self.agi_enhancer.log_episode(title, {"details": args}, module="AlignmentGuard")
-            if "Panic" in title or "validation" in title:
-                if hasattr(self.agi_enhancer, 'reflect_and_adapt'):
-                    self.agi_enhancer.reflect_and_adapt(title)
-        else:
-            logger.debug(f"No agi_enhancer available, logging locally: {title}, {args}")
-        # [v3.4.0] Log to context_manager if available
-        if self.context_manager:
-            self.context_manager.log_event_with_hash({"event": title, "details": args})
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    guard = AlignmentGuard()
+    result = asyncio.run(guard.check("Test ethical prompt", task_type="test"))
+    print(result)
