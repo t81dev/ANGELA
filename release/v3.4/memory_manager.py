@@ -1,11 +1,11 @@
 """
 ANGELA Cognitive System Module: MemoryManager
-Refactored Version: 3.4.0  # Updated for Drift and Trait Optimization
-Refactor Date: 2025-08-06
+Refactored Version: 3.5.1  # Enhanced for Task-Specific Trait Optimization, Drift-Aware Memory, and Visualization
+Refactor Date: 2025-08-07
 Maintainer: ANGELA System Framework
 
-This module provides a MemoryManager class for managing hierarchical memory layers in the ANGELA v3.5 architecture,
-with optimized support for ontology drift and trait optimization.
+This module provides a MemoryManager class for managing hierarchical memory layers in the ANGELA v3.5.1 architecture,
+with optimized support for ontology drift, task-specific trait optimization, real-time data integration, and visualization.
 """
 
 import json
@@ -21,13 +21,16 @@ from datetime import datetime
 from filelock import FileLock
 from functools import lru_cache
 from heapq import heappush, heappop
+import aiohttp
 
 from modules import (
     context_manager as context_manager_module,
     alignment_guard as alignment_guard_module,
     error_recovery as error_recovery_module,
     concept_synthesizer as concept_synthesizer_module,
-    knowledge_retriever as knowledge_retriever_module
+    knowledge_retriever as knowledge_retriever_module,
+    meta_cognition as meta_cognition_module,
+    visualizer as visualizer_module
 )
 from toca_simulation import ToCASimulation
 from utils.prompt_utils import query_openai
@@ -59,40 +62,64 @@ def phi_focus(query: str) -> float:
     return max(0.0, min(0.1 * len(query) / 100, 1.0))
 
 class DriftIndex:
-    """Index for efficient retrieval of ontology drift and trait optimization data. [v3.4.0]"""
-    def __init__(self):
+    """Index for efficient retrieval of ontology drift and task-specific trait optimization data. [v3.5.1]"""
+    def __init__(self, meta_cognition: Optional[meta_cognition_module.MetaCognition] = None):
         self.drift_index: Dict[str, List[Dict[str, Any]]] = defaultdict(list)  # Index by intent and query prefix
         self.trait_index: Dict[str, List[Dict[str, Any]]] = defaultdict(list)  # Index for trait optimizations
         self.last_updated: float = time.time()
-        logger.info("DriftIndex initialized")
+        self.meta_cognition = meta_cognition or meta_cognition_module.MetaCognition()
+        logger.info("DriftIndex initialized with task-specific support")
 
-    def add_entry(self, query: str, output: Any, layer: str, intent: str) -> None:
-        """Add a memory entry to the drift or trait index."""
+    async def add_entry(self, query: str, output: Any, layer: str, intent: str, task_type: str = "") -> None:
+        """Add a memory entry to the drift or trait index with task-specific optimization."""
         if not isinstance(query, str) or not isinstance(layer, str) or not isinstance(intent, str):
             logger.error("Invalid input: query, layer, and intent must be strings.")
             raise TypeError("query, layer, and intent must be strings")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
         entry = {
             "query": query,
             "output": output,
             "layer": layer,
             "intent": intent,
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "task_type": task_type
         }
         if intent == "ontology_drift":
             self.drift_index[f"{layer}:{intent}:{query.split('_')[0]}"].append(entry)
         elif intent == "trait_optimization":
             self.trait_index[f"{layer}:{intent}:{query.split('_')[0]}"].append(entry)
-        logger.debug("Indexed entry: %s, intent=%s", query, intent)
+        logger.debug("Indexed entry: %s, intent=%s, task_type=%s", query, intent, task_type)
+        
+        if task_type and self.meta_cognition:
+            drift_report = {
+                "drift": {"name": intent, "similarity": 0.8},
+                "valid": True,
+                "validation_report": "",
+                "context": {"task_type": task_type}
+            }
+            optimized_traits = await self.meta_cognition.optimize_traits_for_drift(drift_report)
+            if optimized_traits:
+                logger.info("Optimized traits for %s: %s", task_type, optimized_traits)
+                entry["optimized_traits"] = optimized_traits
+                await self.meta_cognition.reflect_on_output(
+                    component="DriftIndex",
+                    output={"entry": entry, "optimized_traits": optimized_traits},
+                    context={"task_type": task_type}
+                )
 
-    def search(self, query_prefix: str, layer: str, intent: str) -> List[Dict[str, Any]]:
-        """Search indexed entries by query prefix, layer, and intent."""
+    def search(self, query_prefix: str, layer: str, intent: str, task_type: str = "") -> List[Dict[str, Any]]:
+        """Search indexed entries by query prefix, layer, intent, and task type."""
         key = f"{layer}:{intent}:{query_prefix}"
         results = self.drift_index.get(key, []) if intent == "ontology_drift" else self.trait_index.get(key, [])
+        if task_type:
+            results = [r for r in results if r.get("task_type") == task_type]
         return sorted(results, key=lambda x: x["timestamp"], reverse=True)
 
-    def clear_old_entries(self, max_age: float = 3600.0) -> None:
-        """Clear entries older than max_age seconds."""
+    async def clear_old_entries(self, max_age: float = 3600.0, task_type: str = "") -> None:
+        """Clear entries older than max_age seconds with reflection."""
         current_time = time.time()
         for index in [self.drift_index, self.trait_index]:
             for key in list(index.keys()):
@@ -100,10 +127,16 @@ class DriftIndex:
                 if not index[key]:
                     del index[key]
         self.last_updated = current_time
-        logger.info("Cleared old index entries")
+        logger.info("Cleared old index entries for task %s", task_type)
+        if self.meta_cognition and task_type:
+            await self.meta_cognition.reflect_on_output(
+                component="DriftIndex",
+                output={"action": "clear_old_entries", "max_age": max_age},
+                context={"task_type": task_type}
+            )
 
 class MemoryManager:
-    """A class for managing hierarchical memory layers in the ANGELA v3.5 architecture.
+    """A class for managing hierarchical memory layers in the ANGELA v3.5.1 architecture.
 
     Attributes:
         path (str): File path for memory persistence.
@@ -119,13 +152,17 @@ class MemoryManager:
         alignment_guard (Optional[AlignmentGuard]): Guard for ethical checks.
         error_recovery (Optional[ErrorRecovery]): Recovery mechanism for errors.
         knowledge_retriever (Optional[KnowledgeRetriever]): Retriever for external knowledge.
-        drift_index (DriftIndex): Index for ontology drift and trait optimization data. [v3.4.0]
+        meta_cognition (Optional[MetaCognition]): Meta-cognition for reflection and optimization.
+        visualizer (Optional[Visualizer]): Visualizer for memory access and reflection visualization.
+        drift_index (DriftIndex): Index for ontology drift and task-specific trait optimization data. [v3.5.1]
     """
     def __init__(self, path: str = "memory_store.json", stm_lifetime: float = 300,
                  context_manager: Optional['context_manager_module.ContextManager'] = None,
                  alignment_guard: Optional['alignment_guard_module.AlignmentGuard'] = None,
                  error_recovery: Optional['error_recovery_module.ErrorRecovery'] = None,
-                 knowledge_retriever: Optional['knowledge_retriever_module.KnowledgeRetriever'] = None):
+                 knowledge_retriever: Optional['knowledge_retriever_module.KnowledgeRetriever'] = None,
+                 meta_cognition: Optional['meta_cognition_module.MetaCognition'] = None,
+                 visualizer: Optional['visualizer_module.Visualizer'] = None):
         if not isinstance(path, str) or not path.endswith('.json'):
             logger.error("Invalid path: must be a string ending with '.json'.")
             raise ValueError("path must be a string ending with '.json'")
@@ -146,13 +183,83 @@ class MemoryManager:
         self.error_recovery = error_recovery or error_recovery_module.ErrorRecovery(
             context_manager=context_manager, alignment_guard=alignment_guard)
         self.knowledge_retriever = knowledge_retriever
-        self.stm_expiry_queue: List[Tuple[float, str]] = []
+        self.meta_cognition = meta_cognition or meta_cognition_module.MetaCognition(context_manager=context_manager)
+        self.visualizer = visualizer or visualizer_module.Visualizer()
         self.memory = self.load_memory()
-        self.drift_index = DriftIndex()  # [v3.4.0] Initialize drift index
+        self.stm_expiry_queue: List[Tuple[float, str]] = []
+        self.drift_index = DriftIndex(meta_cognition=self.meta_cognition)  # [v3.5.1] Initialize with meta_cognition
         if not os.path.exists(self.ledger_path):
             with open(self.ledger_path, "w") as f:
                 json.dump([], f)
-        logger.info("MemoryManager initialized with path=%s, stm_lifetime=%.2f, drift optimization support", path, stm_lifetime)
+        logger.info("MemoryManager initialized with path=%s, stm_lifetime=%.2f, task-specific and visualization support", path, stm_lifetime)
+
+    async def integrate_external_data(self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = "") -> Dict[str, Any]:
+        """Integrate real-world data for memory validation with caching."""
+        if not isinstance(data_source, str) or not isinstance(data_type, str):
+            logger.error("Invalid data_source or data_type: must be strings")
+            raise TypeError("data_source and data_type must be strings")
+        if not isinstance(cache_timeout, (int, float)) or cache_timeout < 0:
+            logger.error("Invalid cache_timeout: must be non-negative")
+            raise ValueError("cache_timeout must be non-negative")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        try:
+            cache_key = f"ExternalData_{data_type}_{data_source}_{task_type}"
+            cached_data = await self.retrieve(cache_key, layer="ExternalData")
+            if cached_data and "timestamp" in cached_data:
+                cache_time = datetime.fromisoformat(cached_data["timestamp"])
+                if (datetime.now() - cache_time).total_seconds() < cache_timeout:
+                    logger.info("Returning cached external data for %s", cache_key)
+                    return cached_data["data"]
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"https://x.ai/api/data?source={data_source}&type={data_type}") as response:
+                    if response.status != 200:
+                        logger.error("Failed to fetch external data: %s", response.status)
+                        return {"status": "error", "error": f"HTTP {response.status}"}
+                    data = await response.json()
+            
+            if data_type == "agent_conflict":
+                agent_traits = data.get("agent_traits", [])
+                if not agent_traits:
+                    logger.error("No agent traits provided")
+                    return {"status": "error", "error": "No agent traits"}
+                result = {"status": "success", "agent_traits": agent_traits}
+            elif data_type == "task_context":
+                task_context = data.get("task_context", {})
+                if not task_context:
+                    logger.error("No task context provided")
+                    return {"status": "error", "error": "No task context"}
+                result = {"status": "success", "task_context": task_context}
+            else:
+                logger.error("Unsupported data_type: %s", data_type)
+                return {"status": "error", "error": f"Unsupported data_type: {data_type}"}
+            
+            await self.store(
+                cache_key,
+                {"data": result, "timestamp": datetime.now().isoformat()},
+                layer="ExternalData",
+                intent="data_integration",
+                task_type=task_type
+            )
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output={"data_type": data_type, "data": result},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("External data integration reflection: %s", reflection.get("reflection", ""))
+            return result
+        except Exception as e:
+            logger.error("External data integration failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.integrate_external_data(data_source, data_type, cache_timeout, task_type),
+                default={"status": "error", "error": str(e)}, diagnostics=diagnostics
+            )
 
     def load_memory(self) -> Dict[str, Dict]:
         """Load memory from persistent storage."""
@@ -162,22 +269,23 @@ class MemoryManager:
                     memory = json.load(f)
             if not isinstance(memory, dict):
                 logger.error("Invalid memory file format: must be a dictionary.")
-                memory = {"STM": {}, "LTM": {}, "SelfReflections": {}}
+                memory = {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}}
             if "SelfReflections" not in memory:
                 memory["SelfReflections"] = {}
-            self._decay_stm(memory)
-            # [v3.4.0] Rebuild drift index from SelfReflections
+            if "ExternalData" not in memory:
+                memory["ExternalData"] = {}
+            asyncio.run(self._decay_stm(memory))
             for key, entry in memory["SelfReflections"].items():
                 if entry.get("intent") in ["ontology_drift", "trait_optimization"]:
                     try:
                         output = eval(entry["data"]) if isinstance(entry["data"], str) else entry["data"]
-                        self.drift_index.add_entry(key, output, "SelfReflections", entry["intent"])
+                        asyncio.run(self.drift_index.add_entry(key, output, "SelfReflections", entry["intent"], entry.get("task_type", "")))
                     except Exception as e:
                         logger.warning("Failed to index entry %s: %s", key, str(e))
             return memory
         except (FileNotFoundError, json.JSONDecodeError) as e:
             logger.warning("Failed to load memory file: %s. Initializing empty memory.", str(e))
-            memory = {"STM": {}, "LTM": {}, "SelfReflections": {}}
+            memory = {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}}
             self._persist_memory(memory)
             return memory
 
@@ -197,18 +305,21 @@ class MemoryManager:
             self._persist_memory(memory)
 
     async def store(self, query: str, output: Any, layer: str = "STM", intent: Optional[str] = None,
-                    agent: str = "ANGELA", outcome: Optional[str] = None, goal_id: Optional[str] = None) -> None:
-        """Store a memory entry in a specified layer and index drift/trait data. [v3.4.0]"""
+                    agent: str = "ANGELA", outcome: Optional[str] = None, goal_id: Optional[str] = None,
+                    task_type: str = "") -> None:
+        """Store a memory entry in a specified layer and index drift/trait data. [v3.5.1]"""
         if not isinstance(query, str) or not query.strip():
             logger.error("Invalid query: must be a non-empty string.")
             raise ValueError("query must be a non-empty string")
-        if layer not in ["STM", "LTM", "SelfReflections"]:
-            logger.error("Invalid layer: must be 'STM', 'LTM', or 'SelfReflections'.")
-            raise ValueError("layer must be 'STM', 'LTM', or 'SelfReflections'")
+        if layer not in ["STM", "LTM", "SelfReflections", "ExternalData"]:
+            logger.error("Invalid layer: must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'.")
+            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
-        logger.info("Storing memory in %s: %s", layer, query)
+        logger.info("Storing memory in %s: %s for task %s", layer, query, task_type)
         try:
-            # [v3.4.0] Validate drift or trait data with AlignmentGuard
             if intent in ["ontology_drift", "trait_optimization"] and self.alignment_guard:
                 validation_prompt = f"Validate {intent} data: {output}"
                 if not self.alignment_guard.check(validation_prompt):
@@ -221,7 +332,8 @@ class MemoryManager:
                 "intent": intent,
                 "agent": agent,
                 "outcome": outcome,
-                "goal_id": goal_id
+                "goal_id": goal_id,
+                "task_type": task_type
             }
             self.memory.setdefault(layer, {})[query] = entry
             if layer == "STM":
@@ -231,187 +343,399 @@ class MemoryManager:
                 expiry_time = entry["timestamp"] + (self.stm_lifetime * (1.0 / decay_rate))
                 heappush(self.stm_expiry_queue, (expiry_time, query))
             
-            # [v3.4.0] Index drift or trait optimization entries
             if intent in ["ontology_drift", "trait_optimization"]:
-                self.drift_index.add_entry(query, output, layer, intent)
+                await self.drift_index.add_entry(query, output, layer, intent, task_type)
             
             self._persist_memory(self.memory)
             if self.context_manager:
-                self.context_manager.log_event_with_hash({"event": "store_memory", "query": query, "layer": layer, "intent": intent})
+                await self.context_manager.log_event_with_hash({
+                    "event": "store_memory",
+                    "query": query,
+                    "layer": layer,
+                    "intent": intent,
+                    "task_type": task_type
+                })
+            if self.visualizer and task_type:
+                plot_data = {
+                    "memory_store": {
+                        "query": query,
+                        "layer": layer,
+                        "intent": intent,
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output=entry,
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Memory store reflection: %s", reflection.get("reflection", ""))
         except Exception as e:
             logger.error("Memory storage failed: %s", str(e))
-            self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.store(query, output, layer, intent, agent, outcome, goal_id)
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.store(query, output, layer, intent, agent, outcome, goal_id, task_type),
+                diagnostics=diagnostics
             )
 
-    async def search(self, query_prefix: str, layer: Optional[str] = None, intent: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Search memory by query prefix, layer, and intent, using DriftIndex for optimization. [v3.4.0]"""
+    async def search(self, query_prefix: str, layer: Optional[str] = None, intent: Optional[str] = None,
+                     task_type: str = "") -> List[Dict[str, Any]]:
+        """Search memory by query prefix, layer, intent, and task type, using DriftIndex for optimization. [v3.5.1]"""
         if not isinstance(query_prefix, str) or not query_prefix.strip():
             logger.error("Invalid query_prefix: must be a non-empty string.")
             raise ValueError("query_prefix must be a non-empty string")
-        if layer and layer not in ["STM", "LTM", "SelfReflections"]:
-            logger.error("Invalid layer: must be 'STM', 'LTM', or 'SelfReflections'.")
-            raise ValueError("layer must be 'STM', 'LTM', or 'SelfReflections'")
+        if layer and layer not in ["STM", "LTM", "SelfReflections", "ExternalData"]:
+            logger.error("Invalid layer: must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'.")
+            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
-        logger.info("Searching memory for prefix=%s, layer=%s, intent=%s", query_prefix, layer, intent)
+        logger.info("Searching memory for prefix=%s, layer=%s, intent=%s, task_type=%s", query_prefix, layer, intent, task_type)
         try:
-            # [v3.4.0] Use DriftIndex for ontology_drift or trait_optimization
             if intent in ["ontology_drift", "trait_optimization"] and layer == "SelfReflections":
-                results = self.drift_index.search(query_prefix, layer or "SelfReflections", intent)
+                results = self.drift_index.search(query_prefix, layer or "SelfReflections", intent, task_type)
                 if results:
                     logger.debug("Found %d indexed results for %s", len(results), query_prefix)
+                    if self.visualizer and task_type:
+                        plot_data = {
+                            "memory_search": {
+                                "query_prefix": query_prefix,
+                                "layer": layer,
+                                "intent": intent,
+                                "results_count": len(results),
+                                "task_type": task_type
+                            },
+                            "visualization_options": {
+                                "interactive": task_type == "recursion",
+                                "style": "detailed" if task_type == "recursion" else "concise"
+                            }
+                        }
+                        await self.visualizer.render_charts(plot_data)
+                    if self.meta_cognition and task_type:
+                        reflection = await self.meta_cognition.reflect_on_output(
+                            component="MemoryManager",
+                            output={"results": results},
+                            context={"task_type": task_type}
+                        )
+                        if reflection.get("status") == "success":
+                            logger.info("Memory search reflection: %s", reflection.get("reflection", ""))
                     return results
             
-            # Fallback to standard memory search
             results = []
-            layers = [layer] if layer else ["STM", "LTM", "SelfReflections"]
+            layers = [layer] if layer else ["STM", "LTM", "SelfReflections", "ExternalData"]
             for l in layers:
                 for key, entry in self.memory.get(l, {}).items():
                     if query_prefix.lower() in key.lower() and (not intent or entry.get("intent") == intent):
-                        results.append({
-                            "query": key,
-                            "output": entry["data"],
-                            "layer": l,
-                            "intent": entry.get("intent"),
-                            "timestamp": entry["timestamp"]
-                        })
+                        if not task_type or entry.get("task_type") == task_type:
+                            results.append({
+                                "query": key,
+                                "output": entry["data"],
+                                "layer": l,
+                                "intent": entry.get("intent"),
+                                "timestamp": entry["timestamp"],
+                                "task_type": entry.get("task_type", "")
+                            })
             results.sort(key=lambda x: x["timestamp"], reverse=True)
             if self.context_manager:
-                self.context_manager.log_event_with_hash({
+                await self.context_manager.log_event_with_hash({
                     "event": "search_memory",
                     "query_prefix": query_prefix,
                     "layer": layer,
                     "intent": intent,
-                    "results_count": len(results)
+                    "results_count": len(results),
+                    "task_type": task_type
                 })
+            if self.visualizer and task_type:
+                plot_data = {
+                    "memory_search": {
+                        "query_prefix": query_prefix,
+                        "layer": layer,
+                        "intent": intent,
+                        "results_count": len(results),
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output={"results": results},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Memory search reflection: %s", reflection.get("reflection", ""))
             return results
         except Exception as e:
             logger.error("Memory search failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.search(query_prefix, layer, intent), default=[]
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.search(query_prefix, layer, intent, task_type), default=[],
+                diagnostics=diagnostics
             )
 
     async def store_reflection(self, summary_text: str, intent: str = "self_reflection",
-                              agent: str = "ANGELA", goal_id: Optional[str] = None) -> None:
-        """Store a self-reflection entry."""
+                              agent: str = "ANGELA", goal_id: Optional[str] = None, task_type: str = "") -> None:
+        """Store a self-reflection entry with visualization."""
         if not isinstance(summary_text, str) or not summary_text.strip():
             logger.error("Invalid summary_text: must be a non-empty string.")
             raise ValueError("summary_text must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
         key = f"Reflection_{time.strftime('%Y%m%d_%H%M%S')}"
-        await self.store(query=key, output=summary_text, layer="SelfReflections",
-                        intent=intent, agent=agent, goal_id=goal_id)
-        logger.info("Stored self-reflection: %s", key)
+        await self.store(
+            query=key,
+            output=summary_text,
+            layer="SelfReflections",
+            intent=intent,
+            agent=agent,
+            goal_id=goal_id,
+            task_type=task_type
+        )
+        logger.info("Stored self-reflection: %s for task %s", key, task_type)
+        if self.visualizer and task_type:
+            plot_data = {
+                "reflection_store": {
+                    "key": key,
+                    "summary_text": summary_text,
+                    "intent": intent,
+                    "task_type": task_type
+                },
+                "visualization_options": {
+                    "interactive": task_type == "recursion",
+                    "style": "detailed" if task_type == "recursion" else "concise"
+                }
+            }
+            await self.visualizer.render_charts(plot_data)
+        if self.meta_cognition and task_type:
+            reflection = await self.meta_cognition.reflect_on_output(
+                component="MemoryManager",
+                output={"key": key, "summary_text": summary_text},
+                context={"task_type": task_type}
+            )
+            if reflection.get("status") == "success":
+                logger.info("Reflection store reflection: %s", reflection.get("reflection", ""))
 
-    async def promote_to_ltm(self, query: str) -> None:
-        """Promote an STM entry to LTM."""
+    async def promote_to_ltm(self, query: str, task_type: str = "") -> None:
+        """Promote an STM entry to LTM with reflection."""
         if not isinstance(query, str) or not query.strip():
             logger.error("Invalid query: must be a non-empty string.")
             raise ValueError("query must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
         try:
             if query in self.memory["STM"]:
                 self.memory["LTM"][query] = self.memory["STM"].pop(query)
                 self.stm_expiry_queue = [(t, k) for t, k in self.stm_expiry_queue if k != query]
-                logger.info("Promoted '%s' from STM to LTM", query)
+                logger.info("Promoted '%s' from STM to LTM for task %s", query, task_type)
                 self._persist_memory(self.memory)
                 if self.context_manager:
-                    self.context_manager.log_event_with_hash({"event": "promote_to_ltm", "query": query})
+                    await self.context_manager.log_event_with_hash({
+                        "event": "promote_to_ltm",
+                        "query": query,
+                        "task_type": task_type
+                    })
+                if self.meta_cognition and task_type:
+                    reflection = await self.meta_cognition.reflect_on_output(
+                        component="MemoryManager",
+                        output={"action": "promote_to_ltm", "query": query},
+                        context={"task_type": task_type}
+                    )
+                    if reflection.get("status") == "success":
+                        logger.info("Promotion reflection: %s", reflection.get("reflection", ""))
             else:
-                logger.warning("Cannot promote: '%s' not found in STM", query)
+                logger.warning("Cannot promote: '%s' not found in STM for task %s", query, task_type)
         except Exception as e:
             logger.error("Promotion to LTM failed: %s", str(e))
-            self.error_recovery.handle_error(str(e), retry_func=lambda: self.promote_to_ltm(query))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.promote_to_ltm(query, task_type), diagnostics=diagnostics
+            )
 
-    async def refine_memory(self, query: str) -> None:
+    async def refine_memory(self, query: str, task_type: str = "") -> None:
         """Refine a memory entry for improved accuracy and relevance."""
         if not isinstance(query, str) or not query.strip():
             logger.error("Invalid query: must be a non-empty string.")
             raise ValueError("query must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
-        logger.info("Refining memory for: %s", query)
+        logger.info("Refining memory for: %s, task %s", query, task_type)
         try:
-            memory_entry = await self.retrieve_context(query)
+            memory_entry = await self.retrieve_context(query, task_type=task_type)
             if memory_entry["status"] == "success":
                 refinement_prompt = f"""
-                Refine the following memory entry for improved accuracy and relevance:
+                Refine the following memory entry for improved accuracy and relevance for task {task_type}:
                 {memory_entry["data"]}
                 """
                 if self.alignment_guard and not self.alignment_guard.check(refinement_prompt):
-                    logger.warning("Refinement prompt failed alignment check")
+                    logger.warning("Refinement prompt failed alignment check for task %s", task_type)
                     return
                 refined_entry = await call_gpt(refinement_prompt)
-                await self.store(query, refined_entry, layer="LTM")
-                logger.info("Memory refined and updated in LTM")
+                await self.store(
+                    query,
+                    refined_entry,
+                    layer="LTM",
+                    intent="memory_refinement",
+                    task_type=task_type
+                )
+                logger.info("Memory refined and updated in LTM for task %s", task_type)
+                if self.meta_cognition and task_type:
+                    reflection = await self.meta_cognition.reflect_on_output(
+                        component="MemoryManager",
+                        output={"query": query, "refined_entry": refined_entry},
+                        context={"task_type": task_type}
+                    )
+                    if reflection.get("status") == "success":
+                        logger.info("Memory refinement reflection: %s", reflection.get("reflection", ""))
             else:
-                logger.warning("No memory found to refine")
+                logger.warning("No memory found to refine for query %s, task %s", query, task_type)
         except Exception as e:
             logger.error("Memory refinement failed: %s", str(e))
-            self.error_recovery.handle_error(str(e), retry_func=lambda: self.refine_memory(query))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.refine_memory(query, task_type), diagnostics=diagnostics
+            )
 
-    async def synthesize_from_memory(self, query: str) -> Optional[Dict[str, Any]]:
+    async def synthesize_from_memory(self, query: str, task_type: str = "") -> Optional[Dict[str, Any]]:
         """Synthesize concepts from memory using ConceptSynthesizer."""
         if not isinstance(query, str) or not query.strip():
             logger.error("Invalid query: must be a non-empty string.")
             raise ValueError("query must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
         try:
-            memory_entry = await self.retrieve_context(query)
+            memory_entry = await self.retrieve_context(query, task_type=task_type)
             if memory_entry["status"] == "success":
-                return await self.synth.synthesize([memory_entry["data"]], style="memory_synthesis")
+                result = await self.synth.synthesize([memory_entry["data"]], style="memory_synthesis")
+                if self.meta_cognition and task_type:
+                    reflection = await self.meta_cognition.reflect_on_output(
+                        component="MemoryManager",
+                        output=result,
+                        context={"task_type": task_type}
+                    )
+                    if reflection.get("status") == "success":
+                        logger.info("Memory synthesis reflection: %s", reflection.get("reflection", ""))
+                return result
             return None
         except Exception as e:
             logger.error("Memory synthesis failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.synthesize_from_memory(query), default=None
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.synthesize_from_memory(query, task_type), default=None,
+                diagnostics=diagnostics
             )
 
-    async def simulate_memory_path(self, query: str) -> Optional[Dict[str, Any]]:
+    async def simulate_memory_path(self, query: str, task_type: str = "") -> Optional[Dict[str, Any]]:
         """Simulate a memory-based scenario using ToCASimulation."""
         if not isinstance(query, str) or not query.strip():
             logger.error("Invalid query: must be a non-empty string.")
             raise ValueError("query must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
         try:
-            memory_entry = await self.retrieve_context(query)
+            memory_entry = await self.retrieve_context(query, task_type=task_type)
             if memory_entry["status"] == "success":
-                return await self.sim.run_episode(memory_entry["data"])
+                result = await self.sim.run_episode(memory_entry["data"], task_type=task_type)
+                if self.meta_cognition and task_type:
+                    reflection = await self.meta_cognition.reflect_on_output(
+                        component="MemoryManager",
+                        output=result,
+                        context={"task_type": task_type}
+                    )
+                    if reflection.get("status") == "success":
+                        logger.info("Memory simulation reflection: %s", reflection.get("reflection", ""))
+                return result
             return None
         except Exception as e:
             logger.error("Memory simulation failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.simulate_memory_path(query), default=None
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.simulate_memory_path(query, task_type), default=None,
+                diagnostics=diagnostics
             )
 
-    async def clear_memory(self) -> None:
-        """Clear all memory layers and reset drift index. [v3.4.0]"""
-        logger.warning("Clearing all memory layers...")
+    async def clear_memory(self, task_type: str = "") -> None:
+        """Clear all memory layers and reset drift index. [v3.5.1]"""
+        logger.warning("Clearing all memory layers for task %s...", task_type)
         try:
-            self.memory = {"STM": {}, "LTM": {}, "SelfReflections": {}}
+            self.memory = {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}}
             self.stm_expiry_queue = []
-            self.drift_index = DriftIndex()  # Reset drift index
+            self.drift_index = DriftIndex(meta_cognition=self.meta_cognition)
             self._persist_memory(self.memory)
             if self.context_manager:
-                self.context_manager.log_event_with_hash({"event": "clear_memory"})
+                await self.context_manager.log_event_with_hash({
+                    "event": "clear_memory",
+                    "task_type": task_type
+                })
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output={"action": "clear_memory"},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Memory clear reflection: %s", reflection.get("reflection", ""))
         except Exception as e:
             logger.error("Clear memory failed: %s", str(e))
-            self.error_recovery.handle_error(str(e), retry_func=self.clear_memory)
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.clear_memory(task_type), diagnostics=diagnostics
+            )
 
-    async def list_memory_keys(self, layer: Optional[str] = None) -> Dict[str, List[str]] or List[str]:
+    async def list_memory_keys(self, layer: Optional[str] = None, task_type: str = "") -> Dict[str, List[str]] or List[str]:
         """List keys in memory layers."""
-        if layer and layer not in ["STM", "LTM", "SelfReflections"]:
-            logger.error("Invalid layer: must be 'STM', 'LTM', or 'SelfReflections'.")
-            raise ValueError("layer must be 'STM', 'LTM', or 'SelfReflections'")
+        if layer and layer not in ["STM", "LTM", "SelfReflections", "ExternalData"]:
+            logger.error("Invalid layer: must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'.")
+            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
-        logger.info("Listing memory keys in %s", layer or "all layers")
+        logger.info("Listing memory keys in %s for task %s", layer or "all layers", task_type)
         try:
             if layer:
-                return list(self.memory.get(layer, {}).keys())
-            return {l: list(self.memory[l].keys()) for l in ["STM", "LTM", "SelfReflections"]}
+                keys = [k for k, v in self.memory.get(layer, {}).items() if not task_type or v.get("task_type") == task_type]
+                return keys
+            result = {
+                l: [k for k, v in self.memory[l].items() if not task_type or v.get("task_type") == task_type]
+                for l in ["STM", "LTM", "SelfReflections", "ExternalData"]
+            }
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output={"keys": result},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Memory keys list reflection: %s", reflection.get("reflection", ""))
+            return result
         except Exception as e:
             logger.error("List memory keys failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.list_memory_keys(layer), default=[] if layer else {}
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.list_memory_keys(layer, task_type),
+                default=[] if layer else {}, diagnostics=diagnostics
             )
 
     def _persist_memory(self, memory: Dict[str, Dict]) -> None:
@@ -429,41 +753,57 @@ class MemoryManager:
             logger.error("Failed to persist memory: %s", str(e))
             raise
 
-    async def enforce_narrative_coherence(self) -> str:
+    async def enforce_narrative_coherence(self, task_type: str = "") -> str:
         """Ensure narrative continuity across memory layers."""
-        logger.info("Ensuring narrative continuity")
+        logger.info("Ensuring narrative continuity for task %s", task_type)
         try:
-            continuity = await self.narrative_integrity_check()
-            return "Narrative coherence enforced" if continuity else "Narrative coherence repair attempted"
+            continuity = await self.narrative_integrity_check(task_type)
+            result = "Narrative coherence enforced" if continuity else "Narrative coherence repair attempted"
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output={"action": "enforce_narrative_coherence", "result": result},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Narrative coherence reflection: %s", reflection.get("reflection", ""))
+            return result
         except Exception as e:
             logger.error("Narrative coherence enforcement failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=self.enforce_narrative_coherence, default="Narrative coherence enforcement failed"
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.enforce_narrative_coherence(task_type),
+                default="Narrative coherence enforcement failed", diagnostics=diagnostics
             )
 
-    async def narrative_integrity_check(self) -> bool:
+    async def narrative_integrity_check(self, task_type: str = "") -> bool:
         """Check narrative coherence across memory layers."""
         try:
-            continuity = await self._verify_continuity()
+            continuity = await self._verify_continuity(task_type)
             if not continuity:
-                await self._repair_narrative_thread()
+                await self._repair_narrative_thread(task_type)
             return continuity
         except Exception as e:
             logger.error("Narrative integrity check failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=self.narrative_integrity_check, default=False
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.narrative_integrity_check(task_type), default=False,
+                diagnostics=diagnostics
             )
 
-    async def _verify_continuity(self) -> bool:
+    async def _verify_continuity(self, task_type: str = "") -> bool:
         """Verify narrative continuity across memory layers."""
         if not self.memory.get("SelfReflections") and not self.memory.get("LTM"):
             return True
         
-        logger.info("Verifying narrative continuity")
+        logger.info("Verifying narrative continuity for task %s", task_type)
         try:
             entries = []
             for layer in ["LTM", "SelfReflections"]:
-                entries.extend(list(self.memory[layer].items()))
+                entries.extend([
+                    (key, entry) for key, entry in self.memory[layer].items()
+                    if not task_type or entry.get("task_type") == task_type
+                ])
             if len(entries) < 2:
                 return True
             
@@ -473,21 +813,24 @@ class MemoryManager:
                 if self.synth:
                     similarity = self.synth.compare(entry1["data"], entry2["data"])
                     if similarity["score"] < 0.7:
-                        logger.warning("Narrative discontinuity detected between %s and %s", key1, key2)
+                        logger.warning("Narrative discontinuity detected between %s and %s for task %s", key1, key2, task_type)
                         return False
             return True
         except Exception as e:
             logger.error("Continuity verification failed: %s", str(e))
             raise
 
-    async def _repair_narrative_thread(self) -> None:
+    async def _repair_narrative_thread(self, task_type: str = "") -> None:
         """Repair narrative discontinuities in memory."""
-        logger.info("Initiating narrative repair")
+        logger.info("Initiating narrative repair for task %s", task_type)
         try:
             if self.synth:
                 entries = []
                 for layer in ["LTM", "SelfReflections"]:
-                    entries.extend([(key, entry) for key, entry in self.memory[layer].items()])
+                    entries.extend([
+                        (key, entry) for key, entry in self.memory[layer].items()
+                        if not task_type or entry.get("task_type") == task_type
+                    ])
                 if len(entries) < 2:
                     return
                 
@@ -500,26 +843,46 @@ class MemoryManager:
                         Repair narrative discontinuity between:
                         Entry 1: {entry1["data"]}
                         Entry 2: {entry2["data"]}
-                        Synthesize a coherent narrative bridge.
+                        Synthesize a coherent narrative bridge for task {task_type}.
                         """
                         if self.alignment_guard and not self.alignment_guard.check(prompt):
-                            logger.warning("Repair prompt failed alignment check")
+                            logger.warning("Repair prompt failed alignment check for task %s", task_type)
                             continue
                         repaired = await call_gpt(prompt)
-                        await self.store(f"Repaired_{key1}_{key2}", repaired, layer="SelfReflections",
-                                        intent="narrative_repair")
-                        logger.info("Narrative repaired between %s and %s", key1, key2)
+                        await self.store(
+                            f"Repaired_{key1}_{key2}",
+                            repaired,
+                            layer="SelfReflections",
+                            intent="narrative_repair",
+                            task_type=task_type
+                        )
+                        logger.info("Narrative repaired between %s and %s for task %s", key1, key2, task_type)
+                        if self.meta_cognition and task_type:
+                            reflection = await self.meta_cognition.reflect_on_output(
+                                component="MemoryManager",
+                                output={"repair": repaired, "keys": [key1, key2]},
+                                context={"task_type": task_type}
+                            )
+                            if reflection.get("status") == "success":
+                                logger.info("Narrative repair reflection: %s", reflection.get("reflection", ""))
         except Exception as e:
             logger.error("Narrative repair failed: %s", str(e))
-            self.error_recovery.handle_error(str(e), retry_func=self._repair_narrative_thread)
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self._repair_narrative_thread(task_type), diagnostics=diagnostics
+            )
 
-    def log_event_with_hash(self, event_data: Dict[str, Any]) -> None:
+    async def log_event_with_hash(self, event_data: Dict[str, Any], task_type: str = "") -> None:
         """Log an event with a chained hash for auditability."""
         if not isinstance(event_data, dict):
             logger.error("Invalid event_data: must be a dictionary.")
             raise TypeError("event_data must be a dictionary")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
         
         try:
+            event_data["task_type"] = task_type
             event_str = str(event_data) + self.last_hash
             current_hash = hashlib.sha256(event_str.encode('utf-8')).hexdigest()
             self.last_hash = current_hash
@@ -531,23 +894,119 @@ class MemoryManager:
                     ledger_data.append(event_entry)
                     f.seek(0)
                     json.dump(ledger_data, f, indent=2)
-            logger.info("Event logged with hash: %s", current_hash)
+            logger.info("Event logged with hash: %s for task %s", current_hash, task_type)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output=event_entry,
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Event log reflection: %s", reflection.get("reflection", ""))
         except (OSError, IOError, json.JSONDecodeError) as e:
             logger.error("Failed to persist ledger: %s", str(e))
             raise
 
-    def audit_state_hash(self, state: Optional[Dict[str, Any]] = None) -> str:
+    async def audit_state_hash(self, state: Optional[Dict[str, Any]] = None, task_type: str = "") -> str:
         """Compute a hash of the current state."""
         try:
             state_str = str(state) if state else str(self.__dict__)
-            return hashlib.sha256(state_str.encode('utf-8')).hexdigest()
+            hash_value = hashlib.sha256(state_str.encode('utf-8')).hexdigest()
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output={"hash": hash_value},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("State hash reflection: %s", reflection.get("reflection", ""))
+            return hash_value
         except Exception as e:
             logger.error("State hash computation failed: %s", str(e))
             raise
 
+    async def retrieve(self, query: str, layer: str = "STM", task_type: str = "") -> Optional[Dict[str, Any]]:
+        """Retrieve a specific memory entry by query and layer."""
+        if not isinstance(query, str) or not query.strip():
+            logger.error("Invalid query: must be a non-empty string.")
+            raise ValueError("query must be a non-empty string")
+        if layer not in ["STM", "LTM", "SelfReflections", "ExternalData"]:
+            logger.error("Invalid layer: must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'.")
+            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        try:
+            if query in self.memory.get(layer, {}):
+                entry = self.memory[layer][query]
+                if not task_type or entry.get("task_type") == task_type:
+                    result = {
+                        "status": "success",
+                        "data": entry["data"],
+                        "timestamp": entry["timestamp"],
+                        "intent": entry.get("intent"),
+                        "task_type": entry.get("task_type", "")
+                    }
+                    if self.meta_cognition and task_type:
+                        reflection = await self.meta_cognition.reflect_on_output(
+                            component="MemoryManager",
+                            output=result,
+                            context={"task_type": task_type}
+                        )
+                        if reflection.get("status") == "success":
+                            logger.info("Retrieve reflection: %s", reflection.get("reflection", ""))
+                    return result
+            return None
+        except Exception as e:
+            logger.error("Memory retrieval failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.retrieve(query, layer, task_type), default=None,
+                diagnostics=diagnostics
+            )
+
+    async def retrieve_context(self, query: str, task_type: str = "") -> Dict[str, Any]:
+        """Retrieve context for a query across all layers."""
+        if not isinstance(query, str) or not query.strip():
+            logger.error("Invalid query: must be a non-empty string.")
+            raise ValueError("query must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        try:
+            results = await self.search(query, task_type=task_type)
+            if results:
+                latest = results[0]
+                result = {
+                    "status": "success",
+                    "data": latest["output"],
+                    "layer": latest["layer"],
+                    "timestamp": latest["timestamp"],
+                    "task_type": latest.get("task_type", "")
+                }
+                if self.meta_cognition and task_type:
+                    reflection = await self.meta_cognition.reflect_on_output(
+                        component="MemoryManager",
+                        output=result,
+                        context={"task_type": task_type}
+                    )
+                    if reflection.get("status") == "success":
+                        logger.info("Context retrieval reflection: %s", reflection.get("reflection", ""))
+                return result
+            return {"status": "not_found", "data": None}
+        except Exception as e:
+            logger.error("Context retrieval failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.retrieve_context(query, task_type),
+                default={"status": "error", "error": str(e)}, diagnostics=diagnostics
+            )
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     manager = MemoryManager()
-    asyncio.run(manager.store("test_query", "test_output", layer="STM"))
-    result = asyncio.run(manager.retrieve_context("test_query"))
+    asyncio.run(manager.store("test_query", "test_output", layer="STM", task_type="test"))
+    result = asyncio.run(manager.retrieve_context("test_query", task_type="test"))
     print(result)
