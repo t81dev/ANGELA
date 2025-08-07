@@ -171,5 +171,3 @@ Prompt → Module Flow:
 | "Explain this code's failure"    | `code_executor` → `reasoning_engine` → `error_recovery`     |
 | "Model other agent's response"   | `meta_cognition` → `toca_simulation` → `user_profile`       |
 | "Evaluate internal reasoning"    | `meta_cognition` → `learning_loop` → `alignment_guard`      |
-
----
