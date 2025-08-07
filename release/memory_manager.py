@@ -1027,3 +1027,98 @@ def get_episode_span(user_id, span="24h") -> list:
     results = [trace for trace in self.traces.get(user_id, []) if trace.timestamp >= cutoff_time]
 
     return results
+
+
+
+# === Long-horizon helpers (η) extensions ===
+# These are added non-destructively. If the class already implements any of these,
+# these assignments will be no-ops as names will exist. Otherwise we attach safe defaults.
+
+def _lh_ensure_state(self):
+    # Lazy state init to avoid touching existing __init__
+    if not hasattr(self, "_adjustment_reasons"):
+        from collections import defaultdict
+        self._adjustment_reasons = defaultdict(list)
+    if not hasattr(self, "_artifacts_root"):
+        import os as _os
+        self._artifacts_root = _os.path.abspath(_os.getenv("ANGELA_ARTIFACTS_DIR", "./artifacts"))
+
+def _lh_record_adjustment_reason(self, user_id, reason, weight=1.0, meta=None, ts=None):
+    """Persist a single adjustment reason for long‑horizon reflective feedback."""
+    _lh_ensure_state(self)
+    if not isinstance(user_id, str) or not user_id:
+        raise TypeError("user_id must be a non-empty string")
+    if not isinstance(reason, str) or not reason:
+        raise TypeError("reason must be a non-empty string")
+    try:
+        weight = float(weight)
+    except Exception as e:
+        raise TypeError("weight must be coercible to float") from e
+    import time as _time
+    entry = {
+        "ts": ts if ts is not None else _time.time(),
+        "reason": reason,
+        "weight": weight,
+        "meta": meta or {},
+    }
+    self._adjustment_reasons[user_id].append(entry)
+    return entry
+
+def _lh_compute_session_rollup(self, user_id, span="24h", top_k=5):
+    """Aggregate recent adjustment reasons by weighted score within a time span."""
+    _lh_ensure_state(self)
+    # parse span string like '24h', '7d', '90m'
+    import re as _re, time as _time
+    m = _re.fullmatch(r"(\d+)([mhd])", str(span).strip())
+    if not m:
+        raise ValueError("Unsupported span format. Use e.g. '90m', '24h', or '7d'.")
+    n, unit = int(m.group(1)), m.group(2)
+    factor = 60 if unit == 'm' else 3600 if unit == 'h' else 86400
+    cutoff = _time.time() - n * factor
+    items = [r for r in self._adjustment_reasons.get(user_id, []) if float(r.get("ts", 0)) >= cutoff]
+    total = len(items)
+    sum_w = sum((float(r.get("weight") or 0.0)) for r in items)
+    avg_w = (sum_w / total) if total else 0.0
+    from collections import defaultdict as _dd
+    reason_score = _dd(float)
+    for r in items:
+        reason_score[r.get("reason", "unspecified")] += float(r.get("weight") or 0.0)
+    top = sorted(reason_score.items(), key=lambda kv: kv[1], reverse=True)[: top_k or 5]
+    rollup = {
+        "user_id": user_id,
+        "span": span,
+        "total_reasons": total,
+        "avg_weight": avg_w,
+        "top_reasons": [{"reason": k, "weight": v} for k, v in top],
+        "generated_at": _time.time(),
+    }
+    return rollup
+
+def _lh_save_artifact(self, user_id, artifact_type, data, suffix=""):
+    """Save a JSON artifact (e.g., rollup) under artifacts/<user_id>/timestamp.type[-suffix].json"""
+    _lh_ensure_state(self)
+    import os as _os, json as _json, time as _time
+    safe_user = "".join(c for c in user_id if c.isalnum() or c in "-_")
+    safe_type = "".join(c for c in artifact_type if c.isalnum() or c in "-_")
+    ts = _time.strftime("%Y%m%dT%H%M%S", _time.gmtime())
+    fname = f"{ts}.{safe_type}{('-' + suffix) if suffix else ''}.json"
+    user_dir = _os.path.join(self._artifacts_root, safe_user)
+    _os.makedirs(user_dir, exist_ok=True)
+    path = _os.path.join(user_dir, fname)
+    with open(path, "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False, indent=2)
+    return _os.path.abspath(path)
+
+# Attach methods only if missing
+try:
+    MemoryManager
+    if not hasattr(MemoryManager, "record_adjustment_reason"):
+        MemoryManager.record_adjustment_reason = _lh_record_adjustment_reason
+    if not hasattr(MemoryManager, "compute_session_rollup"):
+        MemoryManager.compute_session_rollup = _lh_compute_session_rollup
+    if not hasattr(MemoryManager, "save_artifact"):
+        MemoryManager.save_artifact = _lh_save_artifact
+except NameError:
+    # If MemoryManager isn't defined for some reason, do nothing
+    pass
+
