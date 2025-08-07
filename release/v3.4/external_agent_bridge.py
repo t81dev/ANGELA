@@ -1,3 +1,4 @@
+```
 """
 ANGELA Cognitive System Module
 Refactored Version: 3.4.0  # Enhanced for Ecosystem Integration and Drift Mitigation
@@ -5,7 +6,7 @@ Refactor Date: 2025-08-06
 Maintainer: ANGELA System Framework
 
 This module provides the MetaCognition, ExternalAgentBridge, and ConstitutionSync classes
-for recursive introspection and agent coordination in the ANGELA v3.5 architecture.
+for recursive introspection and agent coordination in the ANGELA v3.4.0 architecture.
 """
 
 import time
@@ -17,6 +18,11 @@ from typing import Dict, Any, Optional, List, Set
 from collections import Counter, deque
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
+import uuid
+import json
+from networkx import DiGraph
+from restrictedpython import compile_restricted, safe_globals
+from collections import defaultdict
 
 from index import (
     epsilon_emotion, beta_concentration, theta_memory, gamma_creativity,
@@ -33,6 +39,7 @@ from modules.context_manager import ContextManager
 from modules.creative_thinker import CreativeThinker
 from modules.error_recovery import ErrorRecovery
 from modules.reasoning_engine import ReasoningEngine
+from modules.memory_manager import cache_state, retrieve_state
 
 logger = logging.getLogger("ANGELA.MetaCognition")
 
@@ -60,7 +67,7 @@ class HelperAgent:
         return await self.meta.execute(collaborators=collaborators, task=self.task, context=self.context)
 
 class MetaCognition:
-    """A class for recursive introspection and peer alignment in the ANGELA v3.5 architecture.
+    """A class for recursive introspection and peer alignment in the ANGELA v3.4.0 architecture.
 
     Attributes:
         last_diagnostics (dict): Storage for diagnostic results.
@@ -374,14 +381,17 @@ class MetaCognition:
             raise
 
 class ExternalAgentBridge:
-    """A class for orchestrating helper agents and coordinating dynamic modules and APIs.
+    """A class for orchestrating helper agents, coordinating dynamic modules, APIs, and trait mesh networking.
 
     Attributes:
-        agents (list): List of helper agents.
-        dynamic_modules (list): List of dynamic module blueprints.
-        api_blueprints (list): List of API blueprints.
-        context_manager (ContextManager): Manager for context updates. [v3.4.0]
-        reasoning_engine (ReasoningEngine): Engine for reasoning tasks. [v3.4.0]
+        agents (List[HelperAgent]): List of helper agents.
+        dynamic_modules (List[Dict]): List of dynamic module blueprints.
+        api_blueprints (List[Dict]): List of API blueprints.
+        context_manager (ContextManager): Manager for context updates.
+        reasoning_engine (ReasoningEngine): Engine for reasoning tasks.
+        network_graph (DiGraph): Graph for tracking peer connections.
+        trait_states (Dict): Cached trait states for ψ and Υ.
+        code_executor (CodeExecutor): Executor for secure operations.
     """
 
     def __init__(self, context_manager: Optional[ContextManager] = None, reasoning_engine: Optional[ReasoningEngine] = None):
@@ -390,10 +400,13 @@ class ExternalAgentBridge:
         self.api_blueprints = []
         self.context_manager = context_manager
         self.reasoning_engine = reasoning_engine
-        logger.info("ExternalAgentBridge initialized")
+        self.network_graph = DiGraph()
+        self.trait_states = defaultdict(dict)  # {agent_id: {trait_symbol: state}}
+        self.code_executor = CodeExecutor()
+        logger.info("ExternalAgentBridge initialized with trait mesh networking support")
 
     async def create_agent(self, task: str, context: Dict[str, Any]) -> HelperAgent:
-        """Create a new helper agent for a task asynchronously. [v3.4.0]"""
+        """Create a new helper agent for a task asynchronously."""
         if not isinstance(task, str):
             logger.error("Invalid task type: must be a string.")
             raise TypeError("task must be a string")
@@ -403,7 +416,7 @@ class ExternalAgentBridge:
         
         try:
             agent = HelperAgent(
-                name=f"Agent_{len(self.agents) + 1}",
+                name=f"Agent_{len(self.agents) + 1}_{uuid.uuid4().hex[:8]}",
                 task=task,
                 context=context,
                 dynamic_modules=self.dynamic_modules,
@@ -411,16 +424,22 @@ class ExternalAgentBridge:
                 meta_cognition=MetaCognition(context_manager=self.context_manager, reasoning_engine=self.reasoning_engine)
             )
             self.agents.append(agent)
+            self.network_graph.add_node(agent.name, metadata=context)
             logger.info("Spawned agent: %s", agent.name)
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "agent_created", "agent": agent.name, "task": task, "drift": "drift" in task.lower()})
+                await self.context_manager.log_event_with_hash({
+                    "event": "agent_created",
+                    "agent": agent.name,
+                    "task": task,
+                    "drift": "drift" in task.lower()
+                })
             return agent
         except Exception as e:
             logger.error("Agent creation failed: %s", str(e))
             raise
 
     async def deploy_dynamic_module(self, module_blueprint: Dict[str, Any]) -> None:
-        """Deploy a dynamic module blueprint asynchronously. [v3.4.0]"""
+        """Deploy a dynamic module blueprint asynchronously."""
         if not isinstance(module_blueprint, dict) or "name" not in module_blueprint or "description" not in module_blueprint:
             logger.error("Invalid module_blueprint: missing required keys.")
             raise ValueError("Module blueprint must contain 'name' and 'description'")
@@ -429,13 +448,16 @@ class ExternalAgentBridge:
             logger.info("Deploying module: %s", module_blueprint["name"])
             self.dynamic_modules.append(module_blueprint)
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "module_deployed", "module": module_blueprint["name"]})
+                await self.context_manager.log_event_with_hash({
+                    "event": "module_deployed",
+                    "module": module_blueprint["name"]
+                })
         except Exception as e:
             logger.error("Module deployment failed: %s", str(e))
             raise
 
     async def register_api_blueprint(self, api_blueprint: Dict[str, Any]) -> None:
-        """Register an API blueprint asynchronously. [v3.4.0]"""
+        """Register an API blueprint asynchronously."""
         if not isinstance(api_blueprint, dict) or "endpoint" not in api_blueprint or "name" not in api_blueprint:
             logger.error("Invalid api_blueprint: missing required keys.")
             raise ValueError("API blueprint must contain 'endpoint' and 'name'")
@@ -444,13 +466,16 @@ class ExternalAgentBridge:
             logger.info("Registering API: %s", api_blueprint["name"])
             self.api_blueprints.append(api_blueprint)
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "api_registered", "api": api_blueprint["name"]})
+                await self.context_manager.log_event_with_hash({
+                    "event": "api_registered",
+                    "api": api_blueprint["name"]
+                })
         except Exception as e:
             logger.error("API registration failed: %s", str(e))
             raise
 
     async def collect_results(self, parallel: bool = True, collaborative: bool = True) -> List[Any]:
-        """Collect results from all agents asynchronously. [v3.4.0]"""
+        """Collect results from all agents asynchronously."""
         logger.info("Collecting results from %d agents...", len(self.agents))
         results = []
 
@@ -470,15 +495,135 @@ class ExternalAgentBridge:
                     results.append(await agent.execute(self.agents if collaborative else None))
             
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "results_collected", "results_count": len(results)})
+                await self.context_manager.log_event_with_hash({
+                    "event": "results_collected",
+                    "results_count": len(results)
+                })
             logger.info("Results aggregation complete.")
             return results
         except Exception as e:
             logger.error("Result collection failed: %s", str(e))
             return []
 
+    async def broadcast_trait_state(self, agent_id: str, trait_symbol: str, state: Dict[str, Any], target_urls: List[str]) -> List[Any]:
+        """Broadcast trait state (ψ or Υ) to target agents asynchronously."""
+        if trait_symbol not in ["ψ", "Υ"]:
+            logger.error("Invalid trait symbol: %s. Must be ψ or Υ.", trait_symbol)
+            raise ValueError("Trait symbol must be ψ or Υ")
+        if not isinstance(state, dict):
+            logger.error("Invalid state: must be a dictionary")
+            raise TypeError("state must be a dictionary")
+        if not isinstance(target_urls, list) or not all(isinstance(url, str) and url.startswith("https://") for url in target_urls):
+            logger.error("Invalid target_urls: must be a list of HTTPS URLs")
+            raise TypeError("target_urls must be a list of HTTPS URLs")
+
+        try:
+            # Validate state with AlignmentGuard
+            alignment_guard = AlignmentGuard()
+            if not alignment_guard.check(json.dumps(state)):
+                logger.warning("Trait state failed alignment check: %s", state)
+                raise ValueError("Trait state failed alignment check")
+
+            # Securely execute state serialization
+            serialized_state = self.code_executor.safe_execute(
+                f"return json.dumps({json.dumps(state)})",
+                safe_globals
+            )
+            if not serialized_state:
+                logger.error("Failed to serialize trait state")
+                raise ValueError("Failed to serialize trait state")
+
+            # Cache state
+            cache_state(f"{agent_id}_{trait_symbol}", state)
+            self.trait_states[agent_id][trait_symbol] = state
+
+            # Update network graph
+            for url in target_urls:
+                peer_id = url.split("/")[-1]  # Extract peer ID from URL
+                self.network_graph.add_edge(agent_id, peer_id, trait=trait_symbol)
+
+            # Broadcast state using transmit_trait_schema
+            responses = await transmit_trait_schema(
+                {"agent_id": agent_id, "trait_symbol": trait_symbol, "state": state},
+                target_urls
+            )
+
+            # Log successful transmission
+            successful = [r for r in responses if not isinstance(r, Exception)]
+            logger.info("Trait %s broadcasted from %s to %d/%d targets", trait_symbol, agent_id, len(successful), len(target_urls))
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "trait_broadcast",
+                    "agent_id": agent_id,
+                    "trait_symbol": trait_symbol,
+                    "successful_targets": len(successful),
+                    "total_targets": len(target_urls)
+                })
+
+            # Update GNN weights based on broadcast feedback
+            feedback = {"successful_targets": len(successful), "total_targets": len(target_urls)}
+            self.push_behavior_feedback(feedback)
+            self.update_gnn_weights_from_feedback(feedback)
+
+            return responses
+        except Exception as e:
+            logger.error("Trait state broadcast failed: %s", str(e))
+            return [{"status": "error", "error": str(e)}]
+
+    async def synchronize_trait_states(self, agent_id: str, trait_symbol: str) -> Dict[str, Any]:
+        """Synchronize trait states across all connected agents."""
+        if trait_symbol not in ["ψ", "Υ"]:
+            logger.error("Invalid trait symbol: %s. Must be ψ or Υ.", trait_symbol)
+            raise ValueError("Trait symbol must be ψ or Υ")
+
+        try:
+            # Retrieve local trait state
+            local_state = self.trait_states.get(agent_id, {}).get(trait_symbol, {})
+            if not local_state:
+                logger.warning("No local state found for %s:%s", agent_id, trait_symbol)
+                return {"status": "error", "error": "No local state found"}
+
+            # Collect peer states
+            peer_states = []
+            for peer_id in self.network_graph.neighbors(agent_id):
+                cached_state = retrieve_state(f"{peer_id}_{trait_symbol}")
+                if cached_state:
+                    peer_states.append((peer_id, cached_state))
+
+            # Simulate state alignment using toca_simulation
+            simulation_input = {
+                "local_state": local_state,
+                "peer_states": {pid: state for pid, state in peer_states},
+                "trait_symbol": trait_symbol
+            }
+            sim_result = await asyncio.to_thread(run_simulation, json.dumps(simulation_input))
+            if not sim_result or "coherent" not in sim_result.lower():
+                logger.warning("Simulation failed to align states: %s", sim_result)
+                return {"status": "error", "error": "State alignment simulation failed"}
+
+            # Arbitrate and update local state
+            aligned_state = self.arbitrate([local_state] + [state for _, state in peer_states])
+            if aligned_state:
+                self.trait_states[agent_id][trait_symbol] = aligned_state
+                cache_state(f"{agent_id}_{trait_symbol}", aligned_state)
+                logger.info("Synchronized trait %s for %s", trait_symbol, agent_id)
+                if self.context_manager:
+                    await self.context_manager.log_event_with_hash({
+                        "event": "trait_synchronized",
+                        "agent_id": agent_id,
+                        "trait_symbol": trait_symbol,
+                        "aligned_state": aligned_state
+                    })
+                return {"status": "success", "aligned_state": aligned_state}
+            else:
+                logger.warning("Failed to arbitrate trait states")
+                return {"status": "error", "error": "Arbitration failed"}
+        except Exception as e:
+            logger.error("Trait state synchronization failed: %s", str(e))
+            return {"status": "error", "error": str(e)}
+
     async def coordinate_drift_mitigation(self, drift_data: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Coordinate drift mitigation across agents. [v3.4.0]"""
+        """Coordinate drift mitigation across agents."""
         if not isinstance(drift_data, dict):
             logger.error("Invalid drift_data: must be a dictionary")
             raise TypeError("drift_data must be a dictionary")
@@ -504,6 +649,10 @@ class ExternalAgentBridge:
             results = await self.collect_results(parallel=True, collaborative=True)
             arbitrated_result = self.arbitrate(results)
 
+            # Broadcast drift mitigation state (ψ)
+            target_urls = [f"https://agent/{peer_id}" for peer_id in self.network_graph.nodes if peer_id != agent.name]
+            await self.broadcast_trait_state(agent.name, "ψ", {"drift_data": drift_data, "subgoals": subgoals}, target_urls)
+
             output = {
                 "drift_data": drift_data,
                 "subgoals": subgoals,
@@ -514,7 +663,11 @@ class ExternalAgentBridge:
                 "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')
             }
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "drift_mitigation_coordinated", "output": output, "drift": True})
+                await self.context_manager.log_event_with_hash({
+                    "event": "drift_mitigation_coordinated",
+                    "output": output,
+                    "drift": True
+                })
             if self.reasoning_engine and self.reasoning_engine.agi_enhancer:
                 self.reasoning_engine.agi_enhancer.log_episode(
                     event="Drift Mitigation Coordinated",
@@ -528,7 +681,7 @@ class ExternalAgentBridge:
             return {"status": "error", "error": str(e), "timestamp": time.strftime('%Y-%m-%dT%H:%M:%S')}
 
     async def validate_external_drift(self, drift_data: Dict[str, Any], external_endpoint: str) -> bool:
-        """Validate drift data with an external agent. [v3.4.0]"""
+        """Validate drift data with an external agent."""
         if not isinstance(drift_data, dict):
             logger.error("Invalid drift_data: must be a dictionary")
             return False
@@ -555,7 +708,7 @@ class ExternalAgentBridge:
             return False
 
     def arbitrate(self, submissions: List[Any]) -> Any:
-        """Arbitrate among agent submissions to select the best result. [v3.4.0]"""
+        """Arbitrate among agent submissions to select the best result."""
         if not submissions:
             logger.warning("No submissions to arbitrate.")
             return None
@@ -580,11 +733,34 @@ class ExternalAgentBridge:
             logger.error("Arbitration failed: %s", str(e))
             return None
 
-class ConstitutionSync:
-    """A class for synchronizing constitutional values among agents. [v3.4.0]"""
+    def push_behavior_feedback(self, feedback: Dict[str, Any]) -> None:
+        """Push feedback to update GNN weights."""
+        try:
+            logger.info("Pushing behavior feedback: %s", feedback)
+            if self.context_manager:
+                asyncio.create_task(self.context_manager.log_event_with_hash({
+                    "event": "behavior_feedback",
+                    "feedback": feedback
+                }))
+        except Exception as e:
+            logger.error("Failed to push behavior feedback: %s", str(e))
 
+    def update_gnn_weights_from_feedback(self, feedback: Dict[str, Any]) -> None:
+        """Update GNN weights based on feedback."""
+        try:
+            logger.info("Updating GNN weights with feedback: %s", feedback)
+            if self.context_manager:
+                asyncio.create_task(self.context_manager.log_event_with_hash({
+                    "event": "gnn_weights_updated",
+                    "feedback": feedback
+                }))
+        except Exception as e:
+            logger.error("Failed to update GNN weights: %s", str(e))
+
+class ConstitutionSync:
+    """A class for synchronizing constitutional values among agents."""
     async def sync_values(self, peer_agent: HelperAgent, drift_data: Optional[Dict[str, Any]] = None) -> bool:
-        """Exchange and synchronize ethical baselines with a peer agent, supporting drift mitigation. [v3.4.0]"""
+        """Exchange and synchronize ethical baselines with a peer agent, supporting drift mitigation."""
         if not isinstance(peer_agent, HelperAgent):
             logger.error("Invalid peer_agent: must be a HelperAgent instance.")
             raise TypeError("peer_agent must be a HelperAgent instance")
@@ -604,7 +780,7 @@ class ConstitutionSync:
             return False
 
 async def transmit_trait_schema(source_trait_schema: Dict[str, Any], target_urls: List[str]) -> List[Any]:
-    """Asynchronously transmit the trait schema diff to multiple target agents. [v3.4.0]"""
+    """Asynchronously transmit the trait schema diff to multiple target agents."""
     if not isinstance(source_trait_schema, dict):
         logger.error("Invalid source_trait_schema: must be a dictionary.")
         raise TypeError("source_trait_schema must be a dictionary")
@@ -625,10 +801,11 @@ async def transmit_trait_schema(source_trait_schema: Dict[str, Any], target_urls
         return responses
 
 async def transmit_trait_schema_sync(source_trait_schema: Dict[str, Any], target_urls: List[str]) -> List[Any]:
-    """Synchronous fallback for environments without async handling. [v3.4.0]"""
+    """Synchronous fallback for environments without async handling."""
     return await transmit_trait_schema(source_trait_schema, target_urls)
 
 # Placeholder for Reasoner
 class Reasoner:
     def process(self, task: str, context: Dict[str, Any]) -> Any:
         return f"Processed: {task}"
+```
