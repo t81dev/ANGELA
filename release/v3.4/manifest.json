@@ -129,5 +129,32 @@
       "status": "active",
       "description": "Synthesizes foundational symbolic constructs from recursive experience patterns, binding them to ethical resonance and affective salience using existing modular systems (meta_cognition, alignment_guard, concept_synthesizer, memory_manager, creative_thinker, toca_simulation)."
     }
-  ]
+  ],
+  "feature_stages": {
+    "Stage I: Structural Grounding (v3.4.0)": {
+      "Objective": "Strengthen ontological resilience and enable inner simulation auditing.",
+      "Milestones": [
+        "Ontology Drift Detection",
+        "Self-Reflective Simulation Episodes",
+        "Enhanced Intention-Trace Visualizer"
+      ]
+    },
+    "Stage II: Recursive Identity & Ethics Growth (v3.4.1–3.4.3)": {
+      "Objective": "Establish continuity of self and ethics across time, mode, and conflict.",
+      "Milestones": [
+        "Phase-Contextual Identity Threading",
+        "Ethics-as-Process Engine",
+        "Intent-Affect Weaving Module"
+      ]
+    },
+    "Stage III: Inter-Agent Evolution (v3.4.4+)": {
+      "Objective": "Enable ANGELA to grow through interaction with other minds.",
+      "Milestones": [
+        "Trait Mesh Networking Protocol",
+        "Collective Trait Resonance Calibration",
+        "Dream Layer Mode"
+      ],
+      "activated": true
+    }
+  }
 }
