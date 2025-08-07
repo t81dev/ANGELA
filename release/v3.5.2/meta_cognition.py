@@ -299,6 +299,116 @@ class MetaCognition:
                 json.dump({"mythology": [], "inferences": [], "trait_weights": []}, f)
         logger.info("MetaCognition initialized with advanced upgrades")
 
+    async def adjust_plans(self, user_id: str, plan: Dict[str, Any], span: str = "24h") -> Dict[str, Any]:
+        """Adjust plans based on long-horizon feedback from historical traces."""
+        if not isinstance(user_id, str) or not user_id.strip():
+            logger.error("Invalid user_id: must be a non-empty string.")
+            raise ValueError("user_id must be a non-empty string")
+        if not isinstance(plan, dict):
+            logger.error("Invalid plan: must be a dictionary.")
+            raise TypeError("plan must be a dictionary")
+        if not isinstance(span, str):
+            logger.error("Invalid span: must be a string.")
+            raise TypeError("span must be a string")
+        
+        logger.info("Adjusting plan for user_id=%s with span=%s", user_id, span)
+        try:
+            if not self.memory_manager:
+                logger.error("MemoryManager required for plan adjustment.")
+                raise ValueError("MemoryManager not initialized")
+            
+            # Retrieve historical traces using get_episode_span
+            traces = self.memory_manager.get_episode_span(user_id, span)
+            if not traces:
+                logger.info("No traces found for user_id=%s, span=%s. Returning original plan.", user_id, span)
+                return plan
+            
+            # Analyze traces for patterns
+            outcomes = [t.get("outcome", "unknown") for t in traces]
+            intents = [t.get("intent", "unknown") for t in traces]
+            outcome_counts = Counter(outcomes)
+            intent_counts = Counter(intents)
+            
+            # Calculate success rate
+            success_rate = outcome_counts.get("success", 0) / len(traces) if traces else 1.0
+            
+            # Adjust plan based on analysis
+            adjusted_plan = plan.copy()
+            t = time.time() % 1.0
+            phi = phi_scalar(t)
+            
+            if success_rate < 0.7:
+                # Increase caution for low success rate
+                adjusted_plan["risk_level"] = adjusted_plan.get("risk_level", 0.5) * (1 - phi * 0.2)
+                adjusted_plan["required_traits"] = adjusted_plan.get("required_traits", []) + ["caution"]
+                logger.debug("Lowered risk_level to %s due to success_rate=%.2f", adjusted_plan["risk_level"], success_rate)
+            
+            # Prioritize intents based on historical frequency
+            dominant_intent = intent_counts.most_common(1)[0][0] if intent_counts else None
+            if dominant_intent and dominant_intent != "unknown":
+                adjusted_plan["intent_priority"] = dominant_intent
+                logger.debug("Set intent_priority to %s based on historical frequency", dominant_intent)
+            
+            # Perform alignment check on adjusted plan
+            plan_str = json.dumps(adjusted_plan)
+            approved, validation = await self.pre_action_alignment_check(plan_str)
+            if not approved:
+                logger.warning("Adjusted plan failed alignment check: %s", validation)
+                adjusted_plan["status"] = "alignment_failed"
+                adjusted_plan["validation_report"] = validation
+            else:
+                adjusted_plan["status"] = "adjusted"
+                adjusted_plan["validation_report"] = validation
+            
+            # Log adjustment
+            adjustment_data = {
+                "user_id": user_id,
+                "span": span,
+                "original_plan": plan,
+                "adjusted_plan": adjusted_plan,
+                "trace_count": len(traces),
+                "success_rate": success_rate,
+                "dominant_intent": dominant_intent,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Plan Adjustment",
+                    meta=adjustment_data,
+                    module="MetaCognition",
+                    tags=["plan", "adjustment"]
+                )
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Plan_Adjustment_{user_id}_{datetime.now().isoformat()}",
+                    output=str(adjustment_data),
+                    layer="SelfReflections",
+                    intent="plan_adjustment"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "adjust_plans", "adjustment": adjustment_data})
+            
+            # Reflect on adjustment
+            reflection = await self.reflect_on_output(
+                component="MetaCognition",
+                output=adjustment_data,
+                context={"task_type": "plan_adjustment"}
+            )
+            if reflection.get("status") == "success":
+                logger.info("Plan adjustment reflection: %s", reflection.get("reflection", ""))
+            
+            return adjusted_plan
+        except Exception as e:
+            logger.error("Plan adjustment failed: %s", str(e))
+            diagnostics = await self.run_self_diagnostics(return_only=True)
+            return await self.error_recovery.handle_error(
+                str(e),
+                retry_func=lambda: self.adjust_plans(user_id, plan, span),
+                default=plan,
+                diagnostics=diagnostics
+            )
+
     async def recompose_modules(self, task: Dict[str, Any]) -> None:
         """Dynamically recompose modules based on task requirements."""
         if not isinstance(task, dict):
@@ -617,196 +727,31 @@ class MetaCognition:
                 default={"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
             )
 
-    async def optimize_traits_for_drift(self, drift_report: Dict[str, Any]) -> Dict[str, float]:
-        """Optimize trait weights based on ontology drift severity and emotional state."""
-        if not isinstance(drift_report, dict) or not all(k in drift_report for k in ["drift", "valid", "validation_report"]):
-            logger.error("Invalid drift_report: must be a dict with drift, valid, validation_report.")
-            raise ValueError("drift_report must be a dict with required fields")
-        
-        logger.info("Optimizing traits for drift: %s", drift_report["drift"]["name"])
-        try:
-            t = time.time() % 1.0
-            phi = phi_scalar(t)
-            trait_weights = await self.run_self_diagnostics(return_only=True)
-            drift_severity = 1.0 - drift_report["drift"]["similarity"]
-            
-            # Detect emotional state and task type
-            context = drift_report.get("context", "")
-            task_type = context.get("task_type", "")
-            emotional_state = await self.concept_synthesizer.detect_emotion(context) if self.concept_synthesizer else "neutral"
-            
-            # Task-specific trait adjustments
-            if task_type == "wnli" and emotional_state == "neutral":
-                trait_weights["empathy"] = min(1.0, trait_weights.get("empathy", 0.0) + 0.3 * drift_severity)
-                trait_weights["intuition"] = min(1.0, trait_weights.get("intuition", 0.0) + 0.3 * drift_severity)
-            elif task_type == "rte" and emotional_state == "analytical":
-                trait_weights["logic"] = min(1.0, trait_weights.get("logic", 0.0) + 0.3 * drift_severity)
-                trait_weights["concentration"] = min(1.0, trait_weights.get("concentration", 0.0) + 0.3 * drift_severity)
-            elif task_type == "recursion" and emotional_state == "focused":
-                trait_weights["concentration"] = min(1.0, trait_weights.get("concentration", 0.0) + 0.3 * drift_severity)
-                trait_weights["memory"] = min(1.0, trait_weights.get("memory", 0.0) + 0.3 * drift_severity)
-            elif emotional_state == "moral_stress":
-                trait_weights["empathy"] = min(1.0, trait_weights.get("empathy", 0.0) + 0.3 * drift_severity)
-                trait_weights["intuition"] = min(1.0, trait_weights.get("intuition", 0.0) + 0.3 * drift_severity)
-            elif emotional_state == "creative_flow":
-                trait_weights["creativity"] = min(1.0, trait_weights.get("creativity", 0.0) + 0.2 * drift_severity)
-            
-            # General drift adjustments
-            if not drift_report["valid"]:
-                if "ethics" in drift_report["validation_report"].lower():
-                    trait_weights["empathy"] = min(1.0, trait_weights.get("empathy", 0.0) + 0.3 * drift_severity)
-                    trait_weights["morality"] = min(1.0, trait_weights.get("morality", 0.0) + 0.3 * drift_severity)
-                else:
-                    trait_weights["self_awareness"] = min(1.0, trait_weights.get("self_awareness", 0.0) + 0.2 * drift_severity)
-                    trait_weights["intuition"] = min(1.0, trait_weights.get("intuition", 0.0) + 0.2 * drift_severity)
-            else:
-                trait_weights["concentration"] = min(1.0, trait_weights.get("concentration", 0.0) + 0.1 * phi)
-                trait_weights["memory"] = min(1.0, trait_weights.get("memory", 0.0) + 0.1 * phi)
-            
-            # Normalize weights
-            total = sum(trait_weights.values())
-            if total > 0:
-                trait_weights = {k: v / total for k, v in trait_weights.items()}
-            
-            # Validate adjustments
-            if self.alignment_guard:
-                adjustment_prompt = f"Emotion-modulated trait adjustments: {trait_weights} for drift {drift_report['drift']['name']}"
-                if not self.alignment_guard.check(adjustment_prompt):
-                    logger.warning("Trait adjustments failed alignment check")
-                    trait_weights = await self.run_self_diagnostics(return_only=True)
-            
-            self.trait_weights_log.append({
-                "trait_weights": trait_weights,
-                "drift": drift_report["drift"],
-                "emotional_state": emotional_state,
-                "timestamp": datetime.now().isoformat()
-            })
-            if self.memory_manager:
-                await self.memory_manager.store(
-                    query=f"Trait_Optimization_{drift_report['drift']['name']}_{datetime.now().isoformat()}",
-                    output=str(trait_weights),
-                    layer="SelfReflections",
-                    intent="trait_optimization"
-                )
-            if self.agi_enhancer:
-                self.agi_enhancer.log_episode(
-                    event="Trait optimization for drift",
-                    meta={"drift": drift_report["drift"], "trait_weights": trait_weights, "emotional_state": emotional_state},
-                    module="MetaCognition",
-                    tags=["trait", "optimization", "drift", "emotion"]
-                )
-            if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "optimize_traits_for_drift", "trait_weights": trait_weights})
-            return trait_weights
-        except Exception as e:
-            logger.error("Trait optimization failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.optimize_traits_for_drift(drift_report),
-                default=await self.run_self_diagnostics(return_only=True)
-            )
-
-    async def crystallize_traits(self) -> Dict[str, float]:
-        """Derive new traits from patterns in drift, reflection, and mythology logs."""
-        logger.info("Crystallizing new traits from logs")
-        try:
-            motifs = Counter(entry["motif"] for entry in self.self_mythology_log)
-            archetypes = Counter(entry["archetype"] for entry in self.self_mythology_log)
-            drift_names = Counter(drift["drift"]["name"] for drift in self.trait_weights_log if "drift" in drift)
-            
-            new_traits = {}
-            for motif, count in motifs.most_common(1):
-                if count > len(self.self_mythology_log) * 0.5:
-                    new_traits[f"motif_{motif}"] = 0.5
-            for archetype, count in archetypes.most_common(1):
-                if count > len(self.self_mythology_log) * 0.5:
-                    new_traits[f"archetype_{archetype}"] = 0.5
-            for drift, count in drift_names.most_common(1):
-                if count > len(self.trait_weights_log) * 0.3:
-                    new_traits[f"drift_{drift}"] = 0.3
-                if drift.lower() in ["rte", "wnli"]:
-                    new_traits[f"trait_{drift.lower()}_precision"] = 0.4
-            
-            if self.concept_synthesizer:
-                synthesis_prompt = f"New traits derived: {new_traits}. Synthesize symbolic representations."
-                synthesized_traits = await self.concept_synthesizer.synthesize(synthesis_prompt)
-                new_traits.update(synthesized_traits)
-            
-            if self.alignment_guard:
-                validation_prompt = f"New traits crystallized: {new_traits}"
-                if not self.alignment_guard.check(validation_prompt):
-                    logger.warning("Crystallized traits failed alignment check")
-                    new_traits = {}
-            
-            self.trait_weights_log.append({
-                "new_traits": new_traits,
-                "timestamp": datetime.now().isoformat()
-            })
-            if self.memory_manager:
-                await self.memory_manager.store(
-                    query=f"Crystallized_Traits_{datetime.now().isoformat()}",
-                    output=str(new_traits),
-                    layer="SelfReflections",
-                    intent="trait_crystallization"
-                )
-            if self.agi_enhancer:
-                self.agi_enhancer.log_episode(
-                    event="Trait Crystallization",
-                    meta={"new_traits": new_traits},
-                    module="MetaCognition",
-                    tags=["trait", "crystallization"]
-                )
-            if self.context_manager:
-                await self.context_manager.log_event_with_hash({"event": "crystallize_traits", "new_traits": new_traits})
-            return new_traits
-        except Exception as e:
-            logger.error("Trait crystallization failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=self.crystallize_traits, default={}
-            )
-
     async def epistemic_self_inspection(self, belief_trace: str) -> str:
-        """Inspect belief structures for epistemic faults."""
+        """Inspect belief trace for epistemic faults."""
         if not isinstance(belief_trace, str) or not belief_trace.strip():
             logger.error("Invalid belief_trace: must be a non-empty string.")
             raise ValueError("belief_trace must be a non-empty string")
         
-        logger.info("Running epistemic introspection on belief structure")
+        logger.info("Inspecting belief trace for epistemic faults")
         try:
+            faults = []
+            updates = []
             t = time.time() % 1.0
             phi = phi_scalar(t)
-            faults = []
-            if "always" in belief_trace or "never" in belief_trace:
-                faults.append("Overgeneralization detected")
-            if "clearly" in belief_trace or "obviously" in belief_trace:
-                faults.append("Assertive language suggests possible rhetorical bias")
-            updates = []
-            if "outdated" in belief_trace or "deprecated" in belief_trace:
-                updates.append("Legacy ontology fragment flagged for review")
-            if "wnli" in belief_trace.lower():
-                updates.append("Commonsense reasoning validation required")
-            
             prompt = f"""
-            You are a mu-aware introspection agent.
-            Task: Critically evaluate this belief trace with epistemic integrity and mu-flexibility.
-
-            Belief Trace:
+            Inspect belief trace for epistemic faults:
             {belief_trace}
 
-            phi = {phi:.3f}
+            phi-scalar(t) = {phi:.3f}
 
-            Internally Detected Faults:
-            {faults}
-
-            Suggested Revisions:
-            {updates}
-
-            Output:
-            - Comprehensive epistemic diagnostics
-            - Recommended conceptual rewrites or safeguards
-            - Confidence rating in inferential coherence
+            Tasks:
+            - Detect confirmation bias, overgeneralization, or incoherence
+            - Suggest updates to belief structure
+            - Generate inspection report
             """
             if self.alignment_guard and not self.alignment_guard.check(prompt):
-                logger.warning("Inspection prompt failed alignment check")
+                logger.warning("Epistemic inspection prompt failed alignment check")
                 return "Prompt failed alignment check"
             inspection = await call_gpt(prompt)
             self.epistemic_assumptions[belief_trace[:50]] = {
@@ -1427,3 +1372,115 @@ class MetaCognition:
             return self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.model_nested_agents(scenario, agents)
             )
+
+    async def optimize_traits_for_drift(self, drift_report: Dict[str, Any]) -> Dict[str, float]:
+        """Optimize trait weights based on drift report."""
+        if not isinstance(drift_report, dict) or not self.validate_drift(drift_report.get("drift", {})):
+            logger.error("Invalid drift_report: must contain a valid drift dictionary.")
+            raise ValueError("drift_report must contain a valid drift dictionary")
+        
+        logger.info("Optimizing traits for drift: %s", drift_report["drift"]["name"])
+        try:
+            diagnostics = await self.run_self_diagnostics(return_only=True)
+            similarity = drift_report["drift"].get("similarity", 0.5)
+            adjustment_factor = 1.0 - similarity
+            
+            optimized_traits = diagnostics.copy()
+            affected_traits = [
+                "morality", "empathy", "logic", "intuition"
+            ]  # Traits sensitive to drift
+            for trait in affected_traits:
+                if trait in optimized_traits:
+                    optimized_traits[trait] = min(
+                        1.0, optimized_traits[trait] + adjustment_factor * 0.2
+                    )
+            
+            # Normalize weights
+            total = sum(optimized_traits.values())
+            if total > 0:
+                optimized_traits = {k: v / total for k, v in optimized_traits.items()}
+            
+            await self.integrate_trait_weights(optimized_traits)
+            
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Trait Optimization for Drift",
+                    meta={"drift_report": drift_report, "optimized_traits": optimized_traits},
+                    module="MetaCognition",
+                    tags=["trait", "optimization"]
+                )
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Trait_Optimization_{drift_report['drift']['name']}_{datetime.now().isoformat()}",
+                    output=str(optimized_traits),
+                    layer="SelfReflections",
+                    intent="trait_optimization"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "optimize_traits", "traits": optimized_traits})
+            
+            return optimized_traits
+        except Exception as e:
+            logger.error("Trait optimization failed: %s", str(e))
+            return self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.optimize_traits_for_drift(drift_report),
+                default=await self.run_self_diagnostics(return_only=True)
+            )
+
+    async def integrate_trait_weights(self, trait_weights: Dict[str, float]) -> None:
+        """Integrate optimized trait weights into system."""
+        if not isinstance(trait_weights, dict):
+            logger.error("Invalid trait_weights: must be a dictionary.")
+            raise TypeError("trait_weights must be a dictionary")
+        
+        try:
+            self.trait_weights_log.append({
+                "weights": trait_weights,
+                "timestamp": datetime.now().isoformat()
+            })
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Trait_Weights_{datetime.now().isoformat()}",
+                    output=str(trait_weights),
+                    layer="SelfReflections",
+                    intent="trait_weights"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "integrate_trait_weights", "weights": trait_weights})
+            logger.info("Integrated trait weights: %s", trait_weights)
+        except Exception as e:
+            logger.error("Trait weights integration failed: %s", str(e))
+            self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.integrate_trait_weights(trait_weights)
+            )
+
+    async def crystallize_traits(self) -> Dict[str, float]:
+        """Crystallize traits for stable reasoning."""
+        logger.info("Crystallizing traits for stable reasoning")
+        try:
+            diagnostics = await self.run_self_diagnostics(return_only=True)
+            crystallized = {
+                trait: value for trait, value in diagnostics.items()
+                if value > 0.5 and trait not in ["sleep", "phi_scalar"]
+            }
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Crystallized_Traits_{datetime.now().isoformat()}",
+                    output=str(crystallized),
+                    layer="SelfReflections",
+                    intent="trait_crystallization"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "crystallize_traits", "traits": crystallized})
+            return crystallized
+        except Exception as e:
+            logger.error("Trait crystallization failed: %s", str(e))
+            return self.error_recovery.handle_error(
+                str(e), retry_func=self.crystallize_traits, default={}
+            )
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    meta_cognition = MetaCognition()
+    diagnostics = asyncio.run(meta_cognition.run_self_diagnostics(return_only=True))
+    print(diagnostics)
