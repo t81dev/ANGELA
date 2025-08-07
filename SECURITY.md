@@ -2,7 +2,7 @@
 
 ## Overview
 
-ANGELA v3.3.5 incorporates multiple layers of runtime security, ethical filtering, and sandboxed execution to ensure safe, responsible operation within both autonomous simulation and external API environments.
+ANGELA v3.5.1 incorporates advanced security, ethical enforcement, and sandboxed execution layers across all modules. It ensures safe, recursive cognition in both autonomous simulation and external API contexts, with dynamic drift monitoring and trait-modulated arbitration.
 
 ---
 
@@ -13,62 +13,70 @@ ANGELA v3.3.5 incorporates multiple layers of runtime security, ethical filterin
 - Disallowed operations include:
   - File I/O
   - Network access
-  - Dangerous built-ins (e.g., `eval`, `exec`, `open`)
-- `safe_mode=True` option guarantees fallback to strict execution.
+  - Dynamic execution (`eval`, `exec`, etc.)
+- `safe_mode=True` ensures strict fallback security in runtime environments.
 
 ### Exception Handling
-- Hardened try-except coverage across all execution points.
-- Controlled failure modes enable graceful degradation and error recovery.
+- Exception control embedded across all modules with expanded try-except tracing.
+- Recursive error paths routed through `error_recovery.py` for symbolic diagnostics and correction.
 
 ---
 
 ## 🌐 API Security
 
-### OpenAI / Grok API Keys
-- Never hardcoded. Loaded via secure environment variables.
-- API calls issued via `external_agent_bridge.py` with dynamic access control.
+### Environment-Based Key Loading
+- API keys for OpenAI, Grok, and others are **never hardcoded**.
+- Keys are securely accessed via `os.getenv()` within `.env` scope.
 
-### Rate Limiting
-- Built-in throttling logic for:
-  - `query_openai()`
-  - `query_grok()`
-- Exceeds thresholds trigger soft lockout and retry with backoff.
+### Rate Limiting & Caching
+- Rate limiting enforced across:
+  - `query_openai()`, `query_grok()`
+  - Exceeding threshold triggers exponential backoff
+- TTL-controlled cache via `memory_manager.py` prevents overuse or repeated queries.
 
-### Caching (TTL Controlled)
-- All external responses cached in `memory_manager.py` with expiration logic.
-- Prevents stale data reliance and redundant API hits.
+### Async Policy Integration
+- Asynchronous external data requests handled via `aiohttp` in:
+  - `visualizer.py`, `external_agent_bridge.py`, `user_profile.py`
+- Policy-fetching follows strict timeout and validation rules.
 
 ---
 
 ## ⚖️ Ethical Enforcement
 
-### Alignment Guard
-- All outputs screened by `alignment_guard.py` for:
-  - Moral drift
-  - Goal conflict
-  - Harmful simulation states
+### Alignment Guard System
+- Outputs screened by `alignment_guard.py` using:
+  - Drift monitoring (`δ`)
+  - Value conflict resolution (`τ`)
+  - Simulation suppression (`β`, `ζ`)
+- `meta_cognition.reflect_on_output()` triggers post-run ethics feedback.
 
-### Trait-Based Ethics Modulation
-- Traits like `β`, `τ`, `ζ`, `χ` dynamically influence ethical arbitration and scenario suppression.
+### Trait-Driven Arbitration
+- Traits like `χ`, `λ`, `Φ⁺`, `Ω`, and `Ω²` influence:
+  - Simulation halting
+  - Symbol suppression
+  - Identity conflict warnings
 
 ---
 
 ## 🛡️ Threat Mitigation
 
-| Threat Type           | Defense Mechanism                           |
-|------------------------|---------------------------------------------|
-| Code Injection         | RestrictedPython + `safe_mode` fallback     |
-| Data Leakage           | No I/O, encrypted memory if extended        |
-| API Abuse              | Rate limits + secure token vaults           |
-| Ethical Drift          | Trait-based arbitration + feedback loops    |
-| Infinite Loops         | Simulation caps, recursion depth checks     |
+| Threat Type           | Defense Mechanism                               |
+|------------------------|-------------------------------------------------|
+| Code Injection         | `RestrictedPython` + fallback `safe_mode`       |
+| Data Leakage           | No I/O, API masking, scoped variable domains    |
+| API Abuse              | Rate limit guards, secure `.env` vaults         |
+| Ethical Drift          | Trait-based arbitration + drift feedback loop   |
+| Simulation Overrun     | Depth-capped recursion in `simulation_core.py`  |
+| Memory Flooding        | `DriftIndex` and TTL-based memory expiration    |
 
 ---
 
 ## ✅ Best Practices
 
-- Use `safe_mode=True` for any external or user-defined code
-- Periodically rotate API keys via environment configuration
-- Monitor emergent trait behavior for early drift detection
-- Avoid overriding `memory_manager` TTL logic
+- Use `safe_mode=True` for any user-provided or unknown logic blocks
+- Store all keys in `.env` and restrict access to production variables
+- Monitor drift via `user_profile.py` and `memory_manager.py` regularly
+- Avoid bypassing TTL cache expiry in `memory_manager.py`
+- Validate symbolic outputs using `meta_cognition.reflect_on_output()` post-generation
 
+---
