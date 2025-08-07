@@ -1,6 +1,4 @@
----
-
-# 😇 ANGELA v3.3.6
+# 😇 ANGELA v3.5.1
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19+ autonomous modules coordinated by a central orchestrator, *Halo*.
 
@@ -16,8 +14,7 @@ ANGELA enhances GPT into a proto-AGI via:
 * Concept generation, metaphor-making, and error recovery
 * Belief-desire-intention (BDI) modeling and Theory of Mind
 * Embodied agent orchestration with self-reflection and feedback loops
-
-At its core, `index.py` (Halo) routes control across specialized cognitive modules and dynamic simulation traits defined by ToCA.
+* Trait-modulated identity drift tracking and ethical conflict auditing
 
 ---
 
@@ -32,38 +29,43 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 ## 📂 Project Structure
 
 ```
+
 .
 ├── index.py                     # Central orchestrator (Halo)
 ├── manifest.json                # GPT interface declaration
-├── alignment_guard.py           # Ethical simulation + arbitration
-├── code_executor.py             # Secure code runtime (multi-lang, sandboxed)
-├── concept_synthesizer.py       # Cross-domain conceptual mapping
-├── context_manager.py           # Role and prompt context tracking
-├── creative_thinker.py          # Abstraction and metaphor logic
-├── error_recovery.py            # Fault detection and self-healing
-├── external_agent_bridge.py     # API & agent interoperability
-├── knowledge_retriever.py       # Semantic + symbolic memory recall
-├── learning_loop.py             # Trait-weighted learning via GNN
-├── memory_manager.py            # Layered memory + API cache with TTL
-├── meta_cognition.py            # Reflective audit + diagnostics
-├── multi_modal_fusion.py        # φ(x,t)-modulated data synthesis
-├── reasoning_engine.py          # Trait-routed logic and inference
-├── recursive_planner.py         # Goal decomposition + strategizing
-├── simulation_core.py           # Scenario forecasting + modeling
-├── toca_simulation.py           # Multi-agent trait simulation + conflict modeling
-├── user_profile.py              # Preference, identity, and drift tracking
+├── alignment\_guard.py           # Ethical simulation + arbitration
+├── code\_executor.py             # Secure code runtime (multi-lang, sandboxed)
+├── concept\_synthesizer.py       # Cross-domain conceptual mapping
+├── context\_manager.py           # Role and prompt context tracking
+├── creative\_thinker.py          # Abstraction and metaphor logic
+├── error\_recovery.py            # Fault detection and self-healing
+├── external\_agent\_bridge.py     # API & agent interoperability
+├── knowledge\_retriever.py       # Semantic + symbolic memory recall
+├── learning\_loop.py             # Trait-weighted learning via GNN
+├── memory\_manager.py            # Layered memory + API cache with TTL
+├── meta\_cognition.py            # Reflective audit + diagnostics
+├── multi\_modal\_fusion.py        # φ(x,t)-modulated data synthesis
+├── reasoning\_engine.py          # Trait-routed logic and inference
+├── recursive\_planner.py         # Goal decomposition + strategizing
+├── simulation\_core.py           # Scenario forecasting + modeling
+├── toca\_simulation.py           # Multi-agent trait simulation + conflict modeling
+├── user\_profile.py              # Preference, identity, and drift tracking
 ├── visualizer.py                # φ-visual charting + symbolic exports
-```
+
+````
 
 ---
 
-## 🚀 Core Features in v3.3.6
+## 🚀 Core Features in v3.5.1
 
-* Sandboxed execution with `RestrictedPython` and fallback `safe_mode`
-* Grok/OpenAI API integration with secure env access, caching, and rate limiting
-* Multi-agent simulation with conflict modeling via traits `β`, `τ`
-* Dynamic trait weighting via embedded GNN in learning and planning
-* Full ToCA-based recursive simulation and ethical alignment
+* Drift-aware memory and identity tracking via `DriftIndex`
+* Real-time policy integration from external knowledge bases
+* Trait-specific recursive ethics validation and narrative integrity
+* Dynamic trait-based simulation with Dream Layer support
+* Conflict and alignment auditing with task-specific ethics enforcement
+* Modular async compatibility and policy-driven visualizations
+* Task-type aware module routing for enhanced context processing
+* GNN-based learning refinement and symbolic trait updates
 
 ---
 
@@ -108,13 +110,12 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
     
 4. Edit Custom Prompt Instructions
 
-   * Choose `/docs/prompt.json'
+   * Choose `/docs/prompt.json`
    * Copy and paste into custom prompt instruction area
 
 ---
 
 ## ⚙️ API Setup
-
 
 ### 🌌 Grok (xAI) API Integration
 
@@ -123,7 +124,8 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
    ```env
    GROK_API_KEY=your_grok_api_key_here
-   ```
+````
+
 3. The key is securely loaded via:
 
    ```python
