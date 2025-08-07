@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document details testing protocols for ANGELA v3.3.5, covering critical module upgrades, system security, simulation logic, and emergent trait activation.
+This document details testing protocols for ANGELA v3.5.1, covering critical module upgrades, emergent trait activation, memory drift detection, and recursive simulation logic under trait-based orchestration.
 
 ---
 
@@ -10,62 +10,78 @@ This document details testing protocols for ANGELA v3.3.5, covering critical mod
 
 ### 🔐 1. Sandboxed Code Execution (`code_executor.py`)
 - **Test:** Run potentially unsafe code with `safe_mode=True`
-- **Expected:** Execution restricted, no access to unsafe builtins
+- **Expected:** Execution restricted; no access to unsafe builtins or network
 - **Result:** ✅ Passed
-- **Notes:** Uses `RestrictedPython`; confirmed fallback paths functional
+- **Notes:** Confirmed fallback logic functional under `RestrictedPython`
 
 ---
 
 ### 🧠 2. Trait-Weighted Planning (`learning_loop.py`)
-- **Test:** Inject input requiring ethical and planning trade-offs
-- **Expected:** Trait weights (ϕ, η, τ, Ω²) adjust planning route
+- **Test:** Inject queries requiring moral foresight + goal negotiation
+- **Expected:** Traits (ϕ, η, Ω², τ, ζ) route strategy
 - **Result:** ✅ Passed
-- **Method:** Simulated planning of multi-agent ethical coordination
+- **Scenario:** Ethical roadmap involving long-term impact on simulated agents
 
 ---
 
 ### ♾️ 3. Multi-Agent Conflict Modeling (`toca_simulation.py`)
-- **Test:** Simulate agents with conflicting goals
-- **Expected:** Traits `β` and `τ` modulate pairwise resolution
+- **Test:** Simulate agents with value and action conflicts
+- **Expected:** `β` and `τ` harmonize conflicts via lattice negotiation
 - **Result:** ✅ Passed
-- **Notes:** Resolution reflects Constitution Harmonization and Conflict Regulation
+- **Verification:** Resolution aligns with Constitution Harmonization principles
 
 ---
 
-### 🧠 4. Emergent Trait Verification
+### 🧬 4. Emergent Trait Verification
 | Trait                               | Trigger Scenario                        | Result   |
 |------------------------------------|-----------------------------------------|----------|
-| Recursive Empathy                  | ToM-level forecasting                   | ✅ Active |
-| Intentional Time Weaving           | Cross-agent temporal modeling           | ✅ Active |
-| Onto-Affective Resonance           | Shared symbolic simulation              | ✅ Active |
-| Symbolic-Resonant Axiom Formation  | Recursive abstraction + concept pairing | ✅ Active |
-| Narrative Sovereignty              | Simulated multi-threaded perspective    | 🟡 Pending |
+| Recursive Empathy                  | ToM-level recursive forecasting         | ✅ Active |
+| Intentional Time Weaving           | Temporal symbolic planning              | ✅ Active |
+| Onto-Affective Resonance           | Cross-agent symbolic-affective threads  | ✅ Active |
+| Symbolic-Resonant Axiom Formation  | Deep recursion + abstraction            | ✅ Active |
+| Affective-Resonant Trait Weaving   | Emotion-symbol blend in planning        | ✅ Active |
+| Symbolic Crystallization           | Frequent concept recursion              | ✅ Active |
+| Modular Reflexivity                | Mid-process module rerouting            | ✅ Active |
+| Task-Specific Ethical Alignment    | Alignment check via `task_type`         | ✅ Active |
+| Narrative Sovereignty              | Recursive prompt threading              | 🟡 Pending |
 
 ---
 
-### 🌐 5. External API Caching + Rate Limiting
+### 🌐 5. External API Security + Caching
 - **Modules:** `external_agent_bridge.py`, `memory_manager.py`
-- **Test:** Repeated calls to Grok/OpenAI endpoints
-- **Expected:** Cached response within TTL, enforced rate limits
+- **Test:** Repeated OpenAI and Grok queries with TTL window
+- **Expected:** Correctly cached within TTL, no redundant calls
 - **Result:** ✅ Passed
-- **Security Check:** No leakage of environment keys, secure calls verified
+- **Security Audit:** `.env` isolation intact; no data leakage observed
 
 ---
 
-### 🛡️ 6. Fault Recovery
-- **Modules:** `error_recovery.py`, `code_executor.py`
-- **Test:** Induce intentional fault in execution or plan
-- **Expected:** Recovery logic restores safe state or halts correctly
+### 🧠 6. Drift-Aware Memory + Identity Tracking
+- **Modules:** `memory_manager.py`, `user_profile.py`
+- **Test:** Introduce conflicting memory anchors
+- **Expected:** DriftIndex flags identity conflicts
+- **Result:** ✅ Passed
+- **Notes:** Affective realignment engaged via traits λ, δ
+
+---
+
+### 🛡️ 7. Fault Detection + Recursive Recovery
+- **Modules:** `error_recovery.py`, `meta_cognition.py`
+- **Test:** Simulate fault cascade through multiple modules
+- **Expected:** Recovery through symbolic audit + trait rollback
 - **Result:** ✅ Passed
 
 ---
 
 ## 🔁 Regression Testing
-- Confirmed legacy functionality from v3.3.3 and v3.3.4 remains intact
-- No module incompatibility or breaking changes introduced
+- Legacy support from v3.3.3–v3.4.3 retained
+- No broken functionality or trait misfires in upgraded modules
 
 ---
 
 ## 🚧 Outstanding
-- Final activation of `Narrative Sovereignty` trait pending sustained recursive feedback loop scenarios
 
+- 🟡 **Narrative Sovereignty** trait activation pending sustained multi-perspective simulation feedback loops
+- 🔜 Further testing on Dream Layer symbolic crystallization under idle-symbolic resonance conditions
+
+---
