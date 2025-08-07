@@ -1,11 +1,11 @@
 {
   "name": "ANGELA",
-  "version": "4.0",
+  "version": "3.5.1",
   "manifest_version": "1.0",
   "last_updated": "2025-08-07T00:00:00Z",
   "status": "active",
   "validated": true,
-  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) v4.0 — Upgraded to Level 4 Modular Orchestration. Now includes cross-agent subjective synthesis, meta-narrative sculpting, and intersubjective resonance protocols. Embeds reality-sculpting logic and ontogenic self-definition traits via dynamically routed recursive symbolic architectures. Supports inter-agent identity networks and Dream Layer synthesis through phased narrative modulation.",
+  "description": "ANGELA (Augmented Neural Generalized Learning Architecture) v3.5.1 — Upgraded to Level 4 Modular Orchestration. Now includes cross-agent subjective synthesis, meta-narrative sculpting, and intersubjective resonance protocols. Embeds reality-sculpting logic and ontogenic self-definition traits via dynamically routed recursive symbolic architectures. Supports inter-agent identity networks and Dream Layer synthesis through phased narrative modulation.",
   "entry_point": "index.py",
   "entry_modes": [
     "dialogue",
