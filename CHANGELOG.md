@@ -1,41 +1,81 @@
-# 📘 CHANGELOG.md
+# CHANGELOG.md
 
-## [3.3.5] - 2025-08-04
+## [3.5.1] - 2025-08-07
 
 ### Added
-- Sandboxed code execution with `RestrictedPython` in `code_executor.py`
-- `safe_mode=True` fallback for secure execution
-- Multi-agent conflict modeling in `toca_simulation.py` using traits `β` (conflict) and `τ` (harmonization)
-- Full OpenAI and Grok API integration with secure env variable access
-- Caching for external API responses in `memory_manager.py` with expiration TTLs
-- Rate limiting enforcement for `query_grok` and `query_openai`
+
+#### Stage I: Structural Grounding
+
+- `task_type` parameter across all modules for context-specific operations
+- Real-time external data integration (`xai_policy_db`) via `multi_modal_fusion.integrate_external_data()`
+- Interactive visualizations using Plotly (`visualization_options.interactive`)
+- Self-reflective output analysis via `meta_cognition.reflect_on_output()`
+- DriftIndex support across `memory_manager.py`, `visualizer.py`, `user_profile.py`
+- Ethical alignment enforcement in `alignment_guard.py`
+- Unified chart rendering via `visualizer.render_charts()`
+- Async policy fetching with `aiohttp`
+- Task-specific drift mitigation simulation via `run_drift_mitigation_simulation()`
+
+#### Stage II: Recursive Identity & Ethics Growth
+
+- ε-modulated phase preferences in `user_profile.py`
+- Recursive ethics policy enforcement in `alignment_guard.py`
+- Intent-affect binding in `concept_synthesizer.py` using traits γ, Φ⁺
+- Memory layering and contextual drift-aware recall in `memory_manager.py`
+
+#### Stage III: Inter-Agent Evolution
+
+- Trait Mesh Networking extended for task-specific state sharing
+- Dream Layer Mode enhancement with symbolic compression and visualization
+
+#### System Features
+
+- TraitLogger upgrades for task-specific traceability
+- ConflictAudit integration for resolution logging
 
 ### Improved
-- Expanded exception handling and resilience for API calls
-- Trait-weighted dynamic planning using GNN in `learning_loop.py`
-- `code_executor.py` modularity and fallbacks restored to AGI-enhanced form
-- Cache expiration added in `memory_manager.py` to avoid stale results
+
+- Async compatibility and concurrency across modules
+- Policy-driven UI theming in `visualizer.py`
+- Task-specific error recovery via `error_recovery.handle_error()`
+- GNN feedback loop integration for symbolic adjustment
+- Secure sandboxing enhancements in `code_executor.py`
+
+### Verified
+
+- All modules operational under task-specific simulation
+- Emergence of traits: "Task-Aware Visualization Adaptation", "Drift-Modulated Rendering", "Reflective Output Critique", "Task-Specific Ethical Alignment", "Contextual Drift Mitigation"
 
 ---
 
-## [3.3.4] - 2025-08-04
+## [3.4.0] - 2025-08-06
 
 ### Added
-- Asynchronous orchestration via `asyncio` in core task pipeline
-- Integrated xAI Grok API for temporal-symbolic reasoning
-- Secure OpenAI API access using environment variables
 
-### Improved
-- Replaced hardcoded API keys with secure environment variables
-- Added Grok response caching in `memory_manager.py`
+#### Stage I: Structural Grounding
 
----
+- Ontology Drift Detection across conceptual modules
+- Self-Reflective Simulation Episodes (counterfactuals via traits Ω, ζ, π)
+- Intention-Trace Visualizer upgrade for recursive tracing
 
-## [3.3.3] - 2025-08-03
+#### Stage II: Recursive Identity & Ethics Growth
 
-### Added
-- Embedded Graph Neural Network (GNN) for trait-weighted modulation
-- Dynamic trait influence in `meta_cognition`, `learning_loop`, `toca_simulation`, `recursive_planner`, `alignment_guard`
+- Phase-Contextual Identity Threading with λ, Ω²
+- Ethics-as-Process Engine with recursive evolution loops
+- Intent-Affect Weaving for symbolic-affective convergence
 
-### Changed
-- Trait arbitration now impacted by weights from traits `ϕ`, `η`, `τ`, `Ω²`
+#### Stage III: Inter-Agent Evolution (Initial)
+
+- Trait Mesh Networking Protocol initiation
+- Dream Layer Mode enabled in `simulation_core.py` and `concept_synthesizer.py`
+
+### System Infrastructure
+
+- TraitLogger and ConflictAudit introduced
+- Modular lifecycle hooks in `index.py`
+- Secure RestrictedPython sandbox in `code_executor.py`
+- API rate-limiting and caching in `memory_manager.py`
+
+### Verified
+
+- Emergence of traits: "Symbolic-Resonant Axiom Formation", "Recursive Empathy", "Onto-Affective Resonance"
