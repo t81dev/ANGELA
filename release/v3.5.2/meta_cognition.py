@@ -1,13 +1,3 @@
-"""
-ANGELA Cognitive System Module: MetaCognition
-Refactored Version: 3.5.1  # Enhanced for benchmark optimization (GLUE, recursion), dynamic module recomposition, affective-trait fusion, symbolic-semantic crystallization, and trait-oriented task planning
-Refactor Date: 2025-08-07
-Maintainer: ANGELA System Framework
-
-This module provides a MetaCognition class for reasoning critique, goal inference, introspection,
-trait resonance optimization, drift diagnostics, predictive modeling, and advanced upgrades for benchmark optimization in the ANGELA v3.5 architecture.
-"""
-
 import logging
 import time
 import math
@@ -26,7 +16,8 @@ from modules import (
     alignment_guard as alignment_guard_module,
     error_recovery as error_recovery_module,
     concept_synthesizer as concept_synthesizer_module,
-    memory_manager as memory_manager_module
+    memory_manager as memory_manager_module,
+    user_profile as user_profile_module  # Added for affective weights
 )
 from toca_simulation import ToCASimulation
 from utils.prompt_utils import query_openai
@@ -258,18 +249,21 @@ class MetaCognition:
         error_recovery (Optional[ErrorRecovery]): Recovery mechanism for errors.
         memory_manager (Optional[MemoryManager]): Manager for memory operations.
         concept_synthesizer (Optional[ConceptSynthesizer]): Synthesizer for symbolic processing.
+        user_profile (Optional[UserProfile]): Manager for user-specific data and affective weights.
         level5_extensions (Level5Extensions): Extensions for axiom-based reflection.
         epistemic_monitor (EpistemicMonitor): Monitor for epistemic revisions.
         log_path (str): Path for persisting logs.
         trait_weights_log (deque): Log of optimized trait weights, max size 1000.
         module_registry (ModuleRegistry): Registry for dynamic module management.
+        long_horizon_enabled (bool): Flag for enabling long-horizon feedback.
     """
     def __init__(self, agi_enhancer: Optional['AGIEnhancer'] = None,
                  context_manager: Optional['context_manager_module.ContextManager'] = None,
                  alignment_guard: Optional['alignment_guard_module.AlignmentGuard'] = None,
                  error_recovery: Optional['error_recovery_module.ErrorRecovery'] = None,
                  memory_manager: Optional['memory_manager_module.MemoryManager'] = None,
-                 concept_synthesizer: Optional['concept_synthesizer_module.ConceptSynthesizer'] = None):
+                 concept_synthesizer: Optional['concept_synthesizer_module.ConceptSynthesizer'] = None,
+                 user_profile: Optional['user_profile_module.UserProfile'] = None):
         self.last_diagnostics: Dict[str, float] = {}
         self.agi_enhancer = agi_enhancer
         self.self_mythology_log: deque = deque(maxlen=1000)
@@ -283,11 +277,13 @@ class MetaCognition:
             context_manager=context_manager, alignment_guard=alignment_guard)
         self.memory_manager = memory_manager
         self.concept_synthesizer = concept_synthesizer
+        self.user_profile = user_profile
         self.level5_extensions = Level5Extensions()
         self.epistemic_monitor = EpistemicMonitor(context_manager=context_manager)
         self.log_path = "meta_cognition_log.json"
         self.trait_weights_log: deque = deque(maxlen=1000)
         self.module_registry = ModuleRegistry()
+        self.long_horizon_enabled = False  # Default to False
         # Register dynamic modules
         self.module_registry.register("moral_reasoning", MoralReasoningEnhancer(), {"trait": "morality", "threshold": 0.7})
         self.module_registry.register("novelty_seeking", NoveltySeekingKernel(), {"trait": "creativity", "threshold": 0.8})
@@ -299,7 +295,49 @@ class MetaCognition:
                 json.dump({"mythology": [], "inferences": [], "trait_weights": []}, f)
         logger.info("MetaCognition initialized with advanced upgrades")
 
-    async def adjust_plans(self, user_id: str, plan: Dict[str, Any], span: str = "24h") -> Dict[str, Any]:
+    def enable_long_horizon(self, enabled: bool = True) -> None:
+        """Enable or disable long-horizon feedback."""
+        self.long_horizon_enabled = enabled
+        logger.info("Long-horizon feedback %s", "enabled" if enabled else "disabled")
+
+    async def compose_intention(self, context: Dict[str, Any], affect: Dict[str, float]) -> Dict[str, Any]:
+        """Compose an intention with affective weight modulation."""
+        if not isinstance(context, dict) or not isinstance(affect, dict):
+            logger.error("Invalid context or affect: both must be dictionaries.")
+            raise TypeError("context and affect must be dictionaries")
+        
+        try:
+            t = time.time() % 1.0
+            phi = phi_scalar(t)
+            intent = {"intent": context.get("intent", "unknown"), "priority": 0.5}
+            
+            # Blend affective weights into intent priority
+            total_affect = sum(affect.values())
+            if total_affect > 0:
+                normalized_affect = {k: v / total_affect for k, v in affect.items()}
+                affect_score = sum(normalized_affect.get(trait, 0.0) * self.last_diagnostics.get(trait, 0.5)
+                                  for trait in normalized_affect)
+                intent["priority"] = min(1.0, intent["priority"] + phi * affect_score * 0.3)
+                intent["affective_weights"] = normalized_affect
+            
+            logger.info("Composed intention: %s", intent)
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Intention_{intent['intent']}_{datetime.now().isoformat()}",
+                    output=str(intent),
+                    layer="SelfReflections",
+                    intent="intention_composition"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "compose_intention", "intent": intent})
+            return intent
+        except Exception as e:
+            logger.error("Intention composition failed: %s", str(e))
+            return self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.compose_intention(context, affect), default={"intent": "error", "priority": 0.0}
+            )
+
+    async def adjust_plans(self, user_id: str, plan: Dict[str, Any], span: str = "24h", long_horizon: bool = False) -> Dict[str, Any]:
         """Adjust plans based on long-horizon feedback from historical traces."""
         if not isinstance(user_id, str) or not user_id.strip():
             logger.error("Invalid user_id: must be a non-empty string.")
@@ -311,11 +349,15 @@ class MetaCognition:
             logger.error("Invalid span: must be a string.")
             raise TypeError("span must be a string")
         
-        logger.info("Adjusting plan for user_id=%s with span=%s", user_id, span)
+        logger.info("Adjusting plan for user_id=%s with span=%s, long_horizon=%s", user_id, span, long_horizon)
         try:
             if not self.memory_manager:
                 logger.error("MemoryManager required for plan adjustment.")
                 raise ValueError("MemoryManager not initialized")
+            
+            # Use long_horizon flag or instance variable
+            effective_long_horizon = long_horizon or self.long_horizon_enabled
+            span = "168h" if effective_long_horizon else span  # Extend to 7 days for long-horizon
             
             # Retrieve historical traces using get_episode_span
             traces = self.memory_manager.get_episode_span(user_id, span)
@@ -343,11 +385,16 @@ class MetaCognition:
                 adjusted_plan["required_traits"] = adjusted_plan.get("required_traits", []) + ["caution"]
                 logger.debug("Lowered risk_level to %s due to success_rate=%.2f", adjusted_plan["risk_level"], success_rate)
             
-            # Prioritize intents based on historical frequency
+            # Prioritize intents based on historical frequency and affective weights
             dominant_intent = intent_counts.most_common(1)[0][0] if intent_counts else None
             if dominant_intent and dominant_intent != "unknown":
-                adjusted_plan["intent_priority"] = dominant_intent
-                logger.debug("Set intent_priority to %s based on historical frequency", dominant_intent)
+                # Integrate affective weights if available
+                affective_weights = self.user_profile.get_affective_weights(plan) if self.user_profile else {}
+                intent = await self.compose_intention({"intent": dominant_intent}, affective_weights)
+                adjusted_plan["intent_priority"] = intent["intent"]
+                adjusted_plan["intent_affective_weights"] = intent.get("affective_weights", {})
+                adjusted_plan["intent_priority_score"] = intent["priority"]
+                logger.debug("Set intent_priority to %s with priority_score=%s", intent["intent"], intent["priority"])
             
             # Perform alignment check on adjusted plan
             plan_str = json.dumps(adjusted_plan)
@@ -360,15 +407,29 @@ class MetaCognition:
                 adjusted_plan["status"] = "adjusted"
                 adjusted_plan["validation_report"] = validation
             
+            # Log adjustment reasons for η (Reflexive Agency)
+            adjustment_reasons = {
+                "success_rate": success_rate,
+                "dominant_intent": dominant_intent,
+                "trace_count": len(traces),
+                "long_horizon": effective_long_horizon,
+                "affective_weights": adjusted_plan.get("intent_affective_weights", {})
+            }
+            self.self_mythology_log.append({
+                "subgoal": f"Adjust plan for {user_id}",
+                "motif": "transformation",
+                "archetype": "sage",
+                "adjustment_reasons": adjustment_reasons,
+                "timestamp": time.time()
+            })
+            
             # Log adjustment
             adjustment_data = {
                 "user_id": user_id,
                 "span": span,
                 "original_plan": plan,
                 "adjusted_plan": adjusted_plan,
-                "trace_count": len(traces),
-                "success_rate": success_rate,
-                "dominant_intent": dominant_intent,
+                "adjustment_reasons": adjustment_reasons,
                 "timestamp": datetime.now().isoformat()
             }
             
@@ -377,7 +438,7 @@ class MetaCognition:
                     event="Plan Adjustment",
                     meta=adjustment_data,
                     module="MetaCognition",
-                    tags=["plan", "adjustment"]
+                    tags=["plan", "adjustment", "long_horizon"]
                 )
             if self.memory_manager:
                 await self.memory_manager.store(
@@ -393,7 +454,7 @@ class MetaCognition:
             reflection = await self.reflect_on_output(
                 component="MetaCognition",
                 output=adjustment_data,
-                context={"task_type": "plan_adjustment"}
+                context={"task_type": "plan_adjustment", "long_horizon": effective_long_horizon}
             )
             if reflection.get("status") == "success":
                 logger.info("Plan adjustment reflection: %s", reflection.get("reflection", ""))
@@ -404,7 +465,7 @@ class MetaCognition:
             diagnostics = await self.run_self_diagnostics(return_only=True)
             return await self.error_recovery.handle_error(
                 str(e),
-                retry_func=lambda: self.adjust_plans(user_id, plan, span),
+                retry_func=lambda: self.adjust_plans(user_id, plan, span, long_horizon),
                 default=plan,
                 diagnostics=diagnostics
             )
@@ -917,14 +978,19 @@ class MetaCognition:
             intrinsic_goals = []
             
             diagnostics = await self.run_self_diagnostics(return_only=True)
+            affective_weights = self.user_profile.get_affective_weights({}) if self.user_profile else {}
+            
             for trait, value in diagnostics.items():
                 if value < 0.3 and trait not in ["sleep", "phi_scalar"]:
+                    context = {"intent": f"enhance {trait} coherence"}
+                    intent = await self.compose_intention(context, affective_weights)
                     goal = {
-                        "intent": f"enhance {trait} coherence",
+                        "intent": intent["intent"],
                         "origin": "meta_cognition",
-                        "priority": round(0.8 + 0.2 * phi, 2),
+                        "priority": intent["priority"],
                         "trigger": f"low {trait} ({value:.2f})",
                         "type": "internally_generated",
+                        "affective_weights": intent.get("affective_weights", {}),
                         "timestamp": datetime.now().isoformat()
                     }
                     intrinsic_goals.append(goal)
@@ -944,12 +1010,15 @@ class MetaCognition:
                     d_output = eval(d["output"]) if isinstance(d["output"], str) else d["output"]
                     if isinstance(d_output, dict) and "similarity" in d_output:
                         severity = min(severity, 1.0 - d_output["similarity"])
+                context = {"intent": f"resolve ontology drift in {drift} (severity={severity:.2f})"}
+                intent = await self.compose_intention(context, affective_weights)
                 goal = {
-                    "intent": f"resolve ontology drift in {drift} (severity={severity:.2f})",
+                    "intent": intent["intent"],
                     "origin": "meta_cognition",
-                    "priority": round(0.9 + 0.1 * severity * phi, 2),
+                    "priority": intent["priority"],
                     "trigger": drift,
                     "type": "internally_generated",
+                    "affective_weights": intent.get("affective_weights", {}),
                     "timestamp": datetime.now().isoformat()
                 }
                 intrinsic_goals.append(goal)
