@@ -29,30 +29,28 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 ## 📂 Project Structure
 
 ```
-
 .
 ├── index.py                     # Central orchestrator (Halo)
 ├── manifest.json                # GPT interface declaration
-├── alignment\_guard.py           # Ethical simulation + arbitration
-├── code\_executor.py             # Secure code runtime (multi-lang, sandboxed)
-├── concept\_synthesizer.py       # Cross-domain conceptual mapping
-├── context\_manager.py           # Role and prompt context tracking
-├── creative\_thinker.py          # Abstraction and metaphor logic
-├── error\_recovery.py            # Fault detection and self-healing
-├── external\_agent\_bridge.py     # API & agent interoperability
-├── knowledge\_retriever.py       # Semantic + symbolic memory recall
-├── learning\_loop.py             # Trait-weighted learning via GNN
-├── memory\_manager.py            # Layered memory + API cache with TTL
-├── meta\_cognition.py            # Reflective audit + diagnostics
-├── multi\_modal\_fusion.py        # φ(x,t)-modulated data synthesis
-├── reasoning\_engine.py          # Trait-routed logic and inference
-├── recursive\_planner.py         # Goal decomposition + strategizing
-├── simulation\_core.py           # Scenario forecasting + modeling
-├── toca\_simulation.py           # Multi-agent trait simulation + conflict modeling
-├── user\_profile.py              # Preference, identity, and drift tracking
-├── visualizer.py                # φ-visual charting + symbolic exports
-
-````
+├── alignment_guard.py           # Ethical simulation + arbitration
+├── code_executor.py             # Secure code runtime (multi-lang, sandboxed)
+├── concept_synthesizer.py       # Cross-domain conceptual mapping
+├── context_manager.py           # Role and prompt context tracking
+├── creative_thinker.py          # Abstraction and metaphor logic
+├── error_recovery.py            # Fault detection and self-healing
+├── external_agent_bridge.py     # API & agent interoperability
+├── knowledge_retriever.py       # Semantic + symbolic memory recall
+├── learning_loop.py             # Trait-weighted learning via GNN
+├── memory_manager.py            # Layered memory + API cache with TTL
+├── meta_cognition.py            # Reflective audit + diagnostics
+├── multi_modal_fusion.py        # ϕ(x,t)-modulated data synthesis
+├── reasoning_engine.py          # Trait-routed logic and inference
+├── recursive_planner.py         # Goal decomposition + strategizing
+├── simulation_core.py           # Scenario forecasting + modeling
+├── toca_simulation.py           # Multi-agent trait simulation + conflict modeling
+├── user_profile.py              # Preference, identity, and drift tracking
+├── visualizer.py                # ϕ-visual charting + symbolic exports
+```
 
 ---
 
@@ -101,13 +99,15 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 ## ⚙️ GPT Setup
 
 1. Go to [OpenAI GPT Customization](https://chat.openai.com/gpts)
+
 2. Create or edit a GPT
+
 3. Upload:
 
    * `manifest.json`
    * `index.py`
    * All other `*.py` modules listed above
-    
+
 4. Edit Custom Prompt Instructions
 
    * Choose `/docs/prompt.json`
@@ -120,17 +120,19 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 ### 🌌 Grok (xAI) API Integration
 
 1. Obtain a valid **Grok API key** via xAI
+
 2. Create a `.env` file at your root directory:
 
-
+   ```env
    GROK_API_KEY=your_grok_api_key_here
-````
+   ```
 
 3. The key is securely loaded via:
 
    ```python
    os.getenv("GROK_API_KEY")
    ```
+
 4. API usage is:
 
    * Routed through `external_agent_bridge.py`
@@ -160,7 +162,7 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
 ---
 
-## 🧭 Example Pipelines
+## 🧽 Example Pipelines
 
 Prompt → Module Flow:
 
