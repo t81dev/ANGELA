@@ -1,13 +1,3 @@
-"""
-ANGELA Cognitive System Module: MemoryManager
-Refactored Version: 3.5.1  # Enhanced for Task-Specific Trait Optimization, Drift-Aware Memory, and Visualization
-Refactor Date: 2025-08-07
-Maintainer: ANGELA System Framework
-
-This module provides a MemoryManager class for managing hierarchical memory layers in the ANGELA v3.5.1 architecture,
-with optimized support for ontology drift, task-specific trait optimization, real-time data integration, and visualization.
-"""
-
 import json
 import os
 import time
@@ -18,7 +8,6 @@ import asyncio
 from typing import Optional, Dict, Any, List
 from collections import deque, defaultdict
 from datetime import datetime, timedelta
-from dateutil.parser import parse
 from filelock import FileLock
 from functools import lru_cache
 from heapq import heappush, heappop
@@ -194,20 +183,114 @@ class MemoryManager:
                 json.dump([], f)
         logger.info("MemoryManager initialized with path=%s, stm_lifetime=%.2f, task-specific and visualization support", path, stm_lifetime)
 
-    def get_episode_span(self, user_id: str, span: str = "24h") -> List['meta_cognition_module.Trace']:
-        """Retrieve traces within a specified time span for long-horizon feedback."""
+    async def get_episode_span(self, user_id: str, span: str, task_type: str = "") -> List[Dict[str, Any]]:
+        """Retrieve historical memory entries for a user within a specified time span.
+
+        Args:
+            user_id (str): The identifier for the user.
+            span (str): Time span for retrieval (e.g., '24h', '168h').
+            task_type (str): Optional task type to filter entries (e.g., 'plan_adjustment').
+
+        Returns:
+            List[Dict[str, Any]]: List of memory entries with keys: query, output, intent, outcome, timestamp, task_type.
+        """
+        if not isinstance(user_id, str) or not user_id.strip():
+            logger.error("Invalid user_id: must be a non-empty string.")
+            raise ValueError("user_id must be a non-empty string")
+        if not isinstance(span, str) or not span.endswith('h'):
+            logger.error("Invalid span: must be a string ending with 'h' (e.g., '24h').")
+            raise ValueError("span must be a string ending with 'h'")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Retrieving episode span for user_id=%s, span=%s, task_type=%s", user_id, span, task_type)
         try:
-            delta = parse_span(span)
-            cutoff = datetime.utcnow() - delta
-            results = [
-                t for t in self.memory.get("SelfReflections", {}).values()
-                if t.get("agent") == user_id and t.get("timestamp", 0) >= cutoff.timestamp()
-            ]
-            logger.debug("Retrieved %d traces for user_id=%s, span=%s", len(results), user_id, span)
-            return results
-        except ValueError as e:
-            logger.error("Invalid span format: %s", span)
-            raise ValueError(f"Invalid span format: {span}. Use formats like '24h', '7d'.") from e
+            # Parse span to seconds
+            hours = float(span[:-1])
+            time_window = timedelta(hours=hours)
+            cutoff_time = time.time() - time_window.total_seconds()
+
+            # Relevant intents for η (Reflexive Agency)
+            relevant_intents = ["plan_adjustment", "intrinsic_goal", "symbolic_signature", "self_reflection"]
+
+            # Search DriftIndex for indexed entries
+            results = []
+            for intent in relevant_intents:
+                indexed_results = self.drift_index.search(user_id, "SelfReflections", intent, task_type)
+                results.extend([r for r in indexed_results if r["timestamp"] >= cutoff_time])
+
+            # Fall back to linear search for non-indexed entries
+            layers = ["SelfReflections", "LTM"]
+            for layer in layers:
+                for key, entry in self.memory.get(layer, {}).items():
+                    if user_id in key and entry["timestamp"] >= cutoff_time:
+                        if not task_type or entry.get("task_type") == task_type:
+                            if not relevant_intents or entry.get("intent") in relevant_intents:
+                                results.append({
+                                    "query": key,
+                                    "output": entry["data"],
+                                    "layer": layer,
+                                    "intent": entry.get("intent"),
+                                    "outcome": entry.get("outcome"),
+                                    "timestamp": entry["timestamp"],
+                                    "task_type": entry.get("task_type", "")
+                                })
+
+            # Deduplicate and sort by timestamp (newest first)
+            seen = set()
+            unique_results = []
+            for r in sorted(results, key=lambda x: x["timestamp"], reverse=True):
+                query = r["query"]
+                if query not in seen:
+                    seen.add(query)
+                    unique_results.append(r)
+
+            # Log event
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "get_episode_span",
+                    "user_id": user_id,
+                    "span": span,
+                    "task_type": task_type,
+                    "results_count": len(unique_results)
+                })
+
+            # Visualize results if task_type is provided
+            if self.visualizer and task_type:
+                plot_data = {
+                    "episode_span": {
+                        "user_id": user_id,
+                        "span": span,
+                        "task_type": task_type,
+                        "results_count": len(unique_results)
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "plan_adjustment",
+                        "style": "detailed" if task_type == "plan_adjustment" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+
+            # Reflect on retrieval
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="MemoryManager",
+                    output={"results": unique_results},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Episode span reflection: %s", reflection.get("reflection", ""))
+
+            return unique_results
+        except Exception as e:
+            logger.error("Episode span retrieval failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.get_episode_span(user_id, span, task_type),
+                default=[],
+                diagnostics=diagnostics
+            )
 
     async def integrate_external_data(self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = "") -> Dict[str, Any]:
         """Integrate real-world data for memory validation with caching."""
@@ -1019,19 +1102,6 @@ class MemoryManager:
                 str(e), retry_func=lambda: self.retrieve_context(query, task_type),
                 default={"status": "error", "error": str(e)}, diagnostics=diagnostics
             )
-
-def parse_span(span: str) -> timedelta:
-    """Parse time span string (e.g., '24h', '7d') into a timedelta."""
-    unit = span[-1].lower()
-    try:
-        value = int(span[:-1])
-    except ValueError:
-        raise ValueError(f"Invalid span format: {span}. Use formats like '24h', '7d'.")
-    if unit == 'h':
-        return timedelta(hours=value)
-    elif unit == 'd':
-        return timedelta(days=value)
-    raise ValueError(f"Unsupported time unit: {unit}")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
