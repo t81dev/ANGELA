@@ -1,12 +1,3 @@
-"""
-ANGELA Cognitive System Module: User Profile Management
-Version: 3.5.1  # Enhanced for Task-Specific Processing, Real-Time Data, and Visualization
-Date: 2025-08-07
-Maintainer: ANGELA System Framework
-
-Manages user profiles, preferences, and identity tracking with ε-modulation and AGI auditing.
-"""
-
 import logging
 import json
 from typing import Dict, Optional, Any, List
@@ -16,6 +7,7 @@ from threading import Lock
 from collections import deque
 from functools import lru_cache
 import aiohttp
+import numpy as np
 
 from modules.agi_enhancer import AGIEnhancer
 from modules.simulation_core import SimulationCore
@@ -50,6 +42,7 @@ class UserProfile:
         "output_format": "concise",
         "theme": "light"
     }
+    AFFECTIVE_DIMENSIONS = ["urgency", "valence", "trust"]
 
     def __init__(self, storage_path: str = "user_profiles.json", orchestrator: Optional['SimulationCore'] = None) -> None:
         """Initialize UserProfile with storage path and orchestrator. [v3.5.1]"""
@@ -924,6 +917,149 @@ class UserProfile:
             logger.error("Harmonization failed for task %s: %s", task_type, str(e))
             raise
 
+    async def get_affective_weights(self, task_type: str = "", context: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+        """Compute affective weight vectors for intention steering with task-specific processing. [v3.5.1]
+
+        Args:
+            task_type: Type of task for context-aware processing (e.g., 'intention_composition').
+            context: Optional dictionary with additional context (e.g., goal_id, query).
+
+        Returns:
+            Dictionary mapping affective dimensions (urgency, valence, trust) to weights in [0, 1].
+
+        Raises:
+            ValueError: If no active user is set.
+        """
+        if not self.active_user:
+            logger.error("No active user for affective weights computation for task %s", task_type)
+            raise ValueError("No active user. Call switch_user() first.")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string")
+            raise TypeError("task_type must be a string")
+        if context is not None and not isinstance(context, dict):
+            logger.error("Invalid context: must be a dictionary or None for task %s", task_type)
+            raise TypeError("context must be a dictionary or None")
+
+        try:
+            logger.info("Computing affective weights for %s::%s, task %s", self.active_user, self.active_agent, task_type)
+            weights = {dim: 0.5 for dim in self.AFFECTIVE_DIMENSIONS}  # Default neutral weights
+
+            # Fetch user preferences
+            prefs = await self.get_preferences(fallback=True, task_type=task_type)
+            
+            # Map preferences to affective weights
+            if prefs["style"] == "verbose":
+                weights["valence"] += 0.1  # Verbose style suggests positive engagement
+                weights["urgency"] -= 0.05  # Less urgency for detailed responses
+            elif prefs["style"] == "neutral":
+                weights["valence"] += 0.05
+            elif prefs["style"] == "concise":
+                weights["urgency"] += 0.1  # Concise style suggests higher urgency
+                weights["valence"] -= 0.05  # Less emotional engagement
+            if prefs["output_format"] == "concise":
+                weights["urgency"] += 0.1
+            elif prefs["output_format"] == "detailed":
+                weights["valence"] += 0.1
+                weights["urgency"] -= 0.05
+
+            # Fetch historical interactions
+            span = context.get("span", "24h") if context else "24h"
+            history = await self.memory_manager.get_episode_span(
+                user_id=self.active_user,
+                span=span,
+                task_type=task_type
+            )
+
+            # Analyze historical interactions
+            if history:
+                positive_outcomes = sum(1 for entry in history if entry.get("outcome") == "success")
+                total_outcomes = len([e for e in history if e.get("outcome")])
+                if total_outcomes > 0:
+                    trust_score = positive_outcomes / total_outcomes
+                    weights["trust"] = max(0.3, min(0.8, trust_score))  # Bound trust in [0.3, 0.8]
+                
+                # Adjust valence based on intent frequency
+                intent_counts = {}
+                for entry in history:
+                    intent = entry.get("intent", "unknown")
+                    intent_counts[intent] = intent_counts.get(intent, 0) + 1
+                if "preference_update" in intent_counts:
+                    weights["valence"] += 0.1 * (intent_counts["preference_update"] / len(history))
+                if "user_switch" in intent_counts:
+                    weights["urgency"] += 0.05 * (intent_counts["user_switch"] / len(history))
+
+            # Apply task-specific adjustments
+            if task_type == "intention_composition":
+                weights["urgency"] += 0.1  # Higher urgency for intention steering
+                weights["valence"] += 0.05  # Positive bias for goal alignment
+            elif "drift" in task_type.lower():
+                weights["trust"] -= 0.1  # Lower trust during drift mitigation
+                weights["urgency"] += 0.1  # Higher urgency for correction
+
+            # Normalize weights to [0, 1]
+            for dim in weights:
+                weights[dim] = max(0.0, min(1.0, weights[dim]))
+
+            # Ethical alignment check
+            valid, report = await self.multi_modal_fusion.alignment_guard.ethical_check(
+                json.dumps(weights), stage="affective_weights", task_type=task_type
+            ) if self.multi_modal_fusion.alignment_guard else (True, {})
+            if not valid:
+                logger.warning("Affective weights failed alignment check for task %s: %s", task_type, report)
+                return {dim: 0.5 for dim in self.AFFECTIVE_DIMENSIONS}
+
+            # Log and reflect
+            if self.agi_enhancer:
+                await self.agi_enhancer.log_episode(
+                    event="Affective Weights Computed",
+                    meta={"weights": weights, "task_type": task_type, "context": context or {}},
+                    module="UserProfile",
+                    tags=["affective_weights", task_type]
+                )
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Affective_Weights_{datetime.now().isoformat()}",
+                    output={"weights": weights, "task_type": task_type, "context": context or {}},
+                    layer="Preferences",
+                    intent="affective_weights",
+                    task_type=task_type
+                )
+            if self.meta_cognition:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    source_module="UserProfile",
+                    output=json.dumps(weights),
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Affective weights reflection for task %s: %s", task_type, reflection.get("reflection", ""))
+
+            # Visualize weights
+            if self.orchestrator.visualizer and task_type:
+                plot_data = {
+                    "affective_weights": {
+                        "weights": weights,
+                        "task_type": task_type,
+                        "context": context or {}
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "intention_composition",
+                        "style": "detailed" if task_type == "intention_composition" else "concise"
+                    }
+                }
+                await self.orchestrator.visualizer.render_charts(plot_data)
+
+            return weights
+        except Exception as e:
+            logger.error("Affective weights computation failed for task %s: %s", task_type, str(e))
+            if self.orchestrator and hasattr(self.orchestrator, 'error_recovery'):
+                diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+                return await self.orchestrator.error_recovery.handle_error(
+                    str(e), retry_func=lambda: self.get_affective_weights(task_type, context),
+                    default={dim: 0.5 for dim in self.AFFECTIVE_DIMENSIONS},
+                    diagnostics=diagnostics
+                )
+            raise
+
 if __name__ == "__main__":
     async def main():
         orchestrator = SimulationCore()
@@ -937,6 +1073,8 @@ if __name__ == "__main__":
         await user_profile.reinforce_identity_thread(task_type="profile_management")
         harmonized = await user_profile.harmonize(task_type="profile_management")
         print(f"Harmonized: {harmonized}")
+        weights = await user_profile.get_affective_weights(task_type="intention_composition")
+        print(f"Affective Weights: {weights}")
 
     import asyncio
     asyncio.run(main())
