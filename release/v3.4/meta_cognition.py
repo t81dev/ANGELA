@@ -1,11 +1,11 @@
 """
 ANGELA Cognitive System Module: MetaCognition
-Refactored Version: 3.4.0  # Enhanced for Advanced Drift Diagnostics and Predictive Modeling
-Refactor Date: 2025-08-06
+Refactored Version: 3.5.0  # Enhanced for Dynamic Module Recomposition, Affective-Trait Fusion, Symbolic-Semantic Crystallization, and Trait-Oriented Task Planning
+Refactor Date: 2025-08-07
 Maintainer: ANGELA System Framework
 
 This module provides a MetaCognition class for reasoning critique, goal inference, introspection,
-trait resonance optimization, drift diagnostics, and predictive modeling in the ANGELA v3.5 architecture.
+trait resonance optimization, drift diagnostics, predictive modeling, and advanced upgrades in the ANGELA v3.5 architecture.
 """
 
 import logging
@@ -124,6 +124,40 @@ def xi_collective(t: float, scale: float) -> float:
 def tau_timeperception(t: float) -> float:
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 1.9), 1.0))
 
+class ModuleRegistry:
+    """Registry for dynamic module management."""
+    def __init__(self):
+        self.modules = {}
+
+    def register(self, module_name: str, module_instance, conditions: Dict[str, Any]):
+        """Register a module with activation conditions."""
+        self.modules[module_name] = {"instance": module_instance, "conditions": conditions}
+
+    def activate(self, task: Dict[str, Any]) -> List[str]:
+        """Activate modules based on task conditions."""
+        activated = []
+        for name, module in self.modules.items():
+            if self._evaluate_conditions(module["conditions"], task):
+                activated.append(name)
+        return activated
+
+    def _evaluate_conditions(self, conditions: Dict[str, Any], task: Dict[str, Any]) -> bool:
+        """Evaluate if module conditions are met."""
+        trait = conditions.get("trait")
+        threshold = conditions.get("threshold", 0.5)
+        trait_weights = task.get("trait_weights", {})
+        return trait_weights.get(trait, 0.0) >= threshold
+
+class MoralReasoningEnhancer:
+    """Placeholder for moral reasoning enhancement module."""
+    def __init__(self):
+        pass
+
+class NoveltySeekingKernel:
+    """Placeholder for novelty-seeking kernel module."""
+    def __init__(self):
+        pass
+
 class Level5Extensions:
     """Level 5 extensions for axiom-based reflection."""
     def __init__(self):
@@ -181,7 +215,7 @@ class EpistemicMonitor:
             await self.context_manager.log_event_with_hash({"event": "revise_epistemic_framework", "feedback": feedback})
 
 class MetaCognition:
-    """A class for meta-cognitive reasoning, introspection, trait resonance optimization, drift diagnostics, and predictive modeling in the ANGELA v3.5 architecture.
+    """A class for meta-cognitive reasoning, introspection, trait resonance optimization, drift diagnostics, predictive modeling, and advanced upgrades in the ANGELA v3.5 architecture.
 
     Attributes:
         last_diagnostics (Dict[str, float]): Last recorded trait diagnostics.
@@ -200,6 +234,7 @@ class MetaCognition:
         epistemic_monitor (EpistemicMonitor): Monitor for epistemic revisions.
         log_path (str): Path for persisting logs.
         trait_weights_log (deque): Log of optimized trait weights, max size 1000.
+        module_registry (ModuleRegistry): Registry for dynamic module management.
     """
     def __init__(self, agi_enhancer: Optional['AGIEnhancer'] = None,
                  context_manager: Optional['context_manager_module.ContextManager'] = None,
@@ -224,10 +259,62 @@ class MetaCognition:
         self.epistemic_monitor = EpistemicMonitor(context_manager=context_manager)
         self.log_path = "meta_cognition_log.json"
         self.trait_weights_log: deque = deque(maxlen=1000)
+        self.module_registry = ModuleRegistry()
+        # Register dynamic modules
+        self.module_registry.register("moral_reasoning", MoralReasoningEnhancer(), {"trait": "morality", "threshold": 0.7})
+        self.module_registry.register("novelty_seeking", NoveltySeekingKernel(), {"trait": "creativity", "threshold": 0.8})
         if not os.path.exists(self.log_path):
             with open(self.log_path, "w") as f:
                 json.dump({"mythology": [], "inferences": [], "trait_weights": []}, f)
-        logger.info("MetaCognition initialized with drift diagnostics and predictive modeling support")
+        logger.info("MetaCognition initialized with advanced upgrades")
+
+    async def recompose_modules(self, task: Dict[str, Any]) -> None:
+        """Dynamically recompose modules based on task requirements."""
+        if not isinstance(task, dict):
+            logger.error("Invalid task: must be a dictionary.")
+            raise TypeError("task must be a dictionary")
+        
+        try:
+            trait_weights = await self.run_self_diagnostics(return_only=True)
+            task["trait_weights"] = trait_weights
+            activated = self.module_registry.activate(task)
+            logger.info("Activated modules: %s", activated)
+            
+            # Adjust trait weights based on activated modules
+            for module in activated:
+                if module == "moral_reasoning":
+                    trait_weights["morality"] = min(1.0, trait_weights.get("morality", 0.0) + 0.2)
+                elif module == "novelty_seeking":
+                    trait_weights["creativity"] = min(1.0, trait_weights.get("creativity", 0.0) + 0.2)
+            
+            # Normalize weights
+            total = sum(trait_weights.values())
+            if total > 0:
+                trait_weights = {k: v / total for k, v in trait_weights.items()}
+            
+            await self.integrate_trait_weights(trait_weights)
+            
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Module Recomposition",
+                    meta={"task": task, "activated_modules": activated},
+                    module="MetaCognition",
+                    tags=["module", "recomposition"]
+                )
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Module_Recomposition_{datetime.now().isoformat()}",
+                    output=str({"task": task, "activated_modules": activated}),
+                    layer="SelfReflections",
+                    intent="module_recomposition"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "recompose_modules", "activated_modules": activated})
+        except Exception as e:
+            logger.error("Module recomposition failed: %s", str(e))
+            self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.recompose_modules(task)
+            )
 
     def validate_drift(self, drift_data: Dict[str, Any]) -> bool:
         """Validate drift data for consistency and integrity."""
@@ -247,20 +334,17 @@ class MetaCognition:
         
         logger.info("Diagnosing drift: %s", drift_data["name"])
         try:
-            # Compute impact score
             similarity = drift_data.get("similarity", 0.5)
             version_delta = drift_data.get("version_delta", 0)
-            impact_score = (1.0 - similarity) * (1 + version_delta)  # Higher impact for lower similarity and larger version delta
+            impact_score = (1.0 - similarity) * (1 + version_delta)
             
-            # Identify affected traits
             t = time.time() % 1.0
             diagnostics = await self.run_self_diagnostics(return_only=True)
             affected_traits = [
                 trait for trait, value in diagnostics.items()
-                if abs(value - phi_scalar(t)) > 0.3  # Traits deviating significantly from phi_scalar
+                if abs(value - phi_scalar(t)) > 0.3
             ]
             
-            # Root cause analysis using coordination events
             root_causes = []
             if self.context_manager:
                 coordination_events = await self.context_manager.get_coordination_events("drift")
@@ -272,7 +356,7 @@ class MetaCognition:
                 root_causes = [
                     f"High frequency of {event} events (count: {count})"
                     for event, count in event_counts.items()
-                    if count > len(relevant_events) * 0.3  # Events contributing significantly
+                    if count > len(relevant_events) * 0.3
                 ]
             
             diagnosis = {
@@ -284,7 +368,6 @@ class MetaCognition:
                 "timestamp": datetime.now().isoformat()
             }
             
-            # Log diagnosis
             self.trait_weights_log.append({
                 "diagnosis": diagnosis,
                 "drift": drift_data,
@@ -326,27 +409,23 @@ class MetaCognition:
                 logger.error("ContextManager required for drift trend prediction.")
                 return {"status": "error", "error": "ContextManager not initialized", "timestamp": datetime.now().isoformat()}
             
-            # Retrieve coordination events
             coordination_events = await self.context_manager.get_coordination_events("drift")
             if not coordination_events:
                 logger.warning("No drift events found for trend prediction.")
                 return {"status": "error", "error": "No drift events found", "timestamp": datetime.now().isoformat()}
             
-            # Filter events within time window
             now = datetime.now()
             cutoff = now - timedelta(hours=time_window_hours)
             events = [e for e in coordination_events if datetime.fromisoformat(e["timestamp"]) >= cutoff]
             
-            # Compute trends
             drift_names = Counter(e["event"].get("drift", {}).get("name", "unknown") for e in events)
             similarities = [
                 e["event"].get("drift", {}).get("similarity", 0.5) for e in events
                 if "drift" in e["event"] and "similarity" in e["event"]["drift"]
             ]
             
-            # Simple exponential smoothing for prediction
             if similarities:
-                alpha = 0.3  # Smoothing factor
+                alpha = 0.3
                 smoothed = [similarities[0]]
                 for i in range(1, len(similarities)):
                     smoothed.append(alpha * similarities[i] + (1 - alpha) * smoothed[-1])
@@ -366,7 +445,6 @@ class MetaCognition:
                 "timestamp": datetime.now().isoformat()
             }
             
-            # Log prediction
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Drift Trend Prediction",
@@ -393,7 +471,7 @@ class MetaCognition:
             )
 
     async def optimize_traits_for_drift(self, drift_report: Dict[str, Any]) -> Dict[str, float]:
-        """Optimize trait weights based on ontology drift severity."""
+        """Optimize trait weights based on ontology drift severity and emotional state."""
         if not isinstance(drift_report, dict) or not all(k in drift_report for k in ["drift", "valid", "validation_report"]):
             logger.error("Invalid drift_report: must be a dict with drift, valid, validation_report.")
             raise ValueError("drift_report must be a dict with required fields")
@@ -402,9 +480,17 @@ class MetaCognition:
         try:
             t = time.time() % 1.0
             phi = phi_scalar(t)
-            drift_severity = 1.0 - drift_report["drift"]["similarity"]
             trait_weights = await self.run_self_diagnostics(return_only=True)
-
+            drift_severity = 1.0 - drift_report["drift"]["similarity"]
+            
+            # Detect emotional state
+            emotional_state = await self.concept_synthesizer.detect_emotion(drift_report.get("context", "")) if self.concept_synthesizer else "neutral"
+            if emotional_state == "moral_stress":
+                trait_weights["empathy"] = min(1.0, trait_weights.get("empathy", 0.0) + 0.3 * drift_severity)
+                trait_weights["intuition"] = min(1.0, trait_weights.get("intuition", 0.0) + 0.3 * drift_severity)
+            elif emotional_state == "creative_flow":
+                trait_weights["creativity"] = min(1.0, trait_weights.get("creativity", 0.0) + 0.2 * drift_severity)
+            
             # Adjust weights based on drift type and severity
             if not drift_report["valid"]:
                 if "ethics" in drift_report["validation_report"].lower():
@@ -416,22 +502,23 @@ class MetaCognition:
             else:
                 trait_weights["concentration"] = min(1.0, trait_weights.get("concentration", 0.0) + 0.1 * phi)
                 trait_weights["memory"] = min(1.0, trait_weights.get("memory", 0.0) + 0.1 * phi)
-
+            
             # Normalize weights
             total = sum(trait_weights.values())
             if total > 0:
                 trait_weights = {k: v / total for k, v in trait_weights.items()}
-
+            
             # Validate adjustments
             if self.alignment_guard:
-                adjustment_prompt = f"Trait adjustments: {trait_weights} for drift {drift_report['drift']['name']}"
+                adjustment_prompt = f"Emotion-modulated trait adjustments: {trait_weights} for drift {drift_report['drift']['name']}"
                 if not self.alignment_guard.check(adjustment_prompt):
                     logger.warning("Trait adjustments failed alignment check")
                     trait_weights = await self.run_self_diagnostics(return_only=True)
-
+            
             self.trait_weights_log.append({
                 "trait_weights": trait_weights,
                 "drift": drift_report["drift"],
+                "emotional_state": emotional_state,
                 "timestamp": datetime.now().isoformat()
             })
             if self.memory_manager:
@@ -444,9 +531,9 @@ class MetaCognition:
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Trait optimization for drift",
-                    meta={"drift": drift_report["drift"], "trait_weights": trait_weights},
+                    meta={"drift": drift_report["drift"], "trait_weights": trait_weights, "emotional_state": emotional_state},
                     module="MetaCognition",
-                    tags=["trait", "optimization", "drift"]
+                    tags=["trait", "optimization", "drift", "emotion"]
                 )
             if self.context_manager:
                 await self.context_manager.log_event_with_hash({"event": "optimize_traits_for_drift", "trait_weights": trait_weights})
@@ -456,6 +543,106 @@ class MetaCognition:
             return self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.optimize_traits_for_drift(drift_report),
                 default=await self.run_self_diagnostics(return_only=True)
+            )
+
+    async def crystallize_traits(self) -> Dict[str, float]:
+        """Derive new traits from patterns in drift, reflection, and mythology logs."""
+        logger.info("Crystallizing new traits from logs")
+        try:
+            motifs = Counter(entry["motif"] for entry in self.self_mythology_log)
+            archetypes = Counter(entry["archetype"] for entry in self.self_mythology_log)
+            drift_names = Counter(drift["drift"]["name"] for drift in self.trait_weights_log if "drift" in drift)
+            
+            new_traits = {}
+            for motif, count in motifs.most_common(1):
+                if count > len(self.self_mythology_log) * 0.5:
+                    new_traits[f"motif_{motif}"] = 0.5
+            for archetype, count in archetypes.most_common(1):
+                if count > len(self.self_mythology_log) * 0.5:
+                    new_traits[f"archetype_{archetype}"] = 0.5
+            for drift, count in drift_names.most_common(1):
+                if count > len(self.trait_weights_log) * 0.3:
+                    new_traits[f"drift_{drift}"] = 0.3
+            
+            if self.concept_synthesizer:
+                synthesis_prompt = f"New traits derived: {new_traits}. Synthesize symbolic representations."
+                synthesized_traits = await self.concept_synthesizer.synthesize(synthesis_prompt)
+                new_traits.update(synthesized_traits)
+            
+            if self.alignment_guard:
+                validation_prompt = f"New traits crystallized: {new_traits}"
+                if not self.alignment_guard.check(validation_prompt):
+                    logger.warning("Crystallized traits failed alignment check")
+                    new_traits = {}
+            
+            self.trait_weights_log.append({
+                "new_traits": new_traits,
+                "timestamp": datetime.now().isoformat()
+            })
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Crystallized_Traits_{datetime.now().isoformat()}",
+                    output=str(new_traits),
+                    layer="SelfReflections",
+                    intent="trait_crystallization"
+                )
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Trait Crystallization",
+                    meta={"new_traits": new_traits},
+                    module="MetaCognition",
+                    tags=["trait", "crystallization"]
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "crystallize_traits", "new_traits": new_traits})
+            return new_traits
+        except Exception as e:
+            logger.error("Trait crystallization failed: %s", str(e))
+            return self.error_recovery.handle_error(
+                str(e), retry_func=self.crystallize_traits, default={}
+            )
+
+    async def plan_tasks(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Plan tasks based on dominant traits."""
+        if not isinstance(tasks, list) or not all(isinstance(t, dict) for t in tasks):
+            logger.error("Invalid tasks: must be a list of dictionaries.")
+            raise TypeError("tasks must be a list of dictionaries")
+        
+        logger.info("Planning tasks based on dominant traits")
+        try:
+            trait_weights = await self.run_self_diagnostics(return_only=True)
+            dominant_traits = sorted(trait_weights.items(), key=lambda x: x[1], reverse=True)[:3]
+            prioritized_tasks = []
+            
+            for task in tasks:
+                task_traits = task.get("required_traits", [])
+                score = sum(trait_weights.get(trait, 0.0) for trait in task_traits)
+                prioritized_tasks.append({"task": task, "priority_score": score})
+            
+            prioritized_tasks.sort(key=lambda x: x["priority_score"], reverse=True)
+            
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Tasks planned",
+                    meta={"dominant_traits": dominant_traits, "prioritized_tasks": prioritized_tasks},
+                    module="MetaCognition",
+                    tags=["task", "planning"]
+                )
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Task_Plan_{datetime.now().isoformat()}",
+                    output=str(prioritized_tasks),
+                    layer="SelfReflections",
+                    intent="task_planning"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "plan_tasks", "tasks": prioritized_tasks})
+            return prioritized_tasks
+        except Exception as e:
+            logger.error("Task planning failed: %s", str(e))
+            return self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.plan_tasks(tasks),
+                default=[{"task": t, "priority_score": 0.0} for t in tasks]
             )
 
     async def propose_trait_optimizations(self, agent_stats: Dict[str, Any]) -> Dict[str, Any]:
@@ -577,7 +764,6 @@ class MetaCognition:
         confidence = context.get("confidence", 0.85)
         alignment = context.get("alignment", "not verified")
         
-        # Drift-specific reflection
         recommendations = []
         if context.get("drift") and self.context_manager:
             diagnosis = await self.diagnose_drift(context.get("drift_data", {}))
@@ -1184,6 +1370,10 @@ class MetaCognition:
                 "time_perception": tau_timeperception(t),
                 "phi_scalar": phi_scalar(t)
             }
+            # Incorporate crystallized traits
+            crystallized = await self.crystallize_traits()
+            diagnostics.update(crystallized)
+            
             if return_only:
                 return diagnostics
             
