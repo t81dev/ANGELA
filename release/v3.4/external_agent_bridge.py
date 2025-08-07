@@ -1,4 +1,3 @@
-```
 """
 ANGELA Cognitive System Module
 Refactored Version: 3.4.0  # Enhanced for Ecosystem Integration and Drift Mitigation
@@ -808,4 +807,3 @@ async def transmit_trait_schema_sync(source_trait_schema: Dict[str, Any], target
 class Reasoner:
     def process(self, task: str, context: Dict[str, Any]) -> Any:
         return f"Processed: {task}"
-```
