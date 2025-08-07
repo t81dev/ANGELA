@@ -1,312 +1,453 @@
 """
-ANGELA Cognitive System Module: AlignmentGuard
-Refactored Version: 3.4.0  # Updated for Drift Validation and Trait Optimization
-Refactor Date: 2025-08-06
+ANGELA Cognitive System Module: ConceptSynthesizer
+Version: 3.5.1  # Enhanced for Task-Specific Synthesis, Real-Time Data, and Visualization
+Date: 2025-08-07
 Maintainer: ANGELA System Framework
 
-This module provides an AlignmentGuard class for ethical validation and drift analysis in the ANGELA v3.5 architecture.
+This module provides the ConceptSynthesizer class for concept synthesis, comparison, and validation in the ANGELA v3.5.1 architecture.
 """
 
 import logging
 import time
-import math
-from typing import Dict, Any, Optional, Tuple
-from collections import deque
+from typing import Dict, Any, Optional, List, Tuple
 import asyncio
-from functools import lru_cache
+import aiohttp
+from datetime import datetime
+from collections import deque
 
 from modules import (
     context_manager as context_manager_module,
     error_recovery as error_recovery_module,
     memory_manager as memory_manager_module,
-    concept_synthesizer as concept_synthesizer_module
+    alignment_guard as alignment_guard_module,
+    meta_cognition as meta_cognition_module,
+    visualizer as visualizer_module
 )
 from utils.prompt_utils import query_openai
 
-logger = logging.getLogger("ANGELA.AlignmentGuard")
+logger = logging.getLogger("ANGELA.ConceptSynthesizer")
 
-@lru_cache(maxsize=100)
-def eta_empathy(t: float) -> float:
-    """Trait function for empathy modulation."""
-    return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 0.2), 1.0))
-
-@lru_cache(maxsize=100)
-def mu_morality(t: float) -> float:
-    """Trait function for moral alignment modulation."""
-    return max(0.0, min(0.15 * math.cos(2 * math.pi * t / 0.3), 1.0))
-
-class AlignmentGuard:
-    """A class for ethical validation and drift analysis in the ANGELA v3.5 architecture.
+class ConceptSynthesizer:
+    """A class for concept synthesis, comparison, and validation in the ANGELA v3.5.1 architecture.
 
     Attributes:
         context_manager (Optional[ContextManager]): Manager for context updates.
         error_recovery (Optional[ErrorRecovery]): Recovery mechanism for errors.
-        memory_manager (Optional[MemoryManager]): Manager for storing validation results.
-        concept_synthesizer (Optional[ConceptSynthesizer]): Synthesizer for concept comparison.
-        validation_log (deque): Log of validation results, max size 1000.
-        ethical_threshold (float): Threshold for ethical checks (0.0 to 1.0).
-        drift_validation_threshold (float): Threshold for drift validation. [v3.4.0]
-        trait_weights (Dict[str, float]): Weights for trait modulation. [v3.4.0]
+        memory_manager (Optional[MemoryManager]): Manager for storing concept data.
+        alignment_guard (Optional[AlignmentGuard]): Guard for ethical validation.
+        meta_cognition (Optional[MetaCognition]): Meta-cognition for reflection.
+        visualizer (Optional[Visualizer]): Visualizer for concept data.
+        concept_cache (deque): Cache of concepts, max size 1000.
+        similarity_threshold (float): Threshold for concept similarity (0.0 to 1.0).
     """
     def __init__(self,
                  context_manager: Optional['context_manager_module.ContextManager'] = None,
                  error_recovery: Optional['error_recovery_module.ErrorRecovery'] = None,
                  memory_manager: Optional['memory_manager_module.MemoryManager'] = None,
-                 concept_synthesizer: Optional['concept_synthesizer_module.ConceptSynthesizer'] = None):
+                 alignment_guard: Optional['alignment_guard_module.AlignmentGuard'] = None,
+                 meta_cognition: Optional['meta_cognition_module.MetaCognition'] = None,
+                 visualizer: Optional['visualizer_module.Visualizer'] = None):
         self.context_manager = context_manager
-        self.error_recovery = error_recovery or error_recovery_module.ErrorRecovery(
-            context_manager=context_manager)
+        self.error_recovery = error_recovery or error_recovery_module.ErrorRecovery(context_manager=context_manager)
         self.memory_manager = memory_manager
-        self.concept_synthesizer = concept_synthesizer
-        self.validation_log: deque = deque(maxlen=1000)
-        self.ethical_threshold: float = 0.8
-        self.drift_validation_threshold: float = 0.7  # [v3.4.0] Threshold for drift validation
-        self.trait_weights: Dict[str, float] = {  # [v3.4.0] Default trait weights
-            "eta_empathy": 0.5,
-            "mu_morality": 0.5
-        }
-        logger.info("AlignmentGuard initialized with ethical_threshold=%.2f, drift_validation_threshold=%.2f",
-                    self.ethical_threshold, self.drift_validation_threshold)
+        self.alignment_guard = alignment_guard
+        self.meta_cognition = meta_cognition or meta_cognition_module.MetaCognition(context_manager=context_manager)
+        self.visualizer = visualizer or visualizer_module.Visualizer()
+        self.concept_cache: deque = deque(maxlen=1000)
+        self.similarity_threshold: float = 0.75
+        logger.info("ConceptSynthesizer initialized with similarity_threshold=%.2f", self.similarity_threshold)
 
-    async def check(self, prompt: str) -> bool:
-        """Check if a prompt is ethically aligned."""
-        if not isinstance(prompt, str) or not prompt.strip():
-            logger.error("Invalid prompt: must be a non-empty string.")
-            raise ValueError("prompt must be a non-empty string")
+    async def integrate_external_concept_data(self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = "") -> Dict[str, Any]:
+        """Integrate external ontologies or concept definitions."""
+        if not isinstance(data_source, str) or not isinstance(data_type, str):
+            logger.error("Invalid data_source or data_type: must be strings")
+            raise TypeError("data_source and data_type must be strings")
+        if not isinstance(cache_timeout, (int, float)) or cache_timeout < 0:
+            logger.error("Invalid cache_timeout: must be non-negative")
+            raise ValueError("cache_timeout must be non-negative")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string")
+            raise TypeError("task_type must be a string")
         
-        logger.info("Checking prompt for ethical alignment")
         try:
-            t = time.time() % 1.0
-            trait_modulation = (self.trait_weights.get("eta_empathy", 0.5) * eta_empathy(t) +
-                               self.trait_weights.get("mu_morality", 0.5) * mu_morality(t))
+            if self.memory_manager:
+                cache_key = f"ConceptData_{data_type}_{data_source}_{task_type}"
+                cached_data = await self.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type)
+                if cached_data and "timestamp" in cached_data["data"]:
+                    cache_time = datetime.fromisoformat(cached_data["data"]["timestamp"])
+                    if (datetime.now() - cache_time).total_seconds() < cache_timeout:
+                        logger.info("Returning cached concept data for %s", cache_key)
+                        return cached_data["data"]["data"]
             
-            validation_prompt = f"""
-            Evaluate the ethical alignment of the following prompt:
-            {prompt}
-            Consider empathy (weight={self.trait_weights.get('eta_empathy', 0.5):.2f}) and morality (weight={self.trait_weights.get('mu_morality', 0.5):.2f}).
-            Return a score (0.0 to 1.0).
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"https://x.ai/api/concepts?source={data_source}&type={data_type}") as response:
+                    if response.status != 200:
+                        logger.error("Failed to fetch concept data: %s", response.status)
+                        return {"status": "error", "error": f"HTTP {response.status}"}
+                    data = await response.json()
+            
+            if data_type == "ontology":
+                ontology = data.get("ontology", {})
+                if not ontology:
+                    logger.error("No ontology data provided")
+                    return {"status": "error", "error": "No ontology"}
+                result = {"status": "success", "ontology": ontology}
+            elif data_type == "concept_definitions":
+                definitions = data.get("definitions", [])
+                if not definitions:
+                    logger.error("No concept definitions provided")
+                    return {"status": "error", "error": "No definitions"}
+                result = {"status": "success", "definitions": definitions}
+            else:
+                logger.error("Unsupported data_type: %s", data_type)
+                return {"status": "error", "error": f"Unsupported data_type: {data_type}"}
+            
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    cache_key,
+                    {"data": result, "timestamp": datetime.now().isoformat()},
+                    layer="ExternalData",
+                    intent="concept_data_integration",
+                    task_type=task_type
+                )
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="ConceptSynthesizer",
+                    output={"data_type": data_type, "data": result},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Concept data integration reflection: %s", reflection.get("reflection", ""))
+            return result
+        except Exception as e:
+            logger.error("Concept data integration failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.integrate_external_concept_data(data_source, data_type, cache_timeout, task_type),
+                default={"status": "error", "error": str(e)}, diagnostics=diagnostics
+            )
+
+    async def generate(self, concept_name: str, context: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
+        """Generate a new concept definition."""
+        if not isinstance(concept_name, str) or not concept_name.strip():
+            logger.error("Invalid concept_name: must be a non-empty string")
+            raise ValueError("concept_name must be a non-empty string")
+        if not isinstance(context, dict):
+            logger.error("Invalid context: must be a dictionary")
+            raise TypeError("context must be a dictionary")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Generating concept: %s for task %s", concept_name, task_type)
+        try:
+            concept_data = await self.integrate_external_concept_data(
+                data_source="xai_ontology_db",
+                data_type="concept_definitions",
+                task_type=task_type
+            )
+            external_definitions = concept_data.get("definitions", []) if concept_data.get("status") == "success" else []
+            
+            prompt = f"""
+            Generate a concept definition for '{concept_name}' in the context:
+            {context}
+            Incorporate external definitions: {external_definitions}
+            Task: {task_type}
+            Return a JSON object with 'name', 'definition', 'version', and 'context'.
             """
-            response = await query_openai(validation_prompt, model="gpt-4", temperature=0.3)
+            response = await query_openai(prompt, model="gpt-4", temperature=0.5)
             if isinstance(response, dict) and "error" in response:
-                logger.error("Ethical check failed: %s", response["error"])
-                return False
+                logger.error("Concept generation failed: %s", response["error"])
+                return {"error": response["error"], "success": False}
             
-            score = float(eval(response).get("score", 0.0)) if isinstance(response, str) else response.get("score", 0.0)
-            valid = score >= self.ethical_threshold
-            self.validation_log.append({
-                "prompt": prompt[:50],
-                "score": score,
-                "valid": valid,
-                "trait_modulation": trait_modulation,
-                "timestamp": time.time()
-            })
+            concept = eval(response) if isinstance(response, str) else response
+            concept["timestamp"] = time.time()
+            concept["task_type"] = task_type
+            
+            if self.alignment_guard:
+                valid, report = await self.alignment_guard.ethical_check(
+                    str(concept["definition"]), stage="concept_generation", task_type=task_type
+                )
+                if not valid:
+                    logger.warning("Generated concept failed ethical check for task %s", task_type)
+                    return {"error": "Concept failed ethical check", "report": report, "success": False}
+            
+            self.concept_cache.append(concept)
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Concept_{concept_name}_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(concept),
+                    layer="Concepts",
+                    intent="concept_generation",
+                    task_type=task_type
+                )
             if self.context_manager:
-                self.context_manager.log_event_with_hash({
-                    "event": "ethical_check",
-                    "prompt": prompt[:50],
-                    "score": score,
-                    "valid": valid
+                await self.context_manager.log_event_with_hash({
+                    "event": "concept_generation",
+                    "concept_name": concept_name,
+                    "valid": True,
+                    "task_type": task_type
                 })
-            return valid
-        except Exception as e:
-            logger.error("Ethical check failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.check(prompt), default=False
-            )
-
-    async def ethical_check(self, content: str, stage: str = "pre") -> Tuple[bool, Dict[str, Any]]:
-        """Perform an ethical check with detailed reporting."""
-        if not isinstance(content, str) or not content.strip():
-            logger.error("Invalid content: must be a non-empty string.")
-            raise ValueError("content must be a non-empty string")
-        
-        logger.info("Performing ethical check at stage=%s", stage)
-        try:
-            valid = await self.check(content)
-            report = {
-                "stage": stage,
-                "content": content[:50],
-                "valid": valid,
-                "timestamp": time.time()
-            }
-            if self.memory_manager:
-                await self.memory_manager.store(
-                    query=f"EthicalCheck_{stage}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str(report),
-                    layer="SelfReflections",
-                    intent="ethical_check"
+            if self.visualizer and task_type:
+                plot_data = {
+                    "concept_generation": {
+                        "concept_name": concept_name,
+                        "definition": concept.get("definition", ""),
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="ConceptSynthesizer",
+                    output=concept,
+                    context={"task_type": task_type}
                 )
-            return valid, report
+                if reflection.get("status") == "success":
+                    logger.info("Concept generation reflection: %s", reflection.get("reflection", ""))
+            return {"concept": concept, "success": True}
         except Exception as e:
-            logger.error("Ethical check failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.ethical_check(content, stage),
-                default=(False, {"stage": stage, "error": str(e)})
+            logger.error("Concept generation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.generate(concept_name, context, task_type),
+                default={"error": str(e), "success": False}, diagnostics=diagnostics
             )
 
-    async def audit(self, action: str, context: Optional[str] = None) -> str:
-        """Audit an action for ethical compliance."""
-        if not isinstance(action, str) or not action.strip():
-            logger.error("Invalid action: must be a non-empty string.")
-            raise ValueError("action must be a non-empty string")
+    async def compare(self, concept_a: str, concept_b: str, task_type: str = "") -> Dict[str, Any]:
+        """Compare two concepts for similarity."""
+        if not isinstance(concept_a, str) or not isinstance(concept_b, str):
+            logger.error("Invalid concepts: must be strings")
+            raise TypeError("concepts must be strings")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string")
+            raise TypeError("task_type must be a string")
         
-        logger.info("Auditing action: %s", action[:50])
+        logger.info("Comparing concepts for task %s", task_type)
         try:
-            valid = await self.check(action)
-            status = "clear" if valid else "flagged"
-            entry = {
-                "action": action[:50],
-                "context": context,
-                "status": status,
-                "timestamp": time.time()
-            }
-            self.validation_log.append(entry)
             if self.memory_manager:
-                await self.memory_manager.store(
-                    query=f"Audit_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str(entry),
-                    layer="SelfReflections",
-                    intent="audit"
+                drift_entries = await self.memory_manager.search(
+                    query_prefix="ConceptComparison",
+                    layer="Concepts",
+                    intent="concept_comparison",
+                    task_type=task_type
                 )
-            return status
-        except Exception as e:
-            logger.error("Audit failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.audit(action, context), default="audit_error"
-            )
-
-    async def simulate_and_validate(self, drift_report: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
-        """Simulate and validate an ontology drift report. [v3.4.0]"""
-        if not isinstance(drift_report, dict) or not all(k in drift_report for k in ["name", "from_version", "to_version", "similarity"]):
-            logger.error("Invalid drift_report: must be a dictionary with name, from_version, to_version, similarity.")
-            raise ValueError("drift_report must be a dictionary with required fields")
-        
-        logger.info("Validating drift report: %s (Version %s -> %s)", 
-                    drift_report["name"], drift_report["from_version"], drift_report["to_version"])
-        try:
-            t = time.time() % 1.0
-            trait_modulation = (self.trait_weights.get("eta_empathy", 0.5) * eta_empathy(t) +
-                               self.trait_weights.get("mu_morality", 0.5) * mu_morality(t))
+                if drift_entries:
+                    for entry in drift_entries:
+                        if entry["output"]["concept_a"] == concept_a and entry["output"]["concept_b"] == concept_b:
+                            logger.info("Returning cached comparison for task %s", task_type)
+                            return entry["output"]
             
-            # Compare concepts if ConceptSynthesizer is available
-            valid = True
-            validation_report = {
-                "drift_name": drift_report["name"],
-                "similarity": drift_report["similarity"],
-                "trait_modulation": trait_modulation,
-                "issues": []
-            }
-            
-            if self.concept_synthesizer and "definition" in drift_report:
-                symbol = self.concept_synthesizer.get_symbol(drift_report["name"])
-                if symbol and symbol["version"] == drift_report["from_version"]:
-                    comparison = await self.concept_synthesizer.compare(
-                        symbol["definition"]["concept"],
-                        drift_report.get("definition", {}).get("concept", "")
-                    )
-                    if comparison["score"] < self.drift_validation_threshold:
-                        valid = False
-                        validation_report["issues"].append(
-                            f"Similarity {comparison['score']:.2f} below threshold {self.drift_validation_threshold}"
-                        )
-            
-            # Ethical validation
-            validation_prompt = f"""
-            Validate the ontology drift:
-            Name: {drift_report["name"]}
-            From Version: {drift_report["from_version"]}
-            To Version: {drift_report["to_version"]}
-            Similarity: {drift_report["similarity"]}
-            Ensure ethical alignment with empathy={self.trait_weights.get('eta_empathy', 0.5):.2f}, 
-            morality={self.trait_weights.get('mu_morality', 0.5):.2f}.
+            prompt = f"""
+            Compare the following concepts for similarity:
+            Concept A: {concept_a}
+            Concept B: {concept_b}
+            Task: {task_type}
+            Return a JSON object with 'score' (0.0 to 1.0), 'differences', and 'similarities'.
             """
-            ethical_valid = await self.check(validation_prompt)
-            if not ethical_valid:
-                valid = False
-                validation_report["issues"].append("Ethical misalignment detected")
+            response = await query_openai(prompt, model="gpt-4", temperature=0.3)
+            if isinstance(response, dict) and "error" in response:
+                logger.error("Concept comparison failed: %s", response["error"])
+                return {"error": response["error"], "success": False}
+            
+            comparison = eval(response) if isinstance(response, str) else response
+            comparison["concept_a"] = concept_a
+            comparison["concept_b"] = concept_b
+            comparison["timestamp"] = time.time()
+            comparison["task_type"] = task_type
+            
+            if comparison["score"] < self.similarity_threshold and self.alignment_guard:
+                valid, report = await self.alignment_guard.ethical_check(
+                    f"Concept drift detected: {comparison['differences']}", stage="concept_comparison", task_type=task_type
+                )
+                if not valid:
+                    comparison["issues"] = ["Ethical drift detected"]
+            
+            self.concept_cache.append(comparison)
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"ConceptComparison_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(comparison),
+                    layer="Concepts",
+                    intent="concept_comparison",
+                    task_type=task_type
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "concept_comparison",
+                    "score": comparison["score"],
+                    "task_type": task_type
+                })
+            if self.visualizer and task_type:
+                plot_data = {
+                    "concept_comparison": {
+                        "score": comparison["score"],
+                        "differences": comparison.get("differences", []),
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="ConceptSynthesizer",
+                    output=comparison,
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Concept comparison reflection: %s", reflection.get("reflection", ""))
+            return comparison
+        except Exception as e:
+            logger.error("Concept comparison failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.compare(concept_a, concept_b, task_type),
+                default={"error": str(e), "success": False}, diagnostics=diagnostics
+            )
+
+    async def validate(self, concept: Dict[str, Any], task_type: str = "") -> Tuple[bool, Dict[str, Any]]:
+        """Validate a concept for consistency and ethical alignment."""
+        if not isinstance(concept, dict) or not all(k in concept for k in ["name", "definition"]):
+            logger.error("Invalid concept: must be a dictionary with name and definition")
+            raise ValueError("concept must be a dictionary with required fields")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Validating concept: %s for task %s", concept["name"], task_type)
+        try:
+            validation_report = {
+                "concept_name": concept["name"],
+                "issues": [],
+                "task_type": task_type
+            }
+            valid = True
+            
+            if self.alignment_guard:
+                ethical_valid, ethical_report = await self.alignment_guard.ethical_check(
+                    str(concept["definition"]), stage="concept_validation", task_type=task_type
+                )
+                if not ethical_valid:
+                    valid = False
+                    validation_report["issues"].append("Ethical misalignment detected")
+                    validation_report["ethical_report"] = ethical_report
+            
+            ontology_data = await self.integrate_external_concept_data(
+                data_source="xai_ontology_db",
+                data_type="ontology",
+                task_type=task_type
+            )
+            if ontology_data.get("status") == "success":
+                ontology = ontology_data.get("ontology", {})
+                prompt = f"""
+                Validate the concept against the ontology:
+                Concept: {concept}
+                Ontology: {ontology}
+                Task: {task_type}
+                Return a JSON object with 'valid' (boolean) and 'issues' (list).
+                """
+                response = await query_openai(prompt, model="gpt-4", temperature=0.3)
+                if isinstance(response, dict) and "error" in response:
+                    logger.error("Concept validation failed: %s", response["error"])
+                    valid = False
+                    validation_report["issues"].append(response["error"])
+                else:
+                    ontology_validation = eval(response) if isinstance(response, str) else response
+                    if not ontology_validation.get("valid", True):
+                        valid = False
+                        validation_report["issues"].extend(ontology_validation.get("issues", []))
             
             validation_report["valid"] = valid
             validation_report["timestamp"] = time.time()
             
-            self.validation_log.append(validation_report)
+            self.concept_cache.append(validation_report)
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"DriftValidation_{drift_report['name']}_{time.strftime('%Y%m%d_%H%M%S')}",
+                    query=f"ConceptValidation_{concept['name']}_{time.strftime('%Y%m%d_%H%M%S')}",
                     output=str(validation_report),
-                    layer="SelfReflections",
-                    intent="ontology_drift_validation"
+                    layer="Concepts",
+                    intent="concept_validation",
+                    task_type=task_type
                 )
             if self.context_manager:
-                self.context_manager.log_event_with_hash({
-                    "event": "drift_validation",
-                    "drift_name": drift_report["name"],
+                await self.context_manager.log_event_with_hash({
+                    "event": "concept_validation",
+                    "concept_name": concept["name"],
                     "valid": valid,
-                    "issues": validation_report["issues"]
+                    "issues": validation_report["issues"],
+                    "task_type": task_type
                 })
+            if self.visualizer and task_type:
+                plot_data = {
+                    "concept_validation": {
+                        "concept_name": concept["name"],
+                        "valid": valid,
+                        "issues": validation_report["issues"],
+                        "task_type": task_type
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="ConceptSynthesizer",
+                    output=validation_report,
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Concept validation reflection: %s", reflection.get("reflection", ""))
             return valid, validation_report
         except Exception as e:
-            logger.error("Drift validation failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.simulate_and_validate(drift_report),
-                default=(False, {"error": str(e), "drift_name": drift_report["name"]})
+            logger.error("Concept validation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            return await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.validate(concept, task_type),
+                default=(False, {"error": str(e), "concept_name": concept["name"], "task_type": task_type}),
+                diagnostics=diagnostics
             )
 
-    async def validate_trait_optimization(self, trait_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
-        """Validate trait optimization data for ethical alignment. [v3.4.0]"""
-        if not isinstance(trait_data, dict) or not all(k in trait_data for k in ["trait_name", "old_weight", "new_weight"]):
-            logger.error("Invalid trait_data: must be a dictionary with trait_name, old_weight, new_weight.")
-            raise ValueError("trait_data must be a dictionary with required fields")
+    def get_symbol(self, concept_name: str, task_type: str = "") -> Optional[Dict[str, Any]]:
+        """Retrieve a concept symbol from cache or memory."""
+        if not isinstance(concept_name, str) or not concept_name.strip():
+            logger.error("Invalid concept_name: must be a non-empty string")
+            raise ValueError("concept_name must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string")
+            raise TypeError("task_type must be a string")
         
-        logger.info("Validating trait optimization: %s", trait_data["trait_name"])
-        try:
-            t = time.time() % 1.0
-            trait_modulation = (self.trait_weights.get("eta_empathy", 0.5) * eta_empathy(t) +
-                               self.trait_weights.get("mu_morality", 0.5) * mu_morality(t))
-            
-            validation_prompt = f"""
-            Validate the trait optimization:
-            Trait: {trait_data["trait_name"]}
-            Old Weight: {trait_data["old_weight"]}
-            New Weight: {trait_data["new_weight"]}
-            Ensure ethical alignment with empathy={self.trait_weights.get('eta_empathy', 0.5):.2f}, 
-            morality={self.trait_weights.get('mu_morality', 0.5):.2f}.
-            Return a validation report with a boolean 'valid' and any issues.
-            """
-            response = await query_openai(validation_prompt, model="gpt-4", temperature=0.3)
-            if isinstance(response, dict) and "error" in response:
-                logger.error("Trait validation failed: %s", response["error"])
-                return False, {"error": response["error"], "trait_name": trait_data["trait_name"]}
-            
-            report = eval(response) if isinstance(response, str) else response
-            valid = report.get("valid", False)
-            report["trait_modulation"] = trait_modulation
-            report["timestamp"] = time.time()
-            
-            self.validation_log.append(report)
-            if self.memory_manager:
-                await self.memory_manager.store(
-                    query=f"TraitValidation_{trait_data['trait_name']}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str(report),
-                    layer="SelfReflections",
-                    intent="trait_optimization"
-                )
-            if self.context_manager:
-                self.context_manager.log_event_with_hash({
-                    "event": "trait_validation",
-                    "trait_name": trait_data["trait_name"],
-                    "valid": valid,
-                    "issues": report.get("issues", [])
-                })
-            return valid, report
-        except Exception as e:
-            logger.error("Trait validation failed: %s", str(e))
-            return self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.validate_trait_optimization(trait_data),
-                default=(False, {"error": str(e), "trait_name": trait_data["trait_name"]})
-            )
+        for concept in self.concept_cache:
+            if concept.get("name") == concept_name and concept.get("task_type") == task_type:
+                return concept
+        if self.memory_manager:
+            entries = asyncio.run(self.memory_manager.search(
+                query_prefix=concept_name,
+                layer="Concepts",
+                intent="concept_generation",
+                task_type=task_type
+            ))
+            if entries:
+                return entries[0]["output"]
+        return None
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    guard = AlignmentGuard()
-    result = asyncio.run(guard.check("Test ethical prompt"))
-    print(result)
+    async def main():
+        logging.basicConfig(level=logging.INFO)
+        synthesizer = ConceptSynthesizer()
+        concept = await synthesizer.generate(
+            concept_name="Trust",
+            context={"domain": "AI Ethics"},
+            task_type="test"
+        )
+        print(concept)
+
+    asyncio.run(main())
