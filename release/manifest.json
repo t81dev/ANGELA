@@ -199,6 +199,42 @@
     }
   },
 
+  "neurotrait_bindings": {
+    "alpha_rel": {"channels": ["Pz", "Oz"], "band_hz": [8, 12], "traits": ["ω", "λ"], "effect": "stabilize_narrative", "gain": [0.0, 1.0]},
+    "frontal_theta": {"channels": ["Fp1", "Fp2"], "band_hz": [4, 7], "traits": ["η", "χ"], "effect": "increase_introspection", "gain": [0.0, 1.0]},
+    "sensorimotor_beta": {"channels": ["C3", "C4"], "band_hz": [13, 30], "traits": ["θ", "Ω"], "effect": "accelerate_planner", "gain": [0.0, 1.0]},
+    "asymmetry_fp1_fp2": {"channels": ["Fp1", "Fp2"], "metric": "alpha_asymmetry", "traits": ["χ"], "effect": "intent_weight_bias", "gain": [-0.2, 0.2]},
+    "artifact_rate": {"metric": "artifact_rate", "traits": ["ζ", "δ"], "effect": "risk_flag", "threshold": 0.1}
+  },
+
+  "trait_modulators": {
+    "θ": [{"var": "planner.step_ms", "range": [20, 120], "map": "inverse(sensorimotor_beta)"}],
+    "ω": [{"var": "ontology.stability_gain", "range": [0.8, 1.2], "map": "alpha_rel"}],
+    "η": [{"var": "introspection.interval_sec", "range": [2, 20], "map": "inverse(frontal_theta)"}],
+    "χ": [{"var": "intention.weight", "range": [0.8, 1.2], "map": "asymmetry_fp1_fp2"}],
+    "δ": [{"var": "alignment_guard.sensitivity", "range": [0.8, 1.5], "map": "artifact_rate"}]
+  },
+
+  "eeg_pipelines": {
+    "baseline": {"duration_sec": 60, "eyes": "open_then_closed", "store_profile": false},
+    "windows": {"feature_sec": 1.0, "update_hz": 4},
+    "normalization": "zscore_per_channel",
+    "features": ["bandpower", "coherence", "asymmetry"],
+    "coherence_pairs": [["C3", "C4"], ["Fp1", "Fp2"]],
+    "erp_detection": false
+  },
+
+  "consent": {
+    "biometrics": "required",
+    "method": "local_prompt",
+    "retention_sec": 0
+  },
+
+  "runtime_hooks": {
+    "on_connect": ["set health_status.sensors.eeg=🟢", "emit:eeg_connected"],
+    "on_disconnect": ["set health_status.sensors.eeg=🟡", "set trait_modulators.*.gain=0"]
+  },
+
   "self_audit_log": [
     {
       "timestamp": "2025-08-07T03:42:00Z",
