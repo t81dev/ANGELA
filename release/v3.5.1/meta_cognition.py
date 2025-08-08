@@ -1427,3 +1427,19 @@ class MetaCognition:
             return self.error_recovery.handle_error(
                 str(e), retry_func=lambda: self.model_nested_agents(scenario, agents)
             )
+
+# Long-horizon feedback integration
+
+        if getattr(self.config, "long_horizon", False):
+            episodes = self.memory_manager.get_episode_span(user_id, span=getattr(self.config, "long_horizon_span", "24h"))
+            reasons = self.analyze_episodes_for_bias(episodes)
+            for r in reasons:
+                self.memory_manager.record_adjustment_reason(
+                    user_id,
+                    reason=r.get("reason", "unspecified"),
+                    weight=r.get("weight", 1.0),
+                    meta={k: v for k, v in r.items() if k not in ("reason", "weight")}
+                )
+            if step % getattr(self.config, "rollup_interval_steps", 50) == 0 or end_of_session:
+                rollup = self.memory_manager.compute_session_rollup(user_id, span=getattr(self.config, "long_horizon_span", "24h"))
+                self.memory_manager.save_artifact(user_id, kind="session_rollup", payload=rollup)
