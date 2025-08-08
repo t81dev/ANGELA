@@ -1,3 +1,4 @@
+import numpy as np
 """
 ANGELA Cognitive System Module
 Refactored Version: 3.5.1  # Enhanced for task-specific trait optimization, drift coordination, and visualization
@@ -543,9 +544,9 @@ class EmbodiedAgent(TimeChainMixin):
                     observations[sensor_name] = sensor_func()
                 except Exception as e:
                     logger.warning("Sensor %s failed: %s", sensor_name, str(e))
-            await self.theory_of_mind.update_beliefs(self.name, observations, task_type)
-            await self.theory_of_mind.infer_desires(self.name, task_type)
-            await self.theory_of_mind.infer_intentions(self.name, task_type)
+            self.theory_of_mind.update_beliefs(self.name, observations, task_type)
+            self.theory_of_mind.infer_desires(self.name, task_type)
+            self.theory_of_mind.infer_intentions(self.name, task_type)
             logger.debug("[%s] Self-theory: %s", self.name, self.theory_of_mind.describe_agent_state(self.name, task_type))
             if self.context_manager:
                 await self.context_manager.log_event_with_hash({"event": "perceive", "observations": observations, "task_type": task_type})
@@ -571,9 +572,9 @@ class EmbodiedAgent(TimeChainMixin):
             for peer in self.shared_memory.agents:
                 if peer.name != self.name:
                     peer_observation = await peer.perceive(task_type)
-                    await self.theory_of_mind.update_beliefs(peer.name, peer_observation, task_type)
-                    await self.theory_of_mind.infer_desires(peer.name, task_type)
-                    await self.theory_of_mind.infer_intentions(peer.name, task_type)
+                    self.theory_of_mind.update_beliefs(peer.name, peer_observation, task_type)
+                    self.theory_of_mind.infer_desires(peer.name, task_type)
+                    self.theory_of_mind.infer_intentions(peer.name, task_type)
                     state = self.theory_of_mind.describe_agent_state(peer.name, task_type)
                     logger.debug("[%s] Observed peer %s: %s", self.name, peer.name, state)
                     if self.context_manager:
@@ -795,7 +796,7 @@ class ExternalAgentBridge:
                 logger.error("Failed to serialize trait state")
                 raise ValueError("Failed to serialize trait state")
 
-            await memory_manager.store(f"{agent_id}_{trait_symbol}", state, layer="TraitStates", intent="broadcast")
+            await self.shared_memory.store(f"{agent_id}_{trait_symbol}", state, layer="TraitStates", intent="broadcast")
             self.trait_states[agent_id] = self.trait_states.get(agent_id, {})
             self.trait_states[agent_id][trait_symbol] = state
 
@@ -856,7 +857,7 @@ class ExternalAgentBridge:
 
             peer_states = []
             for peer_id in self.network_graph.neighbors(agent_id):
-                cached_state = await memory_manager.retrieve(f"{peer_id}_{trait_symbol}", layer="TraitStates")
+                cached_state = await self.shared_memory.retrieve(f"{peer_id}_{trait_symbol}", layer="TraitStates")
                 if cached_state:
                     peer_states.append((peer_id, cached_state))
 
@@ -874,7 +875,7 @@ class ExternalAgentBridge:
             aligned_state = await self.arbitrate([local_state] + [state for _, state in peer_states])
             if aligned_state:
                 self.trait_states[agent_id][trait_symbol] = aligned_state
-                await memory_manager.store(f"{agent_id}_{trait_symbol}", aligned_state, layer="TraitStates", intent="synchronization")
+                await self.shared_memory.store(f"{agent_id}_{trait_symbol}", aligned_state, layer="TraitStates", intent="synchronization")
                 logger.info("Synchronized trait %s for %s, task %s", trait_symbol, agent_id, task_type)
                 if self.context_manager:
                     await self.context_manager.log_event_with_hash({
@@ -1494,3 +1495,8 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+class AGIEnhancer:
+    def enhance(self, data):
+        return data
