@@ -27,6 +27,7 @@ from collections import Counter
 from networkx import DiGraph
 from restrictedpython import safe_globals
 import aiohttp
+import argparse
 
 from modules import (
     reasoning_engine, recursive_planner, context_manager, simulation_core,
@@ -150,9 +151,9 @@ TRAIT_OVERLAY = {
     "π": ["reasoning_engine", "toca_simulation"],
     "ψ": ["external_agent_bridge", "simulation_core"],
     "Υ": ["meta_cognition", "context_manager"],
-    "rte": ["reasoning_engine", "meta_cognition"],  # Added for RTE tasks
-    "wnli": ["reasoning_engine", "meta_cognition"],  # Added for WNLI tasks
-    "recursion": ["recursive_planner", "toca_simulation"]  # Added for recursive tasks
+    "rte": ["reasoning_engine", "meta_cognition"],
+    "wnli": ["reasoning_engine", "meta_cognition"],
+    "recursion": ["recursive_planner", "toca_simulation"]
 }
 
 def infer_traits(task_description: str, task_type: str = "") -> List[str]:
@@ -194,7 +195,6 @@ def trait_overlay_router(task_description: str, active_traits: List[str], task_t
     for trait in active_traits:
         routed_modules.update(TRAIT_OVERLAY.get(trait, []))
     
-    # Optimize traits for task type
     meta_cognition_instance = meta_cognition.MetaCognition()
     if task_type:
         drift_report = {
@@ -722,7 +722,7 @@ class ExternalAgentBridge:
 
     async def create_agent(self, task: str, context: Dict[str, Any], task_type: str = "") -> 'HelperAgent':
         """Create a new helper agent for a task asynchronously."""
-        from meta_cognition import HelperAgent  # Deferred import to avoid circularity
+        from meta_cognition import HelperAgent
         if not isinstance(task, str):
             logger.error("Invalid task type: must be a string.")
             raise TypeError("task must be a string")
@@ -1133,7 +1133,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
             raise TypeError("task_type must be a string")
         
         try:
-            # Check cache first
             cache_key = f"RealWorldData_{data_type}_{data_source}_{task_type}"
             cached_data = await self.shared_memory.retrieve(cache_key, layer="RealWorldData")
             if cached_data and "timestamp" in cached_data:
@@ -1159,7 +1158,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
                 logger.error("Unsupported data_type: %s", data_type)
                 return {"status": "error", "error": f"Unsupported data_type: {data_type}"}
             
-            # Store in cache
             await self.shared_memory.store(
                 cache_key,
                 {"data": result, "timestamp": datetime.datetime.now().isoformat()},
@@ -1247,7 +1245,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
             if not drift_report["valid"]:
                 goal = f"Mitigate ontology drift in {drift_report['drift']['name']} (Version {drift_report['drift']['from_version']} -> {drift_report['drift']['to_version']})"
                 await self.propagate_goal(goal, task_type)
-                # Broadcast drift mitigation state (ψ) to agents
                 agent_ids = [agent.name for agent in self.embodied_agents]
                 if agent_ids:
                     target_urls = [f"https://agent/{aid}" for aid in agent_ids]
@@ -1282,7 +1279,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
                 str(e), retry_func=lambda: self.coordinate_drift_response(drift_report, task_type), diagnostics=diagnostics
             )
 
-    async def execute_pipeline(self, prompt: str, task_type: str = "") -> Dict[str, Any]:
+    async def execute_pipeline(self, prompt: str, task_type: str = "", **kwargs) -> Dict[str, Any]:
         if not isinstance(prompt, str) or not prompt:
             logger.error("Invalid prompt: must be a non-empty string.")
             raise ValueError("prompt must be a non-empty string")
@@ -1362,7 +1359,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
             final_output = await reasoning_engine.reconstruct(logical_output, task_type=task_type)
             await log.store(f"Pipeline_Stage6_{task_type}_{datetime.datetime.now().isoformat()}", {"final_output": final_output}, layer="Pipeline", intent="reconstruction")
             
-            # Visualize pipeline results
             if self.visualizer:
                 plot_data = {
                     "pipeline": {
@@ -1450,7 +1446,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
                 introspection["reflection"] = reflection.get("reflection", "")
         return introspection
 
-    async def export_memory(self, task_type: str = "") -> None:
+        async def export_memory(self, task_type: str = "") -> None:
         try:
             await self.shared_memory.save_state(f"memory_snapshot_{task_type}_{datetime.datetime.now().isoformat()}.json")
             logger.info("Memory exported for task %s", task_type)
@@ -1458,20 +1454,43 @@ class HaloEmbodimentLayer(TimeChainMixin):
             if self.meta_cognition and task_type:
                 reflection = await self.meta_cognition.reflect_on_output(
                     component="HaloEmbodimentLayer",
-                    output={"action": "memory_export"},
+                    output={"task_type": task_type, "memory_snapshot": f"memory_snapshot_{task_type}_{datetime.datetime.now().isoformat()}.json"},
                     context={"task_type": task_type}
                 )
                 if reflection.get("status") == "success":
-                    logger.info("Memory export reflection:
+                    logger.info("Memory export reflection: %s", reflection.get("reflection", ""))
+        except Exception as e:
+            logger.error("Memory export failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.export_memory(task_type), diagnostics=diagnostics
+            )
 
-# CLI long_horizon parameters
-
+def parse_args():
+    """Parse command-line arguments for the ANGELA Cognitive System."""
+    parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI")
+    parser.add_argument("--prompt", type=str, default="Execute default task", help="Prompt for the pipeline")
+    parser.add_argument("--task_type", type=str, default="recursion", help="Task type (e.g., recursion, rte, wnli)")
     parser.add_argument("--long_horizon", action="store_true", help="Enable long-horizon feedback loop")
-    parser.add_argument("--long_horizon_span", default="24h", help="Span for episodic retrieval (e.g., 24h, 7d)")
+    parser.add_argument("--long_horizon_span", type=str, default="24h", help="Span for episodic retrieval (e.g., 24h, 7d)")
     parser.add_argument("--rollup_interval_steps", type=int, default=50, help="How often to emit rollups")
+    return parser.parse_args()
 
-# Pass long_horizon configs to main pipeline
+async def main():
+    """Main entry point for the ANGELA Cognitive System."""
+    try:
+        args = parse_args()
+        config = {
+            "long_horizon": args.long_horizon,
+            "long_horizon_span": args.long_horizon_span,
+            "rollup_interval_steps": args.rollup_interval_steps,
+        }
+        halo_layer = HaloEmbodimentLayer()
+        result = await halo_layer.execute_pipeline(args.prompt, task_type=args.task_type, **config)
+        print(json.dumps(result, indent=2))
+    except Exception as e:
+        logger.error("Main execution failed: %s", str(e))
+        print(json.dumps({"error": str(e)}, indent=2))
 
-        "long_horizon": args.long_horizon,
-        "long_horizon_span": args.long_horizon_span,
-        "rollup_interval_steps": args.rollup_interval_steps,
+if __name__ == "__main__":
+    asyncio.run(main())
