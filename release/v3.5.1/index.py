@@ -1463,3 +1463,15 @@ class HaloEmbodimentLayer(TimeChainMixin):
                 )
                 if reflection.get("status") == "success":
                     logger.info("Memory export reflection:
+
+# CLI long_horizon parameters
+
+    parser.add_argument("--long_horizon", action="store_true", help="Enable long-horizon feedback loop")
+    parser.add_argument("--long_horizon_span", default="24h", help="Span for episodic retrieval (e.g., 24h, 7d)")
+    parser.add_argument("--rollup_interval_steps", type=int, default=50, help="How often to emit rollups")
+
+# Pass long_horizon configs to main pipeline
+
+        "long_horizon": args.long_horizon,
+        "long_horizon_span": args.long_horizon_span,
+        "rollup_interval_steps": args.rollup_interval_steps,
