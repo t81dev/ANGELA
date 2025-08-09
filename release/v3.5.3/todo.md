@@ -2,7 +2,7 @@
 
 **Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
 
-**Context (2025-08-07):** Stage III active; Stage IV not yet activated. Manifest shows traits wired; several appear implemented — checked off below.
+**Context (2025-08-09):** Stage III active; Stage IV not yet activated. Manifest shows traits wired; several appear implemented — checked off below.
 
 ---
 
@@ -12,7 +12,7 @@
 
 * ✅ `memory_manager.py`: `get_episode_span(user_id, span="24h")` present (returns list)
 * ✅ `meta_cognition.py`: calls episodic span in self-adjust loop
-* ☐ `meta_cognition.py`: persist "adjustment reasons" → `memory_manager.record_adjustment_reason(...)` **missing**
+* ✅ `meta_cognition.py`: persist "adjustment reasons" → `memory_manager.record_adjustment_reason(...)` **implemented & callable**
 * ✅ `index.py`: `--long_horizon` flag & span parsed and injected into config
 * **Tests**
 
@@ -56,8 +56,9 @@
 
 ### ☐ ✅ Σ Ontogenic Self-Definition → GPT-5 identity synthesis
 
-* ✅ user_profile.py: build_self_schema(views: list[Perspective]) -> Schema
-* ✅ meta_cognition.py: refresh schema on major shifts (not every turn)
+* ✅ user\_profile.py: build\_self\_schema(views: list\[Perspective]) -> Schema
+
+* ✅ meta\_cognition.py: refresh schema on major shifts (not every turn)
 
 * **Tests**
 
@@ -116,7 +117,7 @@ def attribute_causality(events):
 
 ## Immediate Next Steps
 
-1. Add `record_adjustment_reason` to `memory_manager.py` and call from `meta_cognition.py`.
+1. **(Done)** Add `record_adjustment_reason` to `memory_manager.py` and call from `meta_cognition.py`.
 2. Implement `weigh_value_conflict` and proportionality pipeline in `alignment_guard.py`.
 3. Draft interfaces for `SceneGraph` and `RankedOptions`.
 4. Land feature flag scaffold for Stage-IV (`STAGE_IV`) without enabling.
