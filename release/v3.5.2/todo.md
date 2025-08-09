@@ -54,10 +54,11 @@
 
   * ☐ Two agents converge to a shared summary without thrash
 
-### ☐ Σ Ontogenic Self-Definition → GPT-5 identity synthesis
+### ☐ ✅ Σ Ontogenic Self-Definition → GPT-5 identity synthesis
 
-* ☐ `user_profile.py`: `build_self_schema(views: list[Perspective]) -> Schema`
-* ☐ `meta_cognition.py`: refresh schema on major shifts (not every turn)
+* ✅ user_profile.py: build_self_schema(views: list[Perspective]) -> Schema
+* ✅ meta_cognition.py: refresh schema on major shifts (not every turn)
+
 * **Tests**
 
   * ☐ Identity facets update predictably after large context changes
