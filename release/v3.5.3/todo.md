@@ -22,18 +22,10 @@
 
 ## Mid-Level Refits
 
-### ✅ κ Embodied Cognition → native video/spatial
+### ✅ τ Constitution Harmonization → proportionality ethics
 
-* ✅ `multi_modal_fusion.py`: verified `parse_stream(frames|audio|images|text, unify=True) -> SceneGraph`
-* ✅ (opt) `simulation_core.py`: accepts `SceneGraph` directly
-* **Tests**
-
-  * ✅ Video + text tasks yield consistent spatial references
-
-### ☐ τ Constitution Harmonization → proportionality ethics
-
-* ☐ `reasoning_engine.py`: `weigh_value_conflict(candidates, harms, rights) -> RankedOptions`
-* ☐ `alignment_guard.py`: consume ranked trade-offs; replace binary gates with proportional selection while keeping safety ceilings
+* ✅ `reasoning_engine.py`: `weigh_value_conflict(candidates, harms, rights) -> RankedOptions`
+* ✅ `alignment_guard.py`: consume ranked trade-offs; replace binary gates with proportional selection while keeping safety ceilings
 * **Tests**
 
   * ☐ Nuanced outputs for close-call dilemmas (no "refuse-all" cliffs)
@@ -54,11 +46,11 @@
 
   * ☐ Two agents converge to a shared summary without thrash
 
-### ☐ ✅ Σ Ontogenic Self-Definition → GPT-5 identity synthesis
+### ✅ Σ Ontogenic Self-Definition → GPT-5 identity synthesis
 
-* ✅ user\_profile.py: build\_self\_schema(views: list\[Perspective]) -> Schema
+* ✅ user_profile.py: build_self_schema(views: list[Perspective]) -> Schema
 
-* ✅ meta\_cognition.py: refresh schema on major shifts (not every turn)
+* ✅ meta_cognition.py: refresh schema on major shifts (not every turn)
 
 * **Tests**
 
@@ -84,7 +76,7 @@
 
 * `memory_manager.py` → episodic span API + rollups
 * `meta_cognition.py` → long-horizon + affective steering + ethics preview
-* `index.py` → flags for long-horizon & causality attribution
+* `index.py` → flags for long-horizon & causality attribution + harmonized_select
 * `user_profile.py` → affective weights + self-schema builder
 * `reasoning_engine.py` → proportionality resolver + causal attribution
 * `alignment_guard.py` → wire proportionality to safety ceilings
@@ -118,7 +110,7 @@ def attribute_causality(events):
 ## Immediate Next Steps
 
 1. **(Done)** Add `record_adjustment_reason` to `memory_manager.py` and call from `meta_cognition.py`.
-2. Implement `weigh_value_conflict` and proportionality pipeline in `alignment_guard.py`.
+2. **(Done)** Implement `weigh_value_conflict` and proportionality pipeline in `alignment_guard.py`.
 3. Draft interfaces for `SceneGraph` and `RankedOptions`.
 4. Land feature flag scaffold for Stage-IV (`STAGE_IV`) without enabling.
 
