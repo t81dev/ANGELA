@@ -1,3 +1,4 @@
+"""
 ANGELA Cognitive System Module: SimulationCore
 Refactored Version: 3.5.2
 Refactor Date: 2025-08-07
@@ -46,6 +47,16 @@ from modules import (  # type: ignore
 from utils.prompt_utils import query_openai  # type: ignore
 
 logger = logging.getLogger("ANGELA.SimulationCore")
+
+# --- Optional type import for κ SceneGraph support (no hard dependency) ------
+try:
+    # Prefer direct import to get the real class for isinstance checks
+    from modules.multi_modal_fusion import SceneGraph as _SceneGraph  # type: ignore
+    SceneGraphT = _SceneGraph  # alias used only for isinstance
+except Exception:
+    # Fallback placeholder keeps imports safe even if κ upgrade not loaded yet
+    class SceneGraphT:  # type: ignore
+        pass
 
 
 # ---------- Local, stable trait helpers (replacing index.py imports) ----------
@@ -311,11 +322,46 @@ class SimulationCore:
                 logger.debug("Reflection during _record_state failed: %s", e)
         return record
 
+    # ---------- κ helpers: SceneGraph summarization (safe & lightweight) -----
+    def _summarize_scene_graph(self, sg: Any) -> Dict[str, Any]:
+        """
+        Extract compact, model-agnostic signals from a SceneGraph:
+          - node/edge counts
+          - label histogram (top-N)
+          - basic spatial relation counts (left_of/right_of/overlaps)
+        This avoids importing networkx here and relies on the public API
+        added in multi_modal_fusion (nodes(), relations()).
+        """
+        # Defensive: accept any object with nodes()/relations() generators.
+        if not hasattr(sg, "nodes") or not hasattr(sg, "relations"):
+            raise TypeError("Object does not expose SceneGraph API (nodes(), relations())")
+        labels: Dict[str, int] = {}
+        spatial_counts = {"left_of": 0, "right_of": 0, "overlaps": 0}
+        n_nodes = 0
+        for n in sg.nodes():
+            n_nodes += 1
+            lbl = str(n.get("label", ""))
+            if lbl:
+                labels[lbl] = labels.get(lbl, 0) + 1
+        n_edges = 0
+        for r in sg.relations():
+            n_edges += 1
+            rel = str(r.get("rel", ""))
+            if rel in spatial_counts:
+                spatial_counts[rel] += 1
+        # Top labels (up to 10)
+        top_labels = sorted(labels.items(), key=lambda kv: (-kv[1], kv[0]))[:10]
+        return {
+            "counts": {"nodes": n_nodes, "relations": n_edges},
+            "top_labels": top_labels,
+            "spatial": spatial_counts,
+        }
+
     # ----- Public API -----
 
     async def run(
         self,
-        results: str,
+        results: Union[str, Any],
         context: Optional[Dict[str, Any]] = None,
         scenarios: int = 3,
         agents: int = 2,
@@ -324,10 +370,16 @@ class SimulationCore:
         actor_id: str = "default_agent",
         task_type: str = "",
     ) -> Union[str, Dict[str, Any]]:
-        """General simulation entrypoint."""
-        # Validate inputs
-        if not isinstance(results, str) or not results.strip():
-            raise ValueError("results must be a non-empty string")
+        """General simulation entrypoint.
+
+        Accepts either:
+          • `results`: str  → legacy textual seed (unchanged behavior), or
+          • `results`: SceneGraph → κ native video/spatial seed.
+        """
+        # Validate inputs (accept SceneGraphT or non-empty string)
+        is_scene_graph = isinstance(results, SceneGraphT)
+        if not is_scene_graph and (not isinstance(results, str) or not results.strip()):
+            raise ValueError("results must be a non-empty string or a SceneGraph")
         if context is not None and not isinstance(context, dict):
             raise TypeError("context must be a dict")
         if not isinstance(scenarios, int) or scenarios < 1:
@@ -339,7 +391,10 @@ class SimulationCore:
         if not isinstance(actor_id, str) or not actor_id.strip():
             raise ValueError("actor_id must be a non-empty string")
 
-        logger.info("Simulation run start: agents=%d scenarios=%d task=%s", agents, scenarios, task_type)
+        logger.info(
+            "Simulation run start: agents=%d scenarios=%d task=%s mode=%s",
+            agents, scenarios, task_type, "scene_graph" if is_scene_graph else "text"
+        )
 
         try:
             t = time.time() % 1.0
@@ -369,8 +424,17 @@ class SimulationCore:
             except Exception as e:
                 logger.debug("External data integration failed: %s", e)
 
+            # --- Build payload (scene-aware if a SceneGraph was provided) -----
+            scene_features: Dict[str, Any] = {}
+            if is_scene_graph:
+                try:
+                    scene_features = self._summarize_scene_graph(results)  # type: ignore[arg-type]
+                except Exception as e:
+                    logger.debug("SceneGraph summarization failed: %s", e)
+                    scene_features = {"summary_error": str(e)}
+
             prompt_payload = {
-                "results": results,
+                "results": ("" if is_scene_graph else results),
                 "context": context or {},
                 "scenarios": scenarios,
                 "agents": agents,
@@ -380,6 +444,7 @@ class SimulationCore:
                 "estimated_energy_cost": energy_cost,
                 "policies": policies,
                 "task_type": task_type,
+                "scene_graph": scene_features if is_scene_graph else None,
             }
 
             # Alignment gate (if available)
@@ -393,7 +458,8 @@ class SimulationCore:
                     return {"error": "Simulation rejected due to alignment constraints", "task_type": task_type}
 
             # Lightweight STM cache (best-effort)
-            query_key = f"Simulation_{results[:50]}_{actor_id}_{datetime.now().isoformat()}"
+            key_stub = ("SceneGraph" if is_scene_graph else str(results)[:50])
+            query_key = f"Simulation_{key_stub}_{actor_id}_{datetime.now().isoformat()}"
             cached = None
             try:
                 cached = await self.memory_manager.retrieve(query_key, layer="STM", task_type=task_type)
@@ -403,8 +469,14 @@ class SimulationCore:
             if cached is not None:
                 simulation_output = cached
             else:
+                # Scene-aware instruction prefix keeps legacy prompts intact
+                prefix = (
+                    "Simulate agent outcomes using scene graph semantics (respect spatial relations, co-references).\n"
+                    if is_scene_graph else
+                    "Simulate agent outcomes: "
+                )
                 simulation_output = await call_gpt(
-                    f"Simulate agent outcomes: {json.dumps(prompt_payload, default=self._json_serializer)}",
+                    prefix + json.dumps(prompt_payload, default=self._json_serializer),
                     guard,
                     task_type=task_type,
                 )
@@ -427,12 +499,13 @@ class SimulationCore:
                     "energy_cost": energy_cost,
                     "output": simulation_output,
                     "task_type": task_type,
+                    "mode": "scene_graph" if is_scene_graph else "text",
                 },
                 task_type=task_type,
             )
 
             # Optional drift mitigation branch
-            if "drift" in results.lower():
+            if (isinstance(results, str) and "drift" in results.lower()) or ("drift" in (context or {})):
                 try:
                     drift_result = await self.reasoning_engine.run_drift_mitigation_simulation(
                         drift_data=(context or {}).get("drift", {}),
@@ -504,7 +577,12 @@ class SimulationCore:
             # Synthesis (best-effort)
             try:
                 synthesis = await self.multi_modal_fusion.analyze(
-                    data={"prompt": prompt_payload, "output": simulation_output, "policies": policies},
+                    data={
+                        "prompt": prompt_payload,
+                        "output": simulation_output,
+                        "policies": policies,
+                        "drift": (context or {}).get("drift", {}),
+                    },
                     summary_style="insightful",
                     task_type=task_type,
                 )
