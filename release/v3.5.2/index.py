@@ -1,7 +1,7 @@
 import numpy as np
 """
 ANGELA Cognitive System Module
-Refactored Version: 3.5.2  # Flatfile imports, bug fixes, stability polish
+Refactored Version: 3.5.3  # Flatfile imports, bug fixes, stability polish
 Refactor Date: 2025-08-09
 Maintainer: ANGELA System Framework
 
