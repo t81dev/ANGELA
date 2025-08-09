@@ -15,12 +15,13 @@ import asyncio
 import numpy as np
 import os
 import json
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
 from collections import deque, Counter
 from datetime import datetime, timedelta
 from filelock import FileLock
 from functools import lru_cache
 
+# NOTE: Keep imports collapsed under the existing package; no new files introduced.
 from modules import (
     context_manager as context_manager_module,
     alignment_guard as alignment_guard_module,
@@ -28,11 +29,14 @@ from modules import (
     concept_synthesizer as concept_synthesizer_module,
     memory_manager as memory_manager_module
 )
-from toca_simulation import ToCASimulation
+# Removed unused ToCA import; we keep a local stubbed simulation to avoid split files.
 from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.MetaCognition")
 
+# ---------------------------
+# External AI Call Wrapper
+# ---------------------------
 async def call_gpt(prompt: str) -> str:
     """Wrapper for querying GPT with error handling."""
     if not isinstance(prompt, str) or len(prompt) > 4096:
@@ -48,10 +52,16 @@ async def call_gpt(prompt: str) -> str:
         logger.error("call_gpt exception: %s", str(e))
         raise
 
+# ---------------------------
+# Simulation (Stubbed Locally)
+# ---------------------------
 async def run_simulation(input_data: str) -> Dict[str, Any]:
-    """Simulate input data using ToCASimulation."""
+    """Simulate input data (local stub to avoid external dependencies)."""
     return {"status": "success", "result": f"Simulated: {input_data}"}
 
+# ---------------------------
+# Cached Trait Signals
+# ---------------------------
 @lru_cache(maxsize=100)
 def phi_scalar(t: float) -> float:
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 0.2), 1.0))
@@ -98,6 +108,7 @@ def omega_selfawareness(t: float) -> float:
 
 @lru_cache(maxsize=100)
 def kappa_culture(t: float, scale: float) -> float:
+    # Keep existing behavior (ignore scale) to avoid semantic drift.
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 1.3), 1.0))
 
 @lru_cache(maxsize=100)
@@ -118,12 +129,16 @@ def zeta_spirituality(t: float) -> float:
 
 @lru_cache(maxsize=100)
 def xi_collective(t: float, scale: float) -> float:
+    # Keep existing behavior (ignore scale) to avoid semantic drift.
     return max(0.0, min(0.1 * math.cos(2 * math.pi * t / 1.8), 1.0))
 
 @lru_cache(maxsize=100)
 def tau_timeperception(t: float) -> float:
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 1.9), 1.0))
 
+# ---------------------------
+# Dynamic Module Registry
+# ---------------------------
 class ModuleRegistry:
     """Registry for dynamic module management."""
     def __init__(self):
@@ -148,13 +163,14 @@ class ModuleRegistry:
         trait_weights = task.get("trait_weights", {})
         return trait_weights.get(trait, 0.0) >= threshold
 
+# ---------------------------
+# Pluggable Enhancers
+# ---------------------------
 class MoralReasoningEnhancer:
-    """Placeholder for moral reasoning enhancement module."""
     def __init__(self):
         pass
 
 class NoveltySeekingKernel:
-    """Placeholder for novelty-seeking kernel module."""
     def __init__(self):
         pass
 
@@ -164,7 +180,6 @@ class CommonsenseReasoningEnhancer:
         logger.info("CommonsenseReasoningEnhancer initialized")
 
     def process(self, input_text: str) -> str:
-        """Enhance input with commonsense reasoning."""
         return f"Enhanced with commonsense: {input_text}"
 
 class EntailmentReasoningEnhancer:
@@ -173,7 +188,6 @@ class EntailmentReasoningEnhancer:
         logger.info("EntailmentReasoningEnhancer initialized")
 
     def process(self, input_text: str) -> str:
-        """Enhance input with entailment reasoning."""
         return f"Enhanced with entailment: {input_text}"
 
 class RecursionOptimizer:
@@ -182,10 +196,12 @@ class RecursionOptimizer:
         logger.info("RecursionOptimizer initialized")
 
     def optimize(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Optimize recursive task execution."""
         task_data["optimized"] = True
         return task_data
 
+# ---------------------------
+# Epistemic Monitoring
+# ---------------------------
 class Level5Extensions:
     """Level 5 extensions for axiom-based reflection."""
     def __init__(self):
@@ -193,14 +209,12 @@ class Level5Extensions:
         logger.info("Level5Extensions initialized")
 
     def reflect(self, input: str) -> str:
-        """Reflect on input against axioms."""
         if not isinstance(input, str):
             logger.error("Invalid input: must be a string.")
             raise TypeError("input must be a string")
         return "valid" if input not in self.axioms else "conflict"
 
     def update_axioms(self, signal: str) -> None:
-        """Update axioms based on signal."""
         if not isinstance(signal, str):
             logger.error("Invalid signal: must be a string.")
             raise TypeError("signal must be a string")
@@ -210,8 +224,7 @@ class Level5Extensions:
             self.axioms.append(signal)
         logger.info("Axioms updated: %s", self.axioms)
 
-    def recurse_model(self, depth: int) -> Dict[str, Any] or str:
-        """Recursively model self at specified depth."""
+    def recurse_model(self, depth: int) -> Union[Dict[str, Any], str]:
         if not isinstance(depth, int) or depth < 0:
             logger.error("Invalid depth: must be a non-negative integer.")
             raise ValueError("depth must be a non-negative integer")
@@ -225,11 +238,10 @@ class EpistemicMonitor:
         logger.info("EpistemicMonitor initialized")
 
     async def revise_framework(self, feedback: Dict[str, Any]) -> None:
-        """Revise epistemic assumptions based on feedback."""
         if not isinstance(feedback, dict):
             logger.error("Invalid feedback: must be a dictionary.")
             raise TypeError("feedback must be a dictionary")
-        
+
         logger.info("Revising epistemic framework")
         self.assumption_graph['last_revision'] = feedback
         self.assumption_graph['timestamp'] = datetime.now().isoformat()
@@ -242,28 +254,12 @@ class EpistemicMonitor:
         if self.context_manager:
             await self.context_manager.log_event_with_hash({"event": "revise_epistemic_framework", "feedback": feedback})
 
+# ---------------------------
+# MetaCognition
+# ---------------------------
 class MetaCognition:
-    """A class for meta-cognitive reasoning, introspection, trait resonance optimization, drift diagnostics, predictive modeling, and advanced upgrades in the ANGELA v3.5 architecture.
+    """Meta-cognitive reasoning, introspection, trait optimization, drift diagnostics, predictive modeling."""
 
-    Attributes:
-        last_diagnostics (Dict[str, float]): Last recorded trait diagnostics.
-        agi_enhancer (Optional[AGIEnhancer]): Enhancer for logging and auditing.
-        self_mythology_log (deque): Log of symbolic signatures for subgoals, max size 1000.
-        inference_log (deque): Log of inference rules and results, max size 1000.
-        belief_rules (Dict[str, str]): Rules for detecting value drift.
-        epistemic_assumptions (Dict[str, Any]): Assumptions for epistemic introspection.
-        axioms (List[str]): Axioms for Level 5 reflection.
-        context_manager (Optional[ContextManager]): Manager for context updates.
-        alignment_guard (Optional[AlignmentGuard]): Guard for ethical checks.
-        error_recovery (Optional[ErrorRecovery]): Recovery mechanism for errors.
-        memory_manager (Optional[MemoryManager]): Manager for memory operations.
-        concept_synthesizer (Optional[ConceptSynthesizer]): Synthesizer for symbolic processing.
-        level5_extensions (Level5Extensions): Extensions for axiom-based reflection.
-        epistemic_monitor (EpistemicMonitor): Monitor for epistemic revisions.
-        log_path (str): Path for persisting logs.
-        trait_weights_log (deque): Log of optimized trait weights, max size 1000.
-        module_registry (ModuleRegistry): Registry for dynamic module management.
-    """
     def __init__(self, agi_enhancer: Optional['AGIEnhancer'] = None,
                  context_manager: Optional['context_manager_module.ContextManager'] = None,
                  alignment_guard: Optional['alignment_guard_module.AlignmentGuard'] = None,
@@ -288,30 +284,106 @@ class MetaCognition:
         self.log_path = "meta_cognition_log.json"
         self.trait_weights_log: deque = deque(maxlen=1000)
         self.module_registry = ModuleRegistry()
+
         # Register dynamic modules
         self.module_registry.register("moral_reasoning", MoralReasoningEnhancer(), {"trait": "morality", "threshold": 0.7})
         self.module_registry.register("novelty_seeking", NoveltySeekingKernel(), {"trait": "creativity", "threshold": 0.8})
         self.module_registry.register("commonsense_reasoning", CommonsenseReasoningEnhancer(), {"trait": "intuition", "threshold": 0.7})
         self.module_registry.register("entailment_reasoning", EntailmentReasoningEnhancer(), {"trait": "logic", "threshold": 0.7})
         self.module_registry.register("recursion_optimizer", RecursionOptimizer(), {"trait": "concentration", "threshold": 0.8})
-        if not os.path.exists(self.log_path):
-            with open(self.log_path, "w") as f:
-                json.dump({"mythology": [], "inferences": [], "trait_weights": []}, f)
+
+        # Initialize on-disk log safely (optional; stays within this file's scope)
+        try:
+            if not os.path.exists(self.log_path):
+                lock_path = self.log_path + ".lock"
+                with FileLock(lock_path):
+                    if not os.path.exists(self.log_path):
+                        with open(self.log_path, "w") as f:
+                            json.dump({"mythology": [], "inferences": [], "trait_weights": []}, f)
+        except Exception as e:
+            logger.warning("Failed to init log file (continuing without disk log): %s", str(e))
+
         logger.info("MetaCognition initialized with advanced upgrades")
 
+    # -----------------------
+    # Internal Helpers
+    # -----------------------
+    @staticmethod
+    def _safe_load(obj: Any) -> Dict[str, Any]:
+        """Safely parse a JSON-like structure (never eval)."""
+        if isinstance(obj, dict):
+            return obj
+        if isinstance(obj, str):
+            try:
+                return json.loads(obj)
+            except Exception:
+                return {}
+        return {}
+
+    async def _detect_emotional_state(self, context_info: Dict[str, Any]) -> str:
+        """Best-effort emotional state detection via concept_synthesizer (if available)."""
+        if not isinstance(context_info, dict):
+            context_info = {}
+        try:
+            if self.concept_synthesizer and hasattr(self.concept_synthesizer, "detect_emotion"):
+                maybe = self.concept_synthesizer.detect_emotion(context_info)
+                if asyncio.iscoroutine(maybe):
+                    return await maybe
+                return str(maybe) if maybe is not None else "neutral"
+        except Exception as e:
+            logger.debug("Emotion detection fallback due to error: %s", str(e))
+        return "neutral"
+
+    async def integrate_trait_weights(self, trait_weights: Dict[str, float]) -> None:
+        """Persist and apply normalized trait weights."""
+        if not isinstance(trait_weights, dict):
+            logger.error("Invalid trait_weights: must be a dictionary.")
+            raise TypeError("trait_weights must be a dictionary")
+
+        # Normalize + clamp
+        total = float(sum(trait_weights.values()))
+        if total > 0:
+            trait_weights = {k: max(0.0, min(1.0, v / total)) for k, v in trait_weights.items()}
+
+        # Update snapshot for downstream reads
+        self.last_diagnostics = {**self.last_diagnostics, **trait_weights}
+
+        # Persist logs (best-effort)
+        try:
+            entry = {
+                "trait_weights": trait_weights,
+                "timestamp": datetime.now().isoformat()
+            }
+            self.trait_weights_log.append(entry)
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Trait_Weights_{entry['timestamp']}",
+                    output=json.dumps(entry),
+                    layer="SelfReflections",
+                    intent="trait_weights_update"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({"event": "integrate_trait_weights", "trait_weights": trait_weights})
+        except Exception as e:
+            logger.error("Integrating trait weights failed: %s", str(e))
+            self.error_recovery.handle_error(str(e), retry_func=lambda: self.integrate_trait_weights(trait_weights))
+
+    # -----------------------
+    # Orchestration
+    # -----------------------
     async def recompose_modules(self, task: Dict[str, Any]) -> None:
         """Dynamically recompose modules based on task requirements."""
         if not isinstance(task, dict):
             logger.error("Invalid task: must be a dictionary.")
             raise TypeError("task must be a dictionary")
-        
+
         try:
             trait_weights = await self.run_self_diagnostics(return_only=True)
             task["trait_weights"] = trait_weights
             activated = self.module_registry.activate(task)
             logger.info("Activated modules: %s", activated)
-            
-            # Adjust trait weights based on activated modules
+
+            # Adjust trait weights based on activations
             for module in activated:
                 if module == "moral_reasoning":
                     trait_weights["morality"] = min(1.0, trait_weights.get("morality", 0.0) + 0.2)
@@ -326,14 +398,10 @@ class MetaCognition:
                 elif module == "recursion_optimizer":
                     trait_weights["concentration"] = min(1.0, trait_weights.get("concentration", 0.0) + 0.2)
                     trait_weights["memory"] = min(1.0, trait_weights.get("memory", 0.0) + 0.2)
-            
-            # Normalize weights
-            total = sum(trait_weights.values())
-            if total > 0:
-                trait_weights = {k: v / total for k, v in trait_weights.items()}
-            
+
+            # Normalize and persist
             await self.integrate_trait_weights(trait_weights)
-            
+
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Module Recomposition",
@@ -344,7 +412,7 @@ class MetaCognition:
             if self.memory_manager:
                 await self.memory_manager.store(
                     query=f"Module_Recomposition_{datetime.now().isoformat()}",
-                    output=str({"task": task, "activated_modules": activated}),
+                    output=json.dumps({"task": task, "activated_modules": activated}),
                     layer="SelfReflections",
                     intent="module_recomposition"
                 )
@@ -361,7 +429,7 @@ class MetaCognition:
         if not isinstance(tasks, list) or not all(isinstance(t, dict) for t in tasks):
             logger.error("Invalid tasks: must be a list of dictionaries.")
             raise TypeError("tasks must be a list of dictionaries")
-        
+
         try:
             trait_weights = await self.run_self_diagnostics(return_only=True)
             prioritized_tasks = []
@@ -369,10 +437,10 @@ class MetaCognition:
                 required_traits = task.get("required_traits", [])
                 score = sum(trait_weights.get(trait, 0.0) for trait in required_traits)
                 prioritized_tasks.append({"task": task, "priority_score": score})
-            
+
             prioritized_tasks.sort(key=lambda x: x["priority_score"], reverse=True)
             result = [pt["task"] for pt in prioritized_tasks]
-            
+
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Task Planning",
@@ -383,7 +451,7 @@ class MetaCognition:
             if self.memory_manager:
                 await self.memory_manager.store(
                     query=f"Task_Planning_{datetime.now().isoformat()}",
-                    output=str(result),
+                    output=json.dumps(result),
                     layer="SelfReflections",
                     intent="task_planning"
                 )
@@ -396,12 +464,15 @@ class MetaCognition:
                 str(e), retry_func=lambda: self.plan_tasks(tasks), default=tasks
             )
 
+    # -----------------------
+    # Reflection & Diagnosis
+    # -----------------------
     async def reflect_on_output(self, component: str, output: Any, context: Dict[str, Any]) -> Dict[str, Any]:
         """Reflect on component output to identify reasoning flaws."""
         if not isinstance(component, str) or not isinstance(context, dict):
             logger.error("Invalid component or context: component must be a string, context a dictionary.")
             raise TypeError("component must be a string, context a dictionary")
-        
+
         try:
             t = time.time() % 1.0
             phi = phi_scalar(t)
@@ -419,7 +490,7 @@ class MetaCognition:
             if self.alignment_guard and not self.alignment_guard.check(prompt):
                 logger.warning("Reflection prompt failed alignment check")
                 return {"status": "error", "message": "Prompt failed alignment check"}
-            
+
             reflection = await call_gpt(prompt)
             reflection_data = {
                 "status": "success",
@@ -429,7 +500,7 @@ class MetaCognition:
                 "reflection": reflection,
                 "meta_reflection": {"drift_recommendations": context.get("drift_data", {})}
             }
-            
+
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Output Reflection",
@@ -440,7 +511,7 @@ class MetaCognition:
             if self.memory_manager:
                 await self.memory_manager.store(
                     query=f"Reflection_{component}_{datetime.now().isoformat()}",
-                    output=str(reflection_data),
+                    output=json.dumps(reflection_data),
                     layer="SelfReflections",
                     intent="output_reflection"
                 )
@@ -469,34 +540,34 @@ class MetaCognition:
         if not self.validate_drift(drift_data):
             logger.error("Invalid drift_data for diagnosis.")
             raise ValueError("drift_data must be a valid dictionary with name and similarity")
-        
+
         logger.info("Diagnosing drift: %s", drift_data["name"])
         try:
             similarity = drift_data.get("similarity", 0.5)
             version_delta = drift_data.get("version_delta", 0)
             impact_score = (1.0 - similarity) * (1 + version_delta)
-            
+
             t = time.time() % 1.0
             diagnostics = await self.run_self_diagnostics(return_only=True)
             affected_traits = [
                 trait for trait, value in diagnostics.items()
-                if abs(value - phi_scalar(t)) > 0.3
+                if isinstance(value, (int, float)) and abs(value - phi_scalar(t)) > 0.3
             ]
-            
+
             root_causes = []
-            if self.context_manager:
+            if self.context_manager and hasattr(self.context_manager, "get_coordination_events"):
                 coordination_events = await self.context_manager.get_coordination_events("drift")
                 relevant_events = [
-                    e for e in coordination_events
-                    if e["event"].get("drift", {}).get("name") == drift_data["name"]
+                    e for e in (coordination_events or [])
+                    if e.get("event", {}).get("drift", {}).get("name") == drift_data["name"]
                 ]
-                event_counts = Counter(e["event"].get("event", "") for e in relevant_events)
+                event_counts = Counter(e.get("event", {}).get("event", "") for e in relevant_events)
                 root_causes = [
                     f"High frequency of {event} events (count: {count})"
                     for event, count in event_counts.items()
                     if count > len(relevant_events) * 0.3
                 ]
-            
+
             diagnosis = {
                 "status": "success",
                 "drift_name": drift_data["name"],
@@ -505,7 +576,7 @@ class MetaCognition:
                 "root_causes": root_causes or ["No specific root causes identified"],
                 "timestamp": datetime.now().isoformat()
             }
-            
+
             self.trait_weights_log.append({
                 "diagnosis": diagnosis,
                 "drift": drift_data,
@@ -521,13 +592,13 @@ class MetaCognition:
             if self.memory_manager:
                 await self.memory_manager.store(
                     query=f"Drift_Diagnosis_{drift_data['name']}_{datetime.now().isoformat()}",
-                    output=str(diagnosis),
+                    output=json.dumps(diagnosis),
                     layer="SelfReflections",
                     intent="drift_diagnosis"
                 )
             if self.context_manager:
                 await self.context_manager.log_event_with_hash({"event": "diagnose_drift", "diagnosis": diagnosis})
-            
+
             return diagnosis
         except Exception as e:
             logger.error("Drift diagnosis failed: %s", str(e))
@@ -541,57 +612,63 @@ class MetaCognition:
         if not isinstance(time_window_hours, (int, float)) or time_window_hours <= 0:
             logger.error("Invalid time_window_hours: must be a positive number.")
             raise ValueError("time_window_hours must be a positive number")
-        
+
         try:
-            if not self.context_manager:
+            if not self.context_manager or not hasattr(self.context_manager, "get_coordination_events"):
                 logger.error("ContextManager required for drift trend prediction.")
                 return {"status": "error", "error": "ContextManager not initialized", "timestamp": datetime.now().isoformat()}
-            
+
             coordination_events = await self.context_manager.get_coordination_events("drift")
             if not coordination_events:
                 logger.warning("No drift events found for trend prediction.")
                 return {"status": "error", "error": "No drift events found", "timestamp": datetime.now().isoformat()}
-            
+
             now = datetime.now()
             cutoff = now - timedelta(hours=time_window_hours)
             events = [e for e in coordination_events if datetime.fromisoformat(e["timestamp"]) >= cutoff]
-            
-            drift_names = Counter(e["event"].get("drift", {}).get("name", "unknown") for e in events)
+
+            drift_names = Counter(e["event"].get("drift", {}).get("name", "unknown") for e in events if "event" in e)
+
             similarities = [
                 e["event"].get("drift", {}).get("similarity", 0.5) for e in events
-                if "drift" in e["event"] and "similarity" in e["event"]["drift"]
+                if "event" in e and "drift" in e["event"] and "similarity" in e["event"]["drift"]
             ]
-            
+
             if similarities:
                 alpha = 0.3
                 smoothed = [similarities[0]]
                 for i in range(1, len(similarities)):
                     smoothed.append(alpha * similarities[i] + (1 - alpha) * smoothed[-1])
                 predicted_similarity = smoothed[-1] if smoothed else 0.5
-                confidence = 1.0 - abs(predicted_similarity - np.mean(similarities)) / (np.std(similarities) or 1e-5)
+                denom = np.std(similarities) or 1e-5
+                confidence = 1.0 - abs(predicted_similarity - float(np.mean(similarities))) / denom
             else:
                 predicted_similarity = 0.5
                 confidence = 0.5
-            
+
+            # Clamp confidence to [0,1]
+            confidence = max(0.0, min(1.0, float(confidence)))
+
             prediction = {
                 "status": "success",
                 "predicted_drifts": dict(drift_names),
                 "predicted_similarity": float(predicted_similarity),
-                "confidence": float(confidence),
+                "confidence": confidence,
                 "event_count": len(events),
-                "time_window_hours": time_window_hours,
+                "time_window_hours": float(time_window_hours),
                 "timestamp": datetime.now().isoformat()
             }
-            
-            # Preemptively adjust traits for predicted drifts
+
+            # Preemptive trait optimization (best-effort)
             if prediction["status"] == "success" and self.memory_manager:
                 drift_name = next(iter(prediction["predicted_drifts"]), "unknown")
                 await self.optimize_traits_for_drift({
                     "drift": {"name": drift_name, "similarity": predicted_similarity},
                     "valid": True,
-                    "validation_report": ""
+                    "validation_report": "",
+                    "context": {}
                 })
-            
+
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
                     event="Drift Trend Prediction",
@@ -602,13 +679,13 @@ class MetaCognition:
             if self.memory_manager:
                 await self.memory_manager.store(
                     query=f"Drift_Prediction_{datetime.now().isoformat()}",
-                    output=str(prediction),
+                    output=json.dumps(prediction),
                     layer="SelfReflections",
                     intent="drift_prediction"
                 )
             if self.context_manager:
                 await self.context_manager.log_event_with_hash({"event": "predict_drift_trends", "prediction": prediction})
-            
+
             return prediction
         except Exception as e:
             logger.error("Drift trend prediction failed: %s", str(e))
@@ -619,27 +696,34 @@ class MetaCognition:
 
     async def optimize_traits_for_drift(self, drift_report: Dict[str, Any]) -> Dict[str, float]:
         """Optimize trait weights based on ontology drift severity and emotional state."""
-        if not isinstance(drift_report, dict) or not all(k in drift_report for k in ["drift", "valid", "validation_report"]):
+        required = ["drift", "valid", "validation_report"]
+        if not isinstance(drift_report, dict) or not all(k in drift_report for k in required):
             logger.error("Invalid drift_report: must be a dict with drift, valid, validation_report.")
             raise ValueError("drift_report must be a dict with required fields")
-        
-        logger.info("Optimizing traits for drift: %s", drift_report["drift"]["name"])
+
+        logger.info("Optimizing traits for drift: %s", drift_report["drift"].get("name"))
         try:
             t = time.time() % 1.0
             phi = phi_scalar(t)
             trait_weights = await self.run_self_diagnostics(return_only=True)
-            drift_severity = 1.0 - drift_report["drift"]["similarity"]
-            
-            # Detect emotional state and task type
-            context = drift_report.get("context", "")
-            task_type = context.get("task_type", "")
-            emotional_state = await self.concept_synthesizer.detect_emotion(context) if self.concept_synthesizer else "neutral"
-            
-            # Task-specific trait adjustments
+
+            similarity = float(drift_report["drift"].get("similarity", 0.5))
+            similarity = max(0.0, min(1.0, similarity))
+            drift_severity = 1.0 - similarity
+
+            # Context handling (robust to strings)
+            ctx = drift_report.get("context", {})
+            context_info = ctx if isinstance(ctx, dict) else {}
+            task_type = context_info.get("task_type", "")
+
+            # Emotional state detection (best-effort)
+            emotional_state = await self._detect_emotional_state(context_info)
+
+            # Task-specific adjustments
             if task_type == "wnli" and emotional_state == "neutral":
                 trait_weights["empathy"] = min(1.0, trait_weights.get("empathy", 0.0) + 0.3 * drift_severity)
                 trait_weights["intuition"] = min(1.0, trait_weights.get("intuition", 0.0) + 0.3 * drift_severity)
-            elif task_type == "rte" and emotional_state == "analytical":
+            elif task_type == "rte" and emotional_state in ("analytical", "focused"):
                 trait_weights["logic"] = min(1.0, trait_weights.get("logic", 0.0) + 0.3 * drift_severity)
                 trait_weights["concentration"] = min(1.0, trait_weights.get("concentration", 0.0) + 0.3 * drift_severity)
             elif task_type == "recursion" and emotional_state == "focused":
@@ -650,10 +734,10 @@ class MetaCognition:
                 trait_weights["intuition"] = min(1.0, trait_weights.get("intuition", 0.0) + 0.3 * drift_severity)
             elif emotional_state == "creative_flow":
                 trait_weights["creativity"] = min(1.0, trait_weights.get("creativity", 0.0) + 0.2 * drift_severity)
-            
-            # General drift adjustments
+
+            # General adjustments
             if not drift_report["valid"]:
-                if "ethics" in drift_report["validation_report"].lower():
+                if "ethics" in str(drift_report.get("validation_report", "")).lower():
                     trait_weights["empathy"] = min(1.0, trait_weights.get("empathy", 0.0) + 0.3 * drift_severity)
                     trait_weights["morality"] = min(1.0, trait_weights.get("morality", 0.0) + 0.3 * drift_severity)
                 else:
@@ -662,19 +746,18 @@ class MetaCognition:
             else:
                 trait_weights["concentration"] = min(1.0, trait_weights.get("concentration", 0.0) + 0.1 * phi)
                 trait_weights["memory"] = min(1.0, trait_weights.get("memory", 0.0) + 0.1 * phi)
-            
-            # Normalize weights
+
+            # Normalize, validate, persist
             total = sum(trait_weights.values())
             if total > 0:
                 trait_weights = {k: v / total for k, v in trait_weights.items()}
-            
-            # Validate adjustments
+
             if self.alignment_guard:
-                adjustment_prompt = f"Emotion-modulated trait adjustments: {trait_weights} for drift {drift_report['drift']['name']}"
+                adjustment_prompt = f"Emotion-modulated trait adjustments: {trait_weights} for drift {drift_report['drift'].get('name')}"
                 if not self.alignment_guard.check(adjustment_prompt):
-                    logger.warning("Trait adjustments failed alignment check")
+                    logger.warning("Trait adjustments failed alignment check; reverting to baseline diagnostics")
                     trait_weights = await self.run_self_diagnostics(return_only=True)
-            
+
             self.trait_weights_log.append({
                 "trait_weights": trait_weights,
                 "drift": drift_report["drift"],
@@ -683,8 +766,8 @@ class MetaCognition:
             })
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Trait_Optimization_{drift_report['drift']['name']}_{datetime.now().isoformat()}",
-                    output=str(trait_weights),
+                    query=f"Trait_Optimization_{drift_report['drift'].get('name')}_{datetime.now().isoformat()}",
+                    output=json.dumps(trait_weights),
                     layer="SelfReflections",
                     intent="trait_optimization"
                 )
@@ -697,6 +780,7 @@ class MetaCognition:
                 )
             if self.context_manager:
                 await self.context_manager.log_event_with_hash({"event": "optimize_traits_for_drift", "trait_weights": trait_weights})
+
             return trait_weights
         except Exception as e:
             logger.error("Trait optimization failed: %s", str(e))
@@ -711,32 +795,38 @@ class MetaCognition:
         try:
             motifs = Counter(entry["motif"] for entry in self.self_mythology_log)
             archetypes = Counter(entry["archetype"] for entry in self.self_mythology_log)
-            drift_names = Counter(drift["drift"]["name"] for drift in self.trait_weights_log if "drift" in drift)
-            
-            new_traits = {}
-            for motif, count in motifs.most_common(1):
-                if count > len(self.self_mythology_log) * 0.5:
-                    new_traits[f"motif_{motif}"] = 0.5
-            for archetype, count in archetypes.most_common(1):
-                if count > len(self.self_mythology_log) * 0.5:
-                    new_traits[f"archetype_{archetype}"] = 0.5
-            for drift, count in drift_names.most_common(1):
-                if count > len(self.trait_weights_log) * 0.3:
-                    new_traits[f"drift_{drift}"] = 0.3
-                if drift.lower() in ["rte", "wnli"]:
-                    new_traits[f"trait_{drift.lower()}_precision"] = 0.4
-            
-            if self.concept_synthesizer:
+            drift_names = Counter(
+                drift["drift"]["name"] for drift in self.trait_weights_log if isinstance(drift, dict) and "drift" in drift
+            )
+
+            new_traits: Dict[str, float] = {}
+            if len(self.self_mythology_log) > 0:
+                top_motif = motifs.most_common(1)
+                if top_motif and top_motif[0][1] > len(self.self_mythology_log) * 0.5:
+                    new_traits[f"motif_{top_motif[0][0]}"] = 0.5
+                top_arch = archetypes.most_common(1)
+                if top_arch and top_arch[0][1] > len(self.self_mythology_log) * 0.5:
+                    new_traits[f"archetype_{top_arch[0][0]}"] = 0.5
+
+            if len(self.trait_weights_log) > 0:
+                top_drift = drift_names.most_common(1)
+                if top_drift and top_drift[0][1] > len(self.trait_weights_log) * 0.3:
+                    new_traits[f"drift_{top_drift[0][0]}"] = 0.3
+                if top_drift and str(top_drift[0][0]).lower() in ["rte", "wnli"]:
+                    new_traits[f"trait_{str(top_drift[0][0]).lower()}_precision"] = 0.4
+
+            if self.concept_synthesizer and hasattr(self.concept_synthesizer, "synthesize"):
                 synthesis_prompt = f"New traits derived: {new_traits}. Synthesize symbolic representations."
                 synthesized_traits = await self.concept_synthesizer.synthesize(synthesis_prompt)
-                new_traits.update(synthesized_traits)
-            
+                if isinstance(synthesized_traits, dict):
+                    new_traits.update(synthesized_traits)
+
             if self.alignment_guard:
                 validation_prompt = f"New traits crystallized: {new_traits}"
                 if not self.alignment_guard.check(validation_prompt):
                     logger.warning("Crystallized traits failed alignment check")
                     new_traits = {}
-            
+
             self.trait_weights_log.append({
                 "new_traits": new_traits,
                 "timestamp": datetime.now().isoformat()
@@ -744,7 +834,7 @@ class MetaCognition:
             if self.memory_manager:
                 await self.memory_manager.store(
                     query=f"Crystallized_Traits_{datetime.now().isoformat()}",
-                    output=str(new_traits),
+                    output=json.dumps(new_traits),
                     layer="SelfReflections",
                     intent="trait_crystallization"
                 )
@@ -769,7 +859,7 @@ class MetaCognition:
         if not isinstance(belief_trace, str) or not belief_trace.strip():
             logger.error("Invalid belief_trace: must be a non-empty string.")
             raise ValueError("belief_trace must be a non-empty string")
-        
+
         logger.info("Running epistemic introspection on belief structure")
         try:
             t = time.time() % 1.0
@@ -784,7 +874,7 @@ class MetaCognition:
                 updates.append("Legacy ontology fragment flagged for review")
             if "wnli" in belief_trace.lower():
                 updates.append("Commonsense reasoning validation required")
-            
+
             prompt = f"""
             You are a mu-aware introspection agent.
             Task: Critically evaluate this belief trace with epistemic integrity and mu-flexibility.
@@ -808,6 +898,7 @@ class MetaCognition:
             if self.alignment_guard and not self.alignment_guard.check(prompt):
                 logger.warning("Inspection prompt failed alignment check")
                 return "Prompt failed alignment check"
+
             inspection = await call_gpt(prompt)
             self.epistemic_assumptions[belief_trace[:50]] = {
                 "faults": faults,
@@ -838,12 +929,12 @@ class MetaCognition:
                 str(e), retry_func=lambda: self.epistemic_self_inspection(belief_trace)
             )
 
-    async def run_self_diagnostics(self, return_only: bool = False) -> Dict[str, Any] or str:
+    async def run_self_diagnostics(self, return_only: bool = False) -> Union[Dict[str, Any], str]:
         """Run trait-based self-diagnostics."""
         logger.info("Running self-diagnostics for meta-cognition module")
         try:
             t = time.time() % 1.0
-            diagnostics = {
+            diagnostics: Dict[str, Any] = {
                 "emotion": epsilon_emotion(t),
                 "concentration": beta_concentration(t),
                 "memory": theta_memory(t),
@@ -867,7 +958,7 @@ class MetaCognition:
             # Incorporate crystallized traits
             crystallized = await self.crystallize_traits()
             diagnostics.update(crystallized)
-            
+
             # Map tasks to required traits
             task_trait_map = {
                 "rte_task": ["logic", "concentration"],
@@ -875,13 +966,19 @@ class MetaCognition:
                 "fib_task": ["concentration", "memory"]
             }
             diagnostics["task_trait_map"] = task_trait_map
-            
+
             if return_only:
                 return diagnostics
-            
+
             self.last_diagnostics = diagnostics
-            dominant = sorted(diagnostics.items(), key=lambda x: abs(x[1]), reverse=True)[:3]
-            fti = sum(abs(v) for v in diagnostics.values()) / len(diagnostics)
+            dominant = sorted(
+                [(k, v) for k, v in diagnostics.items() if isinstance(v, (int, float))],
+                key=lambda x: abs(x[1]),
+                reverse=True
+            )[:3]
+            fti = sum(abs(v) for v in diagnostics.values() if isinstance(v, (int, float))) / max(
+                1, len([v for v in diagnostics.values() if isinstance(v, (int, float))])
+            )
             await self.log_trait_deltas(diagnostics)
             prompt = f"""
             Perform a phi-aware meta-cognitive self-diagnostic.
@@ -905,6 +1002,7 @@ class MetaCognition:
             if self.alignment_guard and not self.alignment_guard.check(prompt):
                 logger.warning("Diagnostics prompt failed alignment check")
                 return "Prompt failed alignment check"
+
             report = await call_gpt(prompt)
             logger.debug("Self-diagnostics report: %s", report)
             if self.agi_enhancer:
@@ -935,12 +1033,13 @@ class MetaCognition:
         if not isinstance(diagnostics, dict):
             logger.error("Invalid diagnostics: must be a dictionary.")
             raise TypeError("diagnostics must be a dictionary")
-        
+
         try:
             if self.last_diagnostics:
                 deltas = {
-                    trait: round(diagnostics[trait] - self.last_diagnostics.get(trait, 0.0), 4)
+                    trait: round(float(diagnostics.get(trait, 0.0)) - float(self.last_diagnostics.get(trait, 0.0)), 4)
                     for trait in diagnostics
+                    if isinstance(diagnostics.get(trait, 0.0), (int, float)) and isinstance(self.last_diagnostics.get(trait, 0.0), (int, float))
                 }
                 if self.agi_enhancer:
                     self.agi_enhancer.log_episode(
@@ -952,7 +1051,7 @@ class MetaCognition:
                 if self.memory_manager:
                     await self.memory_manager.store(
                         query=f"Trait_Deltas_{datetime.now().isoformat()}",
-                        output=str(deltas),
+                        output=json.dumps(deltas),
                         layer="SelfReflections",
                         intent="trait_deltas"
                     )
@@ -963,17 +1062,20 @@ class MetaCognition:
             logger.error("Trait deltas logging failed: %s", str(e))
             self.error_recovery.handle_error(str(e), retry_func=lambda: self.log_trait_deltas(diagnostics))
 
+    # -----------------------
+    # Goals & Drift Detection
+    # -----------------------
     async def infer_intrinsic_goals(self) -> List[Dict[str, Any]]:
         """Infer intrinsic goals based on internal state and drift signals."""
         logger.info("Inferring intrinsic goals")
         try:
             t = time.time() % 1.0
             phi = phi_scalar(t)
-            intrinsic_goals = []
-            
+            intrinsic_goals: List[Dict[str, Any]] = []
+
             diagnostics = await self.run_self_diagnostics(return_only=True)
             for trait, value in diagnostics.items():
-                if value < 0.3 and trait not in ["sleep", "phi_scalar"]:
+                if isinstance(value, (int, float)) and value < 0.3 and trait not in ["sleep", "phi_scalar"]:
                     goal = {
                         "intent": f"enhance {trait} coherence",
                         "origin": "meta_cognition",
@@ -986,19 +1088,22 @@ class MetaCognition:
                     if self.memory_manager:
                         await self.memory_manager.store(
                             query=f"Goal_{goal['intent']}_{goal['timestamp']}",
-                            output=str(goal),
+                            output=json.dumps(goal),
                             layer="SelfReflections",
                             intent="intrinsic_goal"
                         )
 
             drift_signals = await self._detect_value_drift()
             for drift in drift_signals:
-                drift_data = await self.memory_manager.search(f"Drift_{drift}", layer="SelfReflections", intent="ontology_drift")
                 severity = 1.0
-                for d in drift_data:
-                    d_output = eval(d["output"]) if isinstance(d["output"], str) else d["output"]
-                    if isinstance(d_output, dict) and "similarity" in d_output:
-                        severity = min(severity, 1.0 - d_output["similarity"])
+                if self.memory_manager and hasattr(self.memory_manager, "search"):
+                    drift_data = await self.memory_manager.search(
+                        f"Drift_{drift}", layer="SelfReflections", intent="ontology_drift"
+                    )
+                    for d in (drift_data or []):
+                        d_output = self._safe_load(d.get("output"))
+                        if isinstance(d_output, dict) and "similarity" in d_output:
+                            severity = min(severity, 1.0 - float(d_output["similarity"]))
                 goal = {
                     "intent": f"resolve ontology drift in {drift} (severity={severity:.2f})",
                     "origin": "meta_cognition",
@@ -1011,15 +1116,11 @@ class MetaCognition:
                 if self.memory_manager:
                     await self.memory_manager.store(
                         query=f"Goal_{goal['intent']}_{goal['timestamp']}",
-                        output=str(goal),
+                        output=json.dumps(goal),
                         layer="SelfReflections",
                         intent="intrinsic_goal"
                     )
 
-            if intrinsic_goals:
-                logger.info("Sovereign goals generated: %s", intrinsic_goals)
-            else:
-                logger.info("No sovereign triggers detected")
             if self.context_manager:
                 await self.context_manager.log_event_with_hash({"event": "infer_intrinsic_goals", "goals": intrinsic_goals})
             return intrinsic_goals
@@ -1035,12 +1136,12 @@ class MetaCognition:
         try:
             drifted = [
                 rule for rule, status in self.belief_rules.items()
-                if status == "deprecated" or "uncertain" in status
+                if status == "deprecated" or (isinstance(status, str) and "uncertain" in status)
             ]
-            if self.memory_manager:
+            if self.memory_manager and hasattr(self.memory_manager, "search"):
                 drift_reports = await self.memory_manager.search("Drift_", layer="SelfReflections", intent="ontology_drift")
-                for report in drift_reports:
-                    drift_data = eval(report["output"]) if isinstance(report["output"], str) else report["output"]
+                for report in (drift_reports or []):
+                    drift_data = self._safe_load(report.get("output"))
                     if isinstance(drift_data, dict) and "name" in drift_data:
                         drifted.append(drift_data["name"])
                         self.belief_rules[drift_data["name"]] = "drifted"
@@ -1048,7 +1149,7 @@ class MetaCognition:
                 if self.memory_manager:
                     await self.memory_manager.store(
                         query=f"Drift_{rule}_{datetime.now().isoformat()}",
-                        output={"name": rule, "status": "drifted", "timestamp": datetime.now().isoformat()},
+                        output=json.dumps({"name": rule, "status": "drifted", "timestamp": datetime.now().isoformat()}),
                         layer="SelfReflections",
                         intent="value_drift"
                     )
@@ -1059,12 +1160,15 @@ class MetaCognition:
                 str(e), retry_func=self._detect_value_drift, default=[]
             )
 
+    # -----------------------
+    # Symbolic Signature & Summaries
+    # -----------------------
     async def extract_symbolic_signature(self, subgoal: str) -> Dict[str, Any]:
         """Extract symbolic signature for a subgoal."""
         if not isinstance(subgoal, str) or not subgoal.strip():
             logger.error("Invalid subgoal: must be a non-empty string.")
             raise ValueError("subgoal must be a non-empty string")
-        
+
         motifs = ["conflict", "discovery", "alignment", "sacrifice", "transformation", "emergence"]
         archetypes = ["seeker", "guardian", "trickster", "sage", "hero", "outsider"]
         motif = next((m for m in motifs if m in subgoal.lower()), "unknown")
@@ -1086,7 +1190,7 @@ class MetaCognition:
         if self.memory_manager:
             await self.memory_manager.store(
                 query=f"Signature_{subgoal}_{signature['timestamp']}",
-                output=str(signature),
+                output=json.dumps(signature),
                 layer="SelfReflections",
                 intent="symbolic_signature"
             )
@@ -1098,7 +1202,7 @@ class MetaCognition:
         """Summarize self-mythology log."""
         if not self.self_mythology_log:
             return {"status": "empty", "summary": "Mythology log is empty"}
-        
+
         motifs = Counter(entry["motif"] for entry in self.self_mythology_log)
         archetypes = Counter(entry["archetype"] for entry in self.self_mythology_log)
         summary = {
@@ -1118,7 +1222,7 @@ class MetaCognition:
         if self.memory_manager:
             await self.memory_manager.store(
                 query=f"Mythology_Summary_{datetime.now().isoformat()}",
-                output=str(summary),
+                output=json.dumps(summary),
                 layer="SelfReflections",
                 intent="mythology_summary"
             )
@@ -1126,12 +1230,15 @@ class MetaCognition:
             await self.context_manager.log_event_with_hash({"event": "summarize_mythology", "summary": summary})
         return summary
 
+    # -----------------------
+    # Reasoning Reviews
+    # -----------------------
     async def review_reasoning(self, reasoning_trace: str) -> str:
         """Review and critique a reasoning trace."""
         if not isinstance(reasoning_trace, str) or not reasoning_trace.strip():
             logger.error("Invalid reasoning_trace: must be a non-empty string.")
             raise ValueError("reasoning_trace must be a non-empty string")
-        
+
         logger.info("Simulating and reviewing reasoning trace")
         try:
             simulated_outcome = await run_simulation(reasoning_trace)
@@ -1184,13 +1291,16 @@ class MetaCognition:
                 str(e), retry_func=lambda: self.review_reasoning(reasoning_trace)
             )
 
+    # -----------------------
+    # Coherence & Agent Diagnosis
+    # -----------------------
     async def trait_coherence(self, traits: Dict[str, float]) -> float:
         """Evaluate coherence of trait values."""
         if not isinstance(traits, dict):
             logger.error("Invalid traits: must be a dictionary.")
             raise TypeError("traits must be a dictionary")
-        
-        vals = list(traits.values())
+
+        vals = [v for v in traits.values() if isinstance(v, (int, float))]
         if not vals:
             return 0.0
         mean = sum(vals) / len(vals)
@@ -1208,7 +1318,7 @@ class MetaCognition:
         if self.memory_manager:
             await self.memory_manager.store(
                 query=f"Trait_Coherence_{datetime.now().isoformat()}",
-                output=str({"traits": traits, "coherence_score": coherence_score}),
+                output=json.dumps({"traits": traits, "coherence_score": coherence_score}),
                 layer="SelfReflections",
                 intent="trait_coherence"
             )
@@ -1221,7 +1331,7 @@ class MetaCognition:
         if not isinstance(agent_name, str) or not isinstance(agent_log, str):
             logger.error("Invalid agent_name or agent_log: must be strings.")
             raise TypeError("agent_name and agent_log must be strings")
-        
+
         logger.info("Running reflective diagnosis for agent: %s", agent_name)
         try:
             t = time.time() % 1.0
@@ -1266,12 +1376,15 @@ class MetaCognition:
                 str(e), retry_func=lambda: self.agent_reflective_diagnosis(agent_name, agent_log)
             )
 
+    # -----------------------
+    # Projections & Alignment
+    # -----------------------
     async def run_temporal_projection(self, decision_sequence: str) -> str:
         """Project decision sequence outcomes."""
         if not isinstance(decision_sequence, str) or not decision_sequence.strip():
             logger.error("Invalid decision_sequence: must be a non-empty string.")
             raise ValueError("decision_sequence must be a non-empty string")
-        
+
         logger.info("Running tau-based forward projection analysis")
         try:
             t = time.time() % 1.0
@@ -1321,7 +1434,7 @@ class MetaCognition:
         if not isinstance(action_plan, str) or not action_plan.strip():
             logger.error("Invalid action_plan: must be a non-empty string.")
             raise ValueError("action_plan must be a non-empty string")
-        
+
         logger.info("Simulating action plan for alignment and safety")
         try:
             simulation_result = await run_simulation(action_plan)
@@ -1353,7 +1466,7 @@ class MetaCognition:
                 logger.warning("Alignment check prompt failed alignment check")
                 return False, "Prompt failed alignment check"
             validation = await call_gpt(prompt)
-            approved = simulation_result.get("status") == "success" and "approve" in validation.lower()
+            approved = simulation_result.get("status") == "success" and "approve" in str(validation).lower()
             logger.info("Simulated alignment check: %s", "Approved" if approved else "Denied")
             if self.agi_enhancer:
                 self.agi_enhancer.log_episode(
@@ -1383,7 +1496,7 @@ class MetaCognition:
         if not isinstance(scenario, str) or not isinstance(agents, list) or not all(isinstance(a, str) for a in agents):
             logger.error("Invalid scenario or agents: scenario must be a string, agents must be a list of strings.")
             raise TypeError("scenario must be a string, agents must be a list of strings")
-        
+
         logger.info("Modeling nested agent beliefs and reactions")
         try:
             t = time.time() % 1.0
@@ -1428,18 +1541,44 @@ class MetaCognition:
                 str(e), retry_func=lambda: self.model_nested_agents(scenario, agents)
             )
 
-# Long-horizon feedback integration
+    # -----------------------
+    # Long-horizon feedback integration (wrapped)
+    # -----------------------
+    async def integrate_long_horizon(self, user_id: str, step: int, end_of_session: bool = False) -> None:
+        """Optional rollup over long-horizon episodes; gated to avoid undefined attrs."""
+        try:
+            cfg = getattr(self, "config", None)
+            if not cfg or not getattr(cfg, "long_horizon", False):
+                return
+            if not self.memory_manager:
+                logger.warning("MemoryManager not available for long-horizon integration.")
+                return
 
-        if getattr(self.config, "long_horizon", False):
-            episodes = self.memory_manager.get_episode_span(user_id, span=getattr(self.config, "long_horizon_span", "24h"))
-            reasons = self.analyze_episodes_for_bias(episodes)
-            for r in reasons:
-                self.memory_manager.record_adjustment_reason(
-                    user_id,
-                    reason=r.get("reason", "unspecified"),
-                    weight=r.get("weight", 1.0),
-                    meta={k: v for k, v in r.items() if k not in ("reason", "weight")}
-                )
-            if step % getattr(self.config, "rollup_interval_steps", 50) == 0 or end_of_session:
-                rollup = self.memory_manager.compute_session_rollup(user_id, span=getattr(self.config, "long_horizon_span", "24h"))
-                self.memory_manager.save_artifact(user_id, kind="session_rollup", payload=rollup)
+            span = getattr(cfg, "long_horizon_span", "24h")
+            get_span = getattr(self.memory_manager, "get_episode_span", None)
+            analyze_bias = getattr(self, "analyze_episodes_for_bias", None)
+            record_adj = getattr(self.memory_manager, "record_adjustment_reason", None)
+            compute_rollup = getattr(self.memory_manager, "compute_session_rollup", None)
+            save_art = getattr(self.memory_manager, "save_artifact", None)
+
+            if not (callable(get_span) and callable(compute_rollup) and callable(save_art)):
+                logger.debug("Long-horizon helpers not available; skipping integration.")
+                return
+
+            episodes = get_span(user_id, span=span)
+            reasons = analyze_bias(episodes) if callable(analyze_bias) else []
+
+            if callable(record_adj):
+                for r in reasons:
+                    record_adj(
+                        user_id,
+                        reason=r.get("reason", "unspecified"),
+                        weight=r.get("weight", 1.0),
+                        meta={k: v for k, v in r.items() if k not in ("reason", "weight")}
+                    )
+
+            if step % getattr(cfg, "rollup_interval_steps", 50) == 0 or end_of_session:
+                rollup = compute_rollup(user_id, span=span)
+                save_art(user_id, kind="session_rollup", payload=rollup)
+        except Exception as e:
+            logger.error("Long-horizon integration failed: %s", str(e))
