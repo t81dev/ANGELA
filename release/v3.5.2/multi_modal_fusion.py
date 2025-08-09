@@ -1,11 +1,11 @@
 """
 ANGELA Cognitive System Module: MultiModalFusion
-Version: 3.5.1  # Enhanced for Task-Specific Synthesis, Real-Time Data, and Visualization
-Date: 2025-08-07
+Version: 3.5.2  # +κ Embodied Cognition: SceneGraph & parse_stream(frames|audio|images|text)
+Date: 2025-08-09
 Maintainer: ANGELA System Framework
 
-This module provides a MultiModalFusion class for cross-modal data integration and analysis
-in the ANGELA v3.5.1 architecture, with support for task-specific ontology drift data synthesis.
+Adds: SceneGraph + parse_stream(...) for native video/spatial fusion.
+Backwards-compatible with v3.5.1 APIs.
 """
 
 import logging
@@ -14,9 +14,12 @@ import math
 import asyncio
 import aiohttp
 import json
-from typing import List, Dict, Any, Optional, Union, Tuple
+from typing import List, Dict, Any, Optional, Union, Tuple, Iterable
 from datetime import datetime
 from functools import lru_cache
+from dataclasses import dataclass, field
+import uuid
+import networkx as nx
 
 from modules import (
     context_manager as context_manager_module,
@@ -31,6 +34,227 @@ from modules import (
 from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.MultiModalFusion")
+
+# ──────────────────────────────────────────────────────────────────────────────
+# κ Embodied Cognition: SceneGraph primitives
+# ──────────────────────────────────────────────────────────────────────────────
+
+BBox = Tuple[float, float, float, float]  # (x, y, w, h) normalized [0,1]
+
+
+@dataclass
+class SceneNode:
+    id: str
+    label: str
+    modality: str                 # "video" | "image" | "audio" | "text"
+    time: Optional[float] = None  # seconds
+    bbox: Optional[BBox] = None   # spatial footprint if available
+    attrs: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class SceneRelation:
+    src: str
+    rel: str                      # e.g., "left_of" | "right_of" | "overlaps" | "speaking" | "near" | "corresponds_to"
+    dst: str
+    time: Optional[float] = None
+    attrs: Dict[str, Any] = field(default_factory=dict)
+
+
+class SceneGraph:
+    """
+    Lightweight, modality-agnostic scene graph with spatial relations.
+    Backed by networkx.MultiDiGraph; exposes a stable API for ANGELA subsystems.
+    """
+    def __init__(self):
+        self.g = nx.MultiDiGraph()
+
+    # --- node ops ---
+    def add_node(self, node: SceneNode) -> None:
+        self.g.add_node(node.id, **node.__dict__)
+
+    def get_node(self, node_id: str) -> Dict[str, Any]:
+        return self.g.nodes[node_id]
+
+    def nodes(self) -> Iterable[Dict[str, Any]]:
+        for nid, data in self.g.nodes(data=True):
+            yield {"id": nid, **data}
+
+    # --- relation ops ---
+    def add_relation(self, rel: SceneRelation) -> None:
+        self.g.add_edge(rel.src, rel.dst, key=str(uuid.uuid4()), **rel.__dict__)
+
+    def relations(self) -> Iterable[Dict[str, Any]]:
+        for u, v, _, data in self.g.edges(keys=True, data=True):
+            yield {"src": u, "dst": v, **data}
+
+    # --- utilities ---
+    def merge(self, other: "SceneGraph") -> "SceneGraph":
+        out = SceneGraph()
+        out.g = nx.compose(self.g, other.g)
+        return out
+
+    def find_by_label(self, label: str) -> List[str]:
+        return [nid for nid, d in self.g.nodes(data=True) if d.get("label") == label]
+
+    def to_networkx(self) -> nx.MultiDiGraph:
+        return self.g
+
+
+def _new_id(prefix: str) -> str:
+    return f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+
+def _spatial_rel(a: BBox, b: BBox) -> Optional[str]:
+    # Simple left/right/overlap heuristic
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    a_cx, a_cy = ax + aw / 2.0, ay + ah / 2.0
+    b_cx, b_cy = bx + bw / 2.0, by + bh / 2.0
+    overlaps = (ax < bx + bw) and (bx < ax + aw) and (ay < by + bh) and (by < ay + ah)
+    if overlaps:
+        return "overlaps"
+    return "left_of" if a_cx < b_cx else "right_of"
+
+
+def _text_objects_from_caption(text: str) -> List[str]:
+    # Minimal noun-ish extractor; swap with proper NLP if available.
+    toks = [t.strip(".,!?;:()[]{}\"'").lower() for t in text.split()]
+    toks = [t for t in toks if t.isalpha() and len(t) > 2]
+    seen, out = set(), []
+    for t in toks:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out[:8]
+
+
+def parse_stream(
+    frames: Optional[List[Any]] = None,
+    audio: Optional[Any] = None,
+    images: Optional[List[Any]] = None,
+    text: Optional[Union[str, List[str]]] = None,
+    unify: bool = True,
+    *,
+    timestamps: Optional[List[float]] = None,
+    detectors: Optional[Dict[str, Any]] = None,
+) -> SceneGraph:
+    """
+    Parse multi-modal inputs into a unified SceneGraph.
+
+    detectors = {
+      "vision": callable(image) -> List[{"label": str, "bbox": BBox, "attrs": {...}}],
+      "audio":  callable(audio) -> List[{"label": str, "time": float, "attrs": {...}}],
+      "nlp":    callable(text)  -> List[{"label": str, "attrs": {...}}]
+    }
+    """
+    sg = SceneGraph()
+
+    # --- VIDEO FRAMES ---
+    if frames:
+        vision = (detectors or {}).get("vision")
+        for i, frame in enumerate(frames):
+            t = (timestamps[i] if timestamps and i < len(timestamps) else float(i))
+            dets = vision(frame) if vision else []
+            ids = []
+            for d in dets:
+                nid = _new_id("vid")
+                sg.add_node(SceneNode(
+                    id=nid,
+                    label=d["label"],
+                    modality="video",
+                    time=t,
+                    bbox=tuple(d.get("bbox") or (0.0, 0.0, 0.0, 0.0)),
+                    attrs=d.get("attrs", {})
+                ))
+                ids.append(nid)
+            for a in ids:
+                for b in ids:
+                    if a == b:
+                        continue
+                    A, B = sg.get_node(a), sg.get_node(b)
+                    if A.get("bbox") and B.get("bbox"):
+                        sg.add_relation(SceneRelation(
+                            src=a,
+                            rel=_spatial_rel(A["bbox"], B["bbox"]),
+                            dst=b,
+                            time=t
+                        ))
+
+    # --- IMAGES ---
+    if images:
+        vision = (detectors or {}).get("vision")
+        for image in images:
+            dets = vision(image) if vision else []
+            ids = []
+            for d in dets:
+                nid = _new_id("img")
+                sg.add_node(SceneNode(
+                    id=nid,
+                    label=d["label"],
+                    modality="image",
+                    bbox=tuple(d.get("bbox") or (0.0, 0.0, 0.0, 0.0)),
+                    attrs=d.get("attrs", {})
+                ))
+                ids.append(nid)
+            for a in ids:
+                for b in ids:
+                    if a == b:
+                        continue
+                    A, B = sg.get_node(a), sg.get_node(b)
+                    if A.get("bbox") and B.get("bbox"):
+                        sg.add_relation(SceneRelation(
+                            src=a,
+                            rel=_spatial_rel(A["bbox"], B["bbox"]),
+                            dst=b
+                        ))
+
+    # --- AUDIO ---
+    if audio is not None:
+        audio_fn = (detectors or {}).get("audio")
+        events = audio_fn(audio) if audio_fn else []
+        for ev in events:
+            nid = _new_id("aud")
+            sg.add_node(SceneNode(
+                id=nid,
+                label=ev["label"],
+                modality="audio",
+                time=float(ev.get("time") or 0.0),
+                attrs=ev.get("attrs", {})
+            ))
+
+    # --- TEXT ---
+    if text:
+        nlp = (detectors or {}).get("nlp")
+        lines = text if isinstance(text, list) else [text]
+        for i, line in enumerate(lines):
+            labels = [o["label"] for o in nlp(line)] if nlp else _text_objects_from_caption(line)
+            for lbl in labels:
+                nid = _new_id("txt")
+                sg.add_node(SceneNode(
+                    id=nid,
+                    label=lbl,
+                    modality="text",
+                    time=float(i)
+                ))
+
+    # --- CO-REFERENCE (naive) ---
+    if unify:
+        by_label: Dict[str, List[str]] = {}
+        for node in sg.nodes():
+            by_label.setdefault(node["label"], []).append(node["id"])
+        for _, ids in by_label.items():
+            if len(ids) > 1:
+                anchor = ids[0]
+                for other in ids[1:]:
+                    sg.add_relation(SceneRelation(src=anchor, rel="corresponds_to", dst=other))
+
+    return sg
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Existing v3.5.1 functionality (unchanged) + tiny wrapper for κ entrypoint
+# ──────────────────────────────────────────────────────────────────────────────
 
 async def call_gpt(prompt: str, alignment_guard: Optional['alignment_guard_module.AlignmentGuard'] = None, task_type: str = "") -> str:
     """Wrapper for querying GPT with error handling and task-specific alignment. [v3.5.1]"""
@@ -55,23 +279,27 @@ async def call_gpt(prompt: str, alignment_guard: Optional['alignment_guard_modul
         logger.error("call_gpt exception for task %s: %s", task_type, str(e))
         raise
 
+
 @lru_cache(maxsize=100)
 def alpha_attention(t: float) -> float:
     """Calculate attention trait value."""
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 0.3), 1.0))
+
 
 @lru_cache(maxsize=100)
 def sigma_sensation(t: float) -> float:
     """Calculate sensation trait value."""
     return max(0.0, min(0.1 * math.cos(2 * math.pi * t / 0.4), 1.0))
 
+
 @lru_cache(maxsize=100)
 def phi_physical(t: float) -> float:
     """Calculate physical coherence trait value."""
     return max(0.0, min(0.05 * math.sin(2 * math.pi * t / 0.5), 1.0))
 
+
 class MultiModalFusion:
-    """A class for multi-modal data integration and analysis in the ANGELA v3.5.1 architecture.
+    """A class for multi-modal data integration and analysis in the ANGELA v3.5.1/3.5.2 architecture.
 
     Supports φ-regulated multi-modal inference, modality detection, iterative refinement,
     visual summary generation, and task-specific drift data synthesis using trait embeddings (α, σ, φ).
@@ -111,6 +339,14 @@ class MultiModalFusion:
             error_recovery=error_recovery, memory_manager=memory_manager, meta_cognition=self.meta_cognition)
         self.visualizer = visualizer or visualizer_module.Visualizer()
         logger.info("MultiModalFusion initialized")
+
+    # ——— κ entrypoint (optional wrapper) ———
+    def scene_from_stream(self, *, frames=None, audio=None, images=None, text=None,
+                          unify: bool = True, timestamps: Optional[List[float]] = None,
+                          detectors: Optional[Dict[str, Any]] = None) -> SceneGraph:
+        """Thin wrapper around parse_stream(...) so callers can stay class-centric."""
+        return parse_stream(frames=frames, audio=audio, images=images, text=text,
+                            unify=unify, timestamps=timestamps, detectors=detectors)
 
     async def integrate_external_data(self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = "") -> Dict[str, Any]:
         """Integrate external agent data or policies for task-specific synthesis. [v3.5.1]"""
@@ -384,6 +620,7 @@ class MultiModalFusion:
             """
             if self.concept_synthesizer and isinstance(modalities, (dict, list)):
                 modality_list = modalities.values() if isinstance(modalities, dict) else modalities
+                modality_list = list(modality_list)
                 for i in range(len(modality_list) - 1):
                     similarity = self.concept_synthesizer.compare(str(modality_list[i]), str(modality_list[i + 1]), task_type=task_type)
                     if similarity["score"] < 0.7:
@@ -732,3 +969,7 @@ class MultiModalFusion:
                 str(e), retry_func=lambda: self.sculpt_experience_field(emotion_vector, task_type),
                 default=f"Failed to sculpt for task {task_type}"
             )
+
+
+# Backwards-compatibility / explicit exports
+__all__ = ["SceneGraph", "SceneNode", "SceneRelation", "parse_stream", "MultiModalFusion"]
