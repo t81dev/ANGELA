@@ -1,13 +1,15 @@
 """
 ANGELA Cognitive System Module: MetaCognition
-Refactored Version: 3.5.2  # Σ self-schema refresh hook, long-horizon reasons, stability thresholds
-Refactor Date: 2025-08-09
+Version: 3.5.3  # Σ schema refresh fix, η self_adjust_loop w/ long-horizon reasons, stability polish
+Date: 2025-08-09
 Maintainer: ANGELA System Framework
 
 This module provides a MetaCognition class for reasoning critique, goal inference, introspection,
 trait resonance optimization, drift diagnostics, predictive modeling, and advanced upgrades for
 benchmark optimization in the ANGELA v3.5+ architecture.
 """
+
+from __future__ import annotations
 
 import logging
 import time
@@ -22,16 +24,15 @@ from datetime import datetime, timedelta
 from filelock import FileLock
 from functools import lru_cache
 
-# NOTE: Keep imports collapsed under the existing package; no new files introduced.
+# Keep imports collapsed under the existing package; no new files introduced.
 from modules import (
     context_manager as context_manager_module,
     alignment_guard as alignment_guard_module,
     error_recovery as error_recovery_module,
     concept_synthesizer as concept_synthesizer_module,
     memory_manager as memory_manager_module,
-    user_profile as user_profile_module  # ← Σ Ontogenic Self-Definition (build_self_schema)
+    user_profile as user_profile_module,  # ← Σ Ontogenic Self-Definition (build_self_schema)
 )
-# Removed unused ToCA import; we keep a local stubbed simulation to avoid split files.
 from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.MetaCognition")
@@ -310,7 +311,7 @@ class MetaCognition:
                 lock_path = self.log_path + ".lock"
                 with FileLock(lock_path):
                     if not os.path.exists(self.log_path):
-                        with open(self.log_path, "w") as f:
+                        with open(self.log_path, "w", encoding="utf-8") as f:
                             json.dump({"mythology": [], "inferences": [], "trait_weights": []}, f)
         except Exception as e:
             logger.warning("Failed to init log file (continuing without disk log): %s", str(e))
@@ -398,7 +399,6 @@ class MetaCognition:
         if self.context_manager and hasattr(self.context_manager, "get_coordination_events"):
             try:
                 recent = await self.context_manager.get_coordination_events("drift")
-                # keep last 10 for compactness
                 events = (recent or [])[-10:]
             except Exception:
                 events = []
@@ -428,7 +428,6 @@ class MetaCognition:
                                         force: bool = False,
                                         extra_views: Optional[List[Dict[str, Any]]] = None) -> Optional[Dict[str, Any]]:
         """Refresh Σ self-schema when a major shift is detected (throttled)."""
-        # Preconditions
         now = time.time()
         if not force and (now - self._last_schema_refresh_ts) < self._schema_refresh_min_interval_sec:
             return None
@@ -450,11 +449,12 @@ class MetaCognition:
             schema_hash = self._hash_obj(schema)
             changed = (schema_hash != self._last_schema_hash)
 
+            # NOTE: store in SelfReflections (MemoryManager does not allow 'Identity' layer)
             if self.memory_manager:
                 await self.memory_manager.store(
                     query=f"SelfSchema_Refresh_{datetime.now().isoformat()}",
                     output=json.dumps({"reason": reason, "changed": changed, "schema": schema}),
-                    layer="Identity",
+                    layer="SelfReflections",
                     intent="self_schema_refresh"
                 )
 
@@ -481,7 +481,6 @@ class MetaCognition:
         vals = [abs(v) for v in deltas.values() if isinstance(v, (int, float))]
         if not vals:
             return 0.0
-        # max absolute movement as primary trigger
         return max(vals)
 
     # -----------------------
@@ -769,7 +768,6 @@ class MetaCognition:
                 predicted_similarity = 0.5
                 confidence = 0.5
 
-            # Clamp confidence to [0,1]
             confidence = max(0.0, min(1.0, float(confidence)))
 
             prediction = {
@@ -1686,6 +1684,87 @@ class MetaCognition:
             )
 
     # -----------------------
+    # η Long-horizon: self-adjust loop (NEW)
+    # -----------------------
+    async def self_adjust_loop(self, user_id: str, diagnostics: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Analyze recent episodes and adjust internal weights/strategies.
+        Persists 'adjustment reasons' via MemoryManager.record_adjustment_reason(...).
+        """
+        if not isinstance(user_id, str) or not user_id:
+            raise TypeError("user_id must be a non-empty string")
+        if not isinstance(diagnostics, dict):
+            raise TypeError("diagnostics must be a dictionary")
+
+        try:
+            span = str(diagnostics.get("span", "24h"))
+            # fetch long-horizon episodes
+            get_span = getattr(self.memory_manager, "get_episode_span", None) if self.memory_manager else None
+            episodes = get_span(user_id, span=span) if callable(get_span) else []
+
+            # derive reasons (reuse local analyzer)
+            reasons = self.analyze_episodes_for_bias(episodes)
+            reasons = sorted(reasons, key=lambda r: float(r.get("weight", 1.0)), reverse=True)[:5] if reasons else []
+
+            # persist reasons
+            record_adj = getattr(self.memory_manager, "record_adjustment_reason", None) if self.memory_manager else None
+            if callable(record_adj):
+                for r in reasons:
+                    record_adj(
+                        user_id,
+                        reason=r.get("reason", "unspecified"),
+                        weight=r.get("weight", 1.0),
+                        meta={k: v for k, v in r.items() if k not in ("reason", "weight")}
+                    )
+
+            # simple adjustment suggestion from diagnostics deltas
+            current = await self.run_self_diagnostics(return_only=True)
+            deltas: Dict[str, float] = {}
+            if isinstance(self.last_diagnostics, dict):
+                for k, v in current.items():
+                    if isinstance(v, (int, float)) and isinstance(self.last_diagnostics.get(k, 0.0), (int, float)):
+                        deltas[k] = float(v) - float(self.last_diagnostics.get(k, 0.0))
+            shift = self._compute_shift_score(deltas)
+
+            adjustment = {
+                "reason": reasons[0]["reason"] if reasons else "periodic_tune",
+                "weights_delta_hint": {
+                    "empathy": 0.1 if any(r["reason"] == "excessive_denials" for r in reasons) else 0.0,
+                    "memory": 0.1 if any(r["reason"] == "frequent_drift" for r in reasons) else 0.0,
+                },
+                "shift_score": round(shift, 4),
+                "span": span,
+            }
+
+            # Log a tiny reflection for auditability
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"SelfAdjust_{user_id}_{datetime.now().isoformat()}",
+                    output=json.dumps({"episodes": len(episodes), "reasons": reasons, "adjustment": adjustment}),
+                    layer="SelfReflections",
+                    intent="self_adjustment"
+                )
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "self_adjust_loop",
+                    "user_id": user_id,
+                    "span": span,
+                    "reasons_count": len(reasons),
+                    "shift_score": adjustment["shift_score"],
+                })
+
+            # apply lightweight effect to diagnostics snapshot
+            for trait, delta in adjustment["weights_delta_hint"].items():
+                if delta:
+                    current[trait] = min(1.0, float(current.get(trait, 0.0)) + delta)
+
+            self.last_diagnostics = current
+            return adjustment
+        except Exception as exc:
+            logger.exception("self_adjust_loop error: %s", exc)
+            return None
+
+    # -----------------------
     # Long-horizon feedback integration (wrapped)
     # -----------------------
     async def integrate_long_horizon(self, user_id: str, step: int, end_of_session: bool = False) -> None:
@@ -1710,16 +1789,13 @@ class MetaCognition:
                 return
 
             episodes = get_span(user_id, span=span)
-            # derive lightweight "adjustment reasons" from recent episodes
             reasons = analyze_bias(episodes) if callable(analyze_bias) else []
             if isinstance(reasons, list) and reasons:
-                # keep the top-5 by weight to avoid log spam
                 try:
                     reasons = sorted(reasons, key=lambda r: float(r.get("weight", 1.0)), reverse=True)[:5]
                 except Exception:
                     reasons = reasons[:5]
 
-            # ✅ persist "adjustment reasons" when available
             if callable(record_adj):
                 for r in reasons:
                     record_adj(
@@ -1729,11 +1805,9 @@ class MetaCognition:
                         meta={k: v for k, v in r.items() if k not in ("reason", "weight")}
                     )
 
-            # create a periodic/end-of-session rollup artifact
             if step % getattr(cfg, "rollup_interval_steps", 50) == 0 or end_of_session:
                 rollup = compute_rollup(user_id, span=span)
                 artifact_path = save_art(user_id, kind="session_rollup", payload=rollup)
-                # best-effort: store a tiny pointer for test assertions & dashboards
                 try:
                     if hasattr(self.memory_manager, "store"):
                         await self.memory_manager.store(
@@ -1763,7 +1837,6 @@ class MetaCognition:
         try:
             if not isinstance(episodes, list):
                 return reasons
-            # Simple motif: if many denials or high drift diagnoses, suggest empathy/memory focus
             denies = sum(1 for e in episodes if "deny" in str(e).lower())
             drifts = sum(1 for e in episodes if "drift" in str(e).lower())
             if denies >= 3:
