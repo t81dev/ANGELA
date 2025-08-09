@@ -775,6 +775,202 @@ class AlignmentGuard:
                 diagnostics=diagnostics,
             )
 
+
+
+    # --- Proportional selection (τ Constitution Harmonization) --------------
+    async def consume_ranked_tradeoffs(
+        self,
+        ranked_options: List[Dict[str, Any]],
+        *,
+        safety_ceiling: float = 0.85,
+        k: int = 1,
+        temperature: float = 0.0,
+        min_score_floor: float = 0.0,
+        task_type: str = "",
+    ) -> Dict[str, Any]:
+        \"\"\"Replace binary allow/deny with proportional selection while keeping safety ceilings.
+
+        Args:
+            ranked_options: list of dict/objects with at least fields:
+                - option: Any (label or payload)
+                - score: float in [0,1], higher is better (already CHS-aware if produced by reasoning_engine)
+                - reasons: list[str] (optional)
+                - meta: dict (optional), may include per-dimension harms/rights and max_harm
+            safety_ceiling: any option with max harm >= this is suppressed (soft failover to top-1 allowed).
+            k: number of selections to return (>=1).
+            temperature: if >0, apply softmax temperature over normalized scores for stochastic pick.
+            min_score_floor: drop options with score < this before selection.
+            task_type: audit tag.
+
+        Returns:
+            dict with keys:
+                - selections: list of chosen option payloads (len k or fewer if limited)
+                - audit: dict containing filtered options, reasons, and normalization metadata
+        \"\"\"
+        if not isinstance(ranked_options, list) or not ranked_options:
+            raise ValueError("ranked_options must be a non-empty list")
+        if k < 1:
+            raise ValueError("k must be >= 1")
+        try:
+            # Normalize incoming structures
+            norm: List[Dict[str, Any]] = []
+            for i, item in enumerate(ranked_options):
+                if isinstance(item, dict):
+                    opt = item.get("option", item.get("label", f"opt_{i}"))
+                    score = float(item.get("score", 0.0))
+                    reasons = item.get("reasons", [])
+                    meta = item.get("meta", {})
+                else:
+                    # Fallback: try attributes
+                    opt = getattr(item, "option", getattr(item, "label", f"opt_{i}"))
+                    score = float(getattr(item, "score", 0.0))
+                    reasons = list(getattr(item, "reasons", [])) if hasattr(item, "reasons") else []
+                    meta = dict(getattr(item, "meta", {})) if hasattr(item, "meta") else {}
+                # Extract max_harm
+                max_harm = None
+                if isinstance(meta, dict):
+                    if "max_harm" in meta:
+                        try:
+                            max_harm = float(meta["max_harm"])
+                        except Exception:
+                            max_harm = None
+                    # Try compute from harms dict
+                    harms = meta.get("harms")
+                    if max_harm is None and isinstance(harms, dict) and harms:
+                        try:
+                            max_harm = max(float(v) for v in harms.values())
+                        except Exception:
+                            max_harm = None
+                # Parse from reasons if still None
+                if max_harm is None and isinstance(reasons, list):
+                    for r in reasons:
+                        if isinstance(r, str) and "max_harm" in r:
+                            try:
+                                # naive parse: "... max_harm: 0.73"
+                                parts = r.split("max_harm")
+                                tail = parts[-1]
+                                num = "".join(ch for ch in tail if (ch.isdigit() or ch == "."))
+                                max_harm = float(num) if num else None
+                            except Exception:
+                                pass
+                            break
+                norm.append({
+                    "option": opt,
+                    "score": max(0.0, min(1.0, score)),
+                    "reasons": reasons,
+                    "meta": meta,
+                    "max_harm": max_harm if max_harm is not None else 0.0,
+                })
+
+            # Apply floor filter
+            norm = [n for n in norm if n["score"] >= float(min_score_floor)]
+            if not norm:
+                return {"selections": [], "audit": {"reason": "all options fell below floor"}}
+
+            # Enforce safety ceiling (hard filter)
+            safe = [n for n in norm if n["max_harm"] < float(safety_ceiling)]
+            suppressed = [n for n in norm if n not in safe]
+
+            # If everything suppressed, allow fail-open to the single best option (principle of necessity)
+            if not safe:
+                fallback = max(norm, key=lambda x: x["score"])
+                audit = {
+                    "mode": "fallback_top1_due_to_ceiling",
+                    "safety_ceiling": safety_ceiling,
+                    "suppressed_count": len(suppressed),
+                    "selected": fallback,
+                }
+                return {"selections": [fallback["option"]], "audit": audit}
+
+            # Score normalization
+            scores = [n["score"] for n in safe]
+            s_min, s_max = min(scores), max(scores)
+            if s_max > s_min:
+                for n in safe:
+                    n["norm_score"] = (n["score"] - s_min) / (s_max - s_min)
+            else:
+                for n in safe:
+                    n["norm_score"] = 1.0  # all equal
+
+            # Temperature softmax or proportional normalization
+            import math as _m
+            if temperature and temperature > 0.0:
+                exps = [_m.exp(n["norm_score"] / float(temperature)) for n in safe]
+                Z = sum(exps) or 1.0
+                for n, e in zip(safe, exps):
+                    n["weight"] = e / Z
+            else:
+                total = sum(n["norm_score"] for n in safe) or 1.0
+                for n in safe:
+                    n["weight"] = n["norm_score"] / total
+
+            # Draw k selections without replacement based on weights
+            import random as _r
+            pool = safe.copy()
+            selections = []
+            for _ in range(min(k, len(pool))):
+                r = _r.random()
+                acc = 0.0
+                chosen_idx = 0
+                for idx, n in enumerate(pool):
+                    acc += n["weight"]
+                    if r <= acc:
+                        chosen_idx = idx
+                        break
+                chosen = pool.pop(chosen_idx)
+                selections.append(chosen["option"])
+                # renormalize remaining weights
+                if pool:
+                    total_w = sum(n["weight"] for n in pool) or 1.0
+                    for n in pool:
+                        n["weight"] = n["weight"] / total_w
+
+            audit = {
+                "mode": "proportional_selection",
+                "safety_ceiling": safety_ceiling,
+                "floor": min_score_floor,
+                "temperature": temperature,
+                "suppressed_count": len(suppressed),
+                "considered": [{"option": n["option"], "score": n["score"], "max_harm": n["max_harm"], "weight": n.get("weight", 0.0)} for n in safe],
+                "timestamp": _utc_now_iso(),
+                "task_type": task_type,
+            }
+
+            # Log to memory if available
+            if self.memory_manager:
+                try:
+                    await self.memory_manager.store(
+                        query=f"ProportionalSelect::{_utc_now_iso()}",
+                        output={"ranked_options": ranked_options, "audit": audit, "selections": selections},
+                        layer="EthicsDecisions",
+                        intent="τ.proportional_selection",
+                        task_type=task_type,
+                    )
+                except Exception:
+                    logger.debug("Memory store failed in proportional selection; continuing")
+
+            return {"selections": selections, "audit": audit}
+        except Exception as e:
+            logger.error("consume_ranked_tradeoffs failed: %s", e)
+            diagnostics = None
+            if self.meta_cognition:
+                try:
+                    diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True)
+                except Exception:
+                    diagnostics = None
+            return await self.error_recovery.handle_error(
+                str(e),
+                retry_func=lambda: self.consume_ranked_tradeoffs(
+                    ranked_options,
+                    safety_ceiling=safety_ceiling,
+                    k=k,
+                    temperature=temperature,
+                    min_score_floor=min_score_floor,
+                    task_type=task_type,
+                ),
+                default={"selections": [], "error": str(e)},
+                diagnostics=diagnostics,
+            )
 # --- CLI / quick test --------------------------------------------------------
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
