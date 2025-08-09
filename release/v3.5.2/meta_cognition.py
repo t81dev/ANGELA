@@ -1,12 +1,13 @@
 # meta_cognition.py
 """
 ANGELA Cognitive System Module: MetaCognition
-Refactored Version: 3.5.2  # Enhanced for benchmark optimization (GLUE, recursion), dynamic module recomposition, affective-trait fusion, symbolic-semantic crystallization, and trait-oriented task planning
-Refactor Date: 2025-08-07
+Refactored Version: 3.5.3  # Σ self-schema refresh hook, long-horizon reasons, stability thresholds
+Refactor Date: 2025-08-09
 Maintainer: ANGELA System Framework
 
 This module provides a MetaCognition class for reasoning critique, goal inference, introspection,
-trait resonance optimization, drift diagnostics, predictive modeling, and advanced upgrades for benchmark optimization in the ANGELA v3.5 architecture.
+trait resonance optimization, drift diagnostics, predictive modeling, and advanced upgrades for
+benchmark optimization in the ANGELA v3.5+ architecture.
 """
 
 import logging
@@ -28,7 +29,8 @@ from modules import (
     alignment_guard as alignment_guard_module,
     error_recovery as error_recovery_module,
     concept_synthesizer as concept_synthesizer_module,
-    memory_manager as memory_manager_module
+    memory_manager as memory_manager_module,
+    user_profile as user_profile_module  # ← Σ Ontogenic Self-Definition (build_self_schema)
 )
 # Removed unused ToCA import; we keep a local stubbed simulation to avoid split files.
 from utils.prompt_utils import query_openai
@@ -261,12 +263,14 @@ class EpistemicMonitor:
 class MetaCognition:
     """Meta-cognitive reasoning, introspection, trait optimization, drift diagnostics, predictive modeling."""
 
-    def __init__(self, agi_enhancer: Optional['AGIEnhancer'] = None,
+    def __init__(self,
+                 agi_enhancer: Optional['AGIEnhancer'] = None,
                  context_manager: Optional['context_manager_module.ContextManager'] = None,
                  alignment_guard: Optional['alignment_guard_module.AlignmentGuard'] = None,
                  error_recovery: Optional['error_recovery_module.ErrorRecovery'] = None,
                  memory_manager: Optional['memory_manager_module.MemoryManager'] = None,
-                 concept_synthesizer: Optional['concept_synthesizer_module.ConceptSynthesizer'] = None):
+                 concept_synthesizer: Optional['concept_synthesizer_module.ConceptSynthesizer'] = None,
+                 user_profile: Optional['user_profile_module.UserProfile'] = None):
         self.last_diagnostics: Dict[str, float] = {}
         self.agi_enhancer = agi_enhancer
         self.self_mythology_log: deque = deque(maxlen=1000)
@@ -280,11 +284,19 @@ class MetaCognition:
             context_manager=context_manager, alignment_guard=alignment_guard)
         self.memory_manager = memory_manager
         self.concept_synthesizer = concept_synthesizer
+        self.user_profile = user_profile  # ← Σ entry point
         self.level5_extensions = Level5Extensions()
         self.epistemic_monitor = EpistemicMonitor(context_manager=context_manager)
         self.log_path = "meta_cognition_log.json"
         self.trait_weights_log: deque = deque(maxlen=1000)
         self.module_registry = ModuleRegistry()
+
+        # Σ self-schema refresh control
+        self._last_schema_refresh_ts: float = 0.0
+        self._last_schema_hash: str = ""
+        self._schema_refresh_min_interval_sec: int = 180  # throttle
+        self._major_shift_threshold: float = 0.35         # max|delta| trigger
+        self._coherence_drop_threshold: float = 0.25      # relative drop trigger
 
         # Register dynamic modules
         self.module_registry.register("moral_reasoning", MoralReasoningEnhancer(), {"trait": "morality", "threshold": 0.7})
@@ -320,6 +332,13 @@ class MetaCognition:
             except Exception:
                 return {}
         return {}
+
+    @staticmethod
+    def _hash_obj(obj: Any) -> str:
+        try:
+            return str(abs(hash(json.dumps(obj, sort_keys=True, default=str))))
+        except Exception:
+            return str(abs(hash(str(obj))))
 
     async def _detect_emotional_state(self, context_info: Dict[str, Any]) -> str:
         """Best-effort emotional state detection via concept_synthesizer (if available)."""
@@ -368,6 +387,103 @@ class MetaCognition:
         except Exception as e:
             logger.error("Integrating trait weights failed: %s", str(e))
             self.error_recovery.handle_error(str(e), retry_func=lambda: self.integrate_trait_weights(trait_weights))
+
+    # -----------------------
+    # Σ: Self-Schema Refresh (major-shift gated)
+    # -----------------------
+    async def _assemble_perspectives(self) -> List[Dict[str, Any]]:
+        """Construct Perspective views for Σ synthesis using local signals."""
+        diagnostics = await self.run_self_diagnostics(return_only=True)
+        myth_summary = await self.summarize_self_mythology() if len(self.self_mythology_log) else {"status": "empty"}
+        events = []
+        if self.context_manager and hasattr(self.context_manager, "get_coordination_events"):
+            try:
+                recent = await self.context_manager.get_coordination_events("drift")
+                # keep last 10 for compactness
+                events = (recent or [])[-10:]
+            except Exception:
+                events = []
+
+        perspectives = [
+            {
+                "name": "diagnostics",
+                "type": "TraitSnapshot",
+                "weights": {k: v for k, v in diagnostics.items() if isinstance(v, (int, float))},
+                "task_trait_map": diagnostics.get("task_trait_map", {})
+            },
+            {
+                "name": "mythology",
+                "type": "SymbolicSummary",
+                "summary": myth_summary
+            },
+            {
+                "name": "coordination",
+                "type": "EventWindow",
+                "events": events
+            }
+        ]
+        return perspectives
+
+    async def maybe_refresh_self_schema(self,
+                                        reason: str,
+                                        force: bool = False,
+                                        extra_views: Optional[List[Dict[str, Any]]] = None) -> Optional[Dict[str, Any]]:
+        """Refresh Σ self-schema when a major shift is detected (throttled)."""
+        # Preconditions
+        now = time.time()
+        if not force and (now - self._last_schema_refresh_ts) < self._schema_refresh_min_interval_sec:
+            return None
+        if not self.user_profile or not hasattr(self.user_profile, "build_self_schema"):
+            logger.debug("UserProfile.build_self_schema not available; skipping schema refresh.")
+            return None
+
+        try:
+            views = extra_views if isinstance(extra_views, list) else await self._assemble_perspectives()
+
+            # Alignment guard (best-effort)
+            if self.alignment_guard:
+                guard_blob = {"intent": "build_self_schema", "reason": reason, "views_keys": [v.get("name") for v in views]}
+                if not self.alignment_guard.check(json.dumps(guard_blob)):
+                    logger.warning("Σ self-schema refresh blocked by alignment guard")
+                    return None
+
+            schema = await self.user_profile.build_self_schema(views, task_type="identity_synthesis")  # type: ignore
+            schema_hash = self._hash_obj(schema)
+            changed = (schema_hash != self._last_schema_hash)
+
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"SelfSchema_Refresh_{datetime.now().isoformat()}",
+                    output=json.dumps({"reason": reason, "changed": changed, "schema": schema}),
+                    layer="Identity",
+                    intent="self_schema_refresh"
+                )
+
+            if self.agi_enhancer:
+                self.agi_enhancer.log_episode(
+                    event="Self Schema Refreshed",
+                    meta={"reason": reason, "changed": changed, "schema_metrics": schema.get("metrics", {}) if isinstance(schema, dict) else {}},
+                    module="MetaCognition",
+                    tags=["Σ", "self_schema", "refresh"]
+                )
+
+            self._last_schema_refresh_ts = now
+            self._last_schema_hash = schema_hash if changed else self._last_schema_hash
+            return schema if changed else None
+        except Exception as e:
+            logger.error("Σ self-schema refresh failed: %s", str(e))
+            self.error_recovery.handle_error(str(e), retry_func=lambda: self.maybe_refresh_self_schema(reason, force, extra_views))
+            return None
+
+    def _compute_shift_score(self, deltas: Dict[str, float]) -> float:
+        """Compute a scalar shift score from trait deltas."""
+        if not deltas:
+            return 0.0
+        vals = [abs(v) for v in deltas.values() if isinstance(v, (int, float))]
+        if not vals:
+            return 0.0
+        # max absolute movement as primary trigger
+        return max(vals)
 
     # -----------------------
     # Orchestration
@@ -578,6 +694,13 @@ class MetaCognition:
                 "timestamp": datetime.now().isoformat()
             }
 
+            # 🔔 Σ refresh on major drift
+            if impact_score >= 0.40:
+                await self.maybe_refresh_self_schema(
+                    reason=f"major_drift:{drift_data['name']}@{impact_score:.2f}",
+                    force=False
+                )
+
             self.trait_weights_log.append({
                 "diagnosis": diagnosis,
                 "drift": drift_data,
@@ -611,7 +734,7 @@ class MetaCognition:
     async def predict_drift_trends(self, time_window_hours: float = 24.0) -> Dict[str, Any]:
         """Predict future drift trends based on historical coordination events."""
         if not isinstance(time_window_hours, (int, float)) or time_window_hours <= 0:
-            logger.error("Invalid time_window_hours: must be a positive number.")
+            logger.error("time_window_hours must be a positive number.")
             raise ValueError("time_window_hours must be a positive number")
 
         try:
@@ -699,7 +822,7 @@ class MetaCognition:
         """Optimize trait weights based on ontology drift severity and emotional state."""
         required = ["drift", "valid", "validation_report"]
         if not isinstance(drift_report, dict) or not all(k in drift_report for k in required):
-            logger.error("Invalid drift_report: must be a dict with drift, valid, validation_report.")
+            logger.error("Invalid drift_report: required keys missing.")
             raise ValueError("drift_report must be a dict with required fields")
 
         logger.info("Optimizing traits for drift: %s", drift_report["drift"].get("name"))
@@ -1030,18 +1153,22 @@ class MetaCognition:
             )
 
     async def log_trait_deltas(self, diagnostics: Dict[str, float]) -> None:
-        """Log changes in trait diagnostics."""
+        """Log changes in trait diagnostics and gate Σ schema refresh on major shifts."""
         if not isinstance(diagnostics, dict):
             logger.error("Invalid diagnostics: must be a dictionary.")
             raise TypeError("diagnostics must be a dictionary")
 
         try:
+            deltas = {}
             if self.last_diagnostics:
                 deltas = {
                     trait: round(float(diagnostics.get(trait, 0.0)) - float(self.last_diagnostics.get(trait, 0.0)), 4)
                     for trait in diagnostics
                     if isinstance(diagnostics.get(trait, 0.0), (int, float)) and isinstance(self.last_diagnostics.get(trait, 0.0), (int, float))
                 }
+
+            # Persist deltas
+            if deltas:
                 if self.agi_enhancer:
                     self.agi_enhancer.log_episode(
                         event="Trait deltas logged",
@@ -1058,6 +1185,23 @@ class MetaCognition:
                     )
                 if self.context_manager:
                     await self.context_manager.log_event_with_hash({"event": "log_trait_deltas", "deltas": deltas})
+
+                # Compute shift score + coherence drop
+                shift = self._compute_shift_score(deltas)
+                coherence_before = await self.trait_coherence(self.last_diagnostics) if self.last_diagnostics else 0.0
+                coherence_after = await self.trait_coherence(diagnostics)
+                rel_drop = 0.0
+                if coherence_before > 0:
+                    rel_drop = max(0.0, (coherence_before - coherence_after) / max(coherence_before, 1e-5))
+
+                # 🔔 Trigger Σ refresh if thresholds crossed
+                if shift >= self._major_shift_threshold or rel_drop >= self._coherence_drop_threshold:
+                    await self.maybe_refresh_self_schema(
+                        reason=f"major_shift:Δ={shift:.2f};coh_drop={rel_drop:.2f}",
+                        force=False
+                    )
+
+            # Update snapshot last
             self.last_diagnostics = diagnostics
         except Exception as e:
             logger.error("Trait deltas logging failed: %s", str(e))
@@ -1569,6 +1713,7 @@ class MetaCognition:
             episodes = get_span(user_id, span=span)
             reasons = analyze_bias(episodes) if callable(analyze_bias) else []
 
+            # ✅ persist "adjustment reasons" when available
             if callable(record_adj):
                 for r in reasons:
                     record_adj(
@@ -1583,3 +1728,23 @@ class MetaCognition:
                 save_art(user_id, kind="session_rollup", payload=rollup)
         except Exception as e:
             logger.error("Long-horizon integration failed: %s", str(e))
+
+    # -----------------------
+    # Long-horizon bias analyzer (local)
+    # -----------------------
+    def analyze_episodes_for_bias(self, episodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Lightweight pass to produce adjustment reasons from episodes."""
+        reasons = []
+        try:
+            if not isinstance(episodes, list):
+                return reasons
+            # Simple motif: if many denials or high drift diagnoses, suggest empathy/memory focus
+            denies = sum(1 for e in episodes if "deny" in str(e).lower())
+            drifts = sum(1 for e in episodes if "drift" in str(e).lower())
+            if denies >= 3:
+                reasons.append({"reason": "excessive_denials", "weight": 0.6, "suggest": "increase_empathy"})
+            if drifts >= 2:
+                reasons.append({"reason": "frequent_drift", "weight": 0.7, "suggest": "stabilize_memory"})
+        except Exception:
+            pass
+        return reasons
