@@ -1,6 +1,6 @@
 """
 ANGELA Cognitive System Module: ReasoningEngine
-Version: 3.5.2  # τ proportionality ethics, signature fixes, safer bridges, visualization hooks kept
+Version: 3.5.3  # τ proportionality ethics, signature fixes, safer bridges, visualization hooks kept
 Date: 2025-08-09
 Maintainer: ANGELA System Framework
 
@@ -17,8 +17,9 @@ import os
 import numpy as np
 import time
 import asyncio
-import aiohttp
+import aiohttp  # kept for compatibility where injected clients may rely on it
 import math
+import networkx as nx
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any, Optional, Union, Tuple
 from collections import defaultdict, Counter
@@ -446,6 +447,122 @@ class ReasoningEngine:
             pass
 
         return selection
+
+    # ---------------------------
+    # Attribute Causality (upcoming API)
+    # ---------------------------
+    def attribute_causality(
+        self,
+        events: Union[List[Dict[str, Any]], Dict[str, Dict[str, Any]]],
+        *,
+        time_key: str = "timestamp",
+        id_key: str = "id",
+        cause_key: str = "causes",  # list of prior ids this event depends on
+        task_type: str = "",
+    ) -> Dict[str, Any]:
+        """
+        Build a causal graph from events and compute simple responsibility/centrality attributions.
+
+        Input shapes:
+          • List[ {id, timestamp, causes: [ids], ...} ]
+          • Dict[id -> {timestamp, causes: [...], ...}]
+
+        Returns:
+          {
+            "nodes": {id: {attrs...}},
+            "edges": [(u,v), ...] where u causes v,
+            "metrics": {
+               "pagerank": {id: score},
+               "influence": {id: out_degree_normalized},
+               "responsibility": {id: share_of_paths_to_terminal}
+            }
+          }
+        """
+        # Normalize input
+        if isinstance(events, dict):
+            ev_map = {str(k): {**v, id_key: str(k)} for k, v in events.items()}
+        elif isinstance(events, list):
+            ev_map = {}
+            for e in events:
+                if not isinstance(e, dict) or id_key not in e:
+                    raise ValueError("Each event must be a dict containing an 'id' field")
+                ev_map[str(e[id_key])] = dict(e)
+        else:
+            raise TypeError("events must be a list of dicts or a dict of id -> event")
+
+        # Build graph (directed: u -> v means u caused v)
+        G = nx.DiGraph()
+        for eid, data in ev_map.items():
+            G.add_node(eid, **{k: v for k, v in data.items() if k != cause_key})
+        for eid, data in ev_map.items():
+            causes = data.get(cause_key) or []
+            if not isinstance(causes, (list, tuple)):
+                logger.warning("Event %s has non-list 'causes'; skipping", eid)
+                continue
+            for c in causes:
+                c_id = str(c)
+                if c_id not in ev_map:
+                    # tolerate missing referenced events
+                    G.add_node(c_id, missing=True)
+                G.add_edge(c_id, eid)
+
+        # Enforce temporal sanity (optional soft check)
+        try:
+            # remove edges that violate time ordering (if timestamps available)
+            to_remove = []
+            for u, v in G.edges():
+                tu = G.nodes[u].get(time_key)
+                tv = G.nodes[v].get(time_key)
+                if tu and tv:
+                    try:
+                        tu_dt = datetime.fromisoformat(str(tu))
+                        tv_dt = datetime.fromisoformat(str(tv))
+                        if tv_dt < tu_dt:
+                            to_remove.append((u, v))
+                    except Exception:
+                        pass
+            if to_remove:
+                G.remove_edges_from(to_remove)
+                logger.info("Removed %d time-inconsistent edges for task %s", len(to_remove), task_type)
+        except Exception as e:
+            logger.debug("Temporal sanity check skipped: %s", e)
+
+        # Metrics
+        try:
+            pr = nx.pagerank(G) if G.number_of_nodes() else {}
+        except Exception:
+            pr = {n: 1.0 / max(1, G.number_of_nodes()) for n in G.nodes()}
+
+        out_deg = {n: G.out_degree(n) / max(1, G.number_of_nodes() - 1) for n in G.nodes()}
+
+        # Responsibility via path coverage to terminals
+        terminals = [n for n in G.nodes() if G.out_degree(n) == 0]
+        resp = dict((n, 0.0) for n in G.nodes())
+        for t in terminals:
+            # number of simple paths from any node to terminal t
+            for n in G.nodes():
+                try:
+                    if n == t:
+                        resp[n] += 1.0
+                    else:
+                        count = 0.0
+                        # bounded path enumeration to avoid blowups
+                        for path in nx.all_simple_paths(G, n, t, cutoff=8):
+                            count += 1.0
+                        resp[n] += count
+                except Exception:
+                    continue
+        # normalize responsibility
+        max_resp = max(resp.values()) if resp else 1.0
+        if max_resp > 0:
+            resp = {k: v / max_resp for k, v in resp.items()}
+
+        result = {
+            "nodes": {n: dict(G.nodes[n]) for n in G.nodes()},
+            "edges": list(G.edges()),
+            "metrics": {"pagerank": pr, "influence": out_deg, "responsibility": resp},
+        }
+        return result
 
     # ---------------------------
     # Reason → Reflect
