@@ -1,4 +1,3 @@
-# meta_cognition.py
 """
 ANGELA Cognitive System Module: MetaCognition
 Refactored Version: 3.5.2  # Σ self-schema refresh hook, long-horizon reasons, stability thresholds
@@ -1711,7 +1710,14 @@ class MetaCognition:
                 return
 
             episodes = get_span(user_id, span=span)
+            # derive lightweight "adjustment reasons" from recent episodes
             reasons = analyze_bias(episodes) if callable(analyze_bias) else []
+            if isinstance(reasons, list) and reasons:
+                # keep the top-5 by weight to avoid log spam
+                try:
+                    reasons = sorted(reasons, key=lambda r: float(r.get("weight", 1.0)), reverse=True)[:5]
+                except Exception:
+                    reasons = reasons[:5]
 
             # ✅ persist "adjustment reasons" when available
             if callable(record_adj):
@@ -1723,9 +1729,28 @@ class MetaCognition:
                         meta={k: v for k, v in r.items() if k not in ("reason", "weight")}
                     )
 
+            # create a periodic/end-of-session rollup artifact
             if step % getattr(cfg, "rollup_interval_steps", 50) == 0 or end_of_session:
                 rollup = compute_rollup(user_id, span=span)
-                save_art(user_id, kind="session_rollup", payload=rollup)
+                artifact_path = save_art(user_id, kind="session_rollup", payload=rollup)
+                # best-effort: store a tiny pointer for test assertions & dashboards
+                try:
+                    if hasattr(self.memory_manager, "store"):
+                        await self.memory_manager.store(
+                            query=f"LongHorizon_Rollup_{user_id}_{datetime.now().isoformat()}",
+                            output=json.dumps({"artifact_path": artifact_path, "rollup": rollup}),
+                            layer="SelfReflections",
+                            intent="long_horizon_rollup"
+                        )
+                    if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
+                        await self.context_manager.log_event_with_hash({
+                            "event": "long_horizon_rollup",
+                            "user_id": user_id,
+                            "artifact_path": artifact_path,
+                            "summary": {"episodes": rollup.get("episodes", 0), "reasons": rollup.get("reasons", 0)}
+                        })
+                except Exception as le:
+                    logger.debug("Non-fatal: failed to log long-horizon rollup pointer: %s", str(le))
         except Exception as e:
             logger.error("Long-horizon integration failed: %s", str(e))
 
