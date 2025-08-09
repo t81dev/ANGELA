@@ -1,4 +1,3 @@
-# memory_manager.py
 """
 ANGELA Cognitive System Module: MemoryManager
 Refactored Version: 3.5.2  # η long-horizon hooks, safer load, no eval, minor stability polish
