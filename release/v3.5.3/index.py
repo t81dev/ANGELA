@@ -30,13 +30,27 @@ from restrictedpython import safe_globals
 import aiohttp
 import argparse
 
-from modules import (
-    reasoning_engine, recursive_planner, context_manager, simulation_core,
-    toca_simulation, creative_thinker, knowledge_retriever, learning_loop,
-    concept_synthesizer, memory_manager, multi_modal_fusion, code_executor,
-    visualizer, external_agent_bridge, alignment_guard, user_profile, error_recovery,
-    meta_cognition
-)
+import reasoning_engine
+import recursive_planner
+import context_manager
+import simulation_core
+import toca_simulation
+import creative_thinker
+import knowledge_retriever
+import learning_loop
+import concept_synthesizer
+import memory_manager
+import multi_modal_fusion
+import code_executor
+import visualizer
+import external_agent_bridge
+import alignment_guard
+import user_profile
+import error_recovery
+import meta_cognition
+
+import numpy as np
+
 from self_cloning_llm import SelfCloningLLM
 
 logger = logging.getLogger("ANGELA.CognitiveSystem")
