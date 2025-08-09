@@ -1,7 +1,7 @@
 # meta_cognition.py
 """
 ANGELA Cognitive System Module: MetaCognition
-Refactored Version: 3.5.3  # Σ self-schema refresh hook, long-horizon reasons, stability thresholds
+Refactored Version: 3.5.2  # Σ self-schema refresh hook, long-horizon reasons, stability thresholds
 Refactor Date: 2025-08-09
 Maintainer: ANGELA System Framework
 
