@@ -1,3 +1,7 @@
+Here’s the updated **TODO.md** with κ fully marked done and a couple tiny clarifications for what’s already shipped:
+
+---
+
 # ANGELA v4.0 — Surgical Upgrade TODO
 
 **Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
@@ -22,10 +26,10 @@
 
 ## Mid-Level Refits
 
-### ⧗ κ Embodied Cognition → native video/spatial
+### ✅ κ Embodied Cognition → native video/spatial
 
-* ⧗ `multi_modal_fusion.py`: verify or add `parse_stream(frames|audio|images|text, unify=True) -> SceneGraph`
-* ☐ (opt) `simulation_core.py`: accept `SceneGraph` directly
+* ✅ `multi_modal_fusion.py`: `parse_stream(frames|audio|images|text, unify=True) -> SceneGraph`
+* ✅ (opt) `simulation_core.py`: accept `SceneGraph` directly
 * **Tests**
 
   * ☐ Video + text tasks yield consistent spatial references
@@ -87,6 +91,7 @@
 * `reasoning_engine.py` → proportionality resolver + causal attribution
 * `alignment_guard.py` → wire proportionality to safety ceilings
 * `multi_modal_fusion.py` → unified multimodal parser → `SceneGraph`
+* `simulation_core.py` → **accepts `SceneGraph` seeds** + scene summarization
 * `external_agent_bridge.py` / `context_manager.py` → shared memory graph
 * `toca_simulation.py` → ethics sandbox + branch evaluator
 * `concept_synthesizer.py` / `visualizer.py` → Stage-IV branching UX
@@ -117,7 +122,7 @@ def attribute_causality(events):
 
 1. Add `record_adjustment_reason` to `memory_manager.py` and call from `meta_cognition.py`.
 2. Implement `weigh_value_conflict` and proportionality pipeline in `alignment_guard.py`.
-3. Draft interfaces for `SceneGraph` and `RankedOptions`.
+3. **Finalize `RankedOptions` interface** (✅ `SceneGraph` interface shipped).
 4. Land feature flag scaffold for Stage-IV (`STAGE_IV`) without enabling.
 
 ---
