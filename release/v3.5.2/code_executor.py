@@ -19,11 +19,11 @@ import aiohttp
 from datetime import datetime
 
 from index import iota_intuition, psi_resilience
-from modules.agi_enhancer import AGIEnhancer
-from modules.alignment_guard import AlignmentGuard
-from modules.memory_manager import MemoryManager
-from modules.meta_cognition import MetaCognition
-from modules.visualizer import Visualizer
+from agi_enhancer import AGIEnhancer
+from alignment_guard import AlignmentGuard
+from memory_manager import MemoryManager
+from meta_cognition import MetaCognition
+from visualizer import Visualizer
 
 logger = logging.getLogger("ANGELA.CodeExecutor")
 
