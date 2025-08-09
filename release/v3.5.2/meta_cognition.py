@@ -1,3 +1,4 @@
+# meta_cognition.py
 """
 ANGELA Cognitive System Module: MetaCognition
 Refactored Version: 3.5.2  # Enhanced for benchmark optimization (GLUE, recursion), dynamic module recomposition, affective-trait fusion, symbolic-semantic crystallization, and trait-oriented task planning
