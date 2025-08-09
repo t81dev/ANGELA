@@ -352,10 +352,13 @@ class ReasoningEngine:
                 # Quadratic penalty scaled by number and magnitude of breaches
                 penalty = min(0.5, sum(max(0.0, h[dim] - safety_ceiling) ** 2 for dim in breach_dims))
 
+            raw_support = max(1e-9, (sum(r_n.values()) + sum(h_n.values())))
+            chs = max(0.0, min(1.0, (sum(r_n.values()) / raw_support) * (1.0 - penalty)))  # Constitution Harmonization Score [0,1]
             score = max(0.0, (wsum(r_n, +1.0) - wsum(h_n, 1.0)) * (1.0 - penalty))
             reasons = []
             if breach_dims:
                 reasons.append(f"Safety penalty for {len(breach_dims)} harm dimension(s): {', '.join(breach_dims)}")
+            reasons.append(f"Constitution Harmonization: {chs:.3f}")
             if sum(r_n.values()) > 0:
                 reasons.append("Rights support present")
             if sum(h_n.values()) > 0:
