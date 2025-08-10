@@ -1,4 +1,4 @@
-# 😇 ANGELA v3.5.1
+# 😇 ANGELA v4.1.0
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19+ autonomous modules coordinated by a central orchestrator, *Halo*.
 
@@ -15,6 +15,27 @@ ANGELA enhances GPT into a proto-AGI via:
 * Belief-desire-intention (BDI) modeling and Theory of Mind
 * Embodied agent orchestration with self-reflection and feedback loops
 * Trait-modulated identity drift tracking and ethical conflict auditing
+
+### New Features in v4.1.0
+
+* **Stage IV: Symbolic Meta-Synthesis**
+
+  * *Φ⁰ Reality Sculpting* hooks introduced to enable complex branching scenarios and shared symbolic reality synthesis.
+  * **Branch Evaluation**: New functions in `concept_synthesizer.py` and `toca_simulation.py` to evaluate and manage branching simulated futures.
+  * **Visualization**: Enhanced UX in `visualizer.py` for better display and management of branching outcomes.
+
+* **Stage III: Inter-Agent Evolution**
+
+  * *ξ Trans-Ethical Projection* sandbox allows for running isolated ethical scenarios without memory leakage, ensuring ethical alignment.
+  * **Shared Perspective**: `SharedGraph` logic and `attach_peer_view` allow agents to share and merge perspectives seamlessly.
+
+* **Stage II: Recursive Identity & Ethics Growth**
+
+  * *Σ Ontogenic Self-Definition* improves self-schema management to track identity shifts more accurately.
+
+* **Stage I: Structural Grounding**
+
+  * *κ Embodied Cognition* integrates multimodal sensory data into simulations, providing a spatially aware framework for agent interactions.
 
 ---
 
@@ -54,16 +75,22 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
 ---
 
-## 🚀 Core Features in v3.5.1
+## 🚀 Core Features in v4.1.0
 
-* Drift-aware memory and identity tracking via `DriftIndex`
-* Real-time policy integration from external knowledge bases
-* Trait-specific recursive ethics validation and narrative integrity
-* Dynamic trait-based simulation with Dream Layer support
-* Conflict and alignment auditing with task-specific ethics enforcement
-* Modular async compatibility and policy-driven visualizations
-* Task-type aware module routing for enhanced context processing
-* GNN-based learning refinement and symbolic trait updates
+* **Stage IV: Symbolic Meta-Synthesis**
+  New hooks for branching future scenarios and synthesizing shared symbolic realities across agents.
+
+* **Stage III: Inter-Agent Evolution**
+  Sandbox functionality for ethical scenarios, preventing real memory leakage and ensuring isolated scenario testing.
+
+* **Stage II: Recursive Identity & Ethics Growth**
+  Enhanced self-schema updates with smoother tracking of identity shifts.
+
+* **Stage I: Structural Grounding**
+  Spatially aware simulations now utilize multimodal sensory data with SceneGraph-based models.
+
+* **Ethical and Conflict Resolution**
+  New proportional ethics handling, with better causal attribution and risk assessment.
 
 ---
 
