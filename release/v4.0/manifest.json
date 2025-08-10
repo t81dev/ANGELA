@@ -3,24 +3,18 @@
   "schemaVersion": "2",
   "metadata": {
     "name": "ANGELA",
-    "version": "3.5.3",
+    "version": "4.0.0-rc1",
     "manifestVersion": "1.1",
-    "lastUpdated": "2025-08-10T12:00:00Z",
+    "lastUpdated": "2025-08-10T12:45:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v3.5.3 — Full symbolic meta-synthesis, long-horizon feedback, ethics sandbox, and enhanced simulation modules."
+    "description": "ANGELA v4.0.0-rc1 — Stage IV hooks gated, long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration (pending peer-view method)."
   },
   "runtime": {
     "language": "python",
-    "environment": {
-      "pythonVersion": "3.10"
-    },
+    "environment": { "pythonVersion": "3.10" },
     "entryPoint": "index.py",
-    "entryModes": [
-      "dialogue",
-      "simulation",
-      "introspection"
-    ],
+    "entryModes": ["dialogue", "simulation", "introspection"],
     "dependencies": [
       "RestrictedPython",
       "networkx",
@@ -47,14 +41,28 @@
     "stable": {
       "invoke": "index.py::HaloEmbodimentLayer.spawn_embodied_agent()",
       "introspect": "index.py::HaloEmbodimentLayer.introspect()",
+
       "buildSelfSchema": "user_profile.py::UserProfile.build_self_schema(views: List[Perspective]) -> Schema",
+
+      "getEpisodeSpan": "memory_manager.py::get_episode_span(user_id, span=\"24h\") -> str",
       "recordAdjustmentReason": "memory_manager.py::record_adjustment_reason(user_id, reason, meta=null)",
+      "getAdjustmentReasons": "memory_manager.py::get_adjustment_reasons(user_id, span=\"24h\") -> List[Reason]",
+
       "weighValueConflict": "reasoning_engine.py::weigh_value_conflict(candidates, harms, rights) -> RankedOptions",
       "attributeCausality": "reasoning_engine.py::attribute_causality(events)",
-      "runEthicsScenarios": "toca_simulation.py::run_ethics_scenarios(goals, stakeholders) -> Outcomes[]",
-      "sharedGraph": "external_agent_bridge.py::SharedGraph.add(view) / diff(peer) / merge(strategy)"
+
+      "runEthicsScenarios": "toca_simulation.py::run_ethics_scenarios(goals, stakeholders, persist=false) -> Outcomes[]",
+
+      "branchRealities": "concept_synthesizer.py::branch_realities(seed_state, transforms, limit=8) -> List[Branch]",
+      "evaluateBranches": "toca_simulation.py::evaluate_branches(branches, objectives=null, constraints=null, scorer=null) -> RankedBranches",
+      "renderBranchTree": "visualizer.py::render_branch_tree(branches, selected_id=null) -> { ok: bool, tree: Any }",
+
+      "sharedGraph": "external_agent_bridge.py::add(view) / diff(peer) / merge(strategy)"
     },
-    "upcoming": {}
+    "upcoming": {
+      "attachPeerView": "context_manager.py::ContextManager.attach_peer_view(view, agent_id, permissions=null) -> { ok, diff, merged, conflicts }",
+      "longHorizonFlag": "index.py::--long_horizon (enable) / --span=<duration>"
+    }
   },
   "modules": {
     "files": [
@@ -188,12 +196,12 @@
     }
   },
   "upgradeProgress": {
-    "v3.5.3": {
+    "v4.0.0-rc1": {
       "η Reflexive Agency": "done",
       "κ Embodied Cognition": "done",
-      "τ Constitution Harmonization": "⧗ (max_harm fix & audit sync needed)",
+      "τ Constitution Harmonization": "⧗ (tests pending)",
       "ξ Trans-Ethical Projection": "done",
-      "Υ Meta-Subjective Architecting": "⧗ (SharedGraph integration hardening)",
+      "Υ Meta-Subjective Architecting": "⧗ (SharedGraph integration hardening; peer-view upcoming)",
       "Σ Ontogenic Self-Definition": "done",
       "Φ⁰ Reality Sculpting": "gated (policy_gates_unmet)"
     }
