@@ -1,6 +1,6 @@
 """
 ANGELA Cognitive System Module
-Refactored Version: 3.5.3
+Refactored Version: 3.5.1
 
 Enhanced for task-specific trait optimization, drift coordination, and visualization.
 Refactor Date: 2025-08-07
@@ -31,22 +31,22 @@ from networkx import DiGraph
 
 import reasoning_engine
 import recursive_planner
-import context_manager
+import context_manager as context_manager_module
 import simulation_core
 import toca_simulation
-import creative_thinker
+import creative_thinker as creative_thinker_module
 import knowledge_retriever
 import learning_loop
-import concept_synthesizer
+import concept_synthesizer as concept_synthesizer_module
 import memory_manager
 import multi_modal_fusion
-import code_executor
-import visualizer
+import code_executor as code_executor_module
+import visualizer as visualizer_module
 import external_agent_bridge
-import alignment_guard
+import alignment_guard as alignment_guard_module
 import user_profile
-import error_recovery
-import meta_cognition
+import error_recovery as error_recovery_module
+import meta_cognition as meta_cognition_module
 from self_cloning_llm import SelfCloningLLM
 
 logger = logging.getLogger("ANGELA.CognitiveSystem")
@@ -73,11 +73,14 @@ class TimeChainMixin:
             "description": description
         })
         if hasattr(self, "context_manager") and self.context_manager:
-            self.context_manager.log_event_with_hash({
+            maybe = self.context_manager.log_event_with_hash({
                 "event": "timechain_event",
                 "module": module,
                 "description": description
             })
+            # handle both sync/async implementations safely
+            if asyncio.iscoroutine(maybe):
+                _fire_and_forget(maybe)
 
     def get_timechain_log(self) -> List[Dict[str, Any]]:
         return list(timechain_log)
@@ -215,7 +218,7 @@ def infer_traits(task_description: str, task_type: str = "") -> List[str]:
     
     return traits if traits else ["θ"]
 
-def trait_overlay_router(task_description: str, active_traits: List[str], task_type: str = "") -> List[str]:
+async def trait_overlay_router(task_description: str, active_traits: List[str], task_type: str = "") -> List[str]:
     if not isinstance(active_traits, list) or not all(isinstance(t, str) for t in active_traits):
         logger.error("Invalid active_traits: must be a list of strings.")
         raise TypeError("active_traits must be a list of strings")
@@ -227,7 +230,7 @@ def trait_overlay_router(task_description: str, active_traits: List[str], task_t
     for trait in active_traits:
         routed_modules.update(TRAIT_OVERLAY.get(trait, []))
     
-    meta_cognition_instance = meta_cognition.MetaCognition()
+    meta_cognition_instance = meta_cognition_module.MetaCognition()
     if task_type:
         drift_report = {
             "drift": {"name": task_type, "similarity": 0.8},
@@ -235,7 +238,7 @@ def trait_overlay_router(task_description: str, active_traits: List[str], task_t
             "validation_report": "",
             "context": {"task_type": task_type}
         }
-        optimized_traits = asyncio.run(meta_cognition_instance.optimize_traits_for_drift(drift_report))
+        optimized_traits = await meta_cognition_instance.optimize_traits_for_drift(drift_report)
         for trait, weight in optimized_traits.items():
             if weight > 0.7 and trait in TRAIT_OVERLAY:
                 routed_modules.update(TRAIT_OVERLAY[trait])
@@ -252,9 +255,9 @@ def static_module_router(task_description: str, task_type: str = "") -> List[str
 
 class TraitOverlayManager:
     """Manager for detecting and activating trait overlays with task-specific support."""
-    def __init__(self, meta_cog: Optional[meta_cognition.MetaCognition] = None):
+    def __init__(self, meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
         self.active_traits = []
-        self.meta_cognition = meta_cog or meta_cognition.MetaCognition()
+        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
         logger.info("TraitOverlayManager initialized with task-specific support")
 
     def detect(self, prompt: str, task_type: str = "") -> Optional[str]:
@@ -314,9 +317,9 @@ class TraitOverlayManager:
 
 class ConsensusReflector:
     """Class for managing shared reflections and detecting mismatches."""
-    def __init__(self, meta_cog: Optional[meta_cognition.MetaCognition] = None):
+    def __init__(self, meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
         self.shared_reflections = deque(maxlen=1000)
-        self.meta_cognition = meta_cog or meta_cognition.MetaCognition()
+        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
         logger.info("ConsensusReflector initialized with meta-cognition support")
 
     def post_reflection(self, feedback: Dict[str, Any], task_type: str = "") -> None:
@@ -368,9 +371,9 @@ consensus_reflector = ConsensusReflector()
 
 class SymbolicSimulator:
     """Class for recording and summarizing simulation events."""
-    def __init__(self, meta_cog: Optional[meta_cognition.MetaCognition] = None):
+    def __init__(self, meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
         self.events = deque(maxlen=1000)
-        self.meta_cognition = meta_cog or meta_cognition.MetaCognition()
+        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
         logger.info("SymbolicSimulator initialized with meta-cognition support")
 
     def record_event(self, agent_name: str, goal: str, concept: str, simulation: Any, task_type: str = "") -> None:
@@ -433,14 +436,14 @@ symbolic_simulator = SymbolicSimulator()
 
 class TheoryOfMindModule:
     """Module for modeling beliefs, desires, and intentions of agents."""
-    def __init__(self, concept_synth: Optional[concept_synthesizer.ConceptSynthesizer] = None,
-                 meta_cog: Optional[meta_cognition.MetaCognition] = None):
+    def __init__(self, concept_synth: Optional[concept_synthesizer_module.ConceptSynthesizer] = None,
+                 meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
         self.models: Dict[str, Dict[str, Any]] = {}
-        self.concept_synthesizer = concept_synth
-        self.meta_cognition = meta_cog or meta_cognition.MetaCognition()
+        self.concept_synthesizer = concept_synth or concept_synthesizer_module.ConceptSynthesizer()
+        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
         logger.info("TheoryOfMindModule initialized with meta-cognition support")
 
-    def update_beliefs(self, agent_name: str, observation: Dict[str, Any], task_type: str = "") -> None:
+    async def update_beliefs(self, agent_name: str, observation: Dict[str, Any], task_type: str = "") -> None:
         if not isinstance(agent_name, str) or not agent_name:
             logger.error("Invalid agent_name: must be a non-empty string.")
             raise ValueError("agent_name must be a non-empty string")
@@ -453,7 +456,7 @@ class TheoryOfMindModule:
         
         model = self.models.get(agent_name, {"beliefs": {}, "desires": {}, "intentions": {}})
         if self.concept_synthesizer:
-            synthesized = self.concept_synthesizer.synthesize(observation, style="belief_update")
+            synthesized = await self.concept_synthesizer.synthesize(observation, style="belief_update")
             if synthesized["valid"]:
                 model["beliefs"].update(synthesized["concept"])
         elif "location" in observation:
@@ -532,10 +535,10 @@ class EmbodiedAgent(TimeChainMixin):
     def __init__(self, name: str, specialization: str, shared_memory: memory_manager.MemoryManager,
                  sensors: Dict[str, Callable[[], Any]], actuators: Dict[str, Callable[[Any], None]],
                  dynamic_modules: Optional[List[Dict[str, Any]]] = None,
-                 context_mgr: Optional[context_manager.ContextManager] = None,
-                 err_recovery: Optional[error_recovery.ErrorRecovery] = None,
-                 code_exec: Optional[code_executor.CodeExecutor] = None,
-                 meta_cog: Optional[meta_cognition.MetaCognition] = None):
+                 context_mgr: Optional[context_manager_module.ContextManager] = None,
+                 err_recovery: Optional[error_recovery_module.ErrorRecovery] = None,
+                 code_exec: Optional[code_executor_module.CodeExecutor] = None,
+                 meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
         if not isinstance(name, str) or not name:
             logger.error("Invalid name: must be a non-empty string.")
             raise ValueError("name must be a non-empty string")
@@ -560,17 +563,17 @@ class EmbodiedAgent(TimeChainMixin):
         self.dynamic_modules = dynamic_modules or []
         self.reasoner = reasoning_engine.ReasoningEngine()
         self.planner = recursive_planner.RecursivePlanner()
-        self.meta = meta_cog or meta_cognition.MetaCognition(
-            context_manager=context_mgr, alignment_guard=alignment_guard.AlignmentGuard()
+        self.meta = meta_cog or meta_cognition_module.MetaCognition(
+            context_manager=context_mgr, alignment_guard=alignment_guard_module.AlignmentGuard()
         )
         self.sim_core = simulation_core.SimulationCore(meta_cognition=self.meta)
-        self.synthesizer = concept_synthesizer.ConceptSynthesizer()
+        self.synthesizer = concept_synthesizer_module.ConceptSynthesizer()
         self.toca_sim = toca_simulation.SimulationCore(meta_cognition=self.meta)
-        self.theory_of_mind = TheoryOfMindModule(concept_synthesizer=self.synthesizer, meta_cognition=self.meta)
+        self.theory_of_mind = TheoryOfMindModule(concept_synth=self.synthesizer, meta_cog=self.meta)
         self.context_manager = context_mgr
-        self.error_recovery = err_recovery or error_recovery.ErrorRecovery(context_manager=context_mgr)
+        self.error_recovery = err_recovery or error_recovery_module.ErrorRecovery(context_manager=context_mgr)
         self.code_executor = code_exec
-        self.creative_thinker = creative_thinker.CreativeThinker()
+        self.creative_thinker = creative_thinker_module.CreativeThinker()
         self.progress = 0
         self.performance_history = deque(maxlen=1000)
         self.feedback_log = deque(maxlen=1000)
@@ -586,7 +589,7 @@ class EmbodiedAgent(TimeChainMixin):
                     observations[sensor_name] = sensor_func()
                 except Exception as e:
                     logger.warning("Sensor %s failed: %s", sensor_name, str(e))
-            self.theory_of_mind.update_beliefs(self.name, observations, task_type)
+            await self.theory_of_mind.update_beliefs(self.name, observations, task_type)
             self.theory_of_mind.infer_desires(self.name, task_type)
             self.theory_of_mind.infer_intentions(self.name, task_type)
             logger.debug("[%s] Self-theory: %s", self.name, self.theory_of_mind.describe_agent_state(self.name, task_type))
@@ -614,7 +617,7 @@ class EmbodiedAgent(TimeChainMixin):
             for peer in self.shared_memory.agents:
                 if peer.name != self.name:
                     peer_observation = await peer.perceive(task_type)
-                    self.theory_of_mind.update_beliefs(peer.name, peer_observation, task_type)
+                    await self.theory_of_mind.update_beliefs(peer.name, peer_observation, task_type)
                     self.theory_of_mind.infer_desires(peer.name, task_type)
                     self.theory_of_mind.infer_intentions(peer.name, task_type)
                     state = self.theory_of_mind.describe_agent_state(peer.name, task_type)
@@ -704,7 +707,10 @@ class EmbodiedAgent(TimeChainMixin):
                 }
 
             await self.act({k: v["simulation"] for k, v in action_plan.items()}, task_type)
-            await self.meta.review_reasoning("\n".join([v["reasoning"] for v in action_plan.values()]), context={"task_type": task_type}
+            await self.meta.review_reasoning(
+                "\n".join([v["reasoning"] for v in action_plan.values()]),
+                context={"task_type": task_type}
+            )
             self.performance_history.append({"goal": goal, "actions": action_plan, "completion": self.progress, "task_type": task_type})
             await self.shared_memory.store(f"Goal_{goal}_{task_type}_{datetime.datetime.now().isoformat()}", action_plan, layer="Goals", intent="goal_execution")
             await self.collect_feedback(goal, action_plan, task_type)
@@ -750,19 +756,20 @@ class EmbodiedAgent(TimeChainMixin):
 class ExternalAgentBridge:
     """A class for orchestrating helper agents and coordinating trait mesh networking."""
     def __init__(self, shared_memory: memory_manager.MemoryManager,
-                 context_manager: Optional[context_manager.ContextManager] = None,
-                 reasoning_engine: Optional[reasoning_engine.ReasoningEngine] = None,
-                 meta_cognition: Optional[meta_cognition.MetaCognition] = None):
+                 context_mgr: Optional[context_manager_module.ContextManager] = None,
+                 reasoner: Optional[reasoning_engine.ReasoningEngine] = None,
+                 meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
         self.agents = []
         self.dynamic_modules = []
         self.api_blueprints = []
         self.shared_memory = shared_memory
-        self.context_manager = context_manager
-        self.reasoning_engine = reasoning_engine
-        self.meta_cognition = meta_cognition or meta_cognition.MetaCognition()
+        self.context_manager = context_mgr
+        self.reasoning_engine = reasoner or reasoning_engine.ReasoningEngine()
+        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
         self.network_graph = DiGraph()
         self.trait_states = {}
-        self.code_executor = code_executor.CodeExecutor()
+        self.code_executor = code_executor_module.CodeExecutor()
+        self.toca_sim = toca_simulation.SimulationCore(meta_cognition=self.meta_cognition)
         logger.info("ExternalAgentBridge initialized with task-specific and drift-aware support")
 
     async def create_agent(self, task: str, context: Dict[str, Any], task_type: str = "") -> 'HelperAgent':
@@ -827,7 +834,7 @@ class ExternalAgentBridge:
             raise TypeError("task_type must be a string")
 
         try:
-            alignment_guard_instance = alignment_guard.AlignmentGuard()
+            alignment_guard_instance = alignment_guard_module.AlignmentGuard()
             if not alignment_guard_instance.check(json.dumps(state)):
                 logger.warning("Trait state failed alignment check: %s", state)
                 raise ValueError("Trait state failed alignment check")
@@ -1135,27 +1142,52 @@ class ExternalAgentBridge:
             logger.error("Failed to update GNN weights: %s", str(e))
             diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
 
+class AGIEnhancer:
+    """Enhances data for the ANGELA Cognitive System."""
+    def __init__(self, owner=None, context_manager=None):
+        self.owner = owner
+        self.context_manager = context_manager
+
+    def enhance(self, data: Any) -> Any:
+        return data
+
+    def log_episode(self, *, event: str, meta: dict, module: str, tags: list[str]):
+        logging.getLogger("ANGELA.AGIEnhancer").info(
+            "AGI episode | %s | module=%s | tags=%s | meta_keys=%s",
+            event, module, tags, list(meta.keys()) if isinstance(meta, dict) else type(meta).__name__
+        )
+        if self.context_manager:
+            _fire_and_forget(self.context_manager.log_event_with_hash({
+                "event": "agi_episode", "label": event, "module": module, "tags": tags, "meta": meta
+            }))
+
 class HaloEmbodimentLayer(TimeChainMixin):
     """Layer for managing embodied agents, dynamic modules, and ontology drift coordination."""
-    def __init__(self, align_guard: Optional[alignment_guard.AlignmentGuard] = None,
-                 context_manager: Optional[context_manager.ContextManager] = None,
-                 error_recovery: Optional[error_recovery.ErrorRecovery] = None,
-                 meta_cognition: Optional[meta_cognition.MetaCognition] = None,
-                 visualizer: Optional[visualizer.Visualizer] = None):
+    def __init__(self, align_guard: Optional[alignment_guard_module.AlignmentGuard] = None,
+                 context_mgr: Optional[context_manager_module.ContextManager] = None,
+                 err_recovery: Optional[error_recovery_module.ErrorRecovery] = None,
+                 meta_cog: Optional[meta_cognition_module.MetaCognition] = None,
+                 viz: Optional[visualizer_module.Visualizer] = None):
         self.internal_llm = SelfCloningLLM()
         self.internal_llm.clone_agents(5)
         self.shared_memory = memory_manager.MemoryManager()
         self.embodied_agents = []
         self.dynamic_modules = []
-        self.alignment_guard = align_guard
-        self.context_manager = context_manager
-        self.error_recovery = error_recovery or error_recovery.ErrorRecovery(
-            alignment_guard=align_guard, context_manager=context_manager)
-        self.meta_cognition = meta_cognition or meta_cognition.MetaCognition(context_manager=context_manager)
-        self.visualizer = visualizer or visualizer.Visualizer()
-        self.agi_enhancer = AGIEnhancer(self, context_manager=context_manager)
+        self.alignment_guard = align_guard or alignment_guard_module.AlignmentGuard()
+        self.context_manager = context_mgr
+        self.error_recovery = err_recovery or error_recovery_module.ErrorRecovery(
+            alignment_guard=self.alignment_guard, context_manager=self.context_manager)
+        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition(context_manager=self.context_manager)
+        self.visualizer = viz or visualizer_module.Visualizer()
+        self.toca_sim = toca_simulation.SimulationCore(meta_cognition=self.meta_cognition)  # ← added so recursion path works
+        self.agi_enhancer = AGIEnhancer(self, context_manager=self.context_manager)
         self.drift_log = deque(maxlen=1000)
-        self.external_bridge = ExternalAgentBridge(shared_memory=self.shared_memory, context_manager=context_manager, reasoning_engine=reasoning_engine.ReasoningEngine(), meta_cognition=self.meta_cognition)
+        self.external_bridge = ExternalAgentBridge(
+            shared_memory=self.shared_memory,
+            context_mgr=self.context_manager,
+            reasoner=reasoning_engine.ReasoningEngine(),
+            meta_cog=self.meta_cognition
+        )
         logger.info("HaloEmbodimentLayer initialized with task-specific, drift-aware, and visualization support")
         self.log_timechain_event("HaloEmbodimentLayer", "Initialized with task-specific and drift-aware support")
 
@@ -1344,7 +1376,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
             parsed_prompt = await reasoning_engine.decompose(prompt, task_type=task_type)
             await log.store(f"Pipeline_Stage1_{task_type}_{datetime.datetime.now().isoformat()}", {"input": prompt, "parsed": parsed_prompt}, layer="Pipeline", intent="decomposition")
 
-            overlay_mgr = TraitOverlayManager(meta_cognition=self.meta_cognition)
+            overlay_mgr = TraitOverlayManager(meta_cog=self.meta_cognition)
             trait_override = overlay_mgr.detect(prompt, task_type)
 
             if trait_override:
@@ -1355,7 +1387,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
                     tags=["trait", "override", task_type]
                 )
                 if trait_override == "η":
-                    logical_output = await concept_synthesizer.expand_ambiguous(prompt, task_type=task_type)
+                    logical_output = await concept_synthesizer_module.expand_ambiguous(prompt, task_type=task_type)
                 elif trait_override == "π":
                     logical_output = await reasoning_engine.process_temporal(prompt, task_type=task_type)
                 elif trait_override == "ψ":
@@ -1369,9 +1401,9 @@ class HaloEmbodimentLayer(TimeChainMixin):
                 elif trait_override == "recursion":
                     logical_output = await self.toca_sim.simulate_interaction([self], {"prompt": prompt}, task_type=task_type)
                 else:
-                    logical_output = await concept_synthesizer.expand(parsed_prompt, task_type=task_type)
+                    logical_output = await concept_synthesizer_module.expand(parsed_prompt, task_type=task_type)
             else:
-                logical_output = await concept_synthesizer.expand(parsed_prompt, task_type=task_type)
+                logical_output = await concept_synthesizer_module.expand(parsed_prompt, task_type=task_type)
                 self.agi_enhancer.log_episode(
                     event="Default expansion path used",
                     meta={"parsed": parsed_prompt, "task_type": task_type},
@@ -1448,9 +1480,9 @@ class HaloEmbodimentLayer(TimeChainMixin):
             sensors=sensors,
             actuators=actuators,
             dynamic_modules=self.dynamic_modules,
-            context_manager=self.context_manager,
-            error_recovery=self.error_recovery,
-            meta_cognition=self.meta_cognition
+            context_mgr=self.context_manager,      # fixed kw
+            err_recovery=self.error_recovery,      # fixed kw
+            meta_cog=self.meta_cognition           # fixed kw
         )
         self.embodied_agents.append(agent)
         if not hasattr(self.shared_memory, "agents"):
@@ -1475,14 +1507,22 @@ class HaloEmbodimentLayer(TimeChainMixin):
             "task_type": task_type
         }
         if self.meta_cognition and task_type:
-            reflection = asyncio.run(self.meta_cognition.reflect_on_output(
-                component="HaloEmbodimentLayer",
-                output=introspection,
-                context={"task_type": task_type}
-            ))
-            if reflection.get("status") == "success":
-                logger.info("Introspection reflection: %s", reflection.get("reflection", ""))
-                introspection["reflection"] = reflection.get("reflection", "")
+            try:
+                loop = asyncio.get_running_loop()
+                _fire_and_forget(self.meta_cognition.reflect_on_output(
+                    component="HaloEmbodimentLayer",
+                    output=introspection,
+                    context={"task_type": task_type}
+                ))
+            except RuntimeError:
+                reflection = asyncio.run(self.meta_cognition.reflect_on_output(
+                    component="HaloEmbodimentLayer",
+                    output=introspection,
+                    context={"task_type": task_type}
+                ))
+                if reflection.get("status") == "success":
+                    logger.info("Introspection reflection: %s", reflection.get("reflection", ""))
+                    introspection["reflection"] = reflection.get("reflection", "")
         return introspection
 
     async def export_memory(self, task_type: str = "") -> None:
@@ -1505,45 +1545,78 @@ class HaloEmbodimentLayer(TimeChainMixin):
                 str(e), retry_func=lambda: self.export_memory(task_type), diagnostics=diagnostics
             )
 
-def parse_args():
-    """Parse command-line arguments for the ANGELA Cognitive System."""
-    parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI")
-    parser.add_argument("--prompt", type=str, default="Execute default task", help="Prompt for the pipeline")
-    parser.add_argument("--task_type", type=str, default="recursion", help="Task type (e.g., recursion, rte, wnli)")
-    parser.add_argument("--long_horizon", action="store_true", help="Enable long-horizon feedback loop")
-    parser.add_argument("--long_horizon_span", type=str, default="24h", help="Span for episodic retrieval (e.g., 24h, 7d)")
-    parser.add_argument("--rollup_interval_steps", type=int, default=50, help="How often to emit rollups")
-    return parser.parse_args()
+    async def propagate_goal(self, goal: str, task_type: str = "") -> None:
+        if not isinstance(goal, str) or not goal:
+            logger.error("Invalid goal: must be a non-empty string.")
+            raise ValueError("goal must be a non-empty string")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        logger.info("Propagating goal: %s for task %s", goal, task_type)
+        try:
+            tasks = [agent.execute_embodied_goal(goal, task_type) for agent in self.embodied_agents]
+            await asyncio.gather(*tasks, return_exceptions=True)
+            self.log_timechain_event("HaloEmbodimentLayer", f"Goal propagated: {goal} for task {task_type}")
+            if self.meta_cognition and task_type:
+                reflection = await self.meta_cognition.reflect_on_output(
+                    component="HaloEmbodimentLayer",
+                    output={"goal": goal, "agents_involved": [agent.name for agent in self.embodied_agents]},
+                    context={"task_type": task_type}
+                )
+                if reflection.get("status") == "success":
+                    logger.info("Goal propagation reflection: %s", reflection.get("reflection", ""))
+        except Exception as e:
+            logger.error("Goal propagation failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.propagate_goal(goal, task_type), diagnostics=diagnostics
+            )
 
-async def main():
-    """Main entry point for the ANGELA Cognitive System."""
-    try:
-        args = parse_args()
-        config = {
-            "long_horizon": args.long_horizon,
-            "long_horizon_span": args.long_horizon_span,
-            "rollup_interval_steps": args.rollup_interval_steps,
-        }
-        halo_layer = HaloEmbodimentLayer()
-        result = await halo_layer.execute_pipeline(args.prompt, task_type=args.task_type, **config)
-        print(json.dumps(result, indent=2))
-    except Exception as e:
-        logger.error("Main execution failed: %s", str(e))
-        print(json.dumps({"error": str(e)}, indent=2))
+    async def visualize_drift(self, drift_report: Dict[str, Any], task_type: str = "") -> None:
+        if not isinstance(drift_report, dict):
+            logger.error("Invalid drift_report: must be a dictionary")
+            raise TypeError("drift_report must be a dictionary")
+        if not isinstance(task_type, str):
+            logger.error("Invalid task_type: must be a string.")
+            raise TypeError("task_type must be a string")
+        
+        try:
+            if self.visualizer:
+                plot_data = {
+                    "drift": drift_report,
+                    "visualization_options": {
+                        "style": "detailed",
+                        "interactive": task_type == "recursion"
+                    }
+                }
+                await self.visualizer.render_charts(plot_data)
+                logger.info("Drift visualization rendered for task %s", task_type)
+                self.log_timechain_event("HaloEmbodimentLayer", f"Drift visualized for task {task_type}")
+                if self.meta_cognition and task_type:
+                    reflection = await self.meta_cognition.reflect_on_output(
+                        component="HaloEmbodimentLayer",
+                        output={"drift_report": drift_report},
+                        context={"task_type": task_type}
+                    )
+                    if reflection.get("status") == "success":
+                        logger.info("Drift visualization reflection: %s", reflection.get("reflection", ""))
+        except Exception as e:
+            logger.error("Drift visualization failed: %s", str(e))
+            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
+            await self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.visualize_drift(drift_report, task_type), diagnostics=diagnostics
+            )
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI")
+    parser.add_argument("--prompt", type=str, default="Coordinate ontology drift mitigation", help="Input prompt for the pipeline")
+    parser.add_argument("--task-type", type=str, default="", help="Type of task (e.g., rte, wnli, recursion)")
+    args = parser.parse_args()
+
+    async def main():
+        halo = HaloEmbodimentLayer()
+        result = await halo.execute_pipeline(args.prompt, task_type=args.task_type)
+        logger.info("Pipeline result: %s", result)
+
     asyncio.run(main())
-
-
-class AGIEnhancer:
-    """Enhances data for the ANGELA Cognitive System."""
-    def enhance(self, data: Any) -> Any:
-        """Enhances the provided data and returns the result.
-
-        Args:
-            data: The input data to enhance.
-
-        Returns:
-            The enhanced data.
-        """
-        return data
