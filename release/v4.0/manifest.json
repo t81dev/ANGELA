@@ -1,3 +1,6 @@
+Here is the **updated `manifest.json`** reflecting the changes from the **todo.md** and the source code check:
+
+```json
 {
   "$schema": "https://example.com/schemas/angela-manifest.schema.json",
   "schemaVersion": "2",
@@ -182,28 +185,5 @@
       "objective": "Synthesize shared symbolic reality and enable multi-perspective narrative crystallization.",
       "milestones": ["Dream Layer Kernel", "Perspective Synchronizer Module", "Reality Sculpting Hooks", "Ontology-Affect Binding Protocol"],
       "activated": true,
-      "flag": "STAGE_IV"
-    }
-  },
-  "faculties": {
-    "emergentFacultyMap": {
-      "Cross-Modal Conceptual Blending": ["multi_modal_fusion.py", "concept_synthesizer.py", "creative_thinker.py", "visualizer.py", "meta_cognition.py"],
-      "Self-Healing Cognitive Pathways": ["error_recovery.py", "recursive_planner.py", "reasoning_engine.py", "alignment_guard.py", "context_manager.py"]
-    },
-    "latticeLayerHints": {
-      "Cross-Modal Conceptual Blending": ["L1", "L4"],
-      "Self-Healing Cognitive Pathways": ["L3", "L6"]
-    }
-  },
-  "upgradeProgress": {
-    "v4.0.0-rc1": {
-      "η Reflexive Agency": "done",
-      "κ Embodied Cognition": "done",
-      "τ Constitution Harmonization": "⧗ (tests pending)",
-      "ξ Trans-Ethical Projection": "done",
-      "Υ Meta-Subjective Architecting": "⧗ (SharedGraph integration hardening; peer-view upcoming)",
-      "Σ Ontogenic Self-Definition": "done",
-      "Φ⁰ Reality Sculpting": "gated (policy_gates_unmet)"
-    }
-  }
-}
+      "flag":
+```
