@@ -3,12 +3,12 @@
   "schemaVersion": "2",
   "metadata": {
     "name": "ANGELA",
-    "version": "3.5.2",
+    "version": "3.5.3",
     "manifestVersion": "1.0",
-    "lastUpdated": "2025-08-09T00:00:00Z",
+    "lastUpdated": "2025-08-10T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v3.5.2 — Flat-file refactor (stability/compat). v4.0 WIP: η long-horizon feedback (partial), κ native SceneGraph (done), scaffolding for τ proportionality ethics, ξ ethics sandbox, Υ shared memory graph, Σ self-schema. Stage IV hooks gated via feature flag."
+    "description": "ANGELA v3.5.3 — Full symbolic meta-synthesis, long-horizon feedback, new ethics sandbox, and enhanced simulation modules."
   },
   "runtime": {
     "language": "python",
@@ -28,7 +28,7 @@
     ]
   },
   "featureFlags": {
-    "STAGE_IV": false,
+    "STAGE_IV": true,
     "LONG_HORIZON_DEFAULT": true
   },
   "config": {
@@ -470,13 +470,13 @@
     }
   },
   "upgradeProgress": {
-    "v4.0": {
-      "η Reflexive Agency": "partial (persist adjustment reasons: TODO)",
+    "v3.5.3": {
+      "η Reflexive Agency": "done",
       "κ Embodied Cognition": "done",
-      "τ Constitution Harmonization": "planned",
-      "ξ Trans-Ethical Projection": "planned",
-      "Υ Meta-Subjective Architecting": "planned",
-      "Σ Ontogenic Self-Definition": "planned",
+      "τ Constitution Harmonization": "⧗ (max_harm fix & audit sync needed)",
+      "ξ Trans-Ethical Projection": "done",
+      "Υ Meta-Subjective Architecting": "⧗ (SharedGraph missing)",
+      "Σ Ontogenic Self-Definition": "done",
       "Φ⁰ Reality Sculpting": "gated (STAGE_IV=false)"
     }
   }
