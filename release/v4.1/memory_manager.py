@@ -978,7 +978,7 @@ class MemoryManager:
         return entry
 
     def get_adjustment_reasons(self, user_id: str, span: str = '24h') -> List[Dict[str, Any]]:
-        \"\"\"Return adjustment reasons within the span for user_id.\"\"\"
+        """Return adjustment reasons within the span for user_id."""
         if not (isinstance(user_id, str) and user_id):
             raise TypeError('user_id must be a non-empty string')
         cutoff = time.time() - self._parse_span_seconds(span)
