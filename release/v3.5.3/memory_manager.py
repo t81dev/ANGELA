@@ -1,18 +1,3 @@
-"""
-ANGELA Cognitive System Module: MemoryManager
-Version: 3.5.3 (production polish)
-Date: 2025-08-09
-Maintainer: ANGELA System Framework
-
-Provides a MemoryManager for hierarchical memory layers with:
-- Long-horizon feedback (η): episodic span + adjustment reason persistence
-- Safe flat-file persistence with advisory locking (with internal fallback)
-- Optional visualization, simulation, concept synthesis, meta-cognitive hooks
-- Lightweight drift/trait indexing (no eval; JSON-only)
-"""
-
-from __future__ import annotations
-
 import json
 import os
 import time
@@ -20,7 +5,7 @@ import math
 import logging
 import hashlib
 import asyncio
-from typing import Optional, Dict, Any, List, Tuple, Sequence
+from typing import Optional, Dict, Any, List, Tuple
 from collections import deque, defaultdict
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -50,7 +35,6 @@ except Exception:  # pragma: no cover
     aiohttp = None
 
 # ---------- Local module imports (robust to packaging layout) ----------
-# Try direct imports first, then fallback to a 'modules.' package prefix
 try:
     import context_manager as context_manager_module
     import alignment_guard as alignment_guard_module
@@ -202,6 +186,8 @@ class MemoryManager:
         meta_cognition: Optional['meta_cognition_module.MetaCognition'] = None,
         visualizer: Optional['visualizer_module.Visualizer'] = None,
         artifacts_dir: Optional[str] = None,
+        long_horizon_enabled: bool = True,
+        default_span: str = "24h",
     ):
         if not (isinstance(path, str) and path.endswith(".json")):
             raise ValueError("path must be a string ending with '.json'")
@@ -253,78 +239,25 @@ class MemoryManager:
 
         logger.info("MemoryManager initialized (path=%s, stm_lifetime=%.2f)", path, self.stm_lifetime)
 
-    # -------- persistence --------
-    def _load_memory_file(self) -> Dict[str, Dict[str, Any]]:
-        with FileLock(f"{self.path}.lock"):
-            try:
-                with open(self.path, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except FileNotFoundError:
-                return {}
+        # If LONG_HORIZON is enabled, start the auto-rollup task
+        if long_horizon_enabled:
+            asyncio.create_task(self._auto_rollup_task())
 
-    def _persist_memory(self, memory: Dict[str, Dict[str, Any]]) -> None:
-        if not isinstance(memory, dict):
-            raise TypeError("memory must be a dictionary")
-        with FileLock(f"{self.path}.lock"):
-            with open(self.path, "w", encoding="utf-8") as f:
-                json.dump(memory, f, indent=2)
-        logger.debug("Memory persisted")
+    # -------- Periodic Roll-up Task --------
+    async def _auto_rollup_task(self):
+        """ Periodically performs long-horizon rollups based on default span. """
+        while True:
+            await asyncio.sleep(3600)  # Wait for an hour (can adjust interval)
+            self._perform_auto_rollup()
 
-    def _load_memory(self) -> Dict[str, Dict[str, Any]]:
-        """Load memory safely (no eval); ensure required layers exist and run opportunistic STM decay."""
-        try:
-            memory = self._load_memory_file()
-            if not isinstance(memory, dict):
-                raise ValueError("memory file must contain a dict")
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning("Initializing empty memory (reason: %s)", e)
-            memory = {}
-
-        # Ensure essential layers
-        memory.setdefault("STM", {})
-        memory.setdefault("LTM", {})
-        memory.setdefault("SelfReflections", {})
-        memory.setdefault("ExternalData", {})
-        self._persist_memory(memory)
-
-        # Decay STM opportunistically
-        try:
-            asyncio.run(self._decay_stm(memory))
-        except RuntimeError:  # already inside an event loop
-            pass
-
-        # Re-index JSON-serializable reflections
-        try:
-            for key, entry in list(memory.get("SelfReflections", {}).items()):
-                intent = (entry or {}).get("intent")
-                if intent in ("ontology_drift", "trait_optimization"):
-                    output = entry.get("data")
-                    async def _idx():
-                        await self.drift_index.add_entry(
-                            key, output, "SelfReflections", intent, entry.get("task_type", "")
-                        )
-                    try:
-                        asyncio.run(_idx())
-                    except RuntimeError:
-                        pass
-        except Exception as e:  # pragma: no cover
-            logger.debug("Index rebuild skipped: %s", e)
-        return memory
-
-    # -------- STM decay --------
-    async def _decay_stm(self, memory: Dict[str, Dict[str, Any]]) -> None:
-        if not isinstance(memory, dict):
-            raise TypeError("memory must be a dictionary")
-        now = time.time()
-        changed = False
-        while self.stm_expiry_queue and self.stm_expiry_queue[0][0] <= now:
-            _, key = heappop(self.stm_expiry_queue)
-            if key in memory.get("STM", {}):
-                logger.info("STM entry expired: %s", key)
-                del memory["STM"][key]
-                changed = True
-        if changed:
-            self._persist_memory(memory)
+    def _perform_auto_rollup(self):
+        """ Perform the rollup for long-horizon feedback. """
+        user_id = "default_user"  # Replace with actual user context or session ID if available.
+        rollup_data = self.compute_session_rollup(user_id, self.default_span)
+        
+        # Save the artifact to disk
+        artifact_path = self.save_artifact(user_id, "session_rollup", rollup_data)
+        logger.info(f"Auto-rollup saved at {artifact_path}")
 
     # -------- Core store/search --------
     async def store(
