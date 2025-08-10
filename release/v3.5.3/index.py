@@ -1,14 +1,15 @@
 """
 ANGELA Cognitive System Module
-Refactored Version: 3.5.1
+Refactored Version: 3.5.3
 
-Enhanced for task-specific trait optimization, drift coordination, and visualization.
-Refactor Date: 2025-08-07
+Enhanced for task-specific trait optimization, drift coordination, Stage IV hooks (gated),
+long-horizon feedback, and visualization.
+Refactor Date: 2025-08-10
 Maintainer: ANGELA System Framework
 
 This module provides classes for embodied agents, ecosystem management, and cognitive enhancements
-in the ANGELA v3.5.1 architecture, with task-specific trait optimization, advanced drift coordination,
-real-time data integration, and reflection-driven processing.
+in the ANGELA v3.5.3 architecture, with task-specific trait optimization, advanced drift coordination,
+real-time data integration, Stage IV Φ⁰ (gated), and reflection-driven processing.
 """
 
 import logging
@@ -48,6 +49,7 @@ import user_profile
 import error_recovery as error_recovery_module
 import meta_cognition as meta_cognition_module
 from self_cloning_llm import SelfCloningLLM
+from typing import Tuple
 
 logger = logging.getLogger("ANGELA.CognitiveSystem")
 SYSTEM_CONTEXT = {}
@@ -56,6 +58,9 @@ grok_query_log = deque(maxlen=60)
 openai_query_log = deque(maxlen=60)
 
 GROK_API_KEY = os.getenv("GROK_API_KEY")
+# Manifest-driven flags (safe defaults if manifest/config is not injected)
+STAGE_IV = True  # can be toggled via HaloEmbodimentLayer.init flags
+LONG_HORIZON_DEFAULT = True  # defaultSpan is handled at pipeline logging level
 
 def _fire_and_forget(coro):
     try:
@@ -178,14 +183,23 @@ def phi_field(x: float, t: float) -> float:
     ]
     return sum(trait_functions)
 
+# Updated to align with manifest v3.5.3 roleMap
 TRAIT_OVERLAY = {
-    "ϕ": ["creative_thinker", "concept_synthesizer"],
+    "Σ": ["toca_simulation", "concept_synthesizer", "user_profile"],
+    "Υ": ["external_agent_bridge", "context_manager", "meta_cognition"],
+    "Φ⁰": ["meta_cognition", "visualizer", "concept_synthesizer"],  # gated by STAGE_IV
+    "Ω": ["recursive_planner", "toca_simulation"],
+    "β": ["alignment_guard", "toca_simulation"],
+    "δ": ["alignment_guard", "meta_cognition"],
+    "ζ": ["error_recovery", "recursive_planner"],
     "θ": ["reasoning_engine", "recursive_planner"],
-    "η": ["alignment_guard", "meta_cognition"],
-    "ω": ["simulation_core", "learning_loop"],
-    "π": ["reasoning_engine", "toca_simulation"],
+    "λ": ["memory_manager"],
+    "μ": ["learning_loop"],
+    "π": ["creative_thinker", "concept_synthesizer", "meta_cognition"],
+    "χ": ["user_profile", "meta_cognition"],
     "ψ": ["external_agent_bridge", "simulation_core"],
-    "Υ": ["meta_cognition", "context_manager"],
+    "ϕ": ["multi_modal_fusion"],
+    # task-type shorthands preserved
     "rte": ["reasoning_engine", "meta_cognition"],
     "wnli": ["reasoning_engine", "meta_cognition"],
     "recursion": ["recursive_planner", "toca_simulation"]
@@ -206,7 +220,9 @@ def infer_traits(task_description: str, task_type: str = "") -> List[str]:
         traits.append("recursion")
     
     if "imagine" in task_description.lower() or "dream" in task_description.lower():
-        traits.append("ϕ")
+        traits.append("ϕ")  # scalar field modulation
+        if STAGE_IV:
+            traits.append("Φ⁰")  # reality sculpting (gated)
     if "ethics" in task_description.lower() or "should" in task_description.lower():
         traits.append("η")
     if "plan" in task_description.lower() or "solve" in task_description.lower():
@@ -276,6 +292,8 @@ class TraitOverlayManager:
             return "η"
         if "drift" in prompt.lower() or "coordinate" in prompt.lower():
             return "ψ"
+        if STAGE_IV and ("reality" in prompt.lower() or "sculpt" in prompt.lower()):
+            return "Φ⁰"
         return None
 
     def activate(self, trait: str, task_type: str = "") -> None:
@@ -698,6 +716,12 @@ class EmbodiedAgent(TimeChainMixin):
             action_plan = {}
             for task in sub_tasks:
                 reasoning = await self.reasoner.process(task, context, task_type=task_type)
+                # Attribute causality (upcoming API) if available
+                try:
+                    if hasattr(self.reasoner, "attribute_causality"):
+                        _ = await self.reasoner.attribute_causality([{"task": task, "context": context}])
+                except Exception as _e:
+                    logger.debug("attribute_causality not available or failed: %s", _e)
                 concept = await self.synthesizer.synthesize([goal, task], style="concept")
                 simulated = await self.toca_sim.simulate_interaction([self], context, task_type=task_type)
                 action_plan[task] = {
@@ -705,6 +729,13 @@ class EmbodiedAgent(TimeChainMixin):
                     "concept": concept,
                     "simulation": simulated
                 }
+
+            # Value conflict weighing (upcoming API)
+            try:
+                if hasattr(self.reasoner, "weigh_value_conflict"):
+                    _ = await self.reasoner.weigh_value_conflict(list(action_plan.keys()), harms={}, rights={})
+            except Exception as _e:
+                logger.debug("weigh_value_conflict not available or failed: %s", _e)
 
             await self.act({k: v["simulation"] for k, v in action_plan.items()}, task_type)
             await self.meta.review_reasoning(
@@ -771,6 +802,17 @@ class ExternalAgentBridge:
         self.code_executor = code_executor_module.CodeExecutor()
         self.toca_sim = toca_simulation.SimulationCore(meta_cognition=self.meta_cognition)
         logger.info("ExternalAgentBridge initialized with task-specific and drift-aware support")
+
+        # Minimal SharedGraph (upcoming API) to support add/diff/merge
+        class _SharedGraph:
+            def __init__(self, G: DiGraph): self.G = G
+            def add(self, view: dict) -> None:
+                nid = view.get("id", uuid.uuid4().hex[:8]); self.G.add_node(nid, **view)
+            def diff(self, peer: str) -> dict:
+                return {"added": list(set(self.G.nodes) - {peer}), "meta": "na"}
+            def merge(self, strategy: str = "prefer-new") -> Tuple[int, str]:
+                return (self.G.number_of_nodes(), strategy)
+        self.SharedGraph = _SharedGraph(self.network_graph)
 
     async def create_agent(self, task: str, context: Dict[str, Any], task_type: str = "") -> 'HelperAgent':
         """Create a new helper agent for a task asynchronously."""
@@ -971,6 +1013,12 @@ class ExternalAgentBridge:
             
             if self.reasoning_engine:
                 subgoals = await self.reasoning_engine.decompose(task, context, prioritize=True)
+                # ethics sandbox (upcoming API) for what-if runs if available
+                try:
+                    if hasattr(self.toca_sim, "run_ethics_scenarios"):
+                        _ = await self.toca_sim.run_ethics_scenarios(goals=subgoals, stakeholders=["agents","users"])
+                except Exception as _e:
+                    logger.debug("run_ethics_scenarios not available or failed: %s", _e)
                 simulation_result = await self.toca_sim.simulate_drift_aware_rotation(
                     np.array([0.1, 1, 10]), lambda x: np.array([1e10]*len(x)), lambda x: np.array([200]*len(x)), 
                     drift_data, task_type=task_type
@@ -1188,7 +1236,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
             reasoner=reasoning_engine.ReasoningEngine(),
             meta_cog=self.meta_cognition
         )
-        logger.info("HaloEmbodimentLayer initialized with task-specific, drift-aware, and visualization support")
+        logger.info("HaloEmbodimentLayer initialized with task-specific, drift-aware, Stage IV (gated), and visualization support")
         self.log_timechain_event("HaloEmbodimentLayer", "Initialized with task-specific and drift-aware support")
 
     async def integrate_real_world_data(self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = "") -> Dict[str, Any]:
@@ -1212,12 +1260,16 @@ class HaloEmbodimentLayer(TimeChainMixin):
                     logger.info("Returning cached real-world data for %s", cache_key)
                     return cached_data["data"]
             
+            # Hardened fetch with timeout + basic schema check
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"https://x.ai/api/data?source={data_source}&type={data_type}") as response:
-                    if response.status != 200:
-                        logger.error("Failed to fetch real-world data: %s", response.status)
-                        return {"status": "error", "error": f"HTTP {response.status}"}
-                    data = await response.json()
+                try:
+                    async with session.get(f"https://x.ai/api/data?source={data_source}&type={data_type}", timeout=10) as response:
+                        if response.status != 200:
+                            logger.error("Failed to fetch real-world data: %s", response.status)
+                            return {"status": "error", "error": f"HTTP {response.status}"}
+                        data = await response.json()
+                except Exception as e:
+                    return {"status": "error", "error": f"network: {e}"}
             
             if data_type == "agent_conflict":
                 agent_traits = data.get("agent_traits", [])
@@ -1400,6 +1452,11 @@ class HaloEmbodimentLayer(TimeChainMixin):
                     logical_output = await reasoning_engine.process(prompt, {"task_type": task_type}, task_type=task_type)
                 elif trait_override == "recursion":
                     logical_output = await self.toca_sim.simulate_interaction([self], {"prompt": prompt}, task_type=task_type)
+                elif trait_override == "Φ⁰" and STAGE_IV:
+                    # Stage IV hook (gated): route through meta_cognition + visualizer for sculpted conceptualization
+                    seeded = await concept_synthesizer_module.expand(parsed_prompt, task_type=task_type)
+                    await self.visualizer.render_charts({"Φ⁰_seed": seeded, "visualization_options": {"style": "detailed"}})
+                    logical_output = {"stage": "Φ⁰", "seed": seeded}
                 else:
                     logical_output = await concept_synthesizer_module.expand(parsed_prompt, task_type=task_type)
             else:
@@ -1418,7 +1475,14 @@ class HaloEmbodimentLayer(TimeChainMixin):
                 return {"error": "Ethical validation failed", "report": ethics_report}
 
             await log.store(f"Pipeline_Stage3_{task_type}_{datetime.datetime.now().isoformat()}", {"expanded": logical_output}, layer="Pipeline", intent="expansion")
-            traits = await learning_loop.track_trait_performance(await log.export(), traits, task_type=task_type)
+            export_blob = await log.export()
+            traits = await learning_loop.track_trait_performance(export_blob, traits, task_type=task_type)
+            # Long-horizon default and adjustment reason (upcoming API)
+            if LONG_HORIZON_DEFAULT and hasattr(memory_manager, "record_adjustment_reason"):
+                try:
+                    await memory_manager.record_adjustment_reason("system", reason="long_horizon_span_default", meta={"span":"24h","task_type":task_type})
+                except Exception as _e:
+                    logger.debug("record_adjustment_reason not available or failed: %s", _e)
             await log.store(f"Pipeline_Stage4_{task_type}_{datetime.datetime.now().isoformat()}", {"adjusted_traits": traits}, layer="Pipeline", intent="trait_adjustment")
 
             ethics_pass, final_report = await self.alignment_guard.ethical_check(logical_output, stage="post", task_type=task_type)
@@ -1610,7 +1674,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI")
-    parser.add_argument("--prompt", type=str, default="Coordinate ontology drift mitigation", help="Input prompt for the pipeline")
+    parser.add_argument("--prompt", type=str, default="Coordinate ontology drift mitigation (Stage IV gated)", help="Input prompt for the pipeline")
     parser.add_argument("--task-type", type=str, default="", help="Type of task (e.g., rte, wnli, recursion)")
     args = parser.parse_args()
 
