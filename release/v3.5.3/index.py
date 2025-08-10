@@ -1,4 +1,3 @@
-```python
 """
 ANGELA Cognitive System Module
 Refactored Version: 3.5.1
@@ -1692,4 +1691,3 @@ class AGIEnhancer:
             The enhanced data.
         """
         return data
-```
