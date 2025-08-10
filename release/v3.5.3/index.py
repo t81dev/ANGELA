@@ -58,6 +58,13 @@ openai_query_log = deque(maxlen=60)
 
 GROK_API_KEY = os.getenv("GROK_API_KEY")
 
+
+class Halo:
+    def query(self, *args, **kwargs):
+        """Public entrypoint (manifest stable API). TODO: route to planner/engine."""
+        from recursive_planner import plan  # if exists
+        return {"status": "ok", "message": "stub", "args": args, "kwargs": kwargs}
+
 class TimeChainMixin:
     """Mixin for logging timechain events."""
     def log_timechain_event(self, module: str, description: str) -> None:
