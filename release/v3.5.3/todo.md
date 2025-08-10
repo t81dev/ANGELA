@@ -1,3 +1,7 @@
+Here’s the updated **`todo.md`** merged with the manifest details confirming `STAGE_IV=true` and `LONG_HORIZON_DEFAULT=true`, plus the code review results showing τ is now ✅ after the `max_harm` and audit-sync fix:
+
+---
+
 # ANGELA v4.0 — Surgical Upgrade TODO (2025-08-10)
 
 **Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
@@ -87,11 +91,3 @@
 4. Implement `toca_simulation.evaluate_branches(...)` (Stage IV kernel) — keep feature policy-gated.
 5. Implement `concept_synthesizer.branch_realities(...)` stub + `visualizer` branch tree UX (behind gate).
 6. Run η persistence test: verify adjustment reasons persist across restarts under `LONG_HORIZON_DEFAULT=true`.
-
----
-
-## Nice-to-Haves / Cleanups
-
-* Add table-driven fixtures for τ tests with randomized fuzz to catch float-drift regressions.
-* Add `SharedGraph` diff/merge conflict strategies (prefer: CRDT-like last-writer-wins + policy guards).
-* Telemetry: emit concise audit line from `alignment_guard` (already consistent numerics) to central logger for red-team drills.
