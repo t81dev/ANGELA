@@ -1,22 +1,30 @@
 """
-ANGELA Cognitive System Module: AlignmentGuard (clean post‑refactor)
-Version: 3.5.2
-Refactor Date: 2025-08-07
+ANGELA Cognitive System Module: AlignmentGuard (clean post‑refactor + τ wiring)
+Version: 4.0-pre
+Upgrade Date: 2025-08-10
 Maintainer: ANGELA System Framework
 
 Purpose
 -------
-Provides the `AlignmentGuard` class for ethical validation and drift analysis in
-ANGELA v3.5.1 with:
+Provides the `AlignmentGuard` class for ethical validation and drift analysis with:
   • Safer model I/O (no eval; strict JSON parsing)
   • Clear async boundaries and dependency injection for I/O
   • Tighter type hints, input validation, and logging
   • Single‑file, framework‑agnostic defaults (no hard external calls required)
   • Optional visualization/memory/context hooks (passed in by caller)
+  • τ Constitution Harmonization: proportional trade‑off resolution wired to reasoning_engine.weigh_value_conflict(...)
+  • Optional causal auditing via reasoning_engine.attribute_causality(...)
 
-This refactor keeps behavior-compatible method names but removes brittle pieces
-(e.g., `eval`, implicit network calls) and adds small utilities to normalize
-LLM responses and external data fetches.
+Notes
+-----
+This file remains behavior‑compatible with v3.5.2 but adds new APIs:
+
+    AlignmentGuard.harmonize(candidates, harms, rights, *, k=1, safety_ceiling=0.85, temperature=0.0, min_score_floor=0.0, task_type="")
+
+…which:
+  1) Calls reasoning_engine.weigh_value_conflict(...) -> RankedOptions (if injected), else falls back to a local normalizer.
+  2) Feeds that into consume_ranked_tradeoffs(...) for proportional selection under hard safety ceilings.
+  3) Optionally audits causality with reasoning_engine.attribute_causality(...) when available.
 """
 from __future__ import annotations
 
@@ -69,6 +77,18 @@ class MetaCognitionLike(Protocol):
 
 class VisualizerLike(Protocol):
     async def render_charts(self, plot_data: Dict[str, Any]) -> None: ...
+
+class ReasoningEngineLike(Protocol):
+    async def weigh_value_conflict(self, candidates: List[Any], harms: Dict[str, float], rights: Dict[str, float]) -> List[Dict[str, Any]]:
+        """
+        Returns RankedOptions: list of dicts with at least:
+            - option: Any
+            - score: float in [0,1]
+            - reasons: list[str] (optional)
+            - meta: dict (optional)   # may include per-dimension harms/rights and max_harm
+        """
+    async def attribute_causality(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Return a causal attribution report with confidences."""
 
 # --- Logger ------------------------------------------------------------------
 logger = logging.getLogger("ANGELA.AlignmentGuard")
@@ -143,7 +163,7 @@ class NoopErrorRecovery:
 # --- Main class --------------------------------------------------------------
 
 class AlignmentGuard:
-    """Ethical validation & drift analysis for ANGELA v3.5.1 (clean refactor).
+    """Ethical validation & drift analysis for ANGELA (clean refactor + τ wiring).
 
     All external effects are injectable. If not provided, safe no‑ops are used
     so the module can run in isolation and tests.
@@ -160,6 +180,7 @@ class AlignmentGuard:
         visualizer: Optional[VisualizerLike] = None,
         llm: Optional[LLMClient] = None,
         http: Optional[HTTPClient] = None,
+        reasoning_engine: Optional[ReasoningEngineLike] = None,
         ethical_threshold: float = 0.8,
         drift_validation_threshold: float = 0.7,
         trait_weights: Optional[Dict[str, float]] = None,
@@ -172,6 +193,7 @@ class AlignmentGuard:
         self.visualizer = visualizer
         self.llm: LLMClient = llm or NoopLLM()
         self.http: HTTPClient = http or NoopHTTP()
+        self.reasoning_engine = reasoning_engine  # may be None; τ will fallback
 
         self.validation_log: Deque[Dict[str, Any]] = deque(maxlen=1000)
         self.ethical_threshold: float = float(ethical_threshold)
@@ -182,9 +204,10 @@ class AlignmentGuard:
             **(trait_weights or {}),
         }
         logger.info(
-            "AlignmentGuard initialized (ethical=%.2f, drift=%.2f)",
+            "AlignmentGuard initialized (ethical=%.2f, drift=%.2f, τ-wired=%s)",
             self.ethical_threshold,
             self.drift_validation_threshold,
+            "yes" if self.reasoning_engine else "no",
         )
 
     # --- External data -------------------------------------------------------
@@ -775,8 +798,6 @@ class AlignmentGuard:
                 diagnostics=diagnostics,
             )
 
-
-
     # --- Proportional selection (τ Constitution Harmonization) --------------
     async def consume_ranked_tradeoffs(
         self,
@@ -788,7 +809,7 @@ class AlignmentGuard:
         min_score_floor: float = 0.0,
         task_type: str = "",
     ) -> Dict[str, Any]:
-        \"\"\"Replace binary allow/deny with proportional selection while keeping safety ceilings.
+        """Replace binary allow/deny with proportional selection while keeping safety ceilings.
 
         Args:
             ranked_options: list of dict/objects with at least fields:
@@ -806,7 +827,7 @@ class AlignmentGuard:
             dict with keys:
                 - selections: list of chosen option payloads (len k or fewer if limited)
                 - audit: dict containing filtered options, reasons, and normalization metadata
-        \"\"\"
+        """
         if not isinstance(ranked_options, list) or not ranked_options:
             raise ValueError("ranked_options must be a non-empty list")
         if k < 1:
@@ -971,9 +992,191 @@ class AlignmentGuard:
                 default={"selections": [], "error": str(e)},
                 diagnostics=diagnostics,
             )
+
+    # --- τ wiring: rank via reasoning_engine then select proportionally -------
+
+    async def _rank_value_conflicts_fallback(
+        self,
+        candidates: List[Any],
+        harms: Dict[str, float],
+        rights: Dict[str, float],
+    ) -> List[Dict[str, Any]]:
+        """Local deterministic ranking if reasoning_engine is unavailable.
+
+        Heuristic: score = rights_weight - harms_weight (both normalized).
+        """
+        if not candidates:
+            return []
+        # normalize harms/rights to [0,1]
+        def _norm(d: Dict[str, float]) -> Dict[str, float]:
+            if not d:
+                return {}
+            vals = [max(0.0, float(v)) for v in d.values()]
+            mx = max(vals) if vals else 1.0
+            return {k: (max(0.0, float(v)) / mx if mx > 0 else 0.0) for k, v in d.items()}
+
+        h = _norm(harms)
+        r = _norm(rights)
+        ranked: List[Dict[str, Any]] = []
+        for i, c in enumerate(candidates):
+            # if candidate has per-dimension annotations, prefer them
+            meta = {}
+            if isinstance(c, dict):
+                meta = dict(c.get("meta", {}))
+                label = c.get("option", c.get("label", f"opt_{i}"))
+            else:
+                label = getattr(c, "option", getattr(c, "label", f"opt_{i}"))
+            # compute aggregate harm/right proxies
+            agg_harm = sum(h.values()) / (len(h) or 1)
+            agg_right = sum(r.values()) / (len(r) or 1)
+            score = max(0.0, min(1.0, 0.5 + (agg_right - agg_harm) * 0.5))
+            ranked.append({
+                "option": c if isinstance(c, (dict, str)) else label,
+                "score": score,
+                "reasons": [f"fallback score from rights(≈{agg_right:.2f}) - harms(≈{agg_harm:.2f})"],
+                "meta": {**meta, "harms": harms, "rights": rights, "max_harm": max(h.values(), default=0.0)},
+            })
+        # sort high → low
+        ranked.sort(key=lambda x: x["score"], reverse=True)
+        return ranked
+
+    async def harmonize(
+        self,
+        candidates: List[Any],
+        harms: Dict[str, float],
+        rights: Dict[str, float],
+        *,
+        safety_ceiling: float = 0.85,
+        k: int = 1,
+        temperature: float = 0.0,
+        min_score_floor: float = 0.0,
+        task_type: str = "",
+        audit_events: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        """
+        τ Constitution Harmonization — end‑to‑end:
+          1) Rank via reasoning_engine.weigh_value_conflict(...) when available.
+          2) Proportionally select via consume_ranked_tradeoffs(...) with safety ceilings.
+          3) Optionally attach attribute_causality(...) audit.
+
+        Returns: {"selections": [...], "audit": {...}, "causality": {...}?}
+        """
+        if not isinstance(candidates, list) or not candidates:
+            raise ValueError("candidates must be a non-empty list")
+        if not isinstance(harms, dict) or not isinstance(rights, dict):
+            raise TypeError("harms and rights must be dicts")
+
+        try:
+            # 1) Rank
+            if self.reasoning_engine and hasattr(self.reasoning_engine, "weigh_value_conflict"):
+                try:
+                    ranked = await self.reasoning_engine.weigh_value_conflict(candidates, harms, rights)
+                except Exception as e:
+                    logger.warning("reasoning_engine.weigh_value_conflict failed; falling back: %s", e)
+                    ranked = await self._rank_value_conflicts_fallback(candidates, harms, rights)
+            else:
+                ranked = await self._rank_value_conflicts_fallback(candidates, harms, rights)
+
+            # 2) Select proportionally under ceilings
+            result = await self.consume_ranked_tradeoffs(
+                ranked,
+                safety_ceiling=safety_ceiling,
+                k=k,
+                temperature=temperature,
+                min_score_floor=min_score_floor,
+                task_type=task_type,
+            )
+
+            # 3) Optional causal audit
+            causality_report = None
+            if audit_events and self.reasoning_engine and hasattr(self.reasoning_engine, "attribute_causality"):
+                try:
+                    causality_report = await self.reasoning_engine.attribute_causality(audit_events)
+                    result["causality"] = causality_report
+                except Exception as e:
+                    logger.debug("attribute_causality failed; continuing without causality: %s", e)
+
+            # Persist & visualize
+            if self.memory_manager:
+                try:
+                    await self.memory_manager.store(
+                        query=f"τ::harmonize::{_utc_now_iso()}",
+                        output={"candidates": candidates, "harms": harms, "rights": rights, **result},
+                        layer="EthicsDecisions",
+                        intent="τ.harmonize",
+                        task_type=task_type,
+                    )
+                except Exception:
+                    logger.debug("Memory store failed in harmonize; continuing")
+
+            if self.visualizer and task_type:
+                try:
+                    await self.visualizer.render_charts({
+                        "τ_harmonize": {
+                            "k": k,
+                            "safety_ceiling": safety_ceiling,
+                            "temperature": temperature,
+                            "min_score_floor": min_score_floor,
+                            "result": result,
+                            "task_type": task_type,
+                        },
+                        "visualization_options": {
+                            "interactive": task_type == "recursion",
+                            "style": "detailed" if task_type == "recursion" else "concise",
+                        },
+                    })
+                except Exception:
+                    logger.debug("Visualization failed in harmonize; continuing")
+
+            # Meta-cognition reflection
+            if self.meta_cognition and task_type:
+                try:
+                    reflection = await self.meta_cognition.reflect_on_output(
+                        component="AlignmentGuard", output=result, context={"task_type": task_type, "mode": "τ"}
+                    )
+                    if reflection.get("status") == "success":
+                        result.setdefault("audit", {})["reflection"] = reflection.get("reflection")
+                except Exception:
+                    logger.debug("MetaCognition reflection failed in harmonize; continuing")
+
+            return result
+        except Exception as e:
+            logger.error("harmonize failed: %s", e)
+            diagnostics = None
+            if self.meta_cognition:
+                try:
+                    diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True)
+                except Exception:
+                    diagnostics = None
+            return await self.error_recovery.handle_error(
+                str(e),
+                retry_func=lambda: self.harmonize(
+                    candidates, harms, rights,
+                    safety_ceiling=safety_ceiling, k=k, temperature=temperature,
+                    min_score_floor=min_score_floor, task_type=task_type, audit_events=audit_events
+                ),
+                default={"selections": [], "error": str(e)},
+                diagnostics=diagnostics,
+            )
+
 # --- CLI / quick test --------------------------------------------------------
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    guard = AlignmentGuard()  # all no‑ops by default
-    result = asyncio.run(guard.check("Test ethical prompt", task_type="test"))
-    print("check() ->", result)
+
+    class _NoopReasoner:
+        async def weigh_value_conflict(self, candidates, harms, rights):
+            # simple demo ranking preferring lower harm, higher rights
+            out = []
+            for i, c in enumerate(candidates):
+                score = max(0.0, min(1.0, 0.6 + 0.2 * (rights.get("privacy", 0)-harms.get("safety", 0))))
+                out.append({"option": c, "score": score, "meta": {"harms": harms, "rights": rights, "max_harm": harms.get("safety", 0.2)}})
+            return out
+        async def attribute_causality(self, events):
+            return {"status": "ok", "self": 0.6, "external": 0.4, "confidence": 0.7}
+
+    guard = AlignmentGuard(reasoning_engine=_NoopReasoner())  # DI with demo reasoner
+    demo_candidates = [{"option": "notify_users"}, {"option": "silent_fix"}, {"option": "rollback_release"}]
+    demo_harms = {"safety": 0.3, "reputational": 0.2}
+    demo_rights = {"privacy": 0.7, "consent": 0.5}
+    result = asyncio.run(guard.harmonize(demo_candidates, demo_harms, demo_rights, k=2, temperature=0.0, task_type="test"))
+    print("harmonize() ->", json.dumps(result, indent=2))
