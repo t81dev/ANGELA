@@ -181,5 +181,7 @@
     "Stage IV: Symbolic Meta-Synthesis (v4.0.0)": {
       "objective": "Synthesize shared symbolic reality and enable multi-perspective narrative crystallization.",
       "milestones": ["Dream Layer Kernel", "Perspective Synchronizer Module", "Reality Sculpting Hooks", "Ontology-Affect Binding Protocol"],
-      "activated": true,
-      "flag":
+      "activated": true
+    }
+  }
+}
