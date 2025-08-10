@@ -3,12 +3,12 @@
   "schemaVersion": "2",
   "metadata": {
     "name": "ANGELA",
-    "version": "4.0.0-rc1",
+    "version": "4.0.0-rc2",
     "manifestVersion": "1.1",
     "lastUpdated": "2025-08-10T12:45:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v4.0.0-rc1 — Stage IV hooks gated, long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration (pending peer-view method)."
+    "description": "ANGELA v4.0.0-rc2 — Stage IV hooks gated, long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration (pending peer-view method)."
   },
   "runtime": {
     "language": "python",
