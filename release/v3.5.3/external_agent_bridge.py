@@ -685,7 +685,7 @@ class ExternalAgentBridge:
         return responses
 
     async def synchronize_trait_states(self, agent_id: str, trait_symbol: str, task_type: str = "") -> Dict[str, Any]:
-        if trait_symbol not in ["ψ", "Υ"]: raise ValueError("Trait symbol must be ψ or Υ")
+        if trait_symbol not in ["ψ", "Υ"]: raise ValueError("trait_symbol must be ψ or Υ")
         local_state = self.trait_states.get(agent_id, {}).get(trait_symbol, {})
         if not local_state:
             return {"status": "error", "error": "No local state found", "task_type": task_type}
