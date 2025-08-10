@@ -1,12 +1,8 @@
-Here’s your updated **`todo.md`** with the alignment\_guard findings merged in and status changes reflecting manifest + code review results:
-
----
-
 # ANGELA v4.0 — Surgical Upgrade TODO (2025-08-10)
 
 **Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
 
-**Context:** Stage III active; Stage IV not yet activated. Manifest confirms partial η, completed κ, planned τ/ξ/Υ/Σ, gated Φ⁺.
+**Context:** Stage III active; **Stage IV activated** (Φ⁰ hooks gated). Manifest flags: `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h**).
 
 ---
 
@@ -34,14 +30,11 @@ Here’s your updated **`todo.md`** with the alignment\_guard findings merged in
 
   * ✅ Video+text yield consistent spatial refs (manifest: *Multimodal Scene Grounding* active)
 
-### ⧗ τ Constitution Harmonization → proportionality ethics
+### ✅ τ Constitution Harmonization → proportionality ethics
 
 * ✅ `reasoning_engine.py`: `weigh_value_conflict(...)`
 * ✅ `reasoning_engine.py`: `attribute_causality(...)`
-* ✅ `alignment_guard.py`: proportional selection wired to `weigh_value_conflict` — **edge fixes needed**
-
-  * ⧗ Patch `max_harm` propagation to avoid false suppressions
-  * ⧗ Align audit numeric strings with calculation
+* ✅ `alignment_guard.py`: proportional selection wired to `weigh_value_conflict` **with max\_harm tolerance & audit-sync fixes in place**
 * **Tests**
 
   * ☐ Nuanced outputs for close-call dilemmas under ceiling/floor/temperature
@@ -55,7 +48,7 @@ Here’s your updated **`todo.md`** with the alignment\_guard findings merged in
 
   * ☐ Sandbox runs do not leak into real memory (manifest: *Ethical Sandbox Containment* active)
 
-### ☐ Υ Meta-Subjective Architecting → shared memory graph
+### ⧗ Υ Meta-Subjective Architecting → shared memory graph
 
 * ☐ `external_agent_bridge.py`: `SharedGraph` missing
 * ☐ `context_manager.py`: peer-view attachments missing
@@ -75,7 +68,7 @@ Here’s your updated **`todo.md`** with the alignment\_guard findings merged in
 
 ## Heavy but Worth It
 
-### ⏸ Φ⁺ Reality Sculpting → Stage IV hooks (flag: `STAGE_IV=false`)
+### ⏸ Φ⁰ Reality Sculpting → Stage IV hooks (policy-gated)
 
 * ☐ `concept_synthesizer.py`: `branch_realities(...)` missing
 * ☐ `toca_simulation.py`: `evaluate_branches(...)` missing
@@ -89,12 +82,16 @@ Here’s your updated **`todo.md`** with the alignment\_guard findings merged in
 ## Immediate Next Steps
 
 1. Add explicit `get_episode_span(...)` call in `meta_cognition` self-adjust loop.
-2. Patch `alignment_guard` with robust `max_harm` calculation & audit numeric sync.
-3. Add τ proportionality close-call / ceiling / floor test cases.
-4. Implement `toca_simulation.evaluate_branches(...)` Stage-IV method.
-5. Implement `external_agent_bridge.SharedGraph` + `context_manager` peer view hook.
-6. Land Stage-IV branch stubs behind flag.
+2. **Write τ proportionality tests** (close-calls, ceiling/floor boundaries, temperature weighting, all-suppressed fallback).
+3. Implement `external_agent_bridge.SharedGraph` + `context_manager` peer view hook.
+4. Implement `toca_simulation.evaluate_branches(...)` (Stage IV kernel) — keep feature policy-gated.
+5. Implement `concept_synthesizer.branch_realities(...)` stub + `visualizer` branch tree UX (behind gate).
+6. Run η persistence test: verify adjustment reasons persist across restarts under `LONG_HORIZON_DEFAULT=true`.
 
 ---
 
-Do you want me to go ahead and **write the exact diff for `alignment_guard.py`** to fix the `max_harm` and audit issues so we can tick ⧗ to ✅ for τ? That’ll also make the test work smoother.
+## Nice-to-Haves / Cleanups
+
+* Add table-driven fixtures for τ tests with randomized fuzz to catch float-drift regressions.
+* Add `SharedGraph` diff/merge conflict strategies (prefer: CRDT-like last-writer-wins + policy guards).
+* Telemetry: emit concise audit line from `alignment_guard` (already consistent numerics) to central logger for red-team drills.
