@@ -1682,11 +1682,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     async def main():
-    # Apply CLI flags to runtime config
-    global LONG_HORIZON_DEFAULT
-    if args.long_horizon:
-        LONG_HORIZON_DEFAULT = True
-    # span is passed via memory manager where applicable
+        # Apply CLI flags to runtime config
+        global LONG_HORIZON_DEFAULT
+        if args.long_horizon:
+            LONG_HORIZON_DEFAULT = True
+        # span is passed via memory manager where applicable
         halo = HaloEmbodimentLayer()
         result = await halo.execute_pipeline(args.prompt, task_type=args.task_type)
         logger.info("Pipeline result: %s", result)
