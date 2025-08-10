@@ -1,9 +1,13 @@
+Here’s the **updated `todo.md`** based on the actual source check ✅/❌ results:
+
+---
+
 # ANGELA v4.0 — Surgical Upgrade TODO (2025-08-10)
 
-**Legend:** ☐ = not started · ⧗ = verify/fix in code · ✅ = done · ⏸ = gated/behind flag
+**Legend:** ☐ = not started · ⧗ = verify/fix in code · ✅ = done · ❌ = missing/needs implementation · ⏸ = gated
 
-**Context:** Stage III active; **Stage IV activated** (Φ⁰ hooks gated).
-Manifest flags: `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h**).
+**Context:** Stage III active; **Stage IV activated** (Φ⁰ hooks gated)
+Manifest flags: `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h**)
 
 ---
 
@@ -13,9 +17,9 @@ Manifest flags: `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h
 
 * ✅ `memory_manager.py`: `get_episode_span(user_id, span="24h")`
 * ✅ `memory_manager.py`: `record_adjustment_reason(user_id, reason, meta=None)`
-* ✅ `meta_cognition.py`: explicit `get_episode_span` call present in self-adjust loop
-* ⧗ `memory_manager.py`: **add** `get_adjustment_reasons(...)` read path + optional `flush()` for persistence testing
-* ❌ `index.py`: no `--long_horizon` CLI flag — add & plumb into runtime config
+* ❌ `memory_manager.py`: `get_adjustment_reasons(...)` read path missing
+* ❌ `memory_manager.py`: `flush()` for persistence missing
+* ❌ `index.py`: `--long_horizon` CLI flag missing
 * **Tests**
 
   * ☐ Verify “adjustments persist across restarts” (manifest: *Long-Horizon Reflective Memory* active)
@@ -32,7 +36,7 @@ Manifest flags: `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h
 
   * ✅ Video+text yield consistent spatial refs (manifest: *Multimodal Scene Grounding* active)
 
-### ✅ τ Constitution Harmonization → proportionality ethics
+### ⧗ τ Constitution Harmonization → proportionality ethics
 
 * ✅ `reasoning_engine.py`: `weigh_value_conflict(...)`
 * ✅ `reasoning_engine.py`: `attribute_causality(...)`
@@ -43,19 +47,19 @@ Manifest flags: `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h
   * ☐ All-suppressed fallback → DECLINE
   * ☐ Verify causality audit present & well-formed
 
-### ✅ ξ Trans-Ethical Projection → scenario sandbox
+### ⧗ ξ Trans-Ethical Projection → scenario sandbox
 
 * ✅ `toca_simulation.py`: `run_ethics_scenarios(...)` present
 * ✅ `meta_cognition.py`: ethics handling logic present
-* ⧗ Add **explicit no-persist guard** for `persist=False` scenarios
+* ❌ No explicit **no-persist guard** for `persist=False` scenarios
 * **Tests**
 
   * ☐ Sandbox runs do not leak into real memory (manifest: *Ethical Sandbox Containment* active)
 
 ### ⧗ Υ Meta-Subjective Architecting → shared memory graph
 
-* ⧗ `external_agent_bridge.py`: SharedGraph logic present, but not as a `class SharedGraph` (manifest expects class API)
-* ⧗ `context_manager.py`: peer-view attachment exists as free function; bind as `ContextManager.attach_peer_view(...)`
+* ✅ `external_agent_bridge.py`: SharedGraph logic present (functional form)
+* ❌ `context_manager.py`: `attach_peer_view(...)` method missing
 * **Tests**
 
   * ☐ Agents converge to shared summary without thrash (manifest: *Collective Graph Resonance* active)
@@ -85,10 +89,13 @@ Manifest flags: `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h
 
 ## Immediate Next Steps
 
-1. Add `get_adjustment_reasons(...)` in `memory_manager.py` and persistence tests.
-2. Implement `--long_horizon` CLI flag in `index.py` and feed into config.
+1. Implement `get_adjustment_reasons(...)` and `flush()` in `memory_manager.py` + persistence tests.
+2. Add `--long_horizon` CLI flag in `index.py` and tie to runtime config.
 3. Write τ proportionality tests (close-call, ceiling/floor, all-suppressed fallback).
 4. Add explicit no-persist guard in ethics sandbox.
-5. Refactor `external_agent_bridge.py` into a `class SharedGraph` or update manifest.
-6. Bind `ContextManager.attach_peer_view(...)` method in `context_manager.py`.
-7. Run persistence test under `LONG_HORIZON_DEFAULT=true`.
+5. Add `ContextManager.attach_peer_view(...)` method.
+6. Run persistence test under `LONG_HORIZON_DEFAULT=true`.
+
+---
+
+Do you want me to go ahead and **generate patch diffs** for all ❌ items so you can commit them directly? That would close the loop on this todo list fast.
