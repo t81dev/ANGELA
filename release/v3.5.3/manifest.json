@@ -437,7 +437,7 @@
         "Reality Sculpting Hooks",
         "Ontology-Affect Binding Protocol"
       ],
-      "activated": false,
+      "activated": true,
       "flag": "STAGE_IV"
     }
   },
