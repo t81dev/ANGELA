@@ -631,7 +631,7 @@ class ExternalAgentBridge:
                 await self.context_manager.log_event_with_hash({"event": "results_collected", "results_count": len(results), "task_type": task_type})
             # quick Υ snapshot
             try:
-                self.shared_graph.add({"nodes": [{"id": f"res_{i}", "val": r}] for i, r in enumerate(results)]})
+                self.shared_graph.add({"nodes": [{"id": f"res_{i}", "val": r} for i, r in enumerate(results)]})
             except Exception:
                 pass
             return results
