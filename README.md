@@ -129,13 +129,13 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 
 2. Create or edit a GPT
 
-3. Upload:
+3. Go to /release and upload a version's
 
    * `manifest.json`
    * `index.py`
    * All other `*.py` modules listed above
 
-4. Edit Custom Prompt Instructions
+4. Go to Edit Custom Prompt Instructions
 
    * Choose `/docs/prompt.json`
    * Copy and paste into custom prompt instruction area
