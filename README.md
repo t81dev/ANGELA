@@ -1,4 +1,4 @@
-# 😇 ANGELA v3.5.1
+# 😇 ANGELA v3.5.3
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with introspection, simulation, ethical filtering, and cross-domain creativity through 19+ autonomous modules coordinated by a central orchestrator, *Halo*.
 
@@ -50,6 +50,7 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 ├── toca_simulation.py           # Multi-agent trait simulation + conflict modeling
 ├── user_profile.py              # Preference, identity, and drift tracking
 ├── visualizer.py                # ϕ-visual charting + symbolic exports
+├── utils/                       # Shared utilities (prompt_utils, toca_math, vector_utils)
 ```
 
 ---
@@ -93,6 +94,8 @@ Traits modulate behavior, simulate identity drift, shape inter-agent empathy, an
 * `STATUS.md` – Diagnostics and module health
 * `TESTING.md` – QA and module verification
 * `CODE_OF_CONDUCT.md`, `SECURITY.md`, `LICENSE` – Community and ethics
+
+All modules can be imported directly (e.g., `import context_manager`) without using the legacy `modules.` prefix.
 
 ---
 

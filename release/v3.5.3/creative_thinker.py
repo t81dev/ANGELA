@@ -20,12 +20,12 @@ from pathlib import Path
 from index import gamma_creativity, phi_scalar
 from utils.prompt_utils import call_gpt
 from toca_simulation import run_simulation
-from modules.alignment_guard import AlignmentGuard
-from modules.code_executor import CodeExecutor
-from modules.concept_synthesizer import ConceptSynthesizer
-from modules.context_manager import ContextManager
-from modules.meta_cognition import MetaCognition
-from modules.visualizer import Visualizer
+from alignment_guard import AlignmentGuard
+from code_executor import CodeExecutor
+from concept_synthesizer import ConceptSynthesizer
+from context_manager import ContextManager
+from meta_cognition import MetaCognition
+from visualizer import Visualizer
 
 logger = logging.getLogger("ANGELA.CreativeThinker")
 

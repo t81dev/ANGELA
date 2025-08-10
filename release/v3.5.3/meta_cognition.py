@@ -25,14 +25,12 @@ from filelock import FileLock
 from functools import lru_cache
 
 # Keep imports collapsed under the existing package; no new files introduced.
-from modules import (
-    context_manager as context_manager_module,
-    alignment_guard as alignment_guard_module,
-    error_recovery as error_recovery_module,
-    concept_synthesizer as concept_synthesizer_module,
-    memory_manager as memory_manager_module,
-    user_profile as user_profile_module,  # ← Σ Ontogenic Self-Definition (build_self_schema)
-)
+import context_manager as context_manager_module
+import alignment_guard as alignment_guard_module
+import error_recovery as error_recovery_module
+import concept_synthesizer as concept_synthesizer_module
+import memory_manager as memory_manager_module
+import user_profile as user_profile_module  # ← Σ Ontogenic Self-Definition (build_self_schema)
 from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.MetaCognition")

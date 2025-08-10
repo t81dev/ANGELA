@@ -23,16 +23,14 @@ except Exception:  # pragma: no cover
     def run_AGRF_with_traits(_: Dict[str, Any]) -> Dict[str, Any]:
         return {"fields": {"psi_foresight": 0.55, "phi_bias": 0.42}}
 
-from modules import (
-    reasoning_engine as reasoning_engine_module,
-    meta_cognition as meta_cognition_module,
-    alignment_guard as alignment_guard_module,
-    simulation_core as simulation_core_module,
-    memory_manager as memory_manager_module,
-    multi_modal_fusion as multi_modal_fusion_module,
-    error_recovery as error_recovery_module,
-    context_manager as context_manager_module
-)
+import reasoning_engine as reasoning_engine_module
+import meta_cognition as meta_cognition_module
+import alignment_guard as alignment_guard_module
+import simulation_core as simulation_core_module
+import memory_manager as memory_manager_module
+import multi_modal_fusion as multi_modal_fusion_module
+import error_recovery as error_recovery_module
+import context_manager as context_manager_module
 
 logger = logging.getLogger("ANGELA.RecursivePlanner")
 

@@ -23,16 +23,14 @@ from collections import deque
 
 import aiohttp
 
-from modules import (
-    context_manager as context_manager_module,
-    error_recovery as error_recovery_module,
-    memory_manager as memory_manager_module,
-    alignment_guard as alignment_guard_module,
-    meta_cognition as meta_cognition_module,
-    visualizer as visualizer_module,
-    # optional (might not be present in some deployments)
-    multi_modal_fusion as multi_modal_fusion_module,
-)
+import context_manager as context_manager_module
+import error_recovery as error_recovery_module
+import memory_manager as memory_manager_module
+import alignment_guard as alignment_guard_module
+import meta_cognition as meta_cognition_module
+import visualizer as visualizer_module
+# optional (might not be present in some deployments)
+import multi_modal_fusion as multi_modal_fusion_module
 from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.ConceptSynthesizer")

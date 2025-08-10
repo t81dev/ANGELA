@@ -18,9 +18,13 @@ from datetime import datetime
 from functools import lru_cache
 
 # NOTE: Keep your existing project import shape for drop-in compatibility.
-from modules import (
-    context_manager, concept_synthesizer, alignment_guard, error_recovery, meta_cognition, visualizer, memory_manager
-)
+import context_manager
+import concept_synthesizer
+import alignment_guard
+import error_recovery
+import meta_cognition
+import visualizer
+import memory_manager
 from utils.prompt_utils import query_openai
 from toca_simulation import run_simulation
 import json

@@ -21,16 +21,14 @@ from dataclasses import dataclass, field
 import uuid
 import networkx as nx
 
-from modules import (
-    context_manager as context_manager_module,
-    alignment_guard as alignment_guard_module,
-    error_recovery as error_recovery_module,
-    concept_synthesizer as concept_synthesizer_module,
-    memory_manager as memory_manager_module,
-    meta_cognition as meta_cognition_module,
-    reasoning_engine as reasoning_engine_module,
-    visualizer as visualizer_module
-)
+import context_manager as context_manager_module
+import alignment_guard as alignment_guard_module
+import error_recovery as error_recovery_module
+import concept_synthesizer as concept_synthesizer_module
+import memory_manager as memory_manager_module
+import meta_cognition as meta_cognition_module
+import reasoning_engine as reasoning_engine_module
+import visualizer as visualizer_module
 from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.MultiModalFusion")

@@ -34,12 +34,12 @@ import aiohttp
 STAGE_IV: bool = False  # keep gated
 
 # --- Imports from ANGELA modules ---
-from modules.simulation_core import SimulationCore as BaseSimulationCore, ToCATraitEngine
-from modules.visualizer import Visualizer
-from modules.memory_manager import MemoryManager
-from modules import multi_modal_fusion as multi_modal_fusion_module
-from modules import error_recovery as error_recovery_module
-from modules import meta_cognition as meta_cognition_module
+from simulation_core import SimulationCore as BaseSimulationCore, ToCATraitEngine
+from visualizer import Visualizer
+from memory_manager import MemoryManager
+import multi_modal_fusion as multi_modal_fusion_module
+import error_recovery as error_recovery_module
+import meta_cognition as meta_cognition_module
 from index import zeta_consequence, theta_causality, rho_agency, TraitOverlayManager
 
 logger = logging.getLogger("ANGELA.ToCA.Simulation")

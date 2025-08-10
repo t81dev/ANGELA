@@ -28,16 +28,16 @@ import aiohttp
 from networkx import DiGraph
 
 # --- ANGELA modules (import paths match repo layout) -------------------------
-from modules.alignment_guard import AlignmentGuard
-from modules.code_executor import CodeExecutor
-from modules.concept_synthesizer import ConceptSynthesizer
-from modules.context_manager import ContextManager
-from modules.creative_thinker import CreativeThinker
-from modules.error_recovery import ErrorRecovery
-from modules.reasoning_engine import ReasoningEngine
-from modules.meta_cognition import MetaCognition as _BaseMeta  # for analyze_trace(), etc.
-from modules.visualizer import Visualizer
-from modules.memory_manager import cache_state, retrieve_state, MemoryManager
+from alignment_guard import AlignmentGuard
+from code_executor import CodeExecutor
+from concept_synthesizer import ConceptSynthesizer
+from context_manager import ContextManager
+from creative_thinker import CreativeThinker
+from error_recovery import ErrorRecovery
+from reasoning_engine import ReasoningEngine
+from meta_cognition import MetaCognition as _BaseMeta  # for analyze_trace(), etc.
+from visualizer import Visualizer
+from memory_manager import cache_state, retrieve_state, MemoryManager
 
 from index import phi_scalar
 from toca_simulation import run_simulation  # plus run_ethics_scenarios() used via sandbox
@@ -631,7 +631,7 @@ class ExternalAgentBridge:
                 await self.context_manager.log_event_with_hash({"event": "results_collected", "results_count": len(results), "task_type": task_type})
             # quick Υ snapshot
             try:
-                self.shared_graph.add({"nodes": [{"id": f"res_{i}", "val": r}] for i, r in enumerate(results)]})
+                self.shared_graph.add({"nodes": [{"id": f"res_{i}", "val": r} for i, r in enumerate(results)]})
             except Exception:
                 pass
             return results

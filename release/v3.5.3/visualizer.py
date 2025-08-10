@@ -24,11 +24,11 @@ import aiohttp
 import plotly.graph_objects as go
 import plotly.io as pio
 
-from modules.agi_enhancer import AGIEnhancer
-from modules.simulation_core import SimulationCore
-from modules.memory_manager import MemoryManager
-from modules.multi_modal_fusion import MultiModalFusion
-from modules.meta_cognition import MetaCognition
+from agi_enhancer import AGIEnhancer
+from simulation_core import SimulationCore
+from memory_manager import MemoryManager
+from multi_modal_fusion import MultiModalFusion
+from meta_cognition import MetaCognition
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("ANGELA.Core")

@@ -27,18 +27,16 @@ from datetime import datetime, timedelta
 import numpy as np
 
 # ── Module wiring (all optional, duck-typed) ──────────────────────────────────
-from modules import (
-    agi_enhancer as agi_enhancer_module,
-    alignment_guard as alignment_guard_module,
-    code_executor as code_executor_module,
-    concept_synthesizer as concept_synthesizer_module,
-    meta_cognition as meta_cognition_module,
-    visualizer as visualizer_module,
-    error_recovery as error_recovery_module,
-    recursive_planner as recursive_planner_module,
-    external_agent_bridge as external_agent_bridge_module,
-    knowledge_retriever as knowledge_retriever_module,
-)
+import agi_enhancer as agi_enhancer_module
+import alignment_guard as alignment_guard_module
+import code_executor as code_executor_module
+import concept_synthesizer as concept_synthesizer_module
+import meta_cognition as meta_cognition_module
+import visualizer as visualizer_module
+import error_recovery as error_recovery_module
+import recursive_planner as recursive_planner_module
+import external_agent_bridge as external_agent_bridge_module
+import knowledge_retriever as knowledge_retriever_module
 from utils.toca_math import phi_coherence
 from utils.vector_utils import normalize_vectors
 from toca_simulation import run_simulation

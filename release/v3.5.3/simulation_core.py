@@ -34,15 +34,13 @@ import numpy as np
 
 # Optional collaborators (expected to exist in the ANGELA codebase).
 # Type hints use strings to avoid import-time failures if modules aren’t loaded yet.
-from modules import (  # type: ignore
-    visualizer as visualizer_module,
-    memory_manager as memory_manager_module,
-    alignment_guard as alignment_guard_module,
-    error_recovery as error_recovery_module,
-    multi_modal_fusion as multi_modal_fusion_module,
-    meta_cognition as meta_cognition_module,
-    reasoning_engine as reasoning_engine_module,
-)
+import visualizer as visualizer_module
+import memory_manager as memory_manager_module
+import alignment_guard as alignment_guard_module
+import error_recovery as error_recovery_module
+import multi_modal_fusion as multi_modal_fusion_module
+import meta_cognition as meta_cognition_module
+import reasoning_engine as reasoning_engine_module
 
 from utils.prompt_utils import query_openai  # type: ignore
 
@@ -51,7 +49,7 @@ logger = logging.getLogger("ANGELA.SimulationCore")
 # --- Optional type import for κ SceneGraph support (no hard dependency) ------
 try:
     # Prefer direct import to get the real class for isinstance checks
-    from modules.multi_modal_fusion import SceneGraph as _SceneGraph  # type: ignore
+    from multi_modal_fusion import SceneGraph as _SceneGraph  # type: ignore
     SceneGraphT = _SceneGraph  # alias used only for isinstance
 except Exception:
     # Fallback placeholder keeps imports safe even if κ upgrade not loaded yet

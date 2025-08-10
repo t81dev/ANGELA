@@ -25,23 +25,17 @@ from functools import lru_cache
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("ANGELA.Core")
 
-# --- Import compatibility (supports flat or 'modules/' layout) ---------------
-def _try_import(name_flat: str, name_mod: str):
-    try:
-        return __import__(name_mod, fromlist=['*'])
-    except Exception:
-        return __import__(name_flat, fromlist=['*'])
-
-# Orchestrator & subsystems
-SimulationCore = _try_import("simulation_core", "modules.simulation_core").SimulationCore
-MemoryManager = _try_import("memory_manager", "modules.memory_manager").MemoryManager
-MultiModalFusion = _try_import("multi_modal_fusion", "modules.multi_modal_fusion").MultiModalFusion
-MetaCognition = _try_import("meta_cognition", "modules.meta_cognition").MetaCognition
-ReasoningEngine = _try_import("reasoning_engine", "modules.reasoning_engine").ReasoningEngine
+# --- Direct imports for core subsystems -------------------------------------
+from simulation_core import SimulationCore
+from memory_manager import MemoryManager
+from multi_modal_fusion import MultiModalFusion
+from meta_cognition import MetaCognition
+from reasoning_engine import ReasoningEngine
+from agi_enhancer import AGIEnhancer
 
 # epsilon identity
 try:
-    epsilon_identity = _try_import("index", "index").epsilon_identity
+    from index import epsilon_identity
 except Exception as _e:
     logger.warning("epsilon_identity import failed; using fallback. %s", _e)
 
@@ -206,11 +200,7 @@ class UserProfile:
         self.active_user: Optional[str] = None
         self.active_agent: Optional[str] = None
         self.orchestrator = orchestrator
-        self.agi_enhancer = getattr(_try_import("knowledge_retriever", "modules.agi_enhancer"), "AGIEnhancer", None)
-        if self.agi_enhancer is not None and orchestrator is not None:
-            self.agi_enhancer = self.agi_enhancer(orchestrator)  # type: ignore[call-arg]
-        else:
-            self.agi_enhancer = None
+        self.agi_enhancer = AGIEnhancer(orchestrator) if orchestrator is not None else None
 
         self.memory_manager = orchestrator.memory_manager if orchestrator and getattr(orchestrator, "memory_manager", None) else MemoryManager()
         self.multi_modal_fusion = orchestrator.multi_modal_fusion if orchestrator and getattr(orchestrator, "multi_modal_fusion", None) else MultiModalFusion(

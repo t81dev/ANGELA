@@ -31,16 +31,14 @@ from functools import lru_cache
 from toca_simulation import simulate_galaxy_rotation, M_b_exponential, v_obs_flat, generate_phi_field
 
 # ANGELA modules (keep package-local; do not introduce new files)
-from modules import (
-    context_manager as context_manager_module,
-    alignment_guard as alignment_guard_module,
-    error_recovery as error_recovery_module,
-    memory_manager as memory_manager_module,
-    meta_cognition as meta_cognition_module,
-    multi_modal_fusion as multi_modal_fusion_module,
-    visualizer as visualizer_module,
-    external_agent_bridge as external_agent_bridge_module,  # ← fix: was imported from meta_cognition before
-)
+import context_manager as context_manager_module
+import alignment_guard as alignment_guard_module
+import error_recovery as error_recovery_module
+import memory_manager as memory_manager_module
+import meta_cognition as meta_cognition_module
+import multi_modal_fusion as multi_modal_fusion_module
+import visualizer as visualizer_module
+import external_agent_bridge as external_agent_bridge_module  # ← fix: was imported from meta_cognition before
 from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.ReasoningEngine")

@@ -34,25 +34,14 @@ try:
 except Exception:  # pragma: no cover
     aiohttp = None
 
-# ---------- Local module imports (robust to packaging layout) ----------
-try:
-    import context_manager as context_manager_module
-    import alignment_guard as alignment_guard_module
-    import error_recovery as error_recovery_module
-    import concept_synthesizer as concept_synthesizer_module
-    import knowledge_retriever as knowledge_retriever_module
-    import meta_cognition as meta_cognition_module
-    import visualizer as visualizer_module
-except Exception:  # pragma: no cover
-    from modules import (  # type: ignore
-        context_manager as context_manager_module,
-        alignment_guard as alignment_guard_module,
-        error_recovery as error_recovery_module,
-        concept_synthesizer as concept_synthesizer_module,
-        knowledge_retriever as knowledge_retriever_module,
-        meta_cognition as meta_cognition_module,
-        visualizer as visualizer_module,
-    )
+# ---------- Local module imports (flat layout) ----------
+import context_manager as context_manager_module
+import alignment_guard as alignment_guard_module
+import error_recovery as error_recovery_module
+import concept_synthesizer as concept_synthesizer_module
+import knowledge_retriever as knowledge_retriever_module
+import meta_cognition as meta_cognition_module
+import visualizer as visualizer_module
 
 from toca_simulation import ToCASimulation
 

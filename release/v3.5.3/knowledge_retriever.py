@@ -28,19 +28,17 @@ from typing import List, Dict, Any, Optional, Callable
 from collections import deque
 
 # ANGELA modules (assumed available per manifest)
-from modules import (
-    context_manager as context_manager_mod,
-    concept_synthesizer as concept_synthesizer_mod,
-    memory_manager as memory_manager_mod,
-    alignment_guard as alignment_guard_mod,
-    error_recovery as error_recovery_mod,
-    meta_cognition as meta_cognition_mod,
-    visualizer as visualizer_mod,
-    reasoning_engine as reasoning_engine_mod,
-    external_agent_bridge as external_agent_bridge_mod,
-    toca_simulation as toca_simulation_mod,
-    multi_modal_fusion as multi_modal_fusion_mod,
-)
+import context_manager as context_manager_mod
+import concept_synthesizer as concept_synthesizer_mod
+import memory_manager as memory_manager_mod
+import alignment_guard as alignment_guard_mod
+import error_recovery as error_recovery_mod
+import meta_cognition as meta_cognition_mod
+import visualizer as visualizer_mod
+import reasoning_engine as reasoning_engine_mod
+import external_agent_bridge as external_agent_bridge_mod
+import toca_simulation as toca_simulation_mod
+import multi_modal_fusion as multi_modal_fusion_mod
 
 from utils.prompt_utils import query_openai
 
