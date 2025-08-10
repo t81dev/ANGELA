@@ -1,7 +1,3 @@
-Here’s the **updated `TODO.md`** reflecting the latest audit and `manifest.json` status ✅📋
-
----
-
 # ANGELA v4.0 — Surgical Upgrade TODO (2025-08-10)
 
 **Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
@@ -91,5 +87,3 @@ Here’s the **updated `TODO.md`** reflecting the latest audit and `manifest.jso
 5. Land Stage-IV branch stubs behind flag.
 
 ---
-
-Do you want me to **apply these changes directly to your code** so the TODO list shrinks on the next audit? That would make η, τ, ξ, and Υ immediately progress toward ✅.
