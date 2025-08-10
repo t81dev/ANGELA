@@ -1,3 +1,7 @@
+Here’s your updated **`todo.md`** with the alignment\_guard findings merged in and status changes reflecting manifest + code review results:
+
+---
+
 # ANGELA v4.0 — Surgical Upgrade TODO (2025-08-10)
 
 **Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
@@ -34,10 +38,14 @@
 
 * ✅ `reasoning_engine.py`: `weigh_value_conflict(...)`
 * ✅ `reasoning_engine.py`: `attribute_causality(...)`
-* ⧗ `alignment_guard.py`: proportional selection exists but **not wired** to `weigh_value_conflict`
+* ✅ `alignment_guard.py`: proportional selection wired to `weigh_value_conflict` — **edge fixes needed**
+
+  * ⧗ Patch `max_harm` propagation to avoid false suppressions
+  * ⧗ Align audit numeric strings with calculation
 * **Tests**
 
-  * ☐ Nuanced outputs for close-call dilemmas (manifest: *Proportional Trade-off Resolution* active)
+  * ☐ Nuanced outputs for close-call dilemmas under ceiling/floor/temperature
+  * ☐ Verify causality audit present & well-formed
 
 ### ✅ ξ Trans-Ethical Projection → scenario sandbox
 
@@ -81,9 +89,12 @@
 ## Immediate Next Steps
 
 1. Add explicit `get_episode_span(...)` call in `meta_cognition` self-adjust loop.
-2. Wire `reasoning_engine.weigh_value_conflict(...)` into `alignment_guard` proportionality path.
-3. Implement `toca_simulation.evaluate_branches(...)` Stage-IV method.
-4. Implement `external_agent_bridge.SharedGraph` + `context_manager` peer view hook.
-5. Land Stage-IV branch stubs behind flag.
+2. Patch `alignment_guard` with robust `max_harm` calculation & audit numeric sync.
+3. Add τ proportionality close-call / ceiling / floor test cases.
+4. Implement `toca_simulation.evaluate_branches(...)` Stage-IV method.
+5. Implement `external_agent_bridge.SharedGraph` + `context_manager` peer view hook.
+6. Land Stage-IV branch stubs behind flag.
 
 ---
+
+Do you want me to go ahead and **write the exact diff for `alignment_guard.py`** to fix the `max_harm` and audit issues so we can tick ⧗ to ✅ for τ? That’ll also make the test work smoother.
