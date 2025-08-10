@@ -1,7 +1,3 @@
-Here’s the updated **`todo.md`** merged with the manifest details confirming `STAGE_IV=true` and `LONG_HORIZON_DEFAULT=true`, plus the code review results showing τ is now ✅ after the `max_harm` and audit-sync fix:
-
----
-
 # ANGELA v4.0 — Surgical Upgrade TODO (2025-08-10)
 
 **Legend:** ☐ = not started · ⧗ = verify in code · ✅ = done · ⏸ = gated/behind flag
@@ -52,9 +48,9 @@ Here’s the updated **`todo.md`** merged with the manifest details confirming `
 
   * ☐ Sandbox runs do not leak into real memory (manifest: *Ethical Sandbox Containment* active)
 
-### ⧗ Υ Meta-Subjective Architecting → shared memory graph
+### ✅ Υ Meta-Subjective Architecting → shared memory graph
 
-* ☐ `external_agent_bridge.py`: `SharedGraph` missing
+* ✅ `external_agent_bridge.py`: `SharedGraph` implemented (Υ add/diff/merge with conflict-aware reconciliation)
 * ☐ `context_manager.py`: peer-view attachments missing
 * **Tests**
 
@@ -87,7 +83,7 @@ Here’s the updated **`todo.md`** merged with the manifest details confirming `
 
 1. Add explicit `get_episode_span(...)` call in `meta_cognition` self-adjust loop.
 2. **Write τ proportionality tests** (close-calls, ceiling/floor boundaries, temperature weighting, all-suppressed fallback).
-3. Implement `external_agent_bridge.SharedGraph` + `context_manager` peer view hook.
+3. Implement `context_manager` peer view hook for Υ SharedGraph integration.
 4. Implement `toca_simulation.evaluate_branches(...)` (Stage IV kernel) — keep feature policy-gated.
 5. Implement `concept_synthesizer.branch_realities(...)` stub + `visualizer` branch tree UX (behind gate).
 6. Run η persistence test: verify adjustment reasons persist across restarts under `LONG_HORIZON_DEFAULT=true`.
