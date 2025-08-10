@@ -1,6 +1,6 @@
 """
 ANGELA Cognitive System Module
-Refactored Version: 3.5.1
+Refactored Version: 3.5.3
 
 Enhanced for task-specific trait optimization, drift coordination, and visualization.
 Refactor Date: 2025-08-07
