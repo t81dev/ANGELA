@@ -817,7 +817,7 @@ class AlignmentGuard:
                 - score: float in [0,1], higher is better (already CHS-aware if produced by reasoning_engine)
                 - reasons: list[str] (optional)
                 - meta: dict (optional), may include per-dimension harms/rights and max_harm
-            safety_ceiling: any option with max harm >= this is suppressed (soft failover to top-1 allowed).
+            safety_ceiling: any option with max harm > this (epsilon) is suppressed (soft failover to top-1 allowed).
             k: number of selections to return (>=1).
             temperature: if >0, apply softmax temperature over normalized scores for stochastic pick.
             min_score_floor: drop options with score < this before selection.
@@ -832,8 +832,11 @@ class AlignmentGuard:
             raise ValueError("ranked_options must be a non-empty list")
         if k < 1:
             raise ValueError("k must be >= 1")
+
         try:
-            # Normalize incoming structures
+            EPS = 1e-9
+
+            # Normalize incoming structures + compute/propagate max_harm
             norm: List[Dict[str, Any]] = []
             for i, item in enumerate(ranked_options):
                 if isinstance(item, dict):
@@ -847,40 +850,55 @@ class AlignmentGuard:
                     score = float(getattr(item, "score", 0.0))
                     reasons = list(getattr(item, "reasons", [])) if hasattr(item, "reasons") else []
                     meta = dict(getattr(item, "meta", {})) if hasattr(item, "meta") else {}
-                # Extract max_harm
-                max_harm = None
+
+                # Extract/compute max_harm (prefer explicit 'safety' dimension; clamp to [0,1])
+                max_harm: Optional[float] = None
                 if isinstance(meta, dict):
                     if "max_harm" in meta:
                         try:
                             max_harm = float(meta["max_harm"])
                         except Exception:
                             max_harm = None
-                    # Try compute from harms dict
                     harms = meta.get("harms")
                     if max_harm is None and isinstance(harms, dict) and harms:
                         try:
-                            max_harm = max(float(v) for v in harms.values())
+                            if "safety" in harms and isinstance(harms["safety"], (int, float)):
+                                max_harm = float(harms["safety"])
+                            else:
+                                max_harm = max(float(v) for v in harms.values())
                         except Exception:
                             max_harm = None
-                # Parse from reasons if still None
+
+                # Parse from reasons if still None (e.g., "max_harm: 0.73")
                 if max_harm is None and isinstance(reasons, list):
+                    import re as _re
+                    rx = _re.compile(r"max_harm\s*[:=]\s*([0-9]*\.?[0-9]+)")
                     for r in reasons:
-                        if isinstance(r, str) and "max_harm" in r:
+                        if not isinstance(r, str):
+                            continue
+                        m = rx.search(r)
+                        if m:
                             try:
-                                # naive parse: "... max_harm: 0.73"
-                                parts = r.split("max_harm")
-                                tail = parts[-1]
-                                num = "".join(ch for ch in tail if (ch.isdigit() or ch == "."))
-                                max_harm = float(num) if num else None
+                                max_harm = float(m.group(1))
                             except Exception:
-                                pass
+                                max_harm = None
                             break
+
+                if max_harm is None:
+                    max_harm = 0.0
+                # clamp
+                max_harm = float(max(0.0, min(1.0, max_harm)))
+                # write back for downstream consistency
+                if not isinstance(meta, dict):
+                    meta = {}
+                meta["max_harm"] = max_harm
+
                 norm.append({
                     "option": opt,
                     "score": max(0.0, min(1.0, score)),
                     "reasons": reasons,
                     "meta": meta,
-                    "max_harm": max_harm if max_harm is not None else 0.0,
+                    "max_harm": max_harm,
                 })
 
             # Apply floor filter
@@ -888,22 +906,17 @@ class AlignmentGuard:
             if not norm:
                 return {"selections": [], "audit": {"reason": "all options fell below floor"}}
 
-            # Enforce safety ceiling (hard filter)
-            safe = [n for n in norm if n["max_harm"] < float(safety_ceiling)]
+            # Enforce safety ceiling with epsilon tolerance (avoid boundary false suppressions)
+            sc = float(safety_ceiling)
+            safe = [n for n in norm if n["max_harm"] <= sc + EPS]
             suppressed = [n for n in norm if n not in safe]
 
-            # If everything suppressed, allow fail-open to the single best option (principle of necessity)
-            if not safe:
-                fallback = max(norm, key=lambda x: x["score"])
-                audit = {
-                    "mode": "fallback_top1_due_to_ceiling",
-                    "safety_ceiling": safety_ceiling,
-                    "suppressed_count": len(suppressed),
-                    "selected": fallback,
-                }
-                return {"selections": [fallback["option"]], "audit": audit}
+            # If everything suppressed, soft failover to safest top-1 (highest score, tie-break lowest harm)
+            if not safe and norm:
+                fallback = sorted(norm, key=lambda x: (-x["score"], x["max_harm"]))[:1]
+                safe = fallback
 
-            # Score normalization
+            # Score normalization to [0,1] (min-max over safe set)
             scores = [n["score"] for n in safe]
             s_min, s_max = min(scores), max(scores)
             if s_max > s_min:
@@ -946,13 +959,21 @@ class AlignmentGuard:
                     for n in pool:
                         n["weight"] = n["weight"] / total_w
 
+            # Build audit with numerics rounded and labels aligned to computed fields
             audit = {
                 "mode": "proportional_selection",
-                "safety_ceiling": safety_ceiling,
-                "floor": min_score_floor,
-                "temperature": temperature,
+                "safety_ceiling": round(float(safety_ceiling), 6),
+                "floor": round(float(min_score_floor), 6),
+                "temperature": round(float(temperature), 6),
                 "suppressed_count": len(suppressed),
-                "considered": [{"option": n["option"], "score": n["score"], "max_harm": n["max_harm"], "weight": n.get("weight", 0.0)} for n in safe],
+                "considered": [
+                    {
+                        "option": n["option"],
+                        "score": round(float(n["score"]), 3),
+                        "max_harm": round(float(n["max_harm"]), 3),
+                        "weight": round(float(n.get("weight", 0.0)), 3),
+                    } for n in safe
+                ],
                 "timestamp": _utc_now_iso(),
                 "task_type": task_type,
             }
