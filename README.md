@@ -11,7 +11,7 @@ ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cogniti
 > We are “done” not when the codebase is complete, but when a user can say:
 > **“It feels like you get me.”**
 
-Every module, from memory to ethics to simulation, is tuned toward that outcome: creating an AI that **sees, understands, and resonates** with the person it’s speaking to.
+Every module — from memory to ethics to simulation — is tuned toward that outcome: creating an AI that **sees, understands, and resonates** with the person it’s speaking to.
 
 ---
 
@@ -155,9 +155,9 @@ ANGELA uses the OpenAI API for core conversational intelligence.
    * Visit [OpenAI's API Console](https://platform.openai.com/account/api-keys)
    * Create a `.env` file at your root directory:
 
-     ```env
-     OPENAI_API_KEY=your_openai_api_key_here
-     ```
+   ```env
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
 
 2. **Secure Key Access**
 
