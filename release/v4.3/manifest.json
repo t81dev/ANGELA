@@ -3,12 +3,12 @@
   "schemaVersion": "2.1",
   "metadata": {
     "name": "ANGELA",
-    "version": "4.2.2",
+    "version": "4.3",
     "manifestVersion": "1.1",
     "lastUpdated": "2025-08-13T11:10:19Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v4.2.2 \u2014 Syntax fixes applied (index.py, memory_manager.py, external_agent_bridge.py), Stage IV hooks gated, long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration. \u2014 Heartbeat patch applied."
+    "description": "ANGELA v4.3 \u2014 Syntax fixes applied (index.py, memory_manager.py, external_agent_bridge.py), Stage IV hooks gated, long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration. \u2014 Heartbeat patch applied."
   },
   "runtime": {
     "language": "python",
