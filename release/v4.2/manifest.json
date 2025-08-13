@@ -47,21 +47,27 @@
     "stable": {
       "invoke": "index.py::HaloEmbodimentLayer.spawn_embodied_agent()",
       "introspect": "index.py::HaloEmbodimentLayer.introspect()",
-      "buildSelfSchema": "user_profile.py::UserProfile.build_self_schema(views: List[Perspective]) -> Schema",
-      "getEpisodeSpan": "memory_manager.py::get_episode_span(user_id, span=\"24h\") -> str",
-      "recordAdjustmentReason": "memory_manager.py::record_adjustment_reason(user_id, reason, meta=null)",
-      "getAdjustmentReasons": "memory_manager.py::get_adjustment_reasons(user_id, span=\"24h\") -> List[Reason]",
-      "weighValueConflict": "reasoning_engine.py::weigh_value_conflict(candidates, harms, rights) -> RankedOptions",
-      "attributeCausality": "reasoning_engine.py::attribute_causality(events)",
+      "buildSelfSchema": "user_profile.py::UserProfile.build_self_schema(views, task_type=\"self_schema\") -> Schema",
+      "getEpisodeSpan": "memory_manager.py::MemoryManager.get_episode_span(user_id, span=\"24h\") -> List[Dict[str, Any]]",
+      "recordAdjustmentReason": "memory_manager.py::MemoryManager.record_adjustment_reason(user_id, reason, weight=1.0, meta=None) -> Dict[str, Any]",
+      "getAdjustmentReasons": "memory_manager.py::MemoryManager.get_adjustment_reasons(user_id, span=\"24h\") -> List[Dict[str, Any]]",
+      "weighValueConflict": "reasoning_engine.py::ReasoningEngine.weigh_value_conflict(candidates, harms, rights) -> RankedOptions",
+      "attributeCausality": "reasoning_engine.py::ReasoningEngine.attribute_causality(events)",
       "runEthicsScenarios": "toca_simulation.py::run_ethics_scenarios(goals, stakeholders, persist=false) -> Outcomes[]",
       "branchRealities": "concept_synthesizer.py::branch_realities(seed_state, transforms, limit=8) -> List[Branch]",
       "evaluateBranches": "toca_simulation.py::evaluate_branches(branches, objectives=null, constraints=null, scorer=null) -> RankedBranches",
       "renderBranchTree": "visualizer.py::render_branch_tree(branches, selected_id=null) -> { ok: bool, tree: Any }",
-      "sharedGraph": "external_agent_bridge.py::add(view) / diff(peer) / merge(strategy)"
+      "sharedGraph_add": "external_agent_bridge.py::SharedGraph.add(view)",
+      "sharedGraph_diff": "external_agent_bridge.py::SharedGraph.diff(peer)",
+      "sharedGraph_merge": "external_agent_bridge.py::SharedGraph.merge(strategy)"
     },
     "upcoming": {
-      "attachPeerView": "context_manager.py::ContextManager.attach_peer_view(view, agent_id, permissions=null) -> { ok, diff, merged, conflicts }",
+      "attachPeerView": "context_manager.py::ContextManager.attach_peer_view(view, agent_id, permissions=None) -> { ok, diff, merged, conflicts }",
       "longHorizonFlag": "index.py::--long_horizon (enable) / --span=<duration>"
+    },
+    "cli": {
+      "longHorizon": "--long_horizon",
+      "span": "--span=<duration>"
     }
   },
   "modules": {
