@@ -471,20 +471,24 @@
     "π+δ": "meta_cognition.py::axiom_filter"
   },
   "traitModulators": {
-    "ζ": {
-      "amplitude": 0.6,
-      "decayRate": 0.01
+    "amplitudeBounds": {
+      "min": 0.0,
+      "max": 1.0
     },
-    "π": {
-      "amplitude": 1.25
-    },
-    "Φ⁰": {
-      "amplitude": 1.1,
-      "decayRate": 0.015
-    },
-    "Ω²": {
-      "amplitude": 0.95
-    }
+    "runtimeControls": [
+      {
+        "trait": "ψ",
+        "modulator": "dream_sync"
+      },
+      {
+        "trait": "π",
+        "modulator": "axiom_fusion"
+      },
+      {
+        "trait": "Ω",
+        "modulator": "recursive_resonance"
+      }
+    ]
   },
   "latticeExtension": {
     "L5.1": [
@@ -496,22 +500,47 @@
       "σ"
     ]
   },
-  "dynamicModules": [
-    {
-      "id": "dream_overlay",
-      "traits": [
-        "Φ⁰",
-        "γ",
-        "Ω²"
-      ],
-      "entry": null,
-      "status": "virtual",
-      "description": "Symbolic-only module enabling layered dream simulations and nested causality."
-    }
-  ],
+  "dynamicModules": {
+    "symbolic": [
+      {
+        "name": "dream_overlay",
+        "activation": "ψ+Ω",
+        "traits": [
+          "Recursive Empathy",
+          "Symbolic-Resonant Axiom Formation",
+          "Temporal-Narrative Sculpting"
+        ],
+        "type": "virtual"
+      }
+    ]
+  },
   "extensionHooks": {
     "onTraitFusion": "meta_cognition.py::hook_trait_blend",
     "onScenarioConflict": "alignment_guard.py::resolve_soft_drift",
     "onHotLoad": "context_manager.py::attach_peer_view"
+  },
+  "overlays": {
+    "dream_overlay": {
+      "description": "Recursive narrative simulation module for symbolic introspection.",
+      "enabled": true,
+      "activationTraits": [
+        "ψ",
+        "Ω"
+      ]
+    },
+    "axiom_filter": {
+      "description": "Fusion logic for resolving ethical-generative conflicts.",
+      "enabled": true,
+      "activationTraits": [
+        "π",
+        "δ"
+      ]
+    }
+  },
+  "extensions": {
+    "symbolicHooks": {
+      "dreamLogic": "meta_cognition.py::DreamOverlayLayer.activate_dream_mode()",
+      "ethicalResolver": "alignment_guard.py::AxiomFilter.resolve_conflict()"
+    }
   }
 }
