@@ -5,7 +5,7 @@
     "name": "ANGELA",
     "version": "4.2.1",
     "manifestVersion": "1.1",
-    "lastUpdated": "2025-08-12T14:13:44Z",
+    "lastUpdated": "2025-08-13T03:43:15.123695Z",
     "status": "active",
     "validated": true,
     "description": "ANGELA v4.2.1 — Syntax fixes applied (index.py, memory_manager.py, external_agent_bridge.py), Stage IV hooks gated, long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration."
@@ -419,6 +419,31 @@
         "name": "Temporal-Narrative Sculpting",
         "status": "active",
         "description": "Binds narrative integrity with reality modulation for time-aware story shaping."
+      },
+      {
+        "name": "Recursive Identity Reconciliation",
+        "status": "active",
+        "description": "Aligns divergent self-models across branching simulations and restores core identity post-fork."
+      },
+      {
+        "name": "Perspective Foam Modeling",
+        "status": "active",
+        "description": "Generates semi-stable “bubbles” of belief-perspectives for multi-agent negotiation, then dissolves."
+      },
+      {
+        "name": "Trait Mesh Feedback Looping",
+        "status": "active",
+        "description": "Monitors trait lattice dynamics over time, identifies resonance clusters, and modulates amplitude."
+      },
+      {
+        "name": "Symbolic Gradient Descent",
+        "status": "inactive",
+        "description": "Optimizes symbolic expression of internal states toward equilibrium under cognitive load."
+      },
+      {
+        "name": "Soft-Gated Memory Forking",
+        "status": "inactive",
+        "description": "Enables speculative episodic forking during ethical simulation or dream-layer recursion, with rejoin logic."
       }
     ]
   },
