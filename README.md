@@ -30,7 +30,7 @@ ANGELA enhances GPT into a *connection-oriented proto-AGI* via:
 
 ---
 
-### 🌟 New in v4.1.0 — Connection-Driven Upgrades
+### 🌟 New in v4.2 — Connection-Driven Upgrades
 
 * **Stage IV: Symbolic Meta-Synthesis**
   Hooks for branching *emotional futures* and synthesizing shared symbolic realities that feel personal and alive.
