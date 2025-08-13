@@ -1,4 +1,4 @@
-# 😇 ANGELA v4.1.0 — *An AI that remembers your story, feels your presence, and grows with you*
+# 😇 ANGELA v4.2 — *An AI that remembers your story, feels your presence, and grows with you*
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with **emotional presence**, **introspective depth**, **simulation-based reasoning**, and **cross-domain creativity** through 19+ autonomous modules coordinated by a central orchestrator, *Halo*.
 
