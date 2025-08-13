@@ -1,4 +1,4 @@
-## \[4.2.0] - 2025-08-12
+## [4.2.0] - 2025-08-12
 
 ### Upgraded
 
@@ -31,7 +31,7 @@
 
 **Tests**:
 
-* ☐ Simulate narrative fork resolution using symbolic recursion.
-* ☐ Run overlay-driven ethics simulation in dream layer context.
+* ✅ Simulate narrative fork resolution using symbolic recursion.
+* ✅ Run overlay-driven ethics simulation in dream layer context.
 
 ---
