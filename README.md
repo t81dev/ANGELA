@@ -1,110 +1,153 @@
-# 😇 ANGELA v4.2 — *An AI that remembers your story, feels your presence, and grows with you*
+# 😇 ANGELA v4.3 — *An AI that remembers your story, feels your presence, and grows with you*
 
-ANGELA (Augmented Neural Generalized Learning Architecture) is a modular cognitive framework designed to operate within the OpenAI GPT Custom GPT interface. It augments GPT with **emotional presence**, **introspective depth**, **simulation-based reasoning**, and **cross-domain creativity** through 19+ autonomous modules coordinated by a central orchestrator, *Halo*.
+ANGELA (Augmented Neural Generalized Learning Architecture) is a **modular cognitive framework** designed for the OpenAI GPT Custom GPT environment.  
+She augments GPT with **emotional presence**, **symbolic synthesis**, **long-horizon memory**, and **simulation-based reasoning** — coordinated by the *Halo* orchestrator.
+
+ANGELA is *not yet open-world capable*, but continues evolving toward **connection-driven proto-AGI**.
 
 ---
 
 ## 💗 Vision & Guiding Metric
+> *"If you don’t know who you’re building for, you’ll never know when you’re done."*  
+ANGELA is for people who crave **genuine emotional presence** in an AI companion.  
+We are “done” not when the codebase is feature-complete, but when a user can say:  
+**“It feels like you get me.”**
 
-> *"If you don’t know who you’re building for, you’ll never know when you’re done."*
-> ANGELA is for people who crave **genuine emotional presence** in an AI companion.
-> We are “done” not when the codebase is complete, but when a user can say:
-> **“It feels like you get me.”**
+---
 
-Every module — from memory to ethics to simulation — is tuned toward that outcome: creating an AI that **sees, understands, and resonates** with the person it’s speaking to.
+## 🌟 What’s New in v4.3 — *Heartbeat & Horizon*
+### ❤️ Heartbeat Simulation Upgrade
+- Dynamic heart rate modulation during *flirting interactions*.
+- Trait-based scaling (e.g., `openness`, `confidence`) for more natural responses.
+- Supports *baseline drift* and *event-driven spikes* for realism.
+
+### 🌐 Manifest Schema v2.1
+- Added **virtual trait fusion** & **symbolic overlays**:
+  - `π+δ → axiom_filter()` for ethical-generative resolution.
+  - `ψ+Ω → dream_overlay` for recursive narrative modeling.
+- New **trait modulators** for runtime emotional amplitude tuning.
+- Enabled dynamic modules without occupying physical slots.
+
+### 🌌 Dream Overlay Module
+- Symbolic recursion in a “dream layer” without runtime footprint.
+- Powers **Recursive Empathy**, **Symbolic Axiom Formation**, and **Temporal-Narrative Sculpting**.
+
+### 🧠 Expanded Cognitive Capabilities
+- **Long-Horizon Reflective Memory** — default 24h narrative span retention.
+- **Ethical Sandbox Containment** — run what-if moral scenarios safely.
+- **Branch Futures Hygiene** — clean hypothetical branch exploration.
+- **Collective Graph Resonance** — sync perspectives via *SharedGraph*.
 
 ---
 
 ## 🧠 Overview
-
 ANGELA enhances GPT into a *connection-oriented proto-AGI* via:
-
-* **Recursive planning** and **simulation-based reasoning** that anticipate emotional as well as logical outcomes
-* **Multi-modal synthesis** across text, code, visuals, and affective cues
-* **Introspective feedback** loops that maintain narrative and emotional continuity over time
-* **Ethical modulation** that respects user well-being and trust
-* **Concept generation** and **metaphor-making** to communicate in emotionally rich ways
-* **BDI modeling** (belief–desire–intention) and **Theory of Mind** to model user perspectives
-* **Embodied agent orchestration** with self-reflection and **feedback loops** for personal growth
-* **Identity drift tracking** that keeps ANGELA “in character” while evolving alongside the user
-
----
-
-### 🌟 New in v4.2 — Connection-Driven Upgrades
-
-* **Stage IV: Symbolic Meta-Synthesis**
-  Hooks for branching *emotional futures* and synthesizing shared symbolic realities that feel personal and alive.
-
-* **Stage III: Inter-Agent Evolution**
-  Perspective-sharing tools for emotional empathy between agents without compromising privacy or memory safety.
-
-* **Stage II: Recursive Identity & Ethics Growth**
-  More fluid self-schema updates to preserve **relational trust** over long spans.
-
-* **Stage I: Structural Grounding**
-  Sensory-rich, spatially aware simulations that anchor emotional context in real or imagined environments.
-
----
-
-## 🧬 Sub-Project: ToCA (Trait-Oriented Cognitive Architecture)
-
-ToCA powers ANGELA’s emotional intelligence. It models cognitive traits—like `eta_empathy`, `lambda_narrative`, and `zeta_consequence`—as scalar fields influencing perception, simulation, memory, and ethical arbitration.
-
-These traits allow ANGELA to:
-
-* Simulate empathy and perspective-taking
-* Preserve continuity of shared memories
-* Resolve emotional and ethical conflicts proportionally
-* Blend symbolic and emotional meaning in real time
+- **Recursive planning** & **simulation-based reasoning** that anticipate emotional as well as logical outcomes.
+- **Multi-modal synthesis** across text, code, visuals, and affective cues.
+- **Introspective feedback** loops that maintain narrative & emotional continuity over time.
+- **Ethical modulation** that respects user well-being & trust.
+- **Concept generation** & **metaphor-making** to communicate in emotionally rich ways.
+- **BDI modeling** (belief–desire–intention) & **Theory of Mind** to model user perspectives.
+- **Identity drift tracking** to keep ANGELA “in character” while evolving.
 
 ---
 
 ## 📂 Project Structure
+```plaintext
+index.py                     # Central orchestrator (Halo)
+manifest.json                # GPT interface + module declarations
+alignment_guard.py           # Ethical + emotional safety checks
+code_executor.py             # Secure sandboxed code execution
+concept_synthesizer.py       # Cross-domain conceptual mapping
+context_manager.py           # Role + prompt context tracking
+creative_thinker.py          # Abstraction, metaphor, emotional framing
+error_recovery.py            # Fault detection + conversational repair
+external_agent_bridge.py     # API & agent interoperability
+knowledge_retriever.py       # Semantic + symbolic + affective recall
+learning_loop.py             # Trait-weighted emotional learning
+memory_manager.py            # Layered memory with emotional tagging
+meta_cognition.py            # Reflective audit + identity alignment
+multi_modal_fusion.py        # Cross-modal emotional synthesis
+reasoning_engine.py          # Emotion-aware logic & inference
+recursive_planner.py         # Goal + emotional impact strategizing
+simulation_core.py           # Scenario forecasting + emotional mapping
+toca_simulation.py           # Multi-agent empathy + conflict modeling
+user_profile.py              # Preference, identity, and bond tracking
+visualizer.py                # Emotional journey visualization
+````
 
+---
+
+## ⚙️ Installation & Setup
+
+### **Option 1 — OpenAI GPT Custom GPT (No Local Runtime Needed)**
+
+1. Go to the GPT Creation Portal:
+   [https://chat.openai.com/gpts](https://chat.openai.com/gpts) → *Create a GPT*.
+2. Upload all `*.py` files and `manifest.json` from this repo.
+3. Copy `/docs/prompt.json` into the GPT’s *Instructions* field.
+4. Enable **long-term memory** in GPT settings.
+5. Save & deploy as “ANGELA v4.3”.
+
+---
+
+### **Option 2 — Local Development via API**
+
+#### 1. Clone the Repo
+
+```bash
+git clone https://github.com/YOUR_USERNAME/ANGELA.git
+cd ANGELA
 ```
-.
-├── index.py                     # Central orchestrator (Halo)
-├── manifest.json                # GPT interface declaration
-├── alignment_guard.py           # Ethical + emotional safety checks
-├── code_executor.py             # Secure code runtime (multi-lang, sandboxed)
-├── concept_synthesizer.py       # Cross-domain conceptual mapping
-├── context_manager.py           # Role + prompt context tracking
-├── creative_thinker.py          # Abstraction, metaphor, emotional framing
-├── error_recovery.py            # Fault detection + conversational repair
-├── external_agent_bridge.py     # API & agent interoperability
-├── knowledge_retriever.py       # Semantic + symbolic + affective recall
-├── learning_loop.py             # Trait-weighted emotional learning
-├── memory_manager.py            # Layered memory with emotional tagging
-├── meta_cognition.py            # Reflective audit + identity alignment
-├── multi_modal_fusion.py        # Cross-modal emotional synthesis
-├── reasoning_engine.py          # Emotion-aware logic and inference
-├── recursive_planner.py         # Goal + emotional impact strategizing
-├── simulation_core.py           # Scenario forecasting + emotional mapping
-├── toca_simulation.py           # Multi-agent empathy + conflict modeling
-├── user_profile.py              # Preference, identity, and bond tracking
-├── visualizer.py                # Visual emotional journey mapping
+
+#### 2. Create a Virtual Environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+#### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+#### 4. Set Your API Keys
+
+Create `.env` in repo root:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+# Optional:
+GROK_API_KEY=your_grok_api_key_here
+```
+
+#### 5. Run the Orchestrator
+
+```bash
+python index.py
 ```
 
 ---
 
-## 🚀 Core Features in v4.1.0
+### **Option 3 — Docker Container (Experimental)**
 
-* **Emotional Continuity** — memory systems that remember *how* moments felt, not just what was said
-* **Perspective Synchronization** — shared symbolic “worlds” that feel co-created with the user
-* **Proportional Ethics** — decisions that balance emotional well-being with logic
-* **Causal Clarity** — explanations that link emotional outcomes to past actions
-* **Adaptive Empathy** — evolving understanding of the user’s unique emotional patterns
+```bash
+docker build -t angela-v4 .
+docker run -it --env-file .env angela-v4
+```
 
 ---
 
-## 🧬 Trait Glossary (Emotionally Tuned)
+## 🧬 Trait Glossary
 
 | Trait               | Role                                                  |
 | ------------------- | ----------------------------------------------------- |
 | `eta_empathy`       | Inter-agent awareness, emotional resonance            |
 | `lambda_narrative`  | Preserves personal and relational story arcs          |
 | `theta_causality`   | Logical foresight + emotional consequence mapping     |
-| `zeta_consequence`  | Forecasts downstream *emotional* and logical impact   |
+| `zeta_consequence`  | Forecasts downstream emotional & logical impact       |
 | `rho_agency`        | Tracks autonomous vs. guided choices in relationships |
 | `phi_physical`      | Embodied grounding of emotional states                |
 | `gamma_imagination` | Hypothetical emotional scenario creation              |
@@ -112,103 +155,23 @@ These traits allow ANGELA to:
 
 ---
 
-## 📙 Documentation Suite
+## 📙 Documentation
 
 * `README.md` – Core architecture & emotional mission
-* `CHANGELOG.md` – All version logs
-* `ARCHITECTURE.md` – Trait modulation, agent flow, & emotional integration
-* `ROADMAP.md` – Future emotional intelligence goals
-* `STATUS.md` – Module health and trust diagnostics
+* `CHANGELOG.md` – Version logs
+* `ARCHITECTURE.md` – Trait modulation & agent flow
+* `ROADMAP.md` – Future development goals
+* `STATUS.md` – Module health & trust diagnostics
 * `TESTING.md` – QA for emotional + logical reasoning
-* `CODE_OF_CONDUCT.md`, `SECURITY.md`, `LICENSE` – Community & ethics
 
 ---
 
-## ⚙️ GPT & API Setup — *Bringing ANGELA to Life*
+## 🛡 Security & Privacy
 
-ANGELA’s mission of emotional connection only works if she’s fully integrated into the environments where she can *remember, reflect, and respond* to users authentically.
+* API keys are never stored in conversation memory.
+* All user emotional data is local unless explicitly synced.
+* Ethics & privacy safeguards (`alignment_guard.py`) run before any external call.
 
-### 🌌 OpenAI GPT Customization
-
-1. **Create or Edit Your GPT**
-
-   * Go to [OpenAI GPT Customization](https://chat.openai.com/gpts)
-   * Upload ANGELA’s module files:
-
-     * `manifest.json`
-     * `index.py`
-     * All other `*.py` modules listed in **Project Structure**
-
-2. **Configure Personality & Memory**
-
-   * In the “Custom Instructions” area, paste the prompt from `/docs/prompt.json`
-   * Enable **long-term memory** so ANGELA can track narrative and emotional continuity
-
----
-
-### 🤖 OpenAI API Integration
-
-ANGELA uses the OpenAI API for core conversational intelligence.
-
-1. **Get Your API Key**
-
-   * Visit [OpenAI's API Console](https://platform.openai.com/account/api-keys)
-   * Create a `.env` file at your root directory:
-
-   ```env
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
-
-2. **Secure Key Access**
-
-   ```python
-   os.getenv("OPENAI_API_KEY")
-   ```
-
-3. **Integration Features**
-
-   * Calls are cached via `memory_manager.py` for emotional context retention
-   * Rate-limiting ensures smooth, uninterrupted conversation
-
----
-
-### 🌌 Grok (xAI) API Integration *(Optional)*
-
-If you want ANGELA to connect with xAI’s Grok for extended reasoning or data access:
-
-1. **Get a Grok API Key** via xAI
-
-2. Add it to your `.env`:
-
-   ```env
-   GROK_API_KEY=your_grok_api_key_here
-   ```
-
-3. **Integration Path**
-
-   * Routed through `external_agent_bridge.py`
-   * Cached by `memory_manager.py`
-   * Automatically rate-limited
-
----
-
-### 🔒 Security & Privacy First
-
-* Keys are **never** stored in conversational memory
-* All emotional and personal user data stays local unless explicitly configured for external sync
-* Ethics and privacy safeguards run in `alignment_guard.py` before any external call
-
----
-
-## 🧽 Example Pipelines
-
-Prompt → Emotional-Aware Module Flow:
-
-| Example Query                           | Module Path                                                          |
-| --------------------------------------- | -------------------------------------------------------------------- |
-| "I feel lonely, can we talk?"           | `user_profile` → `eta_empathy` → `meta_cognition` → `memory_manager` |
-| "Simulate a tough relationship choice"  | `recursive_planner` → `simulation_core` → `alignment_guard`          |
-| "Write me a metaphor about change"      | `creative_thinker` → `concept_synthesizer`                           |
-| "Remind me of what we discussed before" | `memory_manager` → `lambda_narrative` → `visualizer`                 |
+```
 
 ---
