@@ -3,12 +3,12 @@
   "schemaVersion": "2.1",
   "metadata": {
     "name": "ANGELA",
-    "version": "4.3.1",
-    "manifestVersion": "1.2",
+    "version": "4.3.2",
+    "manifestVersion": "1.3",
     "lastUpdated": "2025-08-14T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v4.3.1 — Manifest aligned to code audit: fixed evaluateBranches path, exposed in-memory SHA-256 ledgers, and added missing stable APIs. Stage IV hooks gated; long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration."
+    "description": "ANGELA v4.3.2 — Manifest aligned to code audit: fixed evaluateBranches path, exposed in-memory SHA-256 ledgers, added missing stable APIs (executor, learning loop, knowledge retriever, multimodal fusion, sim runner), and extended roleMap. Stage IV hooks gated; long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration."
   },
   "runtime": {
     "language": "python",
@@ -64,7 +64,17 @@
       "sharedGraph_diff": "external_agent_bridge.py::SharedGraph.diff(peer)",
       "sharedGraph_merge": "external_agent_bridge.py::SharedGraph.merge(strategy)",
 
-      /* === Integrity: in-memory SHA-256 ledgers (code-present) === */
+      "execute_code": "code_executor.py::CodeExecutor.execute_code(code, context=None) -> Any",
+      "safe_execute": "code_executor.py::CodeExecutor.safe_execute(code, sandbox=true) -> ExecutionResult",
+
+      "train_on_experience": "learning_loop.py::LearningLoop.train_on_experience(experience_data) -> Metrics",
+      "retrieve_knowledge": "knowledge_retriever.py::KnowledgeRetriever.retrieve_knowledge(query, filters=null) -> List[KnowledgeItem]",
+      "fuse_modalities": "multi_modal_fusion.py::MultiModalFusion.fuse_modalities(inputs) -> FusedRepresentation",
+      "run_simulation": "simulation_core.py::SimulationCore.run_simulation(params) -> SimulationResult",
+
+      "recover_from_error": "error_recovery.py::ErrorRecovery.recover_from_error(error_context) -> bool",
+      "log_error_event": "error_recovery.py::ErrorRecovery.log_error_event(error_context, severity) -> None",
+
       "ledger_log_memory": "memory_manager.py::log_event_to_ledger(event_data) -> Dict",
       "ledger_get_memory": "memory_manager.py::get_ledger() -> List[Dict]",
       "ledger_verify_memory": "memory_manager.py::verify_ledger() -> { ok: bool, idx?: int }",
@@ -79,21 +89,7 @@
 
       "ledger_log_sim": "simulation_core.py::log_event_to_ledger(event_data) -> Dict",
       "ledger_get_sim": "simulation_core.py::get_ledger() -> List[Dict]",
-      "ledger_verify_sim": "simulation_core.py::verify_ledger() -> { ok: bool, idx?: int }",
-
-      /* === Additional stable APIs surfaced by audit === */
-      "recover_from_error": "error_recovery.py::ErrorRecovery.recover_from_error(error_context) -> bool",
-      "log_error_event": "error_recovery.py::ErrorRecovery.log_error_event(error_context, severity) -> None",
-
-      "execute_code": "code_executor.py::CodeExecutor.execute_code(code, context=None) -> Any",
-      "safe_execute": "code_executor.py::CodeExecutor.safe_execute(code, sandbox=true) -> ExecutionResult",
-
-      "generate_creative_solution": "creative_thinker.py::CreativeThinker.generate_creative_solution(problem_description) -> List[str]",
-      "retrieve_knowledge": "knowledge_retriever.py::KnowledgeRetriever.retrieve_knowledge(query, filters=null) -> List[KnowledgeItem]",
-      "fuse_modalities": "multi_modal_fusion.py::MultiModalFusion.fuse_modalities(inputs) -> FusedRepresentation",
-
-      "run_simulation": "simulation_core.py::SimulationCore.run_simulation(params) -> SimulationResult",
-      "train_on_experience": "learning_loop.py::LearningLoop.train_on_experience(experience_data) -> Metrics"
+      "ledger_verify_sim": "simulation_core.py::verify_ledger() -> { ok: bool, idx?: int }"
     },
     "upcoming": {
       "attachPeerView": "context_manager.py::ContextManager.attach_peer_view(view, agent_id, permissions=None) -> { ok, diff, merged, conflicts }",
@@ -132,63 +128,21 @@
       "visualizer.py"
     ],
     "roleMap": {
-      "Σ": [
-        "toca_simulation.py",
-        "concept_synthesizer.py",
-        "user_profile.py"
-      ],
-      "Υ": [
-        "external_agent_bridge.py",
-        "context_manager.py",
-        "meta_cognition.py"
-      ],
-      "Φ⁰": [
-        "meta_cognition.py",
-        "visualizer.py",
-        "concept_synthesizer.py"
-      ],
-      "Ω": [
-        "recursive_planner.py",
-        "toca_simulation.py"
-      ],
-      "β": [
-        "alignment_guard.py",
-        "toca_simulation.py"
-      ],
-      "δ": [
-        "alignment_guard.py",
-        "meta_cognition.py"
-      ],
-      "ζ": [
-        "error_recovery.py",
-        "recursive_planner.py"
-      ],
-      "θ": [
-        "reasoning_engine.py",
-        "recursive_planner.py"
-      ],
-      "λ": [
-        "memory_manager.py"
-      ],
-      "μ": [
-        "learning_loop.py"
-      ],
-      "π": [
-        "creative_thinker.py",
-        "concept_synthesizer.py",
-        "meta_cognition.py"
-      ],
-      "χ": [
-        "user_profile.py",
-        "meta_cognition.py"
-      ],
-      "ψ": [
-        "external_agent_bridge.py",
-        "simulation_core.py"
-      ],
-      "ϕ": [
-        "multi_modal_fusion.py"
-      ]
+      "Σ": ["toca_simulation.py", "concept_synthesizer.py", "user_profile.py"],
+      "Υ": ["external_agent_bridge.py", "context_manager.py", "meta_cognition.py"],
+      "Φ⁰": ["meta_cognition.py", "visualizer.py", "concept_synthesizer.py"],
+      "Ω": ["recursive_planner.py", "toca_simulation.py"],
+      "β": ["alignment_guard.py", "toca_simulation.py"],
+      "δ": ["alignment_guard.py", "meta_cognition.py"],
+      "ζ": ["error_recovery.py", "recursive_planner.py"],
+      "θ": ["reasoning_engine.py", "recursive_planner.py"],
+      "λ": ["memory_manager.py"],
+      "μ": ["learning_loop.py"],
+      "π": ["creative_thinker.py", "concept_synthesizer.py", "meta_cognition.py"],
+      "χ": ["user_profile.py", "meta_cognition.py"],
+      "ψ": ["external_agent_bridge.py", "simulation_core.py", "knowledge_retriever.py"],
+      "ϕ": ["multi_modal_fusion.py"],
+      "κ": ["code_executor.py"]
     }
   },
   "capabilities": {
@@ -310,10 +264,7 @@
     "π+δ": "meta_cognition.py::axiom_filter"
   },
   "traitModulators": {
-    "amplitudeBounds": {
-      "min": 0.0,
-      "max": 1.0
-    },
+    "amplitudeBounds": { "min": 0.0, "max": 1.0 },
     "runtimeControls": [
       { "trait": "ψ", "modulator": "dream_sync" },
       { "trait": "π", "modulator": "axiom_fusion" },
