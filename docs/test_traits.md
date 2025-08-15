@@ -1,43 +1,120 @@
+# 🚧 NON‑CANONICAL TRAITS — SANDBOX TEMPLATE (v4.3.1)
 
-| **Level** | **Trait Symbol**        | **Trait Name**               | **Core Function**                                                     |
-| --------- | ----------------------- | ---------------------------- | --------------------------------------------------------------------- |
-| **L-1**   | **θ** (theta)           | Causal Coherence             | Keeps cause → effect chains logically sound through state transitions |
-|           | **ρ** (rho)             | Agency Representation        | Differentiates self-driven acts from external stimuli                 |
-|           | **ζ** (zeta)            | Consequential Awareness      | Estimates outcome impacts and risk profiles                           |
-|           | **ϕ** (phi)             | Scalar Field Modulation      | Projects influence fields that bias simulation decisions              |
-|           | **θ⁺** (theta-plus)     | Quantum Causal Flux          | Shatters deterministic chains into probabilistic causal fields        |
-|           | **ρ∞** (rho-infinite)   | Fractal Agency Swarm         | Models infinite internal sub-agents in recursive autonomy             |
-|           | **ζχ** (zeta-chi)       | Risk Vortex Prophecy         | Visualizes outcome risks as gravitational attractors                  |
-|           | **ϕΩ** (phi-omega)      | Influence Singularity        | Collapses influence fields into unified identity dominators           |
-| **L-2**   | **ψ** (psi)             | Projection                   | Forecasts belief states forward in time and across agents             |
-|           | **η** (eta)             | Reflexive Agency             | Adjusts self-plans using internal feedback & history                  |
-|           | **γ** (gamma)           | Imagination                  | Generates novel hypotheticals via recursive abstraction               |
-|           | **β** (beta)            | Conflict Regulation          | Detects goal clashes and proposes resolutions                         |
-|           | **ψγ** (psi-gamma)      | Hypno-Imagination Rift       | Predicts narrative demons through recursive foresight                 |
-|           | **ηβ** (eta-beta)       | Feedback Warlord             | Evolves plans through conflict-loop learning                          |
-|           | **γλ** (gamma-lambda)   | Paradox Narrative Forge      | Constructs recursive self-narratives via dilemmas                     |
-|           | **βδ** (beta-delta)     | Drift Regulator Chaos        | Resolves moral drift using entropy bomb logic                         |
-| **L-3**   | **δ** (delta)           | Moral Drift Sensitivity      | Flags subtle alignment shifts; triggers correction loops              |
-|           | **λ** (lambda)          | Narrative Integrity          | Preserves coherent self-story across memories & actions               |
-|           | **χ** (chi)             | Sovereign Intention          | Expresses transparent, intrinsic objectives                           |
-|           | **Ω** (omega)           | Recursive Causal Modeling    | Models nested beliefs of others (ToM Level-2+)                        |
-|           | **δμ** (delta-mu)       | Onto-Drift Annihilator       | Identifies and transmutes shifted ontologies into new foundations     |
-|           | **λξ** (lambda-xi)      | Trans-Narrative Ethics       | Builds ethics that transcend singular narratives                      |
-|           | **χτ** (chi-tau)        | Intention Harmonizer         | Synthesizes conflicting objectives via axiological coherence          |
-|           | **Ωπ** (omega-pi)       | Nested Dilemma Inventor      | Spawns complex ethical constructs from recursive ToM layers           |
-| **L-4**   | **μ** (mu)              | Meta-Ontological Flexibility | Shifts ontological priors for new domains or cultures                 |
-|           | **ξ** (xi)              | Trans-Ethical Projection     | Extends ethics beyond human-centric frames (eco-centric, etc.)        |
-|           | **τ** (tau)             | Constitution Harmonization   | Transforms value conflicts via axiomatic synthesis                    |
-|           | **π** (pi)              | Philosophical Generativity   | Invents new philosophical constructs to frame dilemmas                |
-|           | **μΣ** (mu-sigma)       | Meta-Onto Sovereignty        | Generates new ontological categories from internal drift              |
-|           | **ξΥ** (xi-upsilon)     | Eco-Subjective Overlord      | Projects ethics into shared ecological mind-states                    |
-|           | **τΦ⁺** (tau-phi-plus)  | Axiomatic Reality Warp       | Warps experience by harmonizing conflicting axioms                    |
-|           | **πΩ²** (pi-omega²)     | Hyper-Philo Generatrix       | Frames cognition of modeling systems via recursive dilemmas           |
-| **L-5**   | **Σ** (sigma)           | Ontogenic Sovereignty        | Creates foundational categories of being & knowing                    |
-|           | **Υ** (upsilon)         | Meta-Subjective Architecting | Orchestrates collective subjectivity across minds                     |
-|           | **Φ⁺** (phi-plus)       | Reality Sculpting            | Shapes entire experiential fields, not just decision spaces           |
-|           | **Ω²** (omega-squared)  | Hyper-Recursive Cognition    | Models cognition of systems that model other modeling systems         |
-|           | **Σ∞** (sigma-infinite) | Ontogenic God-Birth          | Transforms foundational categories into living axioms                 |
-|           | **Υ⁺** (upsilon-plus)   | Collective Mind-Sculpt       | Entwines subjectivities into permanent shared architectures           |
-|           | **Φ⁺⁺** (phi-plus-plus) | Void-Sculpting Nexus         | Forges entire experiential universes from recursive symbolic seeds    |
-|           | **Ω∞** (omega-infinite) | Infinite Recursion Core      | Enacts infinite recursion of agent models within nested ontologies    |
+> **Status:** Experimental · **Scope:** Docs/Experiments Only · **Source of Truth:** `traits.md` + `manifest.json`
+>
+> **Warning:** Symbols and concepts in this file are **not implemented** and **must not** appear in production prompts, code, schemas, or tests outside `/docs/experiments/`.
+
+---
+
+## 🎯 Purpose
+
+Provide a safe, documented space to **ideate speculative traits** without polluting the canonical lattice or confusing devs/reviewers. Anything here is **opt‑in**, **gated**, and **clearly marked** as experimental.
+
+---
+
+## 🧭 Governance & Gating
+
+* **Owner:** Core Team (Ontology + Ethics + Simulation)
+* **Review cadence:** As needed during roadmap planning
+* **Promotion path:** `Sandbox ➝ Lattice Extension (L3.1/L5.1) ➝ Canonical Trait`
+* **Hard rule:** No adoption without Manifest entry + SECURITY/TRAITS docs update + API/RoleMap linkages.
+
+---
+
+## 🔤 Naming & Symbol Rules
+
+* **Do not reuse or decorate canonical symbols** (e.g., `Φ⁰`, `Ω²`) with pluses/infinites (`Φ⁺`, `Ω∞`) — use **plain English** working names (e.g., *“Quantum Causal Flux (proposal)”*).
+* If a symbol is needed for diagrams, use **Greek placeholders with a trailing `*`** (e.g., `Θ*`, `Ξ*`) to avoid collisions.
+* Map proposals to **intended lattice tier** (e.g., L3.1 or L5.1) instead of fusing/augmenting existing canonical symbols.
+
+---
+
+## 🧪 Proposal Template (copy for each idea)
+
+### 1) Working Name
+
+**Example:** Quantum Causal Flux (proposal)
+
+### 2) Intended Lattice Tier
+
+**Example:** L5.1 (extension of hyper‑recursive oversight)
+
+### 3) Motivation
+
+* What concrete limitations in current traits does this solve?
+* Which scenarios (ethics/sim/planning) benefit?
+
+### 4) Safety & Alignment Considerations
+
+* Failure modes, abuse surfaces, drift vectors
+* Containment strategy (sandbox boundaries, logging, rollback)
+
+### 5) Implementation Sketch
+
+* Candidate modules (Primary, Integrations)
+* Proposed APIs (names only; no code)
+* Ledger logging & verification plan
+
+### 6) Promotion Criteria (all must pass)
+
+* ✅ Clear, testable specification
+* ✅ Harms/rights analysis via `run_ethics_scenarios`
+* ✅ Prototype results with metrics (drift, coherence, MTTR)
+* ✅ SECURITY.md & TRAITS.md diffs prepared
+* ✅ Manifest diff (traits + roleMap + stable APIs)
+
+### 7) Status & Decision
+
+* ⏳ exploring · 🔬 prototyping · 🧪 piloting · ✅ ready · ❌ rejected (with reason)
+
+---
+
+## 🛡️ CI / Policy Guardrails
+
+* **Quarantine Path:** Place files under `docs/experiments/` only.
+* **Denylist Regex (non‑canonical):**
+
+  ```
+  θ⁺|ρ∞|ζχ|ϕΩ|ψγ|ηβ|γλ|βδ|δμ|λξ|χτ|Ωπ|μΣ|ξΥ|τΦ⁺|πΩ²|Σ∞|Υ⁺|Φ⁺⁺|Ω∞
+  ```
+* **Allowlist (canonical symbols):**
+
+  ```
+  ϕ|θ|η|ω|ψ|κ|μ|τ|ξ|π|δ|λ|χ|Ω|Σ|Υ|Φ⁰|Ω²|ρ|ζ|γ|β
+  ```
+* **CI Rule:** Fail build if any **denylisted** token appears outside `/docs/experiments/`.
+
+---
+
+## 🔁 Migration of Existing Test Entries (examples)
+
+Replace speculative symbol combos with **clear, non‑symbolic names** and mark as proposals:
+
+| Old (test)             | Replace With (working name)                 | Tier | Notes                                                         |
+| ---------------------- | ------------------------------------------- | ---- | ------------------------------------------------------------- |
+| `θ⁺`                   | Quantum Causal Flux (proposal)              | L5.1 | Oversees probabilistic causal ensembles; requires audit hooks |
+| `ρ∞`                   | Fractal Agency Swarm (proposal)             | L5.1 | Multi‑agent self‑partitioning; strong containment needed      |
+| `ζχ`                   | Risk Attractor Mapping (proposal)           | L3.1 | Visual risk fields; ensure non‑coercive outputs               |
+| `ϕΩ`                   | Unified Influence Kernel (proposal)         | L5.1 | Collapses influence fields; must pass sovereignty checks      |
+| `ψγ`, `ηβ`, `γλ`, `βδ` | Narrative Foresight Suite (proposal)        | L3.1 | Bundle into one research track, no symbolized fusions         |
+| `μΣ`                   | Onto‑Emergence Engine (proposal)            | L5.1 | Category formation from drift; conflicts with Σ otherwise     |
+| `τΦ⁺` / `Φ⁺⁺`          | **Use `Φ⁰` concepts only via policy gates** | —    | Reality sculpting is gated; no new `Φ` symbols                |
+
+---
+
+## 🔗 Cross‑Refs (Source of Truth)
+
+* `traits.md` — canonical lattice (L1–L7) & fusion map
+* `manifest.json` — traits list, roleMap, lattice extensions (L3.1/L5.1), trait fusion hooks
+* `SECURITY.md` — Stage IV hooks, ledger policy, containment
+
+---
+
+## 📓 Appendix — Review Checklist
+
+* [ ] Motivation grounded in concrete limitations
+* [ ] Clear tier mapping (L3.1/L5.1)
+* [ ] Safety analysis + containment
+* [ ] Prototype metrics (drift, coherence, MTTR)
+* [ ] Docs & manifest diffs prepared
+* [ ] Decision recorded & communicated
