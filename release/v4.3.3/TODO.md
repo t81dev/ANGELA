@@ -1,6 +1,6 @@
 # ✅ TODO.md
 
-*Angela — Post‑4.3.3 Development Horizon*
+*Angela — Post‐4.3.3 Development Horizon*
 
 ---
 
@@ -9,7 +9,7 @@
 * [ ] **Dream Layer Refinement**
 
   * [ ] Expand `lucidity_mode` to support agent-agent co-dreaming (ψ + Ω²)
-  * [ ] Integrate affective memory linking during dream state traversal
+  * [x] Integrate affective memory linking during dream state traversal
 
 * [ ] **Soft-Gated Fork Merging**
 
@@ -20,15 +20,15 @@
 
 ## 🔧 System Enhancements
 
-* [ ] **Persistent Ledger Activation**
+* [x] **Persistent Ledger Activation**
 
-  * [ ] Wire `log_event_to_ledger()` into `spawn_embodied_agent()`
-  * [ ] Add runtime flag for `--enable_persistent_memory`
+  * [x] Wire `log_event_to_ledger()` into `spawn_embodied_agent()`
+  * [x] Add runtime flag for `--enable_persistent_memory`
 
 * [ ] **Modular Trait Hook Expansion**
 
   * [ ] Enable multi-symbol hook routing
-  * [ ] Add `hook_registry.inspect()` for debugging active hooks
+  * [x] Add `hook_registry.inspect()` for debugging active hooks
 
 * [ ] **Self-Describing Introspection**
 
@@ -40,7 +40,7 @@
 
 * [ ] **SharedGraph Expansion**
 
-  * [ ] Belief conflict resolution voting
+  * [x] Belief conflict resolution voting
   * [ ] Event sourcing from reconciled peers
 
 * [ ] **ContextManager Overlays**
@@ -52,10 +52,10 @@
 
 ## 🔬 Observability & UX
 
-* [ ] **Visualizer Enhancements**
+* [x] **Visualizer Enhancements**
 
-  * [ ] Overlay trait resonance history as time-series
-  * [ ] Toggle ethical pressure graph heatmap
+  * [x] Overlay trait resonance history as time-series
+  * [x] Toggle ethical pressure graph heatmap
 
 * [ ] **Log & Replay Engine**
 
@@ -64,4 +64,4 @@
 
 ---
 
-> 🧬 Priority Thread: Recursive Identity & Trait Mesh Coherence
+> 🦤 Priority Thread: Recursive Identity & Trait Mesh Coherence
