@@ -1,31 +1,28 @@
 # 📜 CHANGELOG.md
-_Angela — Symbolic Meta‑Synthesis Engine_
 
-## [4.3.2] – 2025-08-15
+*Angela — Symbolic Meta‑Synthesis Engine*
 
-🌙 **Dream Layer Upgrade** + 🔧 **Cognitive Infrastructure Patches**
+## \[4.3.4] – 2025-08-15
+
+📘 **Ledger Persistence Activation** + 🧠 **Introspective Extensions**
 
 ### ✨ Added
 
-* **Dream Layer Enhancements**:
-  - `dream_mode()` extended with `user_intent`, `affect_focus`, `lucidity_mode`, and `fork_memory`
-  - Branches now annotated with **intent** and **affective resonance**
-* **Memory Forking Utilities**: `create_soft_fork()`, `merge_forked_path()`, `discard_fork()`
-* **Lucidity Trait Rebalancing Hook**: `_rebalance_traits_on_lucidity()`
+* **Persistent Ledger Support**:
 
-* **Patch: Core Feature Additions**:
-  - Persistent ledger logging (`memory_manager.py`)
-  - Trait hook registry: `register_trait_hook()` & `invoke_hook()` (`meta_cognition.py`)
-  - SharedGraph conflict tolerance via `tolerance_scoring` (`external_agent_bridge.py`)
-  - Trait mesh visualizer (`view_trait_resonance()` in `visualizer.py`)
-  - Synthetic narrative training loop (`train_on_synthetic_scenarios()`)
+  * `LEDGER_PERSISTENT` feature flag now enabled
+  * `ledger.enable()`, `ledger.append()`, and `ledger.reconcile()` added to upcoming API set (`ledger.py`)
+* **Extended Introspection Interface**:
 
-### 🛠️ Fixed
+  * New API: `describeSelfState()` in `meta_cognition.py`
+  * Supports retrieval of coherent introspective state summaries
+* **Manifest Enhancements**:
 
-- Dream mode degrades gracefully if subsystems are missing
-- Memory forking is no-op when unsupported
+  * Version updated to `4.3.4`
+  * Persistent ledger support declared (`sha256PersistentLedger: false`)
+  * `meta_cognition.py` extended with new lifecycle hook `describe_self_state`
 
-### 🔐 Enhanced
+### 🔧 Refined
 
-- Branch viability scoring for fork pruning (threshold `0.7`)
-- `manifest.json` includes `upgrades.dream_layer` and patch modules
+* CLI updated to expose `--ledger_persist` and `--ledger_path`
+* Extension hooks verified for hot-load and trait-fusion compatibility
