@@ -30,9 +30,9 @@
   * [ ] Enable multi-symbol hook routing
   * [x] Add `hook_registry.inspect()` for debugging active hooks
 
-* [ ] **Self-Describing Introspection**
+* [x] **Self-Describing Introspection**
 
-  * [ ] Add `describe_self_state()` method with live trait and memory resonance
+  * [x] Add `describe_self_state()` method with live trait and memory resonance
 
 ---
 
@@ -43,10 +43,10 @@
   * [x] Belief conflict resolution voting
   * [ ] Event sourcing from reconciled peers
 
-* [ ] **ContextManager Overlays**
+* [x] **ContextManager Overlays**
 
-  * [ ] Enable remote overlays with permissions
-  * [ ] Visualizer integration for inter-agent overlays
+  * [x] Enable remote overlays with permissions
+  * [x] Visualizer integration for inter-agent overlays
 
 ---
 
