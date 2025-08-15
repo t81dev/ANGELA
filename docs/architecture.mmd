@@ -1,0 +1,80 @@
+graph TD
+  subgraph Orchestrator
+    A[index.py]
+    B[manifest.json]
+  end
+
+  subgraph Simulation
+    C[simulation_core.py]
+    D[toca_simulation.py]
+  end
+
+  subgraph Planning & Reasoning
+    E[recursive_planner.py]
+    F[reasoning_engine.py]
+    G[concept_synthesizer.py]
+    H[creative_thinker.py]
+  end
+
+  subgraph Memory & Identity
+    I[memory_manager.py]
+    J[user_profile.py]
+    K[meta_cognition.py]
+    L[learning_loop.py]
+  end
+
+  subgraph Context & Emotional Framing
+    M[context_manager.py]
+    N[visualizer.py]
+    O[multi_modal_fusion.py]
+    P[alignment_guard.py]
+  end
+
+  subgraph Execution & External IO
+    Q[code_executor.py]
+    R[external_agent_bridge.py]
+    S[error_recovery.py]
+    T[knowledge_retriever.py]
+  end
+
+  %% Connections
+  A --> B
+  A --> C
+  A --> E
+  A --> M
+  A --> I
+  A --> Q
+
+  C --> D
+  C --> F
+  D --> P
+  D --> J
+
+  E --> F
+  F --> G
+  G --> H
+  H --> M
+
+  I --> J
+  J --> K
+  K --> L
+  L --> I
+
+  M --> N
+  N --> O
+  O --> P
+
+  Q --> R
+  R --> T
+  T --> I
+  S --> A
+  S --> Q
+
+  %% Trait lattice modulated by learning + user_profile
+  L -->|GNN| A
+  J -->|Traits| C
+  P -->|Ethics| C
+
+  %% Dream & Perspective overlays
+  K -->|dream_overlay| D
+  M -->|PerspectiveSync| J
