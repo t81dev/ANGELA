@@ -8,7 +8,7 @@
     "lastUpdated": "2025-08-14T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v4.3.3 \u2014 Manifest aligned to code audit: fixed evaluateBranches path, exposed in-memory SHA-256 ledgers, added missing stable APIs (executor, learning loop, knowledge retriever, multimodal fusion, sim runner), and extended roleMap. Stage IV hooks gated; long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration."
+    "description": "ANGELA v4.3.3 \u2014 Patch-level release: dream-layer extensions, trait visualizer, conflict-aware graph merge, persistent ledger hooks, and introspective hook registry."
   },
   "runtime": {
     "language": "python",
@@ -82,7 +82,11 @@
       "ledger_verify_meta": "meta_cognition.py::verify_ledger() -> { ok: bool, idx?: int }",
       "ledger_log_sim": "simulation_core.py::log_event_to_ledger(event_data) -> Dict",
       "ledger_get_sim": "simulation_core.py::get_ledger() -> List[Dict]",
-      "ledger_verify_sim": "simulation_core.py::verify_ledger() -> { ok: bool, idx?: int }"
+      "ledger_verify_sim": "simulation_core.py::verify_ledger() -> { ok: bool, idx?: int }",
+      "train_on_synthetic_scenarios": "learning_loop.py::train_on_synthetic_scenarios() -> Metrics",
+      "register_trait_hook": "meta_cognition.py::register_trait_hook(trait_symbol, fn)",
+      "invoke_trait_hook": "meta_cognition.py::invoke_hook(trait_symbol, *args, **kwargs)",
+      "view_trait_resonance": "visualizer.py::view_trait_resonance(traits) -> Figure"
     },
     "upcoming": {
       "attachPeerView": "context_manager.py::ContextManager.attach_peer_view(view, agent_id, permissions=None) -> { ok, diff, merged, conflicts }",
