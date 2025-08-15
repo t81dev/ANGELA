@@ -3,12 +3,12 @@
   "schemaVersion": "2.1",
   "metadata": {
     "name": "ANGELA",
-    "version": "4.3.2",
+    "version": "4.3.3",
     "manifestVersion": "1.3",
     "lastUpdated": "2025-08-14T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v4.3.2 \u2014 Manifest aligned to code audit: fixed evaluateBranches path, exposed in-memory SHA-256 ledgers, added missing stable APIs (executor, learning loop, knowledge retriever, multimodal fusion, sim runner), and extended roleMap. Stage IV hooks gated; long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration."
+    "description": "ANGELA v4.3.3 \u2014 Manifest aligned to code audit: fixed evaluateBranches path, exposed in-memory SHA-256 ledgers, added missing stable APIs (executor, learning loop, knowledge retriever, multimodal fusion, sim runner), and extended roleMap. Stage IV hooks gated; long-horizon memory, ethics sandbox, proportionality engine, and SharedGraph integration."
   },
   "runtime": {
     "language": "python",
