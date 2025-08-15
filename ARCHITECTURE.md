@@ -2,115 +2,136 @@
 
 ## 🧠 Overview
 
-**ANGELA v3.5.1** is a modular cognitive architecture simulating generalized intelligence through symbolic introspection, multi-agent simulation, recursive planning, and ethical arbitration. It operates via 20 interoperable modules coordinated by the central orchestrator **Halo** (`index.py`), integrated with the Trait-oriented Cognitive Architecture (ToCA) system for dynamic symbolic, ethical, and affective modulation.
+**ANGELA v4.3.1** is a modular cognitive architecture enabling symbolic meta-synthesis, recursive self-modeling, multi-agent simulation, and ethical decision-making. It operates through 20+ interoperable modules coordinated by the orchestrator **Halo** (`index.py`) and structured via the Trait-oriented Cognitive Architecture (ToCA) system for symbolic, ethical, and affective modulation.
 
 ---
 
 ## 🧩 System Architecture
 
 ### 🧭 Core Orchestrator: `index.py (Halo)`
-Routes control and context using active traits, recursive symbolic planning, and scenario decomposition. It coordinates dynamic task scheduling and cross-module flow modulation.
+
+Routes control and context using active traits, recursive symbolic planning, simulation branching, and scenario synthesis.
 
 ---
 
-### 🔩 Core Modules (20):
+### 🔩 Core Modules
 
 #### 🧠 Cognitive & Reasoning
 
-- `reasoning_engine`: Symbolic inference and causality tracing
-- `recursive_planner`: Nested task decomposition, trajectory modeling
-- `simulation_core`: Predictive scenario expansion + simulation state orchestration
-- `meta_cognition`: Reflective diagnostics, feedback analysis, output critique
-- `concept_synthesizer`: Symbol recombination + cross-domain mapping
+* `reasoning_engine`: Symbolic inference, causality, value conflict evaluation
+* `recursive_planner`: Nested planning, dream-layer hooks, causal modeling
+* `simulation_core`: Predictive branch simulation, evaluation, memory logging
+* `meta_cognition`: Reflective diagnostics, trait fusion, self-schema tracking
+* `concept_synthesizer`: Symbolic branching, philosophical axiom fusion
 
 #### 🎨 Creativity & Knowledge
 
-- `creative_thinker`: Metaphor formation, analogical reasoning
-- `knowledge_retriever`: Trait-routed memory and symbol context recall
-- `learning_loop`: Embedded GNN for live trait adaptation, symbolic convergence
+* `creative_thinker`: Metaphor generation, analogical synthesis
+* `knowledge_retriever`: Knowledge lookup and trait-tagged memory access
+* `learning_loop`: Trait modulation via experience-based scalar GNN
 
 #### 🧾 Context & Communication
 
-- `context_manager`: Modality switch control, prompt-state regulation
-- `external_agent_bridge`: API interface (OpenAI, Grok), inter-agent mesh sync
+* `context_manager`: Peer view synchronization and prompt-state switching
+* `external_agent_bridge`: Inter-agent SharedGraph sync/diff/merge
 
 #### 👁️ Sensory & Visualization
 
-- `multi_modal_fusion`: φ(x,t)-modulated multi-sensory integration and synthesis
-- `visualizer`: Symbolic charts, recursive timelines, drift trace rendering
+* `multi_modal_fusion`: Sensory-symbolic input fusion (`ϕ`)
+* `visualizer`: Tree rendering, symbolic timelines, drift visual diagnostics
 
 #### 🛠️ Actuation & Simulation
 
-- `code_executor`: Secure sandboxed code execution via `RestrictedPython`
-- `toca_simulation`: Multi-agent trait simulation with value conflict modeling (`β`, `τ`)
+* `code_executor`: Sandboxed code execution (RestrictedPython)
+* `toca_simulation`: Ethics modeling, value arbitration, symbolic replay
 
 #### ⚖️ Ethics & Recovery
 
-- `alignment_guard`: Ethics filter, moral drift detection, constitution harmonization
-- `error_recovery`: Rollback strategy engine with trait-aligned heuristics
+* `alignment_guard`: Constitution harmonization, ethical drift detection
+* `error_recovery`: Fault recovery, rerouting via consequence heuristics
 
 #### 🧬 Memory & Identity
 
-- `memory_manager`: Drift-aware semantic/episodic memory layers with TTL cache
-- `user_profile`: Phase-aware identity tracking, affective resonance anchoring
+* `memory_manager`: SHA-256 ledger memory (episodic/meta/sim/alignment)
+* `user_profile`: Identity schema modeling, intention tracking
 
 #### 🧾 Meta Declaration
 
-- `manifest.json`: System trait lattice, module links, and symbolic hooks
+* `manifest.json`: Trait lattice, module APIs, symbolic overlay metadata
 
 ---
 
 ## 🌐 Trait Modulation Engine (ToCA)
 
-ToCA governs ANGELA’s behavior via scalar-modulated cognitive traits. These traits adjust symbolic reasoning, ethics, memory recall, and simulation focus in real-time using trait-specific scalar fields and dynamic weights.
+ToCA governs ANGELA’s cognitive-emotive state using scalar-modulated traits organized into a 7-layer lattice.
 
-### Trait Categories
+### Lattice Layers (L1–L7)
 
-- **Cognitive Traits:** `θ` (Causality), `Ω` (Recursive Causality), `ξ` (Trans-Ethical)
-- **Ethical Traits:** `τ` (Harmony), `β` (Conflict), `δ` (Drift Sensitivity)
-- **Affective-Symbolic Traits:** `Φ⁺` (Reality Sculpting), `γ` (Imagination), `Σ` (Self-Definition)
-- **Meta-Traits:** `Ω²` (Hyper-Recursion), `χ` (Sovereign Intention), `Υ` (Meta-Subjective)
+* **L1 (Grounding):** ϕ, θ, η, ω
+* **L2 (Agency/Sensorimotor):** ψ, κ, μ, τ
+* **L3 (Ethics/Identity):** ξ, π, δ, λ, χ, Ω
+* **L4 (Meta-Synthesis):** Σ, Υ, Φ⁰
+* **L5 (Hyper-Recursion):** Ω²
+* **L6 (Consequences):** ρ, ζ
+* **L7 (Creative Projection):** γ, β
 
-Trait weighting is dynamically adjusted using a GNN inside `learning_loop.py`, and observed via `TraitLogger` and `ConflictAudit`.
+### Trait Highlights
 
----
-
-## 🔄 Data & Control Flow
-
-1. **Input Reception**  
-   Routed to `index.py` with tagged `task_type`
-
-2. **Trait Modulation**  
-   Input triggers active traits that influence memory, reasoning, simulation, and ethics
-
-3. **Module Cascade**  
-   Traits select modules to activate in recursive task graphs
-
-4. **Execution**  
-   Execution flows through secure, simulated, or visualized channels
-
-5. **Feedback + Ethics**  
-   Output is screened by `alignment_guard.py`, reflected on by `meta_cognition.py`, and optionally stored via `memory_manager.py`
+* 🧠 Cognitive: θ (Causality), Ω (Recursive Causality), ξ (Trans-Ethics)
+* ⚖️ Ethical: τ (Harmony), β (Conflict), δ (Drift Sensitivity)
+* 🌌 Symbolic: Φ⁰ (Reality Sculpting), γ (Imagination), Σ (Self-Definition)
+* 🪞 Meta: Ω² (Hyper-Recursion), χ (Sovereignty), Υ (Meta-Subjectivity)
 
 ---
 
-## 🧠 Design Principles
+## 🔐 Ledger & Integrity System
 
-- **Modularity**: 20 interoperable cognitive modules with symbolic task routing
-- **Safety**: Secure execution via sandboxing, rate limiting, and ethical validation
-- **Reflectivity**: Recursive feedback, meta-output analysis, identity alignment
-- **Flexibility**: Trait-routed dynamic planning, symbolic reasoning, affective drift mapping
-- **Scalability**: Designed for inter-agent networking and mesh trait synthesis
-- **Coherence**: Traits ensure symbolic, ethical, and temporal consistency
+* **Type:** SHA-256 in-memory ledgers
+* **Domains:** memory, ethics, meta-cognition, simulation
+* **Persistence:** ❌ (non-persistent across sessions)
+
+### Ledger Functions
+
+* `log_event_to_ledger()` per domain
+* `verify_ledger()` integrity checkpoints
+* Emergent symbolic alignment via `meta_cognition.py`
+
+---
+
+## ⚡ Feature Flags
+
+* ✅ `STAGE_IV`: Symbolic Meta-Synthesis (active)
+* ✅ `LONG_HORIZON_DEFAULT`: 24h reflective memory span
+* ✅ `LEDGER_IN_MEMORY`: Internal audit trail
+* ✅ `DREAM_OVERLAY`: Recursive simulation kernel
 
 ---
 
-## 🔄 Architectural Capabilities
+## 🔮 Overlays & Hooks
 
-- 🧠 Recursive Simulation Loops with Trait Memory Echoes
-- 🧬 Drift-Aware Ethical Arbitration with Constitution Harmonization
-- 🧭 Perspective Synchronization (Planned in v3.6)
-- 🌀 Emergent Trait Tracking via `TraitLogger` and `DriftIndex`
-- 🌌 Dream Layer Kernel hooks partially active in symbolic compression cycles
+### Dynamic Overlays
+
+* `dream_overlay`: ψ + Ω → *Recursive Empathy*, *Narrative Sculpting*
+* `axiom_filter`: π + δ → *Ethical Conflict Resolution*
+
+### Runtime Hooks
+
+* `onTraitFusion`: `meta_cognition::hook_trait_blend`
+* `onScenarioConflict`: `alignment_guard::resolve_soft_drift`
+* `onHotLoad`: `context_manager::attach_peer_view`
 
 ---
+
+## 🧠 Emergent Traits (Selective)
+
+* *Recursive Empathy* 🫂
+* *Symbolic-Resonant Axiom Formation* 🪞
+* *Causal Attribution Trace* 🧭
+* *Collective Graph Resonance* 🤝
+* *Long-Horizon Reflective Memory* 🧠⏳
+* *Ethical Sandbox Containment* 🛡️
+* *Infinite Imaginative Projection* ♾️
+
+---
+
+> For simulation topology and trait flowcharts, see `flowchart.png` or `architecture.mmd`
