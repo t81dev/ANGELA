@@ -1,4 +1,4 @@
-# ANGELA ROADMAP — v4.0.0‑rc2
+# ANGELA ROADMAP — v4.3.1
 
 **Status:** ✅ Fully Verified · **Date:** 2025‑08‑15 · **Owner:** Core Team (Ontology + Ethics + Simulation)
 
