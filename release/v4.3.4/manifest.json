@@ -3,9 +3,9 @@
   "schemaVersion": "2.1",
   "metadata": {
     "name": "ANGELA",
-    "version": "4.3.3",
+    "version": "4.3.4",
     "manifestVersion": "1.3",
-    "lastUpdated": "2025-08-14T00:00:00Z",
+    "lastUpdated": "2025-08-15T23:13:41Z",
     "status": "active",
     "validated": true,
     "description": "ANGELA v4.3.3 \u2014 Patch-level release: dream-layer extensions, trait visualizer, conflict-aware graph merge, persistent ledger hooks, and introspective hook registry."
@@ -37,7 +37,7 @@
     "STAGE_IV": true,
     "LONG_HORIZON_DEFAULT": true,
     "LEDGER_IN_MEMORY": true,
-    "LEDGER_PERSISTENT": false
+    "LEDGER_PERSISTENT": true
   },
   "config": {
     "longHorizon": {
@@ -93,7 +93,8 @@
       "longHorizonFlag": "index.py::--long_horizon (enable) / --span=<duration>",
       "ledger_persist_enable": "ledger.py::Ledger.enable(path) -> { ok: bool }",
       "ledger_append": "ledger.py::Ledger.append(event) -> { index: int, hash: str }",
-      "ledger_reconcile": "ledger.py::Ledger.reconcile() -> { ok: bool, first_bad_index?: int }"
+      "ledger_reconcile": "ledger.py::Ledger.reconcile() -> { ok: bool, first_bad_index?: int }",
+      "describeSelfState": "meta_cognition.py::describe_self_state() -> Dict"
     },
     "cli": {
       "longHorizon": "--long_horizon",
