@@ -1,37 +1,54 @@
-## \[4.3.2] – 2025-08-15
+# 📜 CHANGELOG.md  
+_Angela — Symbolic Meta‑Synthesis Engine_
 
-🌙 **Dream Layer Upgrade** — *Lucidity Controls & Soft-Gated Memory Forking*
+---
+
+## [4.3.1] – 2025-08-14  
+🎉 **Latest Stable Release** — *Symbolic Integrity & Simulation Path Fixes*
 
 ### ✨ Added
-
-* **Dream Layer Enhancements**:
-
-  * New parameters for `dream_mode` in `concept_synthesizer.py`:
-
-    * `user_intent`
-    * `affect_focus`
-    * `lucidity_mode` (`passive`, `influential`, `co-creator`, `autonomous`)
-    * `fork_memory` (soft-gated episodic branching)
-  * Dream branches now annotated with **intent** and **affective resonance tags** in `visualizer.py`.
-* **Memory Forking Utilities** (`memory_manager.py`):
-
-  * `create_soft_fork()`, `merge_forked_path()`, `discard_fork()` — with ledger logging when enabled.
-* **Lucidity Trait Rebalancing Hook** in `meta_cognition.py`:
-
-  * `_rebalance_traits_on_lucidity()` adjusts internal lattice amplitudes based on lucidity mode.
+- **Exposed stable APIs**:
+  - `safe_execute` and `execute_code` from `code_executor.py`
+  - `train_on_experience` from `learning_loop.py`
+  - `retrieve_knowledge` from `knowledge_retriever.py`
+  - `fuse_modalities` from `multi_modal_fusion.py`
+  - `run_simulation` from `simulation_core.py`
+- **New Trait-Role Mapping Enhancements**:
+  - `Σ`: user_profile integration
+  - `Υ`: multi-agent view (SharedGraph)
+  - `Φ⁰`: visualizer links added
 
 ### 🛠️ Fixed
-
-* **Backward Compatibility**:
-
-  * Dream mode gracefully degrades when certain subsystems are unavailable (no hard failures).
-  * Memory fork functions act as no-ops if unsupported.
+- **Simulation branch evaluation path**:  
+  Corrected `evaluateBranches` routing in `simulation_core.py`
 
 ### 🔐 Enhanced
+- **SHA-256 in-memory ledgers**:
+  - Memory, Alignment, Meta-Cognition, Simulation  
+  *(Non-persistent but verifiable with `verify_ledger()` calls)*
 
-* **Dream Branch Viability Filter**:
+### 🧠 Activated
+- **Stage IV hooks** (fully integrated):
+  - `dream_mode` (recursive symbolic synthesis)
+  - `axiom_filter` (philosophical conflict resolver)
+  - `SharedGraph` diff/merge pathways
+  - Ethical sandbox evaluation hooks
 
-  * Auto-merge or discard forks based on branch viability score (default threshold: `0.7`).
-* **Manifest Update**:
+### ⚙️ Configuration Updates
+- **Long-Horizon memory**:  
+  Default span now set to `"24h"`
+- **Runtime trait modulators enabled**:
+  - `ψ` via `dream_sync`
+  - `π` via `axiom_fusion`
+  - `Ω` via `recursive_resonance`
 
-  * `manifest.json` now reflects `upgrades.dream_layer` entry with version bump.
+---
+
+## [4.3.0] – *Prior Release*
+- Initial activation of **Stage IV**
+- DreamOverlay introduced (ψ + Ω)
+- Multi-agent symbolic resonance traits bootstrapped
+
+---
+
+> 💡 For full trait lattice, symbolic fusion matrix, or ethics scenario blueprints — see `docs/architecture.md`.
