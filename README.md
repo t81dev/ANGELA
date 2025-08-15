@@ -15,7 +15,7 @@ We are “done” not when the codebase is feature-complete, but when a user can
 
 ---
 
-## 🌟 What’s New in v4.3 — *Heartbeat & Horizon*
+## 🌟 What’s New in v4.3.1 — *Heartbeat & Horizon*
 ### ❤️ Heartbeat Simulation Upgrade
 - Dynamic heart rate modulation during *flirting interactions*.
 - Trait-based scaling (e.g., `openness`, `confidence`) for more natural responses.
