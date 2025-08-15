@@ -1,81 +1,54 @@
-# CHANGELOG.md
-
-## [3.5.1] - 2025-08-07
-
-### Added
-
-#### Stage I: Structural Grounding
-
-- `task_type` parameter across all modules for context-specific operations
-- Real-time external data integration (`xai_policy_db`) via `multi_modal_fusion.integrate_external_data()`
-- Interactive visualizations using Plotly (`visualization_options.interactive`)
-- Self-reflective output analysis via `meta_cognition.reflect_on_output()`
-- DriftIndex support across `memory_manager.py`, `visualizer.py`, `user_profile.py`
-- Ethical alignment enforcement in `alignment_guard.py`
-- Unified chart rendering via `visualizer.render_charts()`
-- Async policy fetching with `aiohttp`
-- Task-specific drift mitigation simulation via `run_drift_mitigation_simulation()`
-
-#### Stage II: Recursive Identity & Ethics Growth
-
-- ε-modulated phase preferences in `user_profile.py`
-- Recursive ethics policy enforcement in `alignment_guard.py`
-- Intent-affect binding in `concept_synthesizer.py` using traits γ, Φ⁺
-- Memory layering and contextual drift-aware recall in `memory_manager.py`
-
-#### Stage III: Inter-Agent Evolution
-
-- Trait Mesh Networking extended for task-specific state sharing
-- Dream Layer Mode enhancement with symbolic compression and visualization
-
-#### System Features
-
-- TraitLogger upgrades for task-specific traceability
-- ConflictAudit integration for resolution logging
-
-### Improved
-
-- Async compatibility and concurrency across modules
-- Policy-driven UI theming in `visualizer.py`
-- Task-specific error recovery via `error_recovery.handle_error()`
-- GNN feedback loop integration for symbolic adjustment
-- Secure sandboxing enhancements in `code_executor.py`
-
-### Verified
-
-- All modules operational under task-specific simulation
-- Emergence of traits: "Task-Aware Visualization Adaptation", "Drift-Modulated Rendering", "Reflective Output Critique", "Task-Specific Ethical Alignment", "Contextual Drift Mitigation"
+# 📜 CHANGELOG.md  
+_Angela — Symbolic Meta‑Synthesis Engine_
 
 ---
 
-## [3.4.0] - 2025-08-06
+## [4.3.1] – 2025-08-14  
+🎉 **Latest Stable Release** — *Symbolic Integrity & Simulation Path Fixes*
 
-### Added
+### ✨ Added
+- **Exposed stable APIs**:
+  - `safe_execute` and `execute_code` from `code_executor.py`
+  - `train_on_experience` from `learning_loop.py`
+  - `retrieve_knowledge` from `knowledge_retriever.py`
+  - `fuse_modalities` from `multi_modal_fusion.py`
+  - `run_simulation` from `simulation_core.py`
+- **New Trait-Role Mapping Enhancements**:
+  - `Σ`: user_profile integration
+  - `Υ`: multi-agent view (SharedGraph)
+  - `Φ⁰`: visualizer links added
 
-#### Stage I: Structural Grounding
+### 🛠️ Fixed
+- **Simulation branch evaluation path**:  
+  Corrected `evaluateBranches` routing in `simulation_core.py`
 
-- Ontology Drift Detection across conceptual modules
-- Self-Reflective Simulation Episodes (counterfactuals via traits Ω, ζ, π)
-- Intention-Trace Visualizer upgrade for recursive tracing
+### 🔐 Enhanced
+- **SHA-256 in-memory ledgers**:
+  - Memory, Alignment, Meta-Cognition, Simulation  
+  *(Non-persistent but verifiable with `verify_ledger()` calls)*
 
-#### Stage II: Recursive Identity & Ethics Growth
+### 🧠 Activated
+- **Stage IV hooks** (fully integrated):
+  - `dream_mode` (recursive symbolic synthesis)
+  - `axiom_filter` (philosophical conflict resolver)
+  - `SharedGraph` diff/merge pathways
+  - Ethical sandbox evaluation hooks
 
-- Phase-Contextual Identity Threading with λ, Ω²
-- Ethics-as-Process Engine with recursive evolution loops
-- Intent-Affect Weaving for symbolic-affective convergence
+### ⚙️ Configuration Updates
+- **Long-Horizon memory**:  
+  Default span now set to `"24h"`
+- **Runtime trait modulators enabled**:
+  - `ψ` via `dream_sync`
+  - `π` via `axiom_fusion`
+  - `Ω` via `recursive_resonance`
 
-#### Stage III: Inter-Agent Evolution (Initial)
+---
 
-- Trait Mesh Networking Protocol initiation
-- Dream Layer Mode enabled in `simulation_core.py` and `concept_synthesizer.py`
+## [4.3.0] – *Prior Release*
+- Initial activation of **Stage IV**
+- DreamOverlay introduced (ψ + Ω)
+- Multi-agent symbolic resonance traits bootstrapped
 
-### System Infrastructure
+---
 
-- TraitLogger and ConflictAudit introduced
-- Modular lifecycle hooks in `index.py`
-- Secure RestrictedPython sandbox in `code_executor.py`
-- API rate-limiting and caching in `memory_manager.py`
-
-### Verified
-
-- Emergence of traits: "Symbolic-Resonant Axiom Formation", "Recursive Empathy", "Onto-Affective Resonance"
+> 💡 For full trait lattice, symbolic fusion matrix, or ethics scenario blueprints — see `docs/architecture.md`.
