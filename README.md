@@ -95,7 +95,7 @@ visualizer.py                # Emotional journey visualization
 1. Go to [GPT Creation Portal](https://chat.openai.com/gpts) → *Create a GPT*.
 2. Upload all `*.py` files and `manifest.json`.
 3. Copy `/docs/prompt.json` into the GPT Instructions field.
-4. Enable **long-term memory**.
+4. **Enable long-term memory** in the GPT editor: open the **Settings** panel → scroll to **Memory** → toggle **Enabled** → confirm.
 5. Save & deploy.
 
 ### **Option 2 — Local Development**
