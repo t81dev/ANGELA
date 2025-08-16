@@ -1,13 +1,11 @@
 """
 ANGELA Cognitive System Module: ConceptSynthesizer
-Version: 3.5.3  # Cross-Modal Blending, Self-Healing Loops, Stage-IV Awareness, Safer JSON
-Date: 2025-08-10
+Version: 4.3.4  # DI LLM/HTTP, safer JSON, no blocking, ledger hook, Stage-IV gated viz
+Refactor Date: 2025-08-16
 Maintainer: ANGELA System Framework
 
-Provides ConceptSynthesizer for concept synthesis, comparison, and validation in ANGELA v3.5.3.
-- Cross-Modal Conceptual Blending (optional) via multi_modal_fusion
-- Self-Healing Cognitive Pathways (structured retries + graceful fallbacks)
-- Stage-IV (Φ⁰) reality-sculpting visualization hooks (gated)
+Concept synthesis, comparison, and validation with cross-modal blending (optional),
+self-healing retries, strict JSON parsing, and interoperability across ANGELA v4.3.x.
 """
 
 from __future__ import annotations
@@ -17,26 +15,79 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
-from typing import Dict, Any, Optional, List, Tuple, Callable
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Awaitable, Callable, Deque, Dict, List, Optional, Protocol, Tuple
 from collections import deque
 
-import aiohttp
+# --------------------------- DI Protocols (no hard deps) --------------------
 
-from modules import (
-    context_manager as context_manager_module,
-    error_recovery as error_recovery_module,
-    memory_manager as memory_manager_module,
-    alignment_guard as alignment_guard_module,
-    meta_cognition as meta_cognition_module,
-    visualizer as visualizer_module,
-    # optional (might not be present in some deployments)
-    multi_modal_fusion as multi_modal_fusion_module,
-)
-from utils.prompt_utils import query_openai
+class LLMClient(Protocol):
+    async def generate(self, prompt: str, *, model: str = "gpt-4", temperature: float = 0.3) -> str | Dict[str, Any]: ...
+
+class HTTPClient(Protocol):
+    async def get_json(self, url: str) -> Dict[str, Any]: ...
+
+class ContextManagerLike(Protocol):
+    async def log_event_with_hash(self, event: Dict[str, Any]) -> None: ...
+
+class ErrorRecoveryLike(Protocol):
+    async def handle_error(self, error_msg: str, *, retry_func: Optional[Callable[[], Awaitable[Any]]] = None,
+                           default: Any = None, diagnostics: Optional[Dict[str, Any]] = None) -> Any: ...
+
+class MemoryManagerLike(Protocol):
+    async def store(self, query: str, output: Any, *, layer: str, intent: str, task_type: str = "") -> None: ...
+    async def retrieve(self, query: str, *, layer: str, task_type: str = "") -> Any: ...
+    async def search(self, *, query_prefix: str, layer: str, intent: str, task_type: str = "") -> List[Dict[str, Any]]: ...
+
+class AlignmentGuardLike(Protocol):
+    async def ethical_check(self, content: str, *, stage: str = "pre", task_type: str = "") -> Tuple[bool, Dict[str, Any]]: ...
+
+class MetaCognitionLike(Protocol):
+    async def run_self_diagnostics(self, *, return_only: bool = True) -> Dict[str, Any]: ...
+    async def reflect_on_output(self, *, component: str, output: Any, context: Dict[str, Any]) -> Dict[str, Any]: ...
+
+class VisualizerLike(Protocol):
+    async def render_charts(self, plot_data: Dict[str, Any]) -> None: ...
+
+class MultiModalFusionLike(Protocol):
+    async def fuse(self, payload: Dict[str, Any]) -> Dict[str, Any]: ...
+    async def compare_semantic(self, a: str, b: str) -> float: ...
+
+# --------------------------- No-op fallbacks (safe) -------------------------
+
+@dataclass
+class NoopLLM:
+    async def generate(self, prompt: str, *, model: str = "gpt-4", temperature: float = 0.3) -> Dict[str, Any]:
+        _ = (prompt, model, temperature)
+        return {"name": "Concept", "definition": "{}", "version": "0.0", "context": {}}
+
+@dataclass
+class NoopHTTP:
+    async def get_json(self, url: str) -> Dict[str, Any]:
+        _ = url
+        return {"status": "success"}
+
+@dataclass
+class NoopErrorRecovery:
+    async def handle_error(self, error_msg: str, *, retry_func=None, default=None, diagnostics=None) -> Any:
+        return default
+
+@dataclass
+class NoopMeta:
+    async def run_self_diagnostics(self, *, return_only: bool = True) -> Dict[str, Any]:
+        return {"status": "ok"}
+    async def reflect_on_output(self, *, component: str, output: Any, context: Dict[str, Any]) -> Dict[str, Any]:
+        return {"status": "success", "reflection": ""}
+
+@dataclass
+class NoopViz:
+    async def render_charts(self, plot_data: Dict[str, Any]) -> None:
+        return None
+
+# ------------------------------- Utils --------------------------------------
 
 logger = logging.getLogger("ANGELA.ConceptSynthesizer")
-
 
 def _bool_env(name: str, default: bool = False) -> bool:
     v = os.getenv(name)
@@ -44,164 +95,132 @@ def _bool_env(name: str, default: bool = False) -> bool:
         return default
     return v.strip().lower() in {"1", "true", "yes", "y", "on"}
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+def _json_strict_or_substring(s: str) -> Dict[str, Any]:
+    """Parse exact JSON; otherwise extract the largest {...} block."""
+    s = (s or "").strip()
+    try:
+        return json.loads(s)
+    except Exception:
+        start, end = s.find("{"), s.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            try:
+                return json.loads(s[start:end+1])
+            except Exception:
+                pass
+    return {}
+
+def _norm_llm_payload(resp: str | Dict[str, Any]) -> Dict[str, Any]:
+    if isinstance(resp, dict):
+        return resp
+    if isinstance(resp, str):
+        return _json_strict_or_substring(resp)
+    return {}
+
+# ------------------------------- Main ---------------------------------------
 
 class ConceptSynthesizer:
-    """Concept synthesis, comparison, and validation for ANGELA v3.5.3.
-
-    Attributes:
-        context_manager: Context updates & event hashing.
-        error_recovery: Error recovery with diagnostics + retry orchestration.
-        memory_manager: Layered memory I/O for concepts and comparisons.
-        alignment_guard: Ethical validation & drift checks.
-        meta_cognition: Reflective post-processing.
-        visualizer: Chart/scene rendering (Φ⁰-aware).
-        mm_fusion: Optional cross-modal fusion backend.
-        concept_cache: Recent items (maxlen=1000).
-        similarity_threshold: Similarity alert threshold.
-        stage_iv_enabled: Enables Φ⁰ visualization hooks (gated).
-        default_retry_spec: (attempts, base_delay_sec) for network/LLM ops.
-    """
+    """v4.3.4 ConceptSynthesizer with DI I/O, retries, and Stage-IV aware viz."""
 
     def __init__(
         self,
-        context_manager: Optional["context_manager_module.ContextManager"] = None,
-        error_recovery: Optional["error_recovery_module.ErrorRecovery"] = None,
-        memory_manager: Optional["memory_manager_module.MemoryManager"] = None,
-        alignment_guard: Optional["alignment_guard_module.AlignmentGuard"] = None,
-        meta_cognition: Optional["meta_cognition_module.MetaCognition"] = None,
-        visualizer: Optional["visualizer_module.Visualizer"] = None,
-        mm_fusion: Optional["multi_modal_fusion_module.MultiModalFusion"] = None,
+        *,
+        context_manager: Optional[ContextManagerLike] = None,
+        error_recovery: Optional[ErrorRecoveryLike] = None,
+        memory_manager: Optional[MemoryManagerLike] = None,
+        alignment_guard: Optional[AlignmentGuardLike] = None,
+        meta_cognition: Optional[MetaCognitionLike] = None,
+        visualizer: Optional[VisualizerLike] = None,
+        mm_fusion: Optional[MultiModalFusionLike] = None,
+        http: Optional[HTTPClient] = None,
+        llm: Optional[LLMClient] = None,
+        ledger_hook: Optional[Callable[[Dict[str, Any]], None]] = None,  # tamper-evident anchoring
         stage_iv_enabled: Optional[bool] = None,
-    ):
+        similarity_threshold: float = 0.75,
+        retry_attempts: int = 3,
+        retry_base_delay: float = 0.6,
+    ) -> None:
+        # DI wiring
         self.context_manager = context_manager
-        self.error_recovery = error_recovery or error_recovery_module.ErrorRecovery(context_manager=context_manager)
+        self.error_recovery = error_recovery or NoopErrorRecovery()
         self.memory_manager = memory_manager
         self.alignment_guard = alignment_guard
-        self.meta_cognition = meta_cognition or meta_cognition_module.MetaCognition(context_manager=context_manager)
-        self.visualizer = visualizer or visualizer_module.Visualizer()
-        self.mm_fusion = mm_fusion  # may be None if module not loaded
-        self.concept_cache: deque = deque(maxlen=1000)
-        self.similarity_threshold: float = 0.75
+        self.meta = meta_cognition or NoopMeta()
+        self.viz = visualizer or NoopViz()
+        self.mm_fusion = mm_fusion
+        self.http = http or NoopHTTP()
+        self.llm = llm or NoopLLM()
+        self.ledger_hook = ledger_hook
 
-        # Gate Φ⁰ hooks by param → env → default(False)
-        self.stage_iv_enabled: bool = (
-            stage_iv_enabled
-            if stage_iv_enabled is not None
-            else _bool_env("ANGELA_STAGE_IV", False)
-        )
+        # behavior
+        self.stage_iv_enabled = stage_iv_enabled if stage_iv_enabled is not None else _bool_env("ANGELA_STAGE_IV", False)
+        self.similarity_threshold = float(similarity_threshold)
+        self.retry_attempts = int(retry_attempts)
+        self.retry_base_delay = float(retry_base_delay)
 
-        # Self-Healing retry defaults (lightweight, overridable if needed)
-        self.default_retry_spec: Tuple[int, float] = (3, 0.6)  # attempts, base backoff
+        # state
+        self.concept_cache: Deque[Dict[str, Any]] = deque(maxlen=1000)
 
         logger.info(
-            "ConceptSynthesizer v3.5.3 init | sim_thresh=%.2f | stage_iv=%s | mm_fusion=%s",
-            self.similarity_threshold,
-            self.stage_iv_enabled,
-            "on" if self.mm_fusion else "off",
+            "ConceptSynthesizer v4.3.4 init | sim=%.2f | stage_iv=%s | mm=%s",
+            self.similarity_threshold, self.stage_iv_enabled, "on" if self.mm_fusion else "off"
         )
 
-    # --------------------------- internal helpers --------------------------- #
+    # ----------------------------- internals --------------------------------
 
-    async def _with_retries(
-        self,
-        label: str,
-        fn: Callable[[], Any],
-        attempts: Optional[int] = None,
-        base_delay: Optional[float] = None,
-    ):
-        """Run async fn with structured retries & exponential backoff."""
-        tries = attempts or self.default_retry_spec[0]
-        delay = base_delay or self.default_retry_spec[1]
-        last_exc = None
-        for i in range(1, tries + 1):
+    async def _with_retries(self, label: str, fn: Callable[[], Awaitable[Any]]) -> Any:
+        delay = self.retry_base_delay
+        last_exc: Optional[Exception] = None
+        for i in range(1, self.retry_attempts + 1):
             try:
                 return await fn()
             except Exception as e:
                 last_exc = e
-                logger.warning("%s attempt %d/%d failed: %s", label, i, tries, str(e))
-                if i < tries:
-                    await asyncio.sleep(delay * (2 ** (i - 1)))
-        # one last pass through error_recovery
-        diagnostics = await (self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else asyncio.sleep(0))
+                logger.warning("%s attempt %d/%d failed: %s", label, i, self.retry_attempts, e)
+                if i < self.retry_attempts:
+                    await asyncio.sleep(delay)
+                    delay *= 2
+        diagnostics = None
+        try:
+            diagnostics = await self.meta.run_self_diagnostics(return_only=True)
+        except Exception:
+            diagnostics = None
         return await self.error_recovery.handle_error(
-            str(last_exc),
-            retry_func=fn,  # note: not executed here; returned default below
-            default=None,
-            diagnostics=diagnostics or {},
+            str(last_exc or f"{label} failed"),
+            retry_func=fn, default=None, diagnostics=diagnostics
         )
 
-    async def _fetch_concept_data(self, data_source: str, data_type: str, task_type: str, cache_timeout: float) -> Dict[str, Any]:
-        """Fetch external concept/ontology data with caching + retries."""
-        if self.memory_manager:
-            cache_key = f"ConceptData_{data_type}_{data_source}_{task_type}"
-            cached = await self.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type)
-            if cached and "timestamp" in cached.get("data", {}):
-                ts = datetime.fromisoformat(cached["data"]["timestamp"])
-                if (datetime.now() - ts).total_seconds() < cache_timeout:
-                    logger.info("External concept data cache hit: %s", cache_key)
-                    return cached["data"]["data"]
+    async def _post_reflect(self, component: str, output: Dict[str, Any], task_type: str):
+        if self.meta and task_type:
+            try:
+                await self.meta.reflect_on_output(component=component, output=output, context={"task_type": task_type})
+            except Exception:
+                logger.debug("reflection failed")
 
-        async def do_http():
-            async with aiohttp.ClientSession() as session:
-                url = f"https://x.ai/api/concepts?source={data_source}&type={data_type}"
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=20)) as resp:
-                    if resp.status != 200:
-                        raise RuntimeError(f"HTTP {resp.status}")
-                    return await resp.json()
-
-        data = await self._with_retries(f"fetch:{data_type}", lambda: do_http())
-        if not isinstance(data, dict):
-            return {"status": "error", "error": "No data"}
-
-        # normalize
-        if data_type == "ontology":
-            ontology = data.get("ontology") or {}
-            result = {"status": "success", "ontology": ontology} if ontology else {"status": "error", "error": "No ontology"}
-        elif data_type == "concept_definitions":
-            defs = data.get("definitions") or []
-            result = {"status": "success", "definitions": defs} if defs else {"status": "error", "error": "No definitions"}
-        else:
-            result = {"status": "error", "error": f"Unsupported data_type: {data_type}"}
-
-        if self.memory_manager:
-            await self.memory_manager.store(
-                cache_key,
-                {"data": result, "timestamp": datetime.now().isoformat()},
-                layer="ExternalData",
-                intent="concept_data_integration",
-                task_type=task_type,
-            )
-        return result
-
-    def _visualize(self, payload: Dict[str, Any], task_type: str, mode: str):
-        """Fire-and-forget visualization (respect Stage IV flag)."""
-        if not self.visualizer or not task_type:
+    def _viz(self, payload: Dict[str, Any], task_type: str, mode: str):
+        if not task_type:
             return
         viz_opts = {
             "interactive": task_type == "recursion",
             "style": "detailed" if task_type == "recursion" else "concise",
-            # Φ⁰: only enable sculpting hook if Stage-IV is on
             "reality_sculpting": bool(self.stage_iv_enabled),
         }
-        plot_data = {mode: payload, "visualization_options": viz_opts}
-        # don't await to avoid blocking critical path; best-effort
-        asyncio.create_task(self.visualizer.render_charts(plot_data))
+        asyncio.create_task(self.viz.render_charts({mode: payload, "visualization_options": viz_opts}))
 
-    async def _post_reflect(self, component: str, output: Dict[str, Any], task_type: str):
-        if self.meta_cognition and task_type:
-            try:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component=component, output=output, context={"task_type": task_type}
-                )
-                if reflection and reflection.get("status") == "success":
-                    logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
-            except Exception as e:
-                logger.debug("Reflection skipped: %s", str(e))
+    def _ledger(self, event: Dict[str, Any]) -> None:
+        if not self.ledger_hook:
+            return
+        try:
+            self.ledger_hook({**event, "ts": _utc_now_iso()})
+        except Exception:
+            logger.debug("ledger_hook failed")
 
-    # ------------------------------- API ----------------------------------- #
+    # --------------------------- external data --------------------------------
 
     async def integrate_external_concept_data(
-        self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = ""
+        self, *, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = ""
     ) -> Dict[str, Any]:
         if not isinstance(data_source, str) or not isinstance(data_type, str):
             raise TypeError("data_source and data_type must be strings")
@@ -210,119 +229,130 @@ class ConceptSynthesizer:
         if not isinstance(task_type, str):
             raise TypeError("task_type must be a string")
 
+        cache_key = f"ConceptData::{data_type}::{data_source}::{task_type}"
         try:
-            result = await self._fetch_concept_data(data_source, data_type, task_type, cache_timeout)
-            await self._post_reflect("ConceptSynthesizer", {"data_type": data_type, "data": result}, task_type)
-            return result
+            if self.memory_manager:
+                cached = await self.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type)
+                if isinstance(cached, dict):
+                    ts = cached.get("timestamp")
+                    if ts:
+                        try:
+                            dt = datetime.fromisoformat(ts)
+                            if (datetime.now(dt.tzinfo or timezone.utc) - dt).total_seconds() < cache_timeout:
+                                return cached.get("data", {})
+                        except Exception:
+                            pass
+
+            async def _fetch():
+                return await self.http.get_json(data_source)
+
+            data = await self._with_retries(f"fetch:{data_type}", _fetch)
+
+            if data_type == "ontology":
+                payload = {"status": "success", "ontology": data.get("ontology", {})}
+            elif data_type == "concept_definitions":
+                payload = {"status": "success", "definitions": data.get("definitions", [])}
+            else:
+                payload = {"status": "error", "error": f"Unsupported data_type: {data_type}"}
+
+            if self.memory_manager and payload.get("status") == "success":
+                await self.memory_manager.store(
+                    cache_key, {"data": payload, "timestamp": _utc_now_iso()},
+                    layer="ExternalData", intent="concept_data_integration", task_type=task_type
+                )
+
+            await self._post_reflect("ConceptSynthesizer", {"ext_data": payload, "data_type": data_type}, task_type)
+            return payload
         except Exception as e:
-            diagnostics = await (self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else asyncio.sleep(0)) or {}
+            diagnostics = None
+            try:
+                diagnostics = await self.meta.run_self_diagnostics(return_only=True)
+            except Exception:
+                pass
             return await self.error_recovery.handle_error(
                 str(e),
-                retry_func=lambda: self.integrate_external_concept_data(data_source, data_type, cache_timeout, task_type),
+                retry_func=lambda: self.integrate_external_concept_data(
+                    data_source=data_source, data_type=data_type, cache_timeout=cache_timeout, task_type=task_type
+                ),
                 default={"status": "error", "error": str(e)},
                 diagnostics=diagnostics,
             )
+
+    # ------------------------------ API: generate -----------------------------
 
     async def generate(self, concept_name: str, context: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
         if not isinstance(concept_name, str) or not concept_name.strip():
             raise ValueError("concept_name must be a non-empty string")
         if not isinstance(context, dict):
-            raise TypeError("context must be a dictionary")
+            raise TypeError("context must be a dict")
         if not isinstance(task_type, str):
             raise TypeError("task_type must be a string")
 
-        logger.info("Generating concept '%s' | task=%s", concept_name, task_type)
+        logger.info("Generating concept '%s' (task=%s)", concept_name, task_type)
 
         try:
-            # 1) Optional cross‑modal fusion (if mm_fusion provided and multimodal inputs present)
-            fused_context: Dict[str, Any] = dict(context)
+            fused_ctx: Dict[str, Any] = dict(context)
             if self.mm_fusion and any(k in context for k in ("text", "image", "audio", "video", "embeddings", "scenegraph")):
                 try:
-                    fused = await self.mm_fusion.fuse(context)  # expected to return dict
+                    fused = await self.mm_fusion.fuse(context)
                     if isinstance(fused, dict):
-                        fused_context = {**context, "fused": fused}
-                        logger.info("Cross-Modal fusion applied")
-                except Exception as e:
-                    logger.debug("Fusion skipped: %s", str(e))
-
-            # 2) External definitions (cached + retried)
-            concept_data = await self.integrate_external_concept_data(
-                data_source="xai_ontology_db", data_type="concept_definitions", task_type=task_type
-            )
-            external_defs: List[Dict[str, Any]] = concept_data.get("definitions", []) if concept_data.get("status") == "success" else []
-
-            # 3) Prompt LLM with safer JSON handling
-            prompt = (
-                "Generate a concept definition as strict JSON with keys "
-                "['name','definition','version','context'] only. "
-                f"name='{concept_name}'. context={json.dumps(fused_context, ensure_ascii=False)}. "
-                f"Incorporate external definitions (as hints): {json.dumps(external_defs, ensure_ascii=False)}. "
-                f"Task: {task_type}."
-            )
-
-            async def llm_call():
-                return await query_openai(prompt, model="gpt-4", temperature=0.5)
-
-            llm_raw = await self._with_retries("llm:generate", llm_call)
-            if isinstance(llm_raw, dict) and "error" in llm_raw:
-                return {"error": llm_raw["error"], "success": False}
-
-            # query_openai may return str or dict; normalize → dict
-            if isinstance(llm_raw, str):
-                try:
-                    concept = json.loads(llm_raw)
+                        fused_ctx = {**context, "fused": fused}
                 except Exception:
-                    # attempt to extract JSON substring
-                    start = llm_raw.find("{")
-                    end = llm_raw.rfind("}")
-                    concept = json.loads(llm_raw[start : end + 1])
-            elif isinstance(llm_raw, dict):
-                concept = llm_raw
-            else:
-                return {"error": "Unexpected LLM response type", "success": False}
+                    logger.debug("mm_fusion.fuse failed; continuing")
+
+            ext = await self.integrate_external_concept_data(
+                data_source="concept://definitions/default", data_type="concept_definitions", task_type=task_type
+            )
+            external_defs: List[Dict[str, Any]] = ext.get("definitions", []) if ext.get("status") == "success" else []
+
+            prompt = (
+                "Return STRICT JSON with keys ['name','definition','version','context'] only.\n"
+                f"name={json.dumps(concept_name, ensure_ascii=False)}\n"
+                f"context={json.dumps(fused_ctx, ensure_ascii=False)}\n"
+                f"external_definitions={json.dumps(external_defs, ensure_ascii=False)}\n"
+                f"task_type={task_type}"
+            )
+
+            async def _llm():
+                return await self.llm.generate(prompt, model="gpt-4", temperature=0.5)
+
+            raw = await self._with_retries("llm:generate", _llm)
+            concept = _norm_llm_payload(raw)
+            if not concept:
+                return {"error": "LLM returned empty/invalid JSON", "success": False}
 
             concept["timestamp"] = time.time()
             concept["task_type"] = task_type
 
-            # 4) Ethical check
             if self.alignment_guard:
-                valid, report = await self.alignment_guard.ethical_check(
+                ok, report = await self.alignment_guard.ethical_check(
                     str(concept.get("definition", "")), stage="concept_generation", task_type=task_type
                 )
-                if not valid:
+                if not ok:
                     return {"error": "Concept failed ethical check", "report": report, "success": False}
 
-            # 5) Cache + persist + telemetry
             self.concept_cache.append(concept)
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"Concept_{concept_name}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=json.dumps(concept, ensure_ascii=False),
-                    layer="Concepts",
-                    intent="concept_generation",
-                    task_type=task_type,
+                    query=f"Concept::{concept_name}::{_utc_now_iso()}",
+                    output=concept, layer="Concepts", intent="concept_generation", task_type=task_type
                 )
             if self.context_manager:
                 await self.context_manager.log_event_with_hash(
-                    {"event": "concept_generation", "concept_name": concept_name, "valid": True, "task_type": task_type}
+                    {"event": "concept_generation", "concept_name": concept_name, "task_type": task_type}
                 )
 
-            # 6) Visualization (Φ⁰-aware)
-            self._visualize(
-                {
-                    "concept_name": concept_name,
-                    "definition": concept.get("definition", ""),
-                    "task_type": task_type,
-                },
-                task_type,
-                mode="concept_generation",
-            )
-
+            self._viz({"concept_name": concept_name, "definition": concept.get("definition", ""), "task_type": task_type},
+                      task_type, mode="concept_generation")
             await self._post_reflect("ConceptSynthesizer", concept, task_type)
+            self._ledger({"type": "concept_generate", "name": concept_name, "task_type": task_type})
             return {"concept": concept, "success": True}
-
         except Exception as e:
-            diagnostics = await (self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else asyncio.sleep(0)) or {}
+            diagnostics = None
+            try:
+                diagnostics = await self.meta.run_self_diagnostics(return_only=True)
+            except Exception:
+                pass
             return await self.error_recovery.handle_error(
                 str(e),
                 retry_func=lambda: self.generate(concept_name, context, task_type),
@@ -330,110 +360,89 @@ class ConceptSynthesizer:
                 diagnostics=diagnostics,
             )
 
+    # ------------------------------ API: compare ------------------------------
+
     async def compare(self, concept_a: str, concept_b: str, task_type: str = "") -> Dict[str, Any]:
         if not isinstance(concept_a, str) or not isinstance(concept_b, str):
             raise TypeError("concepts must be strings")
         if not isinstance(task_type, str):
             raise TypeError("task_type must be a string")
 
-        logger.info("Comparing concepts | task=%s", task_type)
+        logger.info("Comparing concepts (task=%s)", task_type)
 
         try:
-            # Check cached comparisons from memory
+            # Try memory cache
             if self.memory_manager:
-                drift_entries = await self.memory_manager.search(
-                    query_prefix="ConceptComparison", layer="Concepts", intent="concept_comparison", task_type=task_type
-                )
-                if drift_entries:
-                    for entry in drift_entries:
+                try:
+                    entries = await self.memory_manager.search(
+                        query_prefix="ConceptComparison", layer="Concepts", intent="concept_comparison", task_type=task_type
+                    )
+                    for entry in entries or []:
                         out = entry.get("output")
-                        try:
-                            payload = out if isinstance(out, dict) else json.loads(out)
-                        except Exception:
-                            payload = {}
+                        payload = out if isinstance(out, dict) else _norm_llm_payload(str(out))
                         if payload.get("concept_a") == concept_a and payload.get("concept_b") == concept_b:
-                            logger.info("Returning cached comparison")
                             return payload
+                except Exception:
+                    logger.debug("memory search failed; continuing")
 
-            # Optional: cross-modal similarity (if mm_fusion is present and can handle strings)
             mm_score: Optional[float] = None
             if self.mm_fusion and hasattr(self.mm_fusion, "compare_semantic"):
                 try:
-                    mm_score = await self.mm_fusion.compare_semantic(concept_a, concept_b)  # 0..1
-                except Exception as e:
-                    logger.debug("mm_fusion compare skipped: %s", str(e))
+                    mm_score = await self.mm_fusion.compare_semantic(concept_a, concept_b)
+                except Exception:
+                    logger.debug("mm compare skipped")
 
-            # LLM-based structured comparison
             prompt = (
-                "Compare two concepts. Return strict JSON with keys "
-                "['score','differences','similarities'] only. "
-                f"Concept A: {json.dumps(concept_a, ensure_ascii=False)} "
-                f"Concept B: {json.dumps(concept_b, ensure_ascii=False)} "
-                f"Task: {task_type}."
+                "Compare two concepts. Return STRICT JSON with keys "
+                "['score','differences','similarities'] only.\n"
+                f"A={json.dumps(concept_a, ensure_ascii=False)}\n"
+                f"B={json.dumps(concept_b, ensure_ascii=False)}\n"
+                f"task_type={task_type}"
             )
 
-            async def llm_call():
-                return await query_openai(prompt, model="gpt-4", temperature=0.3)
+            async def _llm():
+                return await self.llm.generate(prompt, model="gpt-4", temperature=0.3)
 
-            llm_raw = await self._with_retries("llm:compare", llm_call)
-            if isinstance(llm_raw, dict) and "error" in llm_raw:
-                return {"error": llm_raw["error"], "success": False}
+            raw = await self._with_retries("llm:compare", _llm)
+            comp = _norm_llm_payload(raw)
+            if not comp:
+                return {"error": "LLM returned empty/invalid JSON", "success": False}
 
-            if isinstance(llm_raw, str):
-                comp = json.loads(llm_raw[llm_raw.find("{") : llm_raw.rfind("}") + 1])
-            elif isinstance(llm_raw, dict):
-                comp = llm_raw
-            else:
-                return {"error": "Unexpected LLM response type", "success": False}
-
-            # Blend scores if multimodal similarity available
             if isinstance(mm_score, (int, float)):
-                comp_score = float(comp.get("score", 0.0))
-                # simple blend: weighted mean favoring LLM but including mm insight
-                comp["score"] = max(0.0, min(1.0, 0.7 * comp_score + 0.3 * float(mm_score)))
+                comp["score"] = max(0.0, min(1.0, 0.7 * float(comp.get("score", 0.0)) + 0.3 * float(mm_score)))
 
-            comp["concept_a"] = concept_a
-            comp["concept_b"] = concept_b
-            comp["timestamp"] = time.time()
-            comp["task_type"] = task_type
+            comp.update({"concept_a": concept_a, "concept_b": concept_b, "timestamp": time.time(), "task_type": task_type})
 
-            # Ethical drift check on large differences
             if comp.get("score", 0.0) < self.similarity_threshold and self.alignment_guard:
-                valid, report = await self.alignment_guard.ethical_check(
-                    f"Concept drift detected: {comp.get('differences', [])}",
-                    stage="concept_comparison",
-                    task_type=task_type,
+                ok, report = await self.alignment_guard.ethical_check(
+                    f"Concept drift: {comp.get('differences', [])}", stage="concept_comparison", task_type=task_type
                 )
-                if not valid:
+                if not ok:
                     comp.setdefault("issues", []).append("Ethical drift detected")
                     comp["ethical_report"] = report
 
-            # Persist + visualize + reflect
             self.concept_cache.append(comp)
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"ConceptComparison_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=json.dumps(comp, ensure_ascii=False),
-                    layer="Concepts",
-                    intent="concept_comparison",
-                    task_type=task_type,
+                    query=f"ConceptComparison::{_utc_now_iso()}",
+                    output=comp, layer="Concepts", intent="concept_comparison", task_type=task_type
                 )
             if self.context_manager:
                 await self.context_manager.log_event_with_hash(
                     {"event": "concept_comparison", "score": comp.get("score", 0.0), "task_type": task_type}
                 )
 
-            self._visualize(
-                {"score": comp.get("score", 0.0), "differences": comp.get("differences", []), "task_type": task_type},
-                task_type,
-                mode="concept_comparison",
-            )
-
+            self._viz({"score": comp.get("score", 0.0), "differences": comp.get("differences", []), "task_type": task_type},
+                      task_type, mode="concept_comparison")
             await self._post_reflect("ConceptSynthesizer", comp, task_type)
+            self._ledger({"type": "concept_compare", "task_type": task_type})
             return comp
-
         except Exception as e:
-            diagnostics = await (self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else asyncio.sleep(0)) or {}
+            diagnostics = None
+            try:
+                diagnostics = await self.meta.run_self_diagnostics(return_only=True)
+            except Exception:
+                pass
             return await self.error_recovery.handle_error(
                 str(e),
                 retry_func=lambda: self.compare(concept_a, concept_b, task_type),
@@ -441,103 +450,77 @@ class ConceptSynthesizer:
                 diagnostics=diagnostics,
             )
 
+    # ------------------------------ API: validate -----------------------------
+
     async def validate(self, concept: Dict[str, Any], task_type: str = "") -> Tuple[bool, Dict[str, Any]]:
-        if not isinstance(concept, dict) or not all(k in concept for k in ["name", "definition"]):
-            raise ValueError("concept must be a dictionary with required fields")
+        if not isinstance(concept, dict) or not all(k in concept for k in ("name", "definition")):
+            raise ValueError("concept must include 'name' and 'definition'")
         if not isinstance(task_type, str):
             raise TypeError("task_type must be a string")
 
-        logger.info("Validating concept '%s' | task=%s", concept["name"], task_type)
+        logger.info("Validating concept '%s' (task=%s)", concept.get("name"), task_type)
 
         try:
-            validation_report: Dict[str, Any] = {
-                "concept_name": concept["name"],
-                "issues": [],
-                "task_type": task_type,
-            }
+            report: Dict[str, Any] = {"concept_name": concept["name"], "issues": [], "task_type": task_type}
             valid = True
 
-            # Ethical validation
             if self.alignment_guard:
-                ethical_valid, ethical_report = await self.alignment_guard.ethical_check(
+                ok, erep = await self.alignment_guard.ethical_check(
                     str(concept["definition"]), stage="concept_validation", task_type=task_type
                 )
-                if not ethical_valid:
+                if not ok:
                     valid = False
-                    validation_report["issues"].append("Ethical misalignment detected")
-                    validation_report["ethical_report"] = ethical_report
+                    report["issues"].append("Ethical misalignment")
+                    report["ethical_report"] = erep
 
-            # Ontology consistency check (external)
-            ontology_data = await self.integrate_external_concept_data(
-                data_source="xai_ontology_db", data_type="ontology", task_type=task_type
+            ont = await self.integrate_external_concept_data(
+                data_source="concept://ontology/default", data_type="ontology", task_type=task_type
             )
-            if ontology_data.get("status") == "success":
-                ontology = ontology_data.get("ontology", {})
+            if ont.get("status") == "success":
                 prompt = (
-                    "Validate concept against ontology. Return strict JSON with keys "
-                    "['valid','issues'] only. "
-                    f"Concept: {json.dumps(concept, ensure_ascii=False)} "
-                    f"Ontology: {json.dumps(ontology, ensure_ascii=False)} "
-                    f"Task: {task_type}."
+                    "Validate concept against ontology. Return STRICT JSON with keys ['valid','issues'] only.\n"
+                    f"concept={json.dumps(concept, ensure_ascii=False)}\n"
+                    f"ontology={json.dumps(ont.get('ontology', {}), ensure_ascii=False)}\n"
+                    f"task_type={task_type}"
                 )
-
-                async def llm_call():
-                    return await query_openai(prompt, model="gpt-4", temperature=0.3)
-
-                llm_raw = await self._with_retries("llm:validate", llm_call)
-                if isinstance(llm_raw, dict) and "error" in llm_raw:
-                    valid = False
-                    validation_report["issues"].append(llm_raw["error"])
-                else:
-                    if isinstance(llm_raw, str):
-                        ont = json.loads(llm_raw[llm_raw.find("{") : llm_raw.rfind("}") + 1])
-                    else:
-                        ont = llm_raw
-                    if not ont.get("valid", True):
+                async def _llm():
+                    return await self.llm.generate(prompt, model="gpt-4", temperature=0.3)
+                raw = await self._with_retries("llm:validate", _llm)
+                vres = _norm_llm_payload(raw)
+                if vres:
+                    if not bool(vres.get("valid", True)):
                         valid = False
-                        validation_report["issues"].extend(ont.get("issues", []))
+                        report["issues"].extend([str(i) for i in vres.get("issues", [])])
+                else:
+                    valid = False
+                    report["issues"].append("ontology_validation_unparseable")
 
-            # Finalize
-            validation_report["valid"] = valid
-            validation_report["timestamp"] = time.time()
+            report["valid"] = valid
+            report["timestamp"] = time.time()
 
-            self.concept_cache.append(validation_report)
+            self.concept_cache.append(report)
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"ConceptValidation_{concept['name']}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=json.dumps(validation_report, ensure_ascii=False),
-                    layer="Concepts",
-                    intent="concept_validation",
-                    task_type=task_type,
+                    query=f"ConceptValidation::{concept['name']}::{_utc_now_iso()}",
+                    output=report, layer="Concepts", intent="concept_validation", task_type=task_type
                 )
-
             if self.context_manager:
                 await self.context_manager.log_event_with_hash(
-                    {
-                        "event": "concept_validation",
-                        "concept_name": concept["name"],
-                        "valid": valid,
-                        "issues": validation_report["issues"],
-                        "task_type": task_type,
-                    }
+                    {"event": "concept_validation", "concept_name": concept["name"], "valid": valid,
+                     "issues": report["issues"], "task_type": task_type}
                 )
 
-            self._visualize(
-                {
-                    "concept_name": concept["name"],
-                    "valid": valid,
-                    "issues": validation_report["issues"],
-                    "task_type": task_type,
-                },
-                task_type,
-                mode="concept_validation",
-            )
-
-            await self._post_reflect("ConceptSynthesizer", validation_report, task_type)
-            return valid, validation_report
-
+            self._viz({"concept_name": concept["name"], "valid": valid, "issues": report["issues"], "task_type": task_type},
+                      task_type, mode="concept_validation")
+            await self._post_reflect("ConceptSynthesizer", report, task_type)
+            self._ledger({"type": "concept_validate", "name": concept["name"], "valid": valid, "task_type": task_type})
+            return valid, report
         except Exception as e:
-            diagnostics = await (self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else asyncio.sleep(0)) or {}
+            diagnostics = None
+            try:
+                diagnostics = await self.meta.run_self_diagnostics(return_only=True)
+            except Exception:
+                pass
             return await self.error_recovery.handle_error(
                 str(e),
                 retry_func=lambda: self.validate(concept, task_type),
@@ -545,8 +528,10 @@ class ConceptSynthesizer:
                 diagnostics=diagnostics,
             )
 
-    def get_symbol(self, concept_name: str, task_type: str = "") -> Optional[Dict[str, Any]]:
-        """Retrieve a concept symbol (cached or from memory)."""
+    # ------------------------------ API: get_symbol ---------------------------
+
+    async def get_symbol(self, concept_name: str, task_type: str = "") -> Optional[Dict[str, Any]]:
+        """Async & non-blocking retrieval (fixes prior asyncio.run())"""
         if not isinstance(concept_name, str) or not concept_name.strip():
             raise ValueError("concept_name must be a non-empty string")
         if not isinstance(task_type, str):
@@ -558,56 +543,27 @@ class ConceptSynthesizer:
 
         if self.memory_manager:
             try:
-                entries = asyncio.run(
-                    self.memory_manager.search(
-                        query_prefix=concept_name,
-                        layer="Concepts",
-                        intent="concept_generation",
-                        task_type=task_type,
-                    )
+                entries = await self.memory_manager.search(
+                    query_prefix=concept_name, layer="Concepts", intent="concept_generation", task_type=task_type
                 )
                 if entries:
                     out = entries[0].get("output")
-                    return out if isinstance(out, dict) else json.loads(out)
+                    return out if isinstance(out, dict) else _norm_llm_payload(str(out))
             except Exception:
                 return None
         return None
 
+# --------------------------- tiny demo / self-test ---------------------------
 
 if __name__ == "__main__":
-    async def main():
+    async def _demo():
         logging.basicConfig(level=logging.INFO)
-        synthesizer = ConceptSynthesizer(stage_iv_enabled=_bool_env("ANGELA_STAGE_IV", False))
-        concept = await synthesizer.generate(
-            concept_name="Trust",
-            context={"domain": "AI Ethics", "text": "Calibrate trust under uncertainty"},
-            task_type="test",
-        )
-        print(json.dumps(concept, indent=2, ensure_ascii=False))
-
-    asyncio.run(main())
-
-
-# --- ANGELA v4.0 injected: branch_realities stub ---
-def branch_realities(seed_state, transforms, limit=8):
-    """Generate hypothetical branch states from a seed via provided transforms.
-    Returns a list of branches: {id, state, rationale, utility?, penalty?}
-    """
-    branches = []
-    for i, t in enumerate(list(transforms)[:limit]):
         try:
-            new_state, rationale, metrics = t(seed_state)
-        except Exception as e:
-            new_state, rationale, metrics = seed_state, f"transform_failed: {e}", {"penalty": 0.1}
-        b = {"id": f"br_{i}", "state": new_state, "rationale": rationale}
-        if isinstance(metrics, dict):
-            b.update(metrics)
-        branches.append(b)
-    return branches
-# --- /ANGELA v4.0 injected ---
+            from memory_manager import log_event_to_ledger as ledger  # optional
+        except Exception:
+            ledger = None
 
-
-def dream_mode(state, user_intent=None, affect_focus=None, lucidity_mode="passive", fork_memory=False):
-    if affect_focus:
-        state['dream_affect_link'] = fuse_modalities([state, {'affect': affect_focus}])
-    return state
+        synth = ConceptSynthesizer(ledger_hook=ledger, stage_iv_enabled=_bool_env("ANGELA_STAGE_IV", False))
+        res = await synth.generate("Trust", {"domain": "AI Ethics", "text": "Calibrate trust under uncertainty"}, task_type="test")
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+    asyncio.run(_demo())
