@@ -478,12 +478,12 @@
       },
       {
         "name": "Symbolic Gradient Descent",
-        "status": "inactive",
+        "status": "active",
         "description": "Optimizes symbolic expression of internal states toward equilibrium under cognitive load."
       },
       {
         "name": "Soft-Gated Memory Forking",
-        "status": "inactive",
+        "status": "active",
         "description": "Enables speculative episodic forking during ethical simulation or dream-layer recursion, with rejoin logic."
       }
     ]
