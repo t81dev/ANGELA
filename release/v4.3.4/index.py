@@ -199,6 +199,7 @@ TRAIT_OVERLAY = {
     "χ": ["user_profile", "meta_cognition"],
     "ψ": ["external_agent_bridge", "simulation_core"],
     "ϕ": ["multi_modal_fusion"],
+    "η": ["alignment_guard", "meta_cognition"],
     # task-type shorthands preserved
     "rte": ["reasoning_engine", "meta_cognition"],
     "wnli": ["reasoning_engine", "meta_cognition"],
