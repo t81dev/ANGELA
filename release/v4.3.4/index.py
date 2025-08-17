@@ -1761,7 +1761,7 @@ args = parser.parse_args()
 if args.enable_persistent_memory:
     os.environ["ENABLE_PERSISTENT_MEMORY"] = "true"
 
-def spawn_embodied_agent(...):
+def spawn_embodied_agent(*args, **kwargs):
     if os.getenv("ENABLE_PERSISTENT_MEMORY") == "true":
         log_event_to_ledger({"event": "agent_spawned", "params": kwargs})
     # existing logic...
