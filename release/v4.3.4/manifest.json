@@ -13,7 +13,7 @@
   "runtime": {
     "language": "python",
     "environment": {
-      "pythonVersion": "3.10"
+      "pythonVersion": "3.11.8"
     },
     "entryPoint": "index.py",
     "entryModes": [
