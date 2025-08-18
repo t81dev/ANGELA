@@ -2016,27 +2016,35 @@ class HookRegistry:
 
 ### ANGELA UPGRADE: Co-dream activate_dream_mode
 # activate_dream_mode monkeypatch
-def __ANGELA__DreamOverlayLayer_activate_dream_mode(*args, **kwargs):
+### ANGELA UPGRADE: Co-dream activate_dream_mode
 
-# args: (self, * , peers=None, lucidity_mode=None, resonance_targets=None, safety_profile='sandbox')
-session = {
-    "id": f"codream-{int(time.time()*1000)}",
-    "peers": peers or [],
-    "lucidity_mode": lucidity_mode or {"sync":"loose","commit":False},
-    "resonance_targets": resonance_targets or [],
-    "safety_profile": safety_profile,
-    "started_at": time.time(),
-    "ticks": 0,
-}
-# simple sync loop placeholder
-session['ticks'] += 1
-# return minimal session object
-return session
+def __ANGELA__DreamOverlayLayer_activate_dream_mode(
+    self=None,
+    *,
+    peers=None,
+    lucidity_mode=None,
+    resonance_targets=None,
+    safety_profile="sandbox"
+):
+    """Start a co-dream overlay session."""
+    session = {
+        "id": f"codream-{int(time.time() * 1000)}",
+        "peers": peers or [],
+        "lucidity_mode": lucidity_mode or {"sync": "loose", "commit": False},
+        "resonance_targets": resonance_targets or [],
+        "safety_profile": safety_profile,
+        "started_at": time.time(),
+        "ticks": 0,
+    }
+    # simple sync loop placeholder
+    session["ticks"] += 1
+    return session
 
 try:
+    # monkey-patch if class already defined
     DreamOverlayLayer.activate_dream_mode = __ANGELA__DreamOverlayLayer_activate_dream_mode
-except Exception as _e:
-    # class may not exist; define minimal class
+except Exception:
+    # define minimal stub with instance method
     class DreamOverlayLayer:  # type: ignore
-        pass
-    DreamOverlayLayer.activate_dream_mode = __ANGELA__DreamOverlayLayer_activate_dream_mode
+        def activate_dream_mode(self, *args, **kwargs):
+            return __ANGELA__DreamOverlayLayer_activate_dream_mode(*args, **kwargs)
