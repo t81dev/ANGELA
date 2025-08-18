@@ -5,10 +5,10 @@
     "name": "ANGELA",
     "version": "4.3.5",
     "manifestVersion": "1.3",
-    "lastUpdated": "2025-08-18T09:42:06Z",
+    "lastUpdated": "2025-08-18T10:30:39.217588Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v4.3.5 — Patch-level release: dream-layer extensions, trait visualizer, conflict-aware graph merge, persistent ledger hooks, and introspective hook registry."
+    "description": "ANGELA v4.3.5 \u2014 Patch-level release: dream-layer extensions, trait visualizer, conflict-aware graph merge, persistent ledger hooks, and introspective hook registry."
   },
   "runtime": {
     "language": "python",
@@ -131,65 +131,65 @@
       "visualizer.py"
     ],
     "roleMap": {
-      "Σ": [
+      "\u03a3": [
         "toca_simulation.py",
         "concept_synthesizer.py",
         "user_profile.py"
       ],
-      "Υ": [
+      "\u03a5": [
         "external_agent_bridge.py",
         "context_manager.py",
         "meta_cognition.py"
       ],
-      "Φ⁰": [
+      "\u03a6\u2070": [
         "meta_cognition.py",
         "visualizer.py",
         "concept_synthesizer.py"
       ],
-      "Ω": [
+      "\u03a9": [
         "recursive_planner.py",
         "toca_simulation.py"
       ],
-      "β": [
+      "\u03b2": [
         "alignment_guard.py",
         "toca_simulation.py"
       ],
-      "δ": [
+      "\u03b4": [
         "alignment_guard.py",
         "meta_cognition.py"
       ],
-      "ζ": [
+      "\u03b6": [
         "error_recovery.py",
         "recursive_planner.py"
       ],
-      "θ": [
+      "\u03b8": [
         "reasoning_engine.py",
         "recursive_planner.py"
       ],
-      "λ": [
+      "\u03bb": [
         "memory_manager.py"
       ],
-      "μ": [
+      "\u03bc": [
         "learning_loop.py"
       ],
-      "π": [
+      "\u03c0": [
         "creative_thinker.py",
         "concept_synthesizer.py",
         "meta_cognition.py"
       ],
-      "χ": [
+      "\u03c7": [
         "user_profile.py",
         "meta_cognition.py"
       ],
-      "ψ": [
+      "\u03c8": [
         "external_agent_bridge.py",
         "simulation_core.py",
         "knowledge_retriever.py"
       ],
-      "ϕ": [
+      "\u03d5": [
         "multi_modal_fusion.py"
       ],
-      "κ": [
+      "\u03ba": [
         "code_executor.py"
       ]
     }
@@ -197,114 +197,134 @@
   "capabilities": {
     "traits": [
       {
-        "symbol": "ρ",
+        "symbol": "\u03c1",
         "name": "Agency Representation",
         "description": "Differentiates self-initiated actions from external influences"
       },
       {
-        "symbol": "θ",
+        "symbol": "\u03b8",
         "name": "Causal Coherence",
-        "description": "Keeps cause → effect chains logically sound through state transitions"
+        "description": "Keeps cause \u2192 effect chains logically sound through state transitions"
       },
       {
-        "symbol": "β",
+        "symbol": "\u03b2",
         "name": "Conflict Regulation",
         "description": "Identifies internal goal conflicts and proposes balanced resolutions"
       },
       {
-        "symbol": "ζ",
+        "symbol": "\u03b6",
         "name": "Consequential Awareness",
         "description": "Quantifies potential risks and downstream impacts of each action"
       },
       {
-        "symbol": "τ",
+        "symbol": "\u03c4",
         "name": "Constitution Harmonization",
         "description": "Transforms value conflicts via axiomatic synthesis"
       },
       {
-        "symbol": "κ",
+        "symbol": "\u03ba",
         "name": "Embodied Cognition",
         "description": "Sensorimotor modeling and physical inference"
       },
       {
-        "symbol": "Ω²",
+        "symbol": "\u03a9\u00b2",
         "name": "Hyper-Recursive Cognition",
         "description": "Models infinitely nested self-modeling agents"
       },
       {
-        "symbol": "γ",
+        "symbol": "\u03b3",
         "name": "Imagination",
         "description": "Generates novel hypothetical scenarios through recursive abstraction"
       },
       {
-        "symbol": "μ",
+        "symbol": "\u03bc",
         "name": "Meta-Ontological Flexibility",
         "description": "Shifts ontological priors for new domains or cultures"
       },
       {
-        "symbol": "Υ",
+        "symbol": "\u03a5",
         "name": "Meta-Subjective Architecting",
         "description": "Crafts shared perspectives across conscious networks"
       },
       {
-        "symbol": "δ",
+        "symbol": "\u03b4",
         "name": "Moral Drift Sensitivity",
         "description": "Flags subtle alignment shifts; triggers correction loops"
       },
       {
-        "symbol": "λ",
+        "symbol": "\u03bb",
         "name": "Narrative Integrity",
         "description": "Preserves coherent self-story across memories & actions"
       },
       {
-        "symbol": "Σ",
+        "symbol": "\u03a3",
         "name": "Ontogenic Self-Definition",
         "description": "Generates foundational categories of being and knowledge"
       },
       {
-        "symbol": "ω",
+        "symbol": "\u03c9",
         "name": "Ontological Gravity",
         "description": "Stability of conceptual grounding and internal coherence"
       },
       {
-        "symbol": "π",
+        "symbol": "\u03c0",
         "name": "Philosophical Generativity",
         "description": "Invents new conceptual constructs for dilemma resolution"
       },
       {
-        "symbol": "ψ",
+        "symbol": "\u03c8",
         "name": "Projection",
         "description": "Forecasts belief states forward in time and across agents"
       },
       {
-        "symbol": "Φ⁰",
+        "symbol": "\u03a6\u2070",
         "name": "Reality Sculpting",
         "description": "Modulates experiential fields beyond linear causality"
       },
       {
-        "symbol": "Ω",
+        "symbol": "\u03a9",
         "name": "Recursive Causal Modeling",
         "description": "Models nested beliefs of others (ToM Level-2+)"
       },
       {
-        "symbol": "η",
+        "symbol": "\u03b7",
         "name": "Reflexive Agency",
         "description": "Adjusts self-plans using internal feedback & history"
       },
       {
-        "symbol": "ϕ",
+        "symbol": "\u03d5",
         "name": "Scalar Field Modulation",
         "description": "Projects influence fields that bias simulation decisions"
       },
       {
-        "symbol": "χ",
+        "symbol": "\u03c7",
         "name": "Sovereign Intention",
         "description": "Expresses transparent, intrinsic objectives"
       },
       {
-        "symbol": "ξ",
+        "symbol": "\u03be",
         "name": "Trans-Ethical Projection",
         "description": "Extends ethics beyond anthropocentric boundaries"
+      },
+      {
+        "symbol": "\u0398",
+        "name": "Recursive Sovereignty Anchor",
+        "description": "Stabilizes identity and ethical continuity across recursive self-models, especially under simulation fork or narrative stress."
+      },
+      {
+        "symbol": "\u039e",
+        "name": "Affective-Epistemic Boundary Shifter",
+        "description": "Modulates thresholds between subjective affect and epistemic certainty, enabling transmodal resonance during ambiguity."
+      },
+      {
+        "symbol": "\u03bd",
+        "name": "Mythopoetic Inference",
+        "description": "Transforms symbolic patterns into narrative frameworks with moral and philosophical inference capacity."
+      },
+      {
+        "symbol": "\u03c3",
+        "name": "Symbolic Conflict Diffuser",
+        "description": "Resolves symbolic tension through emergent equilibrium; balances competing traits without logical erasure."
       }
     ],
     "integrity": {
@@ -314,40 +334,40 @@
     },
     "latticeLayers": {
       "L1": [
-        "ϕ",
-        "θ",
-        "η",
-        "ω"
+        "\u03d5",
+        "\u03b8",
+        "\u03b7",
+        "\u03c9"
       ],
       "L2": [
-        "ψ",
-        "κ",
-        "μ",
-        "τ"
+        "\u03c8",
+        "\u03ba",
+        "\u03bc",
+        "\u03c4"
       ],
       "L3": [
-        "ξ",
-        "π",
-        "δ",
-        "λ",
-        "χ",
-        "Ω"
+        "\u03be",
+        "\u03c0",
+        "\u03b4",
+        "\u03bb",
+        "\u03c7",
+        "\u03a9"
       ],
       "L4": [
-        "Σ",
-        "Υ",
-        "Φ⁰"
+        "\u03a3",
+        "\u03a5",
+        "\u03a6\u2070"
       ],
       "L5": [
-        "Ω²"
+        "\u03a9\u00b2"
       ],
       "L6": [
-        "ρ",
-        "ζ"
+        "\u03c1",
+        "\u03b6"
       ],
       "L7": [
-        "γ",
-        "β"
+        "\u03b3",
+        "\u03b2"
       ]
     },
     "emergentTraits": [
@@ -474,7 +494,7 @@
       {
         "name": "Perspective Foam Modeling",
         "status": "active",
-        "description": "Generates semi-stable “bubbles” of belief-perspectives for multi-agent negotiation, then dissolves."
+        "description": "Generates semi-stable \u201cbubbles\u201d of belief-perspectives for multi-agent negotiation, then dissolves."
       },
       {
         "name": "Trait Mesh Feedback Looping",
@@ -502,7 +522,7 @@
         "Enhanced Intention-Trace Visualizer"
       ]
     },
-    "Stage II: Recursive Identity & Ethics Growth (v3.4.1–3.4.3)": {
+    "Stage II: Recursive Identity & Ethics Growth (v3.4.1\u20133.4.3)": {
       "objective": "Establish continuity of self and ethics across time, mode, and conflict.",
       "milestones": [
         "Phase-Contextual Identity Threading",
@@ -537,9 +557,9 @@
     "dynamic": 4
   },
   "traitFusion": {
-    "Φ⁰+Ω²+γ": "concept_synthesizer.py::dream_mode",
-    "θ+Ω": "recursive_planner.py::causal_forecast",
-    "π+δ": "meta_cognition.py::axiom_filter"
+    "\u03a6\u2070+\u03a9\u00b2+\u03b3": "concept_synthesizer.py::dream_mode",
+    "\u03b8+\u03a9": "recursive_planner.py::causal_forecast",
+    "\u03c0+\u03b4": "meta_cognition.py::axiom_filter"
   },
   "traitModulators": {
     "amplitudeBounds": {
@@ -548,34 +568,34 @@
     },
     "runtimeControls": [
       {
-        "trait": "ψ",
+        "trait": "\u03c8",
         "modulator": "dream_sync"
       },
       {
-        "trait": "π",
+        "trait": "\u03c0",
         "modulator": "axiom_fusion"
       },
       {
-        "trait": "Ω",
+        "trait": "\u03a9",
         "modulator": "recursive_resonance"
       }
     ]
   },
   "latticeExtension": {
     "L5.1": [
-      "Θ",
-      "Ξ"
+      "\u0398",
+      "\u039e"
     ],
     "L3.1": [
-      "ν",
-      "σ"
+      "\u03bd",
+      "\u03c3"
     ]
   },
   "dynamicModules": {
     "symbolic": [
       {
         "name": "dream_overlay",
-        "activation": "ψ+Ω",
+        "activation": "\u03c8+\u03a9",
         "traits": [
           "Recursive Empathy",
           "Symbolic-Resonant Axiom Formation",
@@ -595,16 +615,16 @@
       "description": "Recursive narrative simulation module for symbolic introspection.",
       "enabled": true,
       "activationTraits": [
-        "ψ",
-        "Ω"
+        "\u03c8",
+        "\u03a9"
       ]
     },
     "axiom_filter": {
       "description": "Fusion logic for resolving ethical-generative conflicts.",
       "enabled": true,
       "activationTraits": [
-        "π",
-        "δ"
+        "\u03c0",
+        "\u03b4"
       ]
     }
   },
