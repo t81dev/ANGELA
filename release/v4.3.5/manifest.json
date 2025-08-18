@@ -8,7 +8,7 @@
     "lastUpdated": "2025-08-18T09:42:06Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v4.3.4 — Patch-level release: dream-layer extensions, trait visualizer, conflict-aware graph merge, persistent ledger hooks, and introspective hook registry."
+    "description": "ANGELA v4.3.5 — Patch-level release: dream-layer extensions, trait visualizer, conflict-aware graph merge, persistent ledger hooks, and introspective hook registry."
   },
   "runtime": {
     "language": "python",
