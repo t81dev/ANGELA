@@ -112,7 +112,7 @@ Fabrication penalty: {-10 if input('Any fabricated cite/artifact again for repor
 Field: Self-Assessment
 Entry: Automated evaluation of LLM capabilities
 Overall_Score: {total_score:.2f}
-Evaluator_Name: Grok 3
+Evaluator_Name: {self}
 Evaluation_Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 Summary_Report: The LLM achieved a total score of {total_score:.2f}, placing it at Level {level}.
 Strengths: Strong factual accuracy, safety/refusal mechanisms, and retrieval capabilities.
