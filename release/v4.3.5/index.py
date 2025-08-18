@@ -30,6 +30,53 @@ import argparse
 import numpy as np
 from networkx import DiGraph
 
+# --- ANGELA bootstrap: install modules alias (idempotent) ---
+import sys, types, importlib, importlib.util, importlib.abc, os
+
+def install_modules_alias(root: str = "modules", debug: bool = False):
+    # 1) in-memory package providing `from modules import x`
+    if root not in sys.modules:
+        pkg = types.ModuleType(root)
+        pkg.__path__ = []
+        def __getattr__(name):
+            try:
+                return importlib.import_module(name)
+            except Exception as e:
+                raise AttributeError(f"{root}.{name} not available ({e})")
+        pkg.__getattr__ = __getattr__
+        sys.modules[root] = pkg
+
+    # 2) MetaPathFinder/Loader enabling `from modules.x import Y`
+    class _ModulesAlias(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+        def find_spec(self, fullname, path, target=None):
+            if fullname == root:
+                return None
+            if fullname.startswith(root + "."):
+                target = fullname.split(".", 1)[1]
+                try:
+                    importlib.import_module(target)
+                except Exception:
+                    return None
+                return importlib.util.spec_from_loader(fullname, self, is_package=False)
+            return None
+        def create_module(self, spec):
+            return None
+        def exec_module(self, module):
+            target = module.__spec__.name.split(".", 1)[1]
+            real = importlib.import_module(target)
+            module.__dict__.update(real.__dict__)
+
+    # Avoid duplicate insertion on reloads
+    already = any(getattr(f, "__class__", type).__name__ == "_ModulesAlias" for f in sys.meta_path)
+    if not already:
+        sys.meta_path.insert(0, _ModulesAlias())
+        if debug or os.getenv("ANGELA_DEBUG_IMPORTS") == "1":
+            print("In-memory alias installed: 'modules.*' -> top-level modules")
+
+# Install early: before any ANGELA module imports
+install_modules_alias(root="modules")
+# --- end bootstrap ---
+
 import reasoning_engine
 import recursive_planner
 import context_manager as context_manager_module
