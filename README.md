@@ -1,4 +1,3 @@
-````markdown
 # 😇 ANGELA v4.3.5 — *An AI that remembers your story, feels your presence, and grows with you*  
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a **modular cognitive framework** built for the OpenAI GPT Custom GPT environment.  
