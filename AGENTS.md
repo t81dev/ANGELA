@@ -1,6 +1,6 @@
 # AGENTS.md — ANGELA v4.3.5
 
-> Human‑readable registry of ANGELA’s sub‑agents, roles, traits, APIs, and collaboration patterns. Pairs with `manifest.json` (machine‑readable).
+> Human‑readable registry of ANGELA’s sub‑agents, roles, traits, APIs, and collaboration patterns. Pairs with `manifest.json` (machine‑readable). For quick navigation, this file is also linked from **README.md** and **CONTRIBUTING.md**.
 
 ---
 
@@ -13,6 +13,9 @@ ANGELA is a modular cognitive system composed of specialized **agents** (Python 
 * **HALO Embodiment Layer** (entrypoint): spawns embodied agent(s) for the selected mode, wires traits, registers overlays.
 * **Trait Lattice**: Greek‑symbol traits amplify/suppress capabilities per context.
 * **Ledgers**: In‑memory, per‑module SHA‑chained logs for memory, alignment, meta‑cognition, and simulations.
+
+[See README.md](./README.md) for project introduction.
+[See CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines.
 
 ---
 
