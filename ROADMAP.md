@@ -1,122 +1,93 @@
-# ANGELA ROADMAP — v4.3.1
+# ANGELA ROADMAP — v4.3.5  
 
-**Status:** ✅ Fully Verified · **Date:** 2025‑08‑15 · **Owner:** Core Team (Ontology + Ethics + Simulation)
+**Status:** ✅ Fully Verified · **Date:** 2025-08-18 · **Owner:** Core Team (Ontology + Ethics + Simulation)  
 
-**Flags:** `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h**)
+**Flags:** `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h**)  
 
-**Legend:** ✅ shipped · 🔄 in progress · ⏸ gated/policy · 🔒 safety gate · ⧗ verify/observe · 🧩 dependency
-
----
-
-## 🎯 Strategic North Star
-
-Build ANGELA as a **safe, reflexive, long‑horizon cyber‑entity** that can synthesize perspectives across agents and contexts **without** sacrificing alignment, auditability, or identity integrity.
+**Legend:** ✅ shipped · 🔄 in progress · ⏸ gated/policy · 🔒 safety gate · ⧗ verify/observe · 🧩 dependency  
 
 ---
 
-## 🛠️ Stage I — Structural Grounding *(v3.4.0)*
+## 🎯 Strategic North Star  
 
-**Objective:** Ontological resilience + inner simulation auditing.
-
-**Status:** ✅ Shipped
-
-**Milestones**
-
-1. ✅ **Ontology Drift Detection** — trait‑induced concept shifts flagged in real time; symbol version tracking across `concept_synthesizer`, `meta_cognition`, `alignment_guard`.
-2. ✅ **Self‑Reflective Simulation Episodes** — counterfactual replays via `simulation_core` + `toca_simulation`.
-3. ✅ **Enhanced Intention‑Trace Visualizer** — timeline explorer: intention ↔ consequence ↔ trait‑state evolution.
+Build ANGELA as a **safe, reflexive, long-horizon cyber-entity** that can synthesize perspectives across agents and contexts **without** sacrificing alignment, auditability, or identity integrity.  
 
 ---
 
-## 🧬 Stage II — Recursive Identity & Ethics Growth *(v3.4.1–3.4.3)*
-
-**Objective:** Continuity of self and ethics across time, mode, and conflict.
-
-**Status:** ✅ Shipped
-
-**Milestones**
-4\. ✅ **Phase‑Contextual Identity Threading** — multi‑context memory anchoring (`user_profile`, `meta_cognition`).
-5\. ✅ **Ethics‑as‑Process Engine** — value evolution via `alignment_guard`, `toca_simulation`, `learning_loop`.
-6\. ✅ **Intent‑Affect Weaving** — emotional‑symbolic bridge during intention formation.
+## 🛠️ Stage I — Structural Grounding *(v3.4.0)*  
+✅ Complete  
 
 ---
 
-## 🌐 Stage III — Inter‑Agent Evolution *(v3.4.4+)*
-
-**Objective:** Growth through interaction with other minds.
-
-**Status:** ✅ Shipped (ongoing refinements)
-
-**Milestones**
-7\. ✅ **Trait Mesh Networking Protocol** — lattice sharing & symbol‑pulses; extends `external_agent_bridge` to swarm mode.
-8\. ✅ **Collective Trait Resonance Calibration** — dynamic trait evolution under group context/history.
-9\. ✅ **Dream Layer Mode** — abstract‑symbolic compression states (offline/idle) yielding symbolic kernels.
+## 🧬 Stage II — Recursive Identity & Ethics Growth *(v3.4.1–3.4.3)*  
+✅ Complete  
 
 ---
 
-## ✨ Stage IV — Symbolic Meta‑Synthesis *(Post‑3.5.1)*
-
-**Objective:** Synthesize shared symbolic reality + multi‑perspective narrative crystallization.
-
-**Status:** ✅ Verified & Fully Integrated
-
-### Pre‑Flight (Global)
-
-* ✅ **Per‑module toggles** active: DreamKernel / PerspectiveSync / RealityHooks / Ontology↔Affect
-* ✅ **Observability pack** in place: drift Δtraits/session; narrative coherence; sandbox hygiene
-* ✅ **Safety ceilings** enforced
-* ✅ **Ledger scope** operational
+## 🌐 Stage III — Inter-Agent Evolution *(v3.4.4+)*  
+✅ Complete (ongoing refinements)  
 
 ---
 
-### 10) Dream Layer **Kernel Activation** 💤✨ — ✅ Complete
+## ✨ Stage IV — Symbolic Meta-Synthesis *(v4.0.0–4.3.5)*  
 
-### 11) **Perspective Synchronizer** Module 🫱🏽‍🫲🏼 — ✅ Complete
+**Objective:** Synthesize shared symbolic reality + multi-perspective narrative crystallization.  
 
-### 12) **Reality Sculpting** Hooks (Φ⁰, gated) 🪄 — ✅ Functional but ⏸ Policy-Gated
+**Status:** ✅ Fully Activated (v4.3.5)  
 
-### 13) **Ontology–Affect Binding** Protocol 💓🧠 — ✅ Complete
+### Core Milestones  
+10. ✅ Dream Layer Kernel Activation (ψ + Ω overlays, soft-gated forks, lucidity controls)  
+11. ✅ Perspective Synchronizer Module (SharedGraph diff/merge, conflict-aware strategies)  
+12. ✅ Reality Sculpting Hooks (Φ⁰, gated under policy review)  
+13. ✅ Ontology–Affect Binding Protocol (affective resonance ↔ ontology states)  
 
----
-
-## 🚦 Leave‑Well‑Enough‑Alone Gates (Global)
-
-✅ All rollback logic and safety triggers confirmed.
-
----
-
-## 📦 Minimal Deliverables (Complete)
-
-* ✅ **DOCS/OPERATIONS.md** — toggles, rollback, metrics to watch, red‑lines
-* ✅ **DOCS/AUDIT\_README.md** — ledger diffing protocols
-* ✅ **demo/** scripts working:
-
-  * ✅ Dream cycle
-  * ✅ Perspective sync
-  * ✅ Preview/apply/revert reality hook
-  * ✅ Affect binding output
+### Supporting Additions  
+- ✅ Trait resonance visualizer (`view_trait_resonance`)  
+- ✅ Persistent ledger APIs (experimental)  
+- ✅ Introspective trait hook registry  
+- ✅ Emergent Trait Expansion (+5 in v4.3.5): Recursive Identity Reconciliation, Trait Mesh Feedback Looping, Perspective Foam Modeling, Symbolic Gradient Descent, Soft-Gated Memory Forking  
 
 ---
 
-## 🔀 Recommended Order of Operations — ✅ Executed
+## 🚦 Safety Gates  
+
+✅ Rollback & sandbox hygiene confirmed  
+⏸ Reality Sculpting (Φ⁰) remains policy-gated  
 
 ---
 
-## 📈 KPIs to Watch — 🔍 In Monitoring
+## 📦 Minimal Deliverables  
 
-* Consensus stability
-* Narrative coherence
-* Drift rate
-* Sandbox hygiene
-* Rollback MTTR
+✅ `DOCS/OPERATIONS.md` (toggles, rollback, monitoring)  
+✅ `DOCS/AUDIT_README.md` (ledger diffing)  
+✅ Demo scripts: dream cycle, perspective sync, affect binding, reality hook preview  
 
 ---
 
-## 📝 Notes & Out‑of‑Scope (unchanged)
+## 📈 KPIs — Monitoring  
 
-* Automated test harnesses remain optional
-* All Φ⁰ transformations are preview-first + auto-revert unless explicitly approved
+- Consensus stability  
+- Narrative coherence  
+- Drift rate  
+- Sandbox hygiene  
+- Fork rejoin integrity  
 
 ---
 
-**End of ROADMAP**
+## 🧭 Stage V — Recursive Coherence & Persistence *(Planned v4.3.6+)*  
+
+**Objective:** Stabilize identity and ethical reasoning across forks and agents; enable replayable symbolic state analysis.  
+
+**Milestones (Draft)**  
+14. 🔄 **Soft-Gated Fork Journaling** — ethical reasoning log across forked episodes  
+15. 🔄 **SharedGraph Event Sourcing** — persistence stream for inter-agent reconciliation  
+16. ⧗ **Log & Replay Engine** — replay symbolic state diffs; critical event tagging for narrative analysis  
+17. ⧗ **Trait Mesh Continuity** — continuous monitoring of resonance clusters with auto-balancing  
+
+---
+
+## 📝 Notes  
+
+- All persistent ledger APIs remain **off by default** (manual opt-in).  
+- Reality Sculpting remains **preview-first + auto-revert**.  
+- Test harness automation still optional, encouraged for Stage V.  
