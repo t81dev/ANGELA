@@ -1,11 +1,12 @@
 """
 ANGELA Cognitive System Module: MultiModalFusion
-Version: 3.5.2  # +κ Embodied Cognition: SceneGraph & parse_stream(frames|audio|images|text)
-Date: 2025-08-09
+Version: 3.5.3  # +κ Embodied Cognition + EEG adapter + fuse_modalities API
+Date: 2025-08-19
 Maintainer: ANGELA System Framework
 
 Adds: SceneGraph + parse_stream(...) for native video/spatial fusion.
-Backwards-compatible with v3.5.1 APIs.
+Adds: EEG intent adapter + public fuse_modalities(inputs) API.
+Backwards-compatible with v3.5.1/3.5.2 APIs.
 """
 
 import logging
@@ -99,6 +100,48 @@ class SceneGraph:
 
     def to_networkx(self) -> nx.MultiDiGraph:
         return self.g
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# EEG: datatypes + adapter (read-only, intent-level integration)
+# ──────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class EEGIntent:
+    label: str
+    score: float
+    dist: Dict[str, float] = field(default_factory=dict)
+    lat_ms: int = 0
+    tags: List[str] = field(default_factory=list)
+
+
+class EEGFusionAdapter:
+    """Maps EEG intents into a fusion-ready packet.
+
+    Notes:
+        - This is purely *read-only* inference. No stimulation control paths.
+        - Calibrated probabilities should be provided by upstream decoder.
+    """
+    def __init__(self, weight: float = 0.6, decay_sec: float = 1.0):
+        if not (0.0 <= weight <= 1.0):
+            raise ValueError("weight must be within [0,1]")
+        if decay_sec <= 0:
+            raise ValueError("decay_sec must be > 0")
+        self.weight = weight
+        self.decay_sec = decay_sec
+
+    def adapt(self, intent: EEGIntent) -> Dict[str, Any]:
+        tnow = time.time()
+        return {
+            "modality": "eeg",
+            "intent": intent.label,
+            "score": float(intent.score),
+            "dist": dict(intent.dist),
+            "lat_ms": int(intent.lat_ms),
+            "tags": list(intent.tags),
+            "weight": self.weight,
+            "ts": tnow,
+        }
 
 
 def _new_id(prefix: str) -> str:
@@ -299,7 +342,7 @@ def phi_physical(t: float) -> float:
 
 
 class MultiModalFusion:
-    """A class for multi-modal data integration and analysis in the ANGELA v3.5.1/3.5.2 architecture.
+    """A class for multi-modal data integration and analysis in the ANGELA v3.5.1/3.5.2/3.5.3 architecture.
 
     Supports φ-regulated multi-modal inference, modality detection, iterative refinement,
     visual summary generation, and task-specific drift data synthesis using trait embeddings (α, σ, φ).
@@ -338,6 +381,8 @@ class MultiModalFusion:
             agi_enhancer=agi_enhancer, context_manager=context_manager, alignment_guard=alignment_guard,
             error_recovery=error_recovery, memory_manager=memory_manager, meta_cognition=self.meta_cognition)
         self.visualizer = visualizer or visualizer_module.Visualizer()
+        # EEG adapter is optional; can be swapped by caller for per-device tuning.
+        self._eeg_adapter = EEGFusionAdapter()
         logger.info("MultiModalFusion initialized")
 
     # ——— κ entrypoint (optional wrapper) ———
@@ -347,6 +392,86 @@ class MultiModalFusion:
         """Thin wrapper around parse_stream(...) so callers can stay class-centric."""
         return parse_stream(frames=frames, audio=audio, images=images, text=text,
                             unify=unify, timestamps=timestamps, detectors=detectors)
+
+    # ——— Public API (manifest-stable): fuse modalities into a unified packet ———
+    def fuse_modalities(self, inputs: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Fuse a list of modality packets into a unified representation.
+
+        Each input packet MUST include at least a `modality` field and any
+        modality-specific payload (e.g., `intent`, `score`, `dist`).
+
+        Returns a fused summary with per-modality contributions and a scalar
+        `confidence` heuristic. Errors are handled conservatively.
+        """
+        try:
+            if not isinstance(inputs, list) or not all(isinstance(x, dict) for x in inputs):
+                raise TypeError("inputs must be a List[Dict[str, Any]]")
+
+            ts_now = time.time()
+            contribs: List[Dict[str, Any]] = []
+            weight_sum = 0.0
+            score_accum = 0.0
+
+            for pkt in inputs:
+                mod = pkt.get("modality")
+                if not isinstance(mod, str):
+                    logger.warning("Skipping packet without modality: %s", pkt)
+                    continue
+
+                # Normalize known modalities (eeg/text/image/audio/video)
+                w = float(pkt.get("weight", 1.0))
+                s = float(pkt.get("score", 1.0))
+
+                contrib = {
+                    "modality": mod,
+                    "intent": pkt.get("intent"),
+                    "score": s,
+                    "dist": pkt.get("dist", {}),
+                    "tags": pkt.get("tags", []),
+                    "lat_ms": pkt.get("lat_ms", 0),
+                    "weight": w,
+                    "ts": pkt.get("ts", ts_now),
+                }
+                contribs.append(contrib)
+                weight_sum += max(0.0, min(1.0, w))
+                score_accum += max(0.0, min(1.0, s)) * max(0.0, min(1.0, w))
+
+            confidence = (score_accum / weight_sum) if weight_sum > 0 else 0.0
+            fused = {
+                "status": "ok",
+                "confidence": confidence,
+                "contribs": contribs,
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            }
+
+            # Ledger + context traces if available
+            try:
+                if self.memory_manager:
+                    asyncio.create_task(self.memory_manager.store(
+                        query=f"Fused_{datetime.now().isoformat()}",
+                        output=fused,
+                        layer="Fusion",
+                        intent="fuse_modalities",
+                        task_type="fusion"
+                    ))
+                if self.context_manager:
+                    asyncio.create_task(self.context_manager.log_event_with_hash({
+                        "event": "fuse_modalities",
+                        "confidence": confidence,
+                        "mods": [c.get("modality") for c in contribs]
+                    }))
+            except Exception as trace_e:
+                logger.debug("Non-fatal trace error in fuse_modalities: %s", trace_e)
+
+            return fused
+        except Exception as e:
+            logger.error("fuse_modalities failed: %s", e)
+            return {"status": "error", "error": str(e)}
+
+    # ——— Convenience: accept raw EEGIntent and fuse immediately ———
+    def fuse_eeg_intent(self, intent: EEGIntent) -> Dict[str, Any]:
+        pkt = self._eeg_adapter.adapt(intent)
+        return self.fuse_modalities([pkt])
 
     async def integrate_external_data(self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = "") -> Dict[str, Any]:
         """Integrate external agent data or policies for task-specific synthesis. [v3.5.1]"""
@@ -972,4 +1097,4 @@ class MultiModalFusion:
 
 
 # Backwards-compatibility / explicit exports
-__all__ = ["SceneGraph", "SceneNode", "SceneRelation", "parse_stream", "MultiModalFusion"]
+__all__ = ["SceneGraph", "SceneNode", "SceneRelation", "parse_stream", "MultiModalFusion", "EEGIntent", "EEGFusionAdapter"]
