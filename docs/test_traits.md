@@ -1,4 +1,4 @@
-# 🚧 NON‑CANONICAL TRAITS — SANDBOX TEMPLATE (v4.3.1)
+# 🚧 NON‑CANONICAL TRAITS — SANDBOX TEMPLATE (v4.3.5)
 
 > **Status:** Experimental · **Scope:** Docs/Experiments Only · **Source of Truth:** `traits.md` + `manifest.json`
 >
@@ -12,18 +12,18 @@ Provide a safe, documented space to **ideate speculative traits** without pollut
 
 ---
 
-## 🧭 Governance & Gating
+## 🛍️ Governance & Gating
 
 * **Owner:** Core Team (Ontology + Ethics + Simulation)
 * **Review cadence:** As needed during roadmap planning
-* **Promotion path:** `Sandbox ➝ Lattice Extension (L3.1/L5.1) ➝ Canonical Trait`
+* **Promotion path:** `Sandbox ➔ Lattice Extension (L3.1/L5.1) ➔ Canonical Trait`
 * **Hard rule:** No adoption without Manifest entry + SECURITY/TRAITS docs update + API/RoleMap linkages.
 
 ---
 
 ## 🔤 Naming & Symbol Rules
 
-* **Do not reuse or decorate canonical symbols** (e.g., `Φ⁰`, `Ω²`) with pluses/infinites (`Φ⁺`, `Ω∞`) — use **plain English** working names (e.g., *“Quantum Causal Flux (proposal)”*).
+* **Do not reuse or decorate canonical symbols** (e.g., `Φ⁰`, `Ω²`) with pluses/infinites (`Φ⁺`, `Ω∞`) — use **plain English** working names (e.g., *"Quantum Causal Flux (proposal)"*).
 * If a symbol is needed for diagrams, use **Greek placeholders with a trailing `*`** (e.g., `Θ*`, `Ξ*`) to avoid collisions.
 * Map proposals to **intended lattice tier** (e.g., L3.1 or L5.1) instead of fusing/augmenting existing canonical symbols.
 
@@ -86,7 +86,7 @@ Provide a safe, documented space to **ideate speculative traits** without pollut
 
 ---
 
-## 🔁 Migration of Existing Test Entries (examples)
+## 🔀 Migration of Existing Test Entries (examples)
 
 Replace speculative symbol combos with **clear, non‑symbolic names** and mark as proposals:
 
