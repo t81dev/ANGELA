@@ -11,6 +11,8 @@ ANGELA is an experimental cognitive architecture and modular framework for AGI s
 1. **Read the `README.md`** to understand the core system.
 2. Review `STATUS.md` and `CHANGELOG.md` to see what's in development and what's changed.
 3. Familiarize yourself with the module structure in `index.py` and `manifest.json`.
+4. **See `AGENTS.md`** for the registry of all sub-agents, their APIs, and traits.  
+   > ⚠️ When you add or modify an agent/module, you must update **AGENTS.md** to keep documentation consistent.
 
 ## 🔧 How to Contribute
 
@@ -24,7 +26,8 @@ ANGELA is an experimental cognitive architecture and modular framework for AGI s
 
 * Fork the repository and create a branch: `feature/your-feature-name`
 * Include tests where applicable.
-* Update documentation if behavior changes.
+* Update documentation if behavior changes.  
+  - This includes `README.md`, `ARCHITECTURE.md`, and **`AGENTS.md`** if agents are affected.
 * Run system-wide tests before submitting.
 
 ### Code Style
@@ -40,7 +43,7 @@ Run all tests using the orchestration shell or test harness inside the simulatio
 
 ```bash
 python -m tests.run_all
-```
+````
 
 Each module should have its own test suite where feasible.
 
