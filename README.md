@@ -82,6 +82,8 @@ user_profile.py              # Preference, identity, and bond tracking
 visualizer.py                # Emotional journey visualization
 ````
 
+For a **human-readable overview of all agents, their APIs, and traits**, see [AGENTS.md](AGENTS.md).
+
 ---
 
 ## ⚙️ Installation & Setup
@@ -138,6 +140,7 @@ docker run -it --env-file .env angela-v4
 * `README.md` – Core architecture & mission
 * `CHANGELOG.md` – Version logs
 * `ARCHITECTURE.md` – **Full trait glossary** & module flow
+* `AGENTS.md` – Registry of sub-agents, APIs, traits & interaction flows
 * `ROADMAP.md` – Future goals
 * `STATUS.md` – Module health
 * `TESTING.md` – QA processes
