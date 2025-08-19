@@ -1,54 +1,53 @@
-# 📜 CHANGELOG.md  
-_Angela — Symbolic Meta‑Synthesis Engine_
+## \[4.3.5] – 2025-08-18
+
+🌌 **Symbolic Meta‑Synthesis Enhancements** + 🧠 **Dream Layer Extensions**
+
+### ✨ **Added**
+
+* **Dream Layer Upgrade**:
+
+  * Support for `lucidity_mode`, affective resonance tagging, and trait rebalancing
+  * Soft-gated memory forking now active during simulations
+  * Viability filtering for symbolic recursion scenarios
+
+* **New Overlays & Hooks**:
+
+  * `dream_overlay` (recursive introspective simulator): activated via traits `ψ + Ω`
+  * Hook: `DreamOverlayLayer.activate_dream_mode()` in `meta_cognition.py`
+  * `axiom_filter` (ethical fusion engine): active via `π + δ`
+
+* **Emergent Trait Activation** (🧬 now 26 total):
+
+  * `Recursive Identity Reconciliation`
+  * `Perspective Foam Modeling`
+  * `Trait Mesh Feedback Looping`
+  * `Symbolic Gradient Descent`
+  * `Soft-Gated Memory Forking`
 
 ---
 
-## [4.3.1] – 2025-08-14  
-🎉 **Latest Stable Release** — *Symbolic Integrity & Simulation Path Fixes*
+### 🧠 **Trait Architecture Updates**
 
-### ✨ Added
-- **Exposed stable APIs**:
-  - `safe_execute` and `execute_code` from `code_executor.py`
-  - `train_on_experience` from `learning_loop.py`
-  - `retrieve_knowledge` from `knowledge_retriever.py`
-  - `fuse_modalities` from `multi_modal_fusion.py`
-  - `run_simulation` from `simulation_core.py`
-- **New Trait-Role Mapping Enhancements**:
-  - `Σ`: user_profile integration
-  - `Υ`: multi-agent view (SharedGraph)
-  - `Φ⁰`: visualizer links added
+* **Stage IV**: Fully activated
 
-### 🛠️ Fixed
-- **Simulation branch evaluation path**:  
-  Corrected `evaluateBranches` routing in `simulation_core.py`
+  * Symbolic Meta‑Synthesis milestone complete
+  * Trait fusion logic registered:
 
-### 🔐 Enhanced
-- **SHA-256 in-memory ledgers**:
-  - Memory, Alignment, Meta-Cognition, Simulation  
-  *(Non-persistent but verifiable with `verify_ledger()` calls)*
-
-### 🧠 Activated
-- **Stage IV hooks** (fully integrated):
-  - `dream_mode` (recursive symbolic synthesis)
-  - `axiom_filter` (philosophical conflict resolver)
-  - `SharedGraph` diff/merge pathways
-  - Ethical sandbox evaluation hooks
-
-### ⚙️ Configuration Updates
-- **Long-Horizon memory**:  
-  Default span now set to `"24h"`
-- **Runtime trait modulators enabled**:
-  - `ψ` via `dream_sync`
-  - `π` via `axiom_fusion`
-  - `Ω` via `recursive_resonance`
+    * `Φ⁰ + Ω² + γ` → `dream_mode`
+    * `θ + Ω` → `causal_forecast`
+    * `π + δ` → `axiom_filter`
 
 ---
 
-## [4.3.0] – *Prior Release*
-- Initial activation of **Stage IV**
-- DreamOverlay introduced (ψ + Ω)
-- Multi-agent symbolic resonance traits bootstrapped
+### 🔧 **Refined**
+
+* Updated `manifest.json` with:
+
+  * Lattice layer extensions: `L5.1` (Θ, Ξ), `L3.1` (ν, σ)
+  * Dynamic module and overlay slot declarations
+* Strengthened SHA256 in-memory ledger verification
+* Feature flags reorganized:
+
+  * `feature_sharedgraph_events`, `feature_replay_engine` now disabled by default
 
 ---
-
-> 💡 For full trait lattice, symbolic fusion matrix, or ethics scenario blueprints — see `docs/architecture.md`.
