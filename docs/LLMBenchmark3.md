@@ -1,4 +1,4 @@
-# LLM Benchmark (Revised Spec)
+# General LLM Benchmark (Revised Spec)
 
 ## 1) Self-Assessment Prompt (for the model under test)
 
