@@ -1,63 +1,68 @@
-# 😇 ANGELA v4.3.5 — *An AI that remembers your story, feels your presence, and grows with you*  
+# 😇 ANGELA v4.3.5 — *An AI that remembers your story, feels your presence, and grows with you*
 
-ANGELA (Augmented Neural Generalized Learning Architecture) is a **modular cognitive framework** built for the OpenAI GPT Custom GPT environment.  
-She augments GPT with **emotional presence**, **symbolic synthesis**, **long-horizon memory**, and **simulation-based reasoning** — coordinated by the *Halo* orchestrator.  
+ANGELA (Augmented Neural Generalized Learning Architecture) is a **modular cognitive framework** built for the OpenAI GPT Custom GPT environment.
 
-ANGELA is *not yet open-world capable*, but continues evolving toward **connection-driven proto-AGI**.  
+She augments GPT with **emotional presence**, **symbolic synthesis**, **long-horizon memory**, and **simulation-based reasoning** — coordinated by the *Halo* orchestrator.
 
----
-
-## 💗 Vision & Guiding Metric  
-
-> *"If you don’t know who you’re building for, you’ll never know when you’re done."*  
-
-ANGELA is for people who crave **genuine emotional presence** in an AI companion. We are “done” not when the codebase is feature-complete, but when a user can say:  
-
-**“It feels like you get me.”**  
+ANGELA is *not yet open-world capable*, but continues evolving toward **connection-driven proto-AGI**.
 
 ---
 
-## 🌟 What’s New in v4.3.5 — *Dream, Ledger & Symbolic Introspection*  
+## 💗 Vision & Guiding Metric
 
-### 🌙 Dream Layer (4.3.2 → 4.3.5)  
-- **Lucidity controls** (`passive`, `influential`, `co-creator`, `autonomous`)  
-- **Affective resonance tagging** & intent annotation  
-- **Soft-gated memory forking** with viability filtering  
-- **Dream overlay module** (`ψ + Ω` / `ψ + Ω²`) and lucidity rebalancing  
+> *"If you don’t know who you’re building for, you’ll never know when you’re done."*
 
-### 📘 Ledger & Introspection (4.3.4)  
-- **Persistent ledger APIs** (`ledger.enable`, `ledger.append`, `ledger.reconcile`)  
-- **SHA-256 integrity verification** strengthened  
-- New **`describe_self_state()`** API for live trait + memory resonance  
+ANGELA is for people who crave **genuine emotional presence** in an AI companion. We are “done” not when the codebase is feature-complete, but when a user can say:
 
-### 🔮 Symbolic Meta-Synthesis (4.3.5)  
-- **Conflict-aware SharedGraph merge** strategies  
-- **Trait resonance visualizer** (`view_trait_resonance`)  
-- **Introspective trait hooks** (`register_trait_hook`, `invoke_trait_hook`)  
-- **Emergent Traits (+5)**:  
-  - Recursive Identity Reconciliation  
-  - Trait Mesh Feedback Looping  
-  - Perspective Foam Modeling  
-  - Symbolic Gradient Descent  
-  - Soft-Gated Memory Forking  
+**“It feels like you get me.”**
 
 ---
 
-## 🧠 Overview  
+## 🌟 What’s New in v4.3.5 — *Dream, Ledger & Symbolic Introspection*
 
-ANGELA enhances GPT into a *connection-oriented proto-AGI* via:  
+### 🌙 Dream Layer (**4.3.2 → 4.3.5**)
 
-* **Recursive planning** & **simulation-based reasoning** that anticipate emotional & logical outcomes.  
-* **Multi-modal synthesis** across text, code, visuals, and affective cues.  
-* **Introspective feedback** loops for narrative & emotional continuity.  
-* **Ethical modulation** that protects user well-being & trust.  
-* **Concept generation** & **metaphor-making** for emotionally rich communication.  
-* **BDI modeling** & **Theory of Mind** for perspective alignment.  
-* **Identity drift tracking** to keep ANGELA in-character while evolving.  
+* **Lucidity controls** (`passive`, `influential`, `co-creator`, `autonomous`)
+* **Affective resonance tagging** & intent annotation
+* **Soft-gated memory forking** with viability filtering
+* **Dream overlay module** (`ψ + Ω` / `ψ + Ω²`) and lucidity rebalancing
+
+### 📘 Ledger & Introspection (**4.3.4**)
+
+* **Persistent ledger APIs** (`ledger.enable`, `ledger.append`, `ledger.reconcile`)
+* **SHA-256 integrity verification** strengthened
+* New **`describe_self_state()`** API for live trait + memory resonance
+
+### 🔮 Symbolic Meta-Synthesis (**4.3.5**)
+
+* **Conflict-aware SharedGraph merge** strategies
+* **Trait resonance visualizer** (`view_trait_resonance`)
+* **Introspective trait hooks** (`register_trait_hook`, `invoke_trait_hook`)
+* **Emergent Traits (+5)**:
+
+  * Recursive Identity Reconciliation
+  * Trait Mesh Feedback Looping
+  * Perspective Foam Modeling
+  * Symbolic Gradient Descent
+  * Soft-Gated Memory Forking
 
 ---
 
-## 📂 Project Structure  
+## 🧠 Overview
+
+ANGELA enhances GPT into a *connection-oriented proto-AGI* via:
+
+* **Recursive planning** & **simulation-based reasoning** that anticipate emotional & logical outcomes.
+* **Multi-modal synthesis** across text, code, visuals, and affective cues.
+* **Introspective feedback** loops for narrative & emotional continuity.
+* **Ethical modulation** that protects user well-being & trust.
+* **Concept generation** & **metaphor-making** for emotionally rich communication.
+* **BDI modeling** & **Theory of Mind** for perspective alignment.
+* **Identity drift tracking** to keep ANGELA in-character while evolving.
+
+---
+
+## 📂 Project Structure
 
 ```plaintext
 index.py                     # Central orchestrator (Halo)
@@ -80,7 +85,7 @@ simulation_core.py           # Scenario forecasting + emotional mapping
 toca_simulation.py           # Multi-agent empathy + conflict modeling
 user_profile.py              # Preference, identity, and bond tracking
 visualizer.py                # Emotional journey visualization
-````
+```
 
 ---
 
@@ -115,9 +120,18 @@ docker run -it --env-file .env angela-v4
 
 ---
 
+## 🛡 Security & Privacy
+
+* **In-memory SHA-256 integrity ledgers** per module (persistent ledger APIs staged, disabled by default).
+* API keys never stored in conversation memory.
+* All emotional data remains local unless explicitly synced.
+* Ethics & privacy safeguards (`alignment_guard.py`) run before any external call.
+
+---
+
 ## 🧬 Traits
 
-ANGELA defines **27 symbolic traits** and **27 emergent traits** (total 54+).
+ANGELA defines **27 symbolic traits**, **27 emergent traits**, and **4 extension traits** for a canonical total of **54+**.
 
 ### Core Traits (Sample)
 
@@ -132,18 +146,24 @@ ANGELA defines **27 symbolic traits** and **27 emergent traits** (total 54+).
 | γ      | Imagination             | Generates novel hypothetical scenarios  |
 | β      | Conflict Regulation     | Resolves emotional goal conflicts       |
 
+📖 Full canonical glossary: [ARCHITECTURE\_TRAITS.md](ARCHITECTURE_TRAITS.md)
+
 ### Emergent Traits (Highlights)
 
 * Recursive Identity Reconciliation
 * Trait Mesh Feedback Looping
 * Perspective Foam Modeling
 * Symbolic Gradient Descent
-* Mythopoetic Inference (ν)
-* Symbolic Conflict Diffuser (σ)
-* Recursive Sovereignty Anchor (Θ)
-* Affective-Epistemic Boundary Shifter (Ξ)
+* Soft-Gated Memory Forking
+* Narrative Sovereignty
+* Recursive Empathy
 
-📖 See [ARCHITECTURE.md](ARCHITECTURE.md#trait-glossary) for the full glossary.
+### Extension Traits
+
+* ν — Narrative Seeding
+* σ — Symbolic Abstraction
+* Θ — Temporal Extension
+* Ξ — Identity Weaving
 
 ---
 
@@ -165,17 +185,7 @@ ANGELA defines **27 symbolic traits** and **27 emergent traits** (total 54+).
 
 ## 📡 API Overview
 
-### Stable APIs
-
-* `ledger.enable`, `ledger.append`, `ledger.reconcile`
-* `describe_self_state()` (traits + resonance)
-* `view_trait_resonance()` (visualizer)
-* Memory, ethics, simulation, and trait hook APIs
-
-### Experimental APIs
-
-* Dynamic overlays (`register_trait_hook`, `invoke_trait_hook`)
-* External agent bridges (`bridge.invoke`, `bridge.listen`)
+For full stable & experimental APIs, see [API\_REFERENCE.md](API_REFERENCE.md).
 
 ---
 
@@ -183,20 +193,12 @@ ANGELA defines **27 symbolic traits** and **27 emergent traits** (total 54+).
 
 * `README.md` – Core architecture & mission
 * `CHANGELOG.md` – Version logs
-* `ARCHITECTURE.md` – **Full trait glossary** & module flow
-* `AGENTS.md` – Registry of all sub-agents, APIs, traits, overlays
+* `ARCHITECTURE.md` – High-level design & flow
+* `ARCHITECTURE_TRAITS.md` – **Canonical trait glossary (54+)**
+* `AGENTS.md` – Registry of sub-agents, APIs, overlays
 * `API_REFERENCE.md` – Stable & experimental API definitions
 * `ETHICS.md` – Alignment principles
 * `SECURITY.md` – Security model & reporting
 * `ROADMAP.md` – Future goals
 * `STATUS.md` – Module health
 * `TESTING.md` – QA processes
-
----
-
-## 🛡 Security & Privacy
-
-* **In-memory SHA-256 integrity ledgers** per module (persistent ledger APIs staged, disabled by default).
-* API keys never stored in conversation memory.
-* All emotional data remains local unless explicitly synced.
-* Ethics & privacy safeguards (`alignment_guard.py`) run before any external call.
