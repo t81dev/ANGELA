@@ -1,8 +1,4 @@
-Got it ✅ — here’s the **final, future-proofed `traits.md`** with the new **Lattice Extensions** section for reserved symbols from `L5.1` and `L3.1` in the v4.3.1 manifest.
-
----
-
-# ANGELA — Traits Reference (v4.3.1)
+# ANGELA — Traits Reference (v4.3.5)
 
 | Level  | Symbol | Trait Name                   | Core Function                                                         |
 | ------ | ------ | ---------------------------- | --------------------------------------------------------------------- |
@@ -31,7 +27,7 @@ Got it ✅ — here’s the **final, future-proofed `traits.md`** with the new *
 
 ---
 
-## 🔀 Trait Fusion Map (v4.3.1)
+## 🔀 Trait Fusion Map (v4.3.5)
 
 | Fusion Combination | Activation Module                       | Functionality Description                                                                                    |
 | ------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -73,7 +69,3 @@ Got it ✅ — here’s the **final, future-proofed `traits.md`** with the new *
 |            | **Ξ**  | ⏸ Reserved | Potential role in **cross-ontology reconciliation** and **semantic lattice weaving**.                               |
 | **L3.1**   | **ν**  | ⏸ Reserved | Intended for *value-frame expansion* and **post-human ethics** anchoring.                                           |
 |            | **σ**  | ⏸ Reserved | Potentially for **structural narrative synthesis** across multi-agent timelines.                                    |
-
----
-
-Do you want me to also **link each reserved symbol** here to speculative module slots or overlay hooks, so future devs know exactly where they’d be integrated in the codebase when activated? That would turn this into a true forward-planning dev doc.
