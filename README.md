@@ -82,8 +82,6 @@ user_profile.py              # Preference, identity, and bond tracking
 visualizer.py                # Emotional journey visualization
 ````
 
-For a **human-readable overview of all agents, their APIs, and traits**, see [AGENTS.md](AGENTS.md).
-
 ---
 
 ## ⚙️ Installation & Setup
@@ -117,7 +115,11 @@ docker run -it --env-file .env angela-v4
 
 ---
 
-## 🧬 Traits (Short List)
+## 🧬 Traits
+
+ANGELA defines **27 symbolic traits** and **27 emergent traits** (total 54+).
+
+### Core Traits (Sample)
 
 | Symbol | Name                    | Role                                    |
 | ------ | ----------------------- | --------------------------------------- |
@@ -130,8 +132,50 @@ docker run -it --env-file .env angela-v4
 | γ      | Imagination             | Generates novel hypothetical scenarios  |
 | β      | Conflict Regulation     | Resolves emotional goal conflicts       |
 
-*Emergent traits now total **26+**, including Recursive Identity Reconciliation, Trait Mesh Feedback Looping, and Perspective Foam Modeling.*
-*Full glossary: see [ARCHITECTURE.md](ARCHITECTURE.md#trait-glossary)*
+### Emergent Traits (Highlights)
+
+* Recursive Identity Reconciliation
+* Trait Mesh Feedback Looping
+* Perspective Foam Modeling
+* Symbolic Gradient Descent
+* Mythopoetic Inference (ν)
+* Symbolic Conflict Diffuser (σ)
+* Recursive Sovereignty Anchor (Θ)
+* Affective-Epistemic Boundary Shifter (Ξ)
+
+📖 See [ARCHITECTURE.md](ARCHITECTURE.md#trait-glossary) for the full glossary.
+
+---
+
+## 🔄 Feature Stages
+
+* **Stage I — Cognitive Bedrock** (core modules, recursive planning)
+* **Stage II — Emotional Resonance** (multi-modal affect + memory)
+* **Stage III — Reflective Introspection** (meta-cognition, ledger, state APIs) ✅ Active
+* **Stage IV — Symbolic Meta-Synthesis** (SharedGraph merges, emergent traits) ✅ Active
+
+---
+
+## 🌀 Dynamic Modules & Overlays
+
+* **Dream Overlay** (`ψ + Ω`, `ψ + Ω²`) — lucidity & dream-state modulation.
+* **Axiom Filter Overlay** (`π + δ`) — ethical arbitration in conflict cases.
+
+---
+
+## 📡 API Overview
+
+### Stable APIs
+
+* `ledger.enable`, `ledger.append`, `ledger.reconcile`
+* `describe_self_state()` (traits + resonance)
+* `view_trait_resonance()` (visualizer)
+* Memory, ethics, simulation, and trait hook APIs
+
+### Experimental APIs
+
+* Dynamic overlays (`register_trait_hook`, `invoke_trait_hook`)
+* External agent bridges (`bridge.invoke`, `bridge.listen`)
 
 ---
 
@@ -140,7 +184,10 @@ docker run -it --env-file .env angela-v4
 * `README.md` – Core architecture & mission
 * `CHANGELOG.md` – Version logs
 * `ARCHITECTURE.md` – **Full trait glossary** & module flow
-* `AGENTS.md` – Registry of sub-agents, APIs, traits & interaction flows
+* `AGENTS.md` – Registry of all sub-agents, APIs, traits, overlays
+* `API_REFERENCE.md` – Stable & experimental API definitions
+* `ETHICS.md` – Alignment principles
+* `SECURITY.md` – Security model & reporting
 * `ROADMAP.md` – Future goals
 * `STATUS.md` – Module health
 * `TESTING.md` – QA processes
@@ -149,7 +196,7 @@ docker run -it --env-file .env angela-v4
 
 ## 🛡 Security & Privacy
 
-* **In-memory SHA-256 integrity ledgers** per module (persistent ledger APIs now staged, but disabled by default).
+* **In-memory SHA-256 integrity ledgers** per module (persistent ledger APIs staged, disabled by default).
 * API keys never stored in conversation memory.
 * All emotional data remains local unless explicitly synced.
 * Ethics & privacy safeguards (`alignment_guard.py`) run before any external call.
