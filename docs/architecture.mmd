@@ -1,4 +1,7 @@
 graph TD
+  %% =========================
+  %% Clusters / Modules
+  %% =========================
   subgraph Orchestrator
     A[index.py]
     B[manifest.json]
@@ -37,12 +40,22 @@ graph TD
     T[knowledge_retriever.py]
   end
 
-  %% Connections
+  %% NEW: Ledgers (emphasis in v4.3.5)
+  subgraph Ledgers
+    L1[AlignmentLedger]
+    L2[MemoryLedger]
+    L3[MetaLedger]
+    L4[SimulationLedger]
+  end
+
+  %% =========================
+  %% Connections (original)
+  %% =========================
   A --> B
   A --> C
   A --> E
   A --> M
-  A --> I
+  A -->|long_horizon| I
   A --> Q
 
   C --> D
@@ -78,3 +91,33 @@ graph TD
   %% Dream & Perspective overlays
   K -->|dream_overlay| D
   M -->|PerspectiveSync| J
+
+  %% =========================
+  %% Additions for v4.3.5
+  %% =========================
+  %% Axiom filter / ethical resolver
+  K -->|axiom_filter| P
+
+  %% Visualizer hooks
+  G -->|render_branch_tree| N
+  E -->|render_branch_tree (optional)| N
+  K -->|view_trait_resonance| N
+  J -->|view_trait_resonance| N
+
+  %% Knowledge retriever feeds
+  T -->|facts| F
+  T -->|contexts| G
+
+  %% Peer-view attach (hot-load hook)
+  R -.->|attach_peer_view| M
+  M -.->|attach_peer_view (merge)| R
+
+  %% Ledgers (dashed emphasis)
+  P -.-> L1
+  I -.-> L2
+  K -.-> L3
+  C -.-> L4
+
+  %% Co-dream feature flag
+  D -.->|co-dream| R
+  R -.->|co-dream| D
