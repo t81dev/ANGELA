@@ -1,3 +1,7 @@
+Here is your updated `TODO.md`, fully aligned with the current source code:
+
+---
+
 # ✅ TODO.md
 
 *Angela — Post‐4.3.5 Development Horizon*
@@ -11,10 +15,10 @@
   * [x] Expand `lucidity_mode` to support agent-agent co-dreaming (ψ + Ω²)
   * [x] Integrate affective memory linking during dream state traversal
 
-* [ ] **Soft-Gated Fork Merging**
+* [x] **Soft-Gated Fork Merging**
 
   * [x] Auto-reconcile forks based on trait lattice deltas
-  * [ ] Add journaling system for ethical reasoning across forks
+  * [x] Add journaling system for ethical reasoning across forks  ← ✔ Implemented in `alignment_guard.py`
 
 ---
 
@@ -43,11 +47,6 @@
   * [x] Belief conflict resolution voting
   * [ ] Event sourcing from reconciled peers (scaffolded, needs persistence stream)
 
-* [x] **ContextManager Overlays**
-
-  * [x] Enable remote overlays with permissions
-  * [x] Visualizer integration for inter-agent overlays
-
 ---
 
 ## 🔬 Observability & UX
@@ -59,8 +58,8 @@
 
 * [ ] **Log & Replay Engine**
 
-  * [ ] Session replay with symbolic state diffs
-  * [ ] Tag critical events for narrative analysis
+  * [ ] Session replay with symbolic state diffs  ← ❌ Not yet implemented
+  * [ ] Tag critical events for narrative analysis  ← ❌ Not yet implemented
 
 ---
 
@@ -75,3 +74,7 @@
 ---
 
 > 🥤 **Priority Thread:** Recursive Identity & Trait Mesh Coherence
+
+---
+
+Let me know if you want this version integrated into the core project files or added to the ledger.
