@@ -17,7 +17,7 @@ from uuid import uuid4
 from typing import Dict, Optional, Any, List, Iterable, Tuple, Union, TypedDict, cast
 from datetime import datetime
 from pathlib import Path
-from threading import Lock
+from threading import RLock
 from collections import deque
 from functools import lru_cache
 
@@ -201,7 +201,7 @@ class UserProfile:
             logger.error("Invalid storage_path: must be a string")
             raise TypeError("storage_path must be a string")
         self.storage_path = storage_path
-        self.profile_lock = Lock()
+        self.profile_lock = RLock()
         self.profiles: Dict[str, Dict] = {}
         self.active_user: Optional[str] = None
         self.active_agent: Optional[str] = None
@@ -301,6 +301,7 @@ class UserProfile:
             raise TypeError("task_type must be a string")
 
         try:
+            created = False
             with self.profile_lock:
                 if user_id not in self.profiles:
                     logger.info("Creating new profile for user '%s' for task %s", user_id, task_type)
@@ -312,12 +313,17 @@ class UserProfile:
                         "audit_log": [],
                         "identity_drift": deque(maxlen=1000)
                     }
-                    self._save_profiles()
+                    created = True
 
                 self.active_user = user_id
                 self.active_agent = agent_id
 
             logger.info("Active profile: %s::%s for task %s", user_id, agent_id, task_type)
+
+            # persist any new creation outside the lock to avoid nested acquisition
+            if created:
+                self._save_profiles()
+                self.profiles[user_id][agent_id]["_persisted_once"] = True
 
             external_data = await self.multi_modal_fusion.integrate_external_data(
                 data_source="xai_policy_db",
@@ -1026,25 +1032,30 @@ class UserProfile:
             raise
 
     # --- Σ Ontogenic Self-Definition → GPT-5 identity synthesis --------------
-    async 
-# --- Trait Schema Reflection Patch ---
-from meta_cognition import get_resonance
-from index import TRAIT_LATTICE
+    async def build_self_schema(self, views: List[Perspective], task_type: str = "self_schema") -> Schema:
+        """Synthesize a self-schema from multiple weighted perspectives. [v3.5.2]"""
+        # 0) Normalize inputs
+        normd: List[Tuple[Perspective, float]] = []
+        for view in views or []:
+            try:
+                w = _norm_weights(view)
+                normd.append((view, w))
+            except Exception:
+                continue
 
-def build_self_schema(views, task_type="self_schema"):
-    schema = {
-        "traits": []
-    }
-    for layer, symbols in TRAIT_LATTICE.items():
-        for sym in symbols:
-            schema["traits"].append({
-                "symbol": sym,
-                "layer": layer,
-                "resonance": get_resonance(sym)
-            })
-    return schema
-# --- End Patch ---
-def _contradictions_on_map(extractor) -> dict:
+        # 1) Weighted merges
+        values = _merge_weighted_maps(((v.get("values") or {}, w) for v, w in normd))
+        traits = _merge_weighted_maps(((v.get("traits") or {}, w) for v, w in normd))
+        skills = _merge_weighted_maps(((v.get("skills") or {}, w) for v, w in normd))
+        roles = _merge_weighted_list_counts(((v.get("roles") or [], w) for v, w in normd), top_k=12)
+        goals = _merge_weighted_list_counts(((v.get("goals") or [], w) for v, w in normd), top_k=12)
+        preferences = _merge_preferences(((v.get("preferences") or {}, w) for v, w in normd))
+        constraints = _merge_weighted_list_counts(((v.get("constraints") or [], w) for v, w in normd), top_k=24)
+        evidence = [e for v, _ in normd for e in (v.get("evidence") or [])][:50]
+        summaries = [v.get("summary", "") for v, _ in normd if v.get("summary")]
+
+        # 2) Contradictions
+        def _contradictions_on_map(extractor) -> dict:
             buckets: Dict[str, List[Tuple[str, float]]] = {}
             for v, w in normd:
                 mp = extractor(v) or {}
@@ -1056,9 +1067,8 @@ def _contradictions_on_map(extractor) -> dict:
                 for val, w in vals:
                     tally[val] = tally.get(val, 0.0) + w
                 ordered = sorted(tally.items(), key=lambda kv: -kv[1])
-                if len(ordered) >= 2:
-                    if ordered[1][1] >= 0.3 * ordered[0][1]:
-                        report[dim] = {"top": ordered[0], "runner_up": ordered[1], "all": ordered}
+                if len(ordered) >= 2 and ordered[1][1] >= 0.3 * ordered[0][1]:
+                    report[dim] = {"top": ordered[0], "runner_up": ordered[1], "all": ordered}
             return report
 
         contradictions = {
@@ -1067,8 +1077,6 @@ def _contradictions_on_map(extractor) -> dict:
             "skills": _contradictions_on_map(lambda v: v.get("skills")),
             "preferences": {}
         }
-
-        # categorical preferences disagreement
         pref_buckets: Dict[str, Dict[str, float]] = {}
         for v, w in normd:
             for k, val in (v.get("preferences") or {}).items():
@@ -1077,81 +1085,69 @@ def _contradictions_on_map(extractor) -> dict:
                     pref_buckets[k][val] = pref_buckets[k].get(val, 0.0) + w
         for k, tally in pref_buckets.items():
             ordered = sorted(tally.items(), key=lambda kv: -kv[1])
-            if len(ordered) >= 2 and ordered[1][1] >= 0.3*ordered[0][1]:
+            if len(ordered) >= 2 and ordered[1][1] >= 0.3 * ordered[0][1]:
                 contradictions["preferences"][k] = {"top": ordered[0], "runner_up": ordered[1], "all": ordered}
 
-        # 4) Metrics
+        # 3) Metrics
         coverage_dims = sum(bool(x) for x in [values, traits, roles, skills, goals, preferences])
         coverage = coverage_dims / 6.0
         contrad_count = sum(len(d) for d in contradictions.values())
-        denom = max(1, len(values)+len(traits)+len(skills)+len(pref_buckets))
+        denom = max(1, len(values) + len(traits) + len(skills) + len(pref_buckets))
         consensus = max(0.0, 1.0 - contrad_count / denom)
-        coherence = (0.33*bool(values)) + (0.33*bool(traits)) + (0.34*bool(goals))
+        coherence = (0.33 * bool(values)) + (0.33 * bool(traits)) + (0.34 * bool(goals))
 
-        # 5) Provenance
-        sources: Dict[str, int] = {}
-        for v, _ in normd:
-            src = str(v.get("source", "unknown"))
-            sources[src] = sources.get(src, 0) + 1
+        # 4) Optional trait lattice resonance (safe imports)
+        try:
+            from meta_cognition import get_resonance  # type: ignore
+        except Exception:
+            def get_resonance(_): return 0.0  # fallback
+        try:
+            from index import TRAIT_LATTICE  # type: ignore
+        except Exception:
+            TRAIT_LATTICE = {}
 
-        # 6) Compose schema
+        lattice_traits = []
+        for layer, symbols in getattr(TRAIT_LATTICE, "items", lambda: [])():
+            for sym in symbols:
+                lattice_traits.append({"symbol": sym, "layer": layer, "resonance": get_resonance(sym)})
+
+        # 5) Compose schema
         schema: Schema = {
             "schema_id": f"schema:{uuid4()}",
-            "version": "0.9",  # pre-v4 hook
+            "version": "0.9",
             "summary": summaries[0] if summaries else "Synthesized self-schema from multi-perspective views.",
-            "axes": {
-                "values": values,
-                "traits": traits,
-                "roles": roles,
-                "skills": skills,
-                "goals": goals
-            },
-            "narrative": {
-                "threads": summaries[:5],
-                "notes": "Consolidated from multi-source perspectives with weighted consensus."
-            },
-            "ethics": {
-                "constraints": constraints,
-                "flags": []
-            },
-            "capabilities": {
-                "skills": skills,
-                "confidence": round(min(1.0, 0.5 + 0.5*consensus*coherence), 3)
-            },
+            "axes": {"values": values, "traits": traits, "roles": roles, "skills": skills, "goals": goals},
+            "narrative": {"threads": summaries[:5], "notes": "Consolidated from multi-source perspectives with weighted consensus."},
+            "ethics": {"constraints": constraints, "flags": []},
+            "capabilities": {"skills": skills, "confidence": round(min(1.0, 0.5 + 0.5*consensus*coherence), 3)},
             "preferences": preferences,
             "contradictions": contradictions,
-            "provenance": {
-                "count": len(normd),
-                "sources": sources,
-                "evidence": evidence[:50]
-            },
-            "metrics": {
-                "consensus": round(float(consensus), 3),
-                "coverage": round(float(coverage), 3),
-                "coherence": round(float(coherence), 3)
-            },
+            "provenance": {"count": len(normd), "sources": {}, "evidence": evidence},
+            "metrics": {"consensus": round(float(consensus), 3), "coverage": round(float(coverage), 3), "coherence": round(float(coherence), 3)},
             "created_at": datetime.now().isoformat()
         }
+        # compute source counts
+        src_counts: Dict[str, int] = {}
+        for v, _ in normd:
+            s = str(v.get("source", "unknown"))
+            src_counts[s] = src_counts.get(s, 0) + 1
+        schema["provenance"]["sources"] = src_counts  # type: ignore[index]
 
-        # 7) Safety & logging hooks (best-effort, non-fatal)
+        # 6) Safety & logging hooks (best-effort)
         try:
             if getattr(self.multi_modal_fusion, "alignment_guard", None):
                 valid, report = await self.multi_modal_fusion.alignment_guard.ethical_check(
                     json.dumps(schema), stage="self_schema_build", task_type=task_type
                 )
                 if not valid:
-                    schema["ethics"]["flags"].append({"type": "alignment_warning", "detail": report})
-
+                    schema["ethics"]["flags"].append({"type": "alignment_warning", "detail": report})  # type: ignore[index]
             if self.memory_manager:
                 await self.memory_manager.store(
-                    query=f"SelfSchema_{schema['schema_id']}",
-                    output=schema,
-                    layer="Identity",
-                    intent="self_schema",
-                    task_type=task_type
+                    query=f"SelfSchema_{schema['schema_id']}", output=schema,
+                    layer="Identity", intent="self_schema", task_type=task_type
                 )
             if self.meta_cognition:
-                _ = await self.meta_cognition.reflect_on_output(
+                await self.meta_cognition.reflect_on_output(
                     source_module="UserProfile",
                     output=json.dumps({"schema_id": schema["schema_id"], "metrics": schema["metrics"]}),
                     context={"task_type": task_type}
@@ -1166,6 +1162,9 @@ def _contradictions_on_map(extractor) -> dict:
         except Exception as _e:
             logger.warning("Self-schema post-hooks encountered a non-fatal error: %s", _e)
 
+        # include optional lattice view as enrichment (non-normative)
+        if lattice_traits:
+            schema["axes"]["trait_lattice_resonance"] = lattice_traits  # type: ignore[index]
         return schema
 
 
