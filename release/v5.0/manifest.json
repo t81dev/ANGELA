@@ -56,6 +56,11 @@
       "constructTraitView": "index.py::construct_trait_view() -> TraitField",
       "rebalanceTraits": "index.py::rebalance_traits(trait_field) -> TraitField",
       "viewTraitField": "visualizer.py::view_trait_field(trait_field) -> Figure"
+    },
+    "experimental": {
+      "registerResonance": "meta_cognition.py::register_resonance(symbol, amplitude)",
+      "modulateResonance": "meta_cognition.py::modulate_resonance(symbol, delta)",
+      "getResonance": "meta_cognition.py::get_resonance(symbol)"
     }
   },
   "emergentTraits": [
@@ -64,5 +69,27 @@
       "status": "active",
       "description": "Enables modular symbolic operations, amplitude resonance, and trait algebra across recursive cognitive processes."
     }
-  ]
+  ],
+  "symbolicOps": {
+    "enabled": true,
+    "operators": ["⊕", "⊗", "~"],
+    "appliesTo": [
+      "trait_field",
+      "reasoning_engine",
+      "learning_loop",
+      "simulation_core"
+    ]
+  },
+  "modules": {
+    "enhanced": [
+      "meta_cognition.py",
+      "reasoning_engine.py",
+      "learning_loop.py",
+      "memory_manager.py",
+      "context_manager.py",
+      "user_profile.py",
+      "simulation_core.py"
+    ]
+  },
+  "changelogRef": "CHANGELOG.md::ANGELA v5.0.0"
 }
