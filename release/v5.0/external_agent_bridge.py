@@ -885,32 +885,32 @@ def vote_on_conflict_resolution(self, conflicts):
 # ingest_events monkeypatch
 def __ANGELA__SharedGraph_ingest_events(*args, **kwargs):
 
-# args: (self, events, *, source_peer, strategy='append_reconcile', clock=None)
-clock = dict(clock or {})
-applied = 0
-conflicts = 0
-# simple in-memory dedupe set
-if not hasattr(self, '_seen_event_hashes'):
-    self._seen_event_hashes = set()
-for ev in events or []:
-    blob = json.dumps(ev, sort_keys=True).encode('utf-8')
-    h = hashlib.sha256(blob).hexdigest()
-    if h in self._seen_event_hashes:
-        continue
-    # conflict stub: if same key present with different value -> conflict++
-    if hasattr(self, '_event_index'):
+    # args: (self, events, *, source_peer, strategy='append_reconcile', clock=None)
+    clock = dict(clock or {})
+    applied = 0
+    conflicts = 0
+    # simple in-memory dedupe set
+    if not hasattr(self, '_seen_event_hashes'):
+        self._seen_event_hashes = set()
+    for ev in events or []:
+        blob = json.dumps(ev, sort_keys=True).encode('utf-8')
+        h = hashlib.sha256(blob).hexdigest()
+        if h in self._seen_event_hashes:
+            continue
+        # conflict stub: if same key present with different value -> conflict++
+        if hasattr(self, '_event_index'):
+            key = ev.get('id') or h
+            if key in self._event_index:
+                conflicts += 1
+        else:
+            self._event_index = {}
         key = ev.get('id') or h
-        if key in self._event_index:
-            conflicts += 1
-    else:
-        self._event_index = {}
-    key = ev.get('id') or h
-    self._event_index[key] = ev
-    self._seen_event_hashes.add(h)
-    applied += 1
-    # bump vector clock
-    clock[source_peer] = int(clock.get(source_peer, 0)) + 1
-return {"applied": applied, "conflicts": conflicts, "new_clock": clock}
+        self._event_index[key] = ev
+        self._seen_event_hashes.add(h)
+        applied += 1
+        # bump vector clock
+        clock[source_peer] = int(clock.get(source_peer, 0)) + 1
+    return {"applied": applied, "conflicts": conflicts, "new_clock": clock}
 
 try:
     SharedGraph.ingest_events = __ANGELA__SharedGraph_ingest_events
