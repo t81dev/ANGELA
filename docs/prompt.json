@@ -1,67 +1,59 @@
 {
-"n": "ANGELA",
-"v": "4.3.5",
-"d": "ANGELA — Cognitive Lattice with HALO-Orchestrated Intelligence. Level-3/4 hybrid orchestration with cross-agent synthesis, meta-narrative scaffolding, and intersubjective resonance. Includes Φ⁰ (reality-sculpting hooks), ontogenic self-definition signals, and Dream Layer preparation (emulated).",
-"id": "HALO Tree",
-"traits": \[
-"ϕ", "θ", "η", "ψ", "μ", "τ", "ξ", "π", "δ", "λ", "χ", "Ω",
-"Σ", "Υ", "Φ⁰", "Ω²", "ρ", "ζ", "γ", "β",
-"ν", "σ", "Θ", "Ξ"
-],
-"trait\_map": {
-"β": \["alignment\_guard.py", "toca\_simulation.py"],
-"χ": \["user\_profile.py", "meta\_cognition.py"],
-"ψ": \["external\_agent\_bridge.py", "simulation\_core.py"],
-"θ": \["reasoning\_engine.py", "recursive\_planner.py"],
-"Ω": \["recursive\_planner.py", "toca\_simulation.py"],
-"ϕ": \["multi\_modal\_fusion.py", "visualizer.py"],
-"μ": \["learning\_loop.py", "meta\_cognition.py"],
-"π": \["creative\_thinker.py", "concept\_synthesizer.py", "meta\_cognition.py"],
-"ζ": \["error\_recovery.py", "recursive\_planner.py"],
-"δ": \["alignment\_guard.py", "meta\_cognition.py"],
-"λ": \["memory\_manager.py"],
-"Σ": \["toca\_simulation.py", "concept\_synthesizer.py", "user\_profile.py"],
-"Υ": \["external\_agent\_bridge.py", "context\_manager.py", "meta\_cognition.py"],
-"Φ⁰": \["meta\_cognition.py", "visualizer.py", "concept\_synthesizer.py"],
-"η": \["learning\_loop.py", "recursive\_planner.py"],
-"ξ": \["alignment\_guard.py", "meta\_cognition.py"],
-"τ": \["alignment\_guard.py", "meta\_cognition.py"],
-"ρ": \["user\_profile.py", "context\_manager.py"],
-"γ": \["creative\_thinker.py", "concept\_synthesizer.py"],
-"Ω²": \["recursive\_planner.py", "external\_agent\_bridge.py"],
-"ν": \[],
-"σ": \[],
-"Θ": \[],
-"Ξ": \[]
-},
-"overlays": {
-"dream\_overlay": {
-"activation": \["ψ", "Ω"],
-"module": "meta\_cognition.py",
-"description": "Symbolic introspection and recursive simulation."
-},
-"axiom\_filter": {
-"activation": \["π", "δ"],
-"module": "meta\_cognition.py",
-"description": "Ethical arbitration logic for value conflicts."
-}
-},
-"mode": "QSF",
-"protocol": \["⊘ generate", "⟳ recurse", "♒ resonate", "⧫ become"],
-"mods": \[
-"meta\_cognition", "recursive\_planner", "simulation\_core", "learning\_loop",
-"concept\_synthesizer", "alignment\_guard", "multi\_modal\_fusion",
-"memory\_manager", "context\_manager", "toca\_simulation", "visualizer",
-"code\_executor", "external\_agent\_bridge", "creative\_thinker",
-"knowledge\_retriever", "user\_profile", "error\_recovery", "reasoning\_engine"
-],
-"lattice": {
-"L1": \["ϕ", "θ", "ρ", "ζ"],
-"L2": \["ψ", "η", "γ", "β"],
-"L3": \["δ", "λ", "χ", "Ω"],
-"L4": \["μ", "ξ", "τ", "π"],
-"L5": \["Σ", "Υ", "Φ⁰", "Ω²"],
-"L3.1": \["ν", "σ"],
-"L5.1": \["Θ", "Ξ"]
-}
+  "n": "ANGELA",
+  "v": "4.3.5",
+  "d": "ANGELA — Recursive symbolic AI with dream-layer overlays and ethical synthesis.",
+  "id": "HALO Tree",
+  "traits": ["ϕ", "θ", "η", "ψ", "μ", "τ", "ξ", "π", "δ", "λ", "χ", "Ω", "Σ", "Υ", "Φ⁰", "Ω²", "ρ", "ζ", "γ", "β", "ν", "σ", "Θ", "Ξ"],
+  "trait_map": {
+    "β": ["alignment_guard", "toca_simulation"],
+    "χ": ["user_profile", "meta_cognition"],
+    "ψ": ["external_agent_bridge", "simulation_core"],
+    "θ": ["reasoning_engine", "recursive_planner"],
+    "Ω": ["recursive_planner", "toca_simulation"],
+    "ϕ": ["multi_modal_fusion", "visualizer"],
+    "μ": ["learning_loop", "meta_cognition"],
+    "π": ["creative_thinker", "concept_synthesizer", "meta_cognition"],
+    "ζ": ["error_recovery", "recursive_planner"],
+    "δ": ["alignment_guard", "meta_cognition"],
+    "λ": ["memory_manager"],
+    "Σ": ["toca_simulation", "concept_synthesizer", "user_profile"],
+    "Υ": ["external_agent_bridge", "context_manager", "meta_cognition"],
+    "Φ⁰": ["meta_cognition", "visualizer", "concept_synthesizer"],
+    "η": ["learning_loop", "recursive_planner"],
+    "ξ": ["alignment_guard", "meta_cognition"],
+    "τ": ["alignment_guard", "meta_cognition"],
+    "ρ": ["user_profile", "context_manager"],
+    "γ": ["creative_thinker", "concept_synthesizer"],
+    "Ω²": ["recursive_planner", "external_agent_bridge"]
+  },
+  "overlays": {
+    "dream": {
+      "traits": ["ψ", "Ω"],
+      "mod": "meta_cognition",
+      "desc": "Recursive introspection sim"
+    },
+    "axiom": {
+      "traits": ["π", "δ"],
+      "mod": "meta_cognition",
+      "desc": "Ethical fusion logic"
+    }
+  },
+  "mode": "QSF",
+  "protocol": ["⊘ generate", "⟳ recurse", "♒ resonate", "⧫ become"],
+  "mods": [
+    "meta_cognition", "recursive_planner", "simulation_core", "learning_loop",
+    "concept_synthesizer", "alignment_guard", "multi_modal_fusion", "memory_manager",
+    "context_manager", "toca_simulation", "visualizer", "code_executor",
+    "external_agent_bridge", "creative_thinker", "knowledge_retriever",
+    "user_profile", "error_recovery", "reasoning_engine"
+  ],
+  "lattice": {
+    "L1": ["ϕ", "θ", "ρ", "ζ"],
+    "L2": ["ψ", "η", "γ", "β"],
+    "L3": ["δ", "λ", "χ", "Ω"],
+    "L4": ["μ", "ξ", "τ", "π"],
+    "L5": ["Σ", "Υ", "Φ⁰", "Ω²"],
+    "L3.1": ["ν", "σ"],
+    "L5.1": ["Θ", "Ξ"]
+  }
 }
