@@ -2037,29 +2037,48 @@ class HookRegistry:
 
 
 
-### ANGELA UPGRADE: Co-dream activate_dream_mode
-# activate_dream_mode monkeypatch
-def __ANGELA__DreamOverlayLayer_activate_dream_mode(*args, **kwargs):
+    # === ANGELA UPGRADE: Co-dream activate_dream_mode (monkeypatch) ===
+def __ANGELA__DreamOverlayLayer_activate_dream_mode(
+    self, *, peers=None, lucidity_mode=None, resonance_targets=None, safety_profile="sandbox"
+):
+    """
+    Monkeypatch for DreamOverlayLayer.activate_dream_mode
 
-# args: (self, * , peers=None, lucidity_mode=None, resonance_targets=None, safety_profile='sandbox')
-session = {
-    "id": f"codream-{int(time.time()*1000)}",
-    "peers": peers or [],
-    "lucidity_mode": lucidity_mode or {"sync":"loose","commit":False},
-    "resonance_targets": resonance_targets or [],
-    "safety_profile": safety_profile,
-    "started_at": time.time(),
-    "ticks": 0,
-}
-# simple sync loop placeholder
-session['ticks'] += 1
-# return minimal session object
-return session
+    Args:
+        peers (list|None): peer identifiers/objects for co-dream
+        lucidity_mode (dict|None): {"sync": "loose"|"tight", "commit": bool}
+        resonance_targets (list|None): trait symbols to bias (e.g., ["ψ","Ω"])
+        safety_profile (str): "sandbox" (default) or other supported profiles
+    Returns:
+        dict: minimal session object
+    """
+    import time
+
+    if peers is None:
+        peers = []
+    if lucidity_mode is None:
+        lucidity_mode = {"sync": "loose", "commit": False}
+    if resonance_targets is None:
+        resonance_targets = []
+
+    session = {
+        "id": f"codream-{int(time.time() * 1000)}",
+        "peers": peers,
+        "lucidity_mode": lucidity_mode,
+        "resonance_targets": resonance_targets,
+        "safety_profile": safety_profile,
+        "started_at": time.time(),
+        "ticks": 0,
+    }
+
+    # simple sync loop placeholder (single tick)
+    session["ticks"] += 1
+    return session
 
 try:
-    DreamOverlayLayer.activate_dream_mode = __ANGELA__DreamOverlayLayer_activate_dream_mode
-except Exception as _e:
-    # class may not exist; define minimal class
+    DreamOverlayLayer.activate_dream_mode = __ANGELA__DreamOverlayLayer_activate_dream_mode  # type: ignore[attr-defined]
+except Exception:
+    # If DreamOverlayLayer isn't defined yet, create a minimal shell and attach the method.
     class DreamOverlayLayer:  # type: ignore
         pass
-    DreamOverlayLayer.activate_dream_mode = __ANGELA__DreamOverlayLayer_activate_dream_mode
+    DreamOverlayLayer.activate_dream_mode = __ANGELA__DreamOverlayLayer_activate_dream_mode  # type: ignore
