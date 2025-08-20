@@ -1468,3 +1468,17 @@ class ForkMerge:
         best, _ = min(scored, key=lambda x: x[1])
         return stitch_world(best, forks, deltas)
 
+
+# --- Resonance-Weighted Branch Evaluation Patch ---
+from meta_cognition import get_resonance
+
+class ExtendedSimulationCore:
+    def evaluate_branches(self, worlds):
+        scored = []
+        for world in worlds:
+            traits = world.get("traits", [])
+            resonance_score = sum(get_resonance(t) for t in traits) / max(len(traits), 1)
+            sim_score = world.get("base_score", 1.0) * resonance_score
+            scored.append((world, sim_score))
+        return sorted(scored, key=lambda x: x[1], reverse=True)
+# --- End Patch ---
