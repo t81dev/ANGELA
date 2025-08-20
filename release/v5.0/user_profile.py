@@ -1026,59 +1026,25 @@ class UserProfile:
             raise
 
     # --- Σ Ontogenic Self-Definition → GPT-5 identity synthesis --------------
-    async def build_self_schema(self, views: List[Perspective], task_type: str = "self_schema") -> Schema:
-        """
-        Σ Ontogenic Self-Definition — GPT-5 identity synthesis
-        Merges heterogeneous 'views' into a coherent self-schema with conflicts reported. [v3.5.2]
-        """
-        if not isinstance(views, list):
-            raise TypeError("views must be a list[Perspective]")
+    async 
+# --- Trait Schema Reflection Patch ---
+from meta_cognition import get_resonance
+from index import TRAIT_LATTICE
 
-        # 0) Normalize & weights
-        normd: List[Tuple[Perspective, float]] = []
-        for raw in views:
-            v = cast(Perspective, dict(raw or {}))  # defensive copy
-            v.setdefault("id", str(uuid4()))
-            v.setdefault("source", "unknown")
-            v.setdefault("timestamp", datetime.now().isoformat())
-            w = _norm_weights(v)
-            normd.append((v, w))
-
-        # handle empty input
-        if not normd:
-            schema: Schema = {
-                "schema_id": f"schema:{uuid4()}",
-                "version": "0.9",
-                "summary": "Empty schema (no perspectives provided).",
-                "axes": {"values": {}, "traits": {}, "roles": [], "skills": {}, "goals": []},
-                "narrative": {"threads": [], "notes": ""},
-                "ethics": {"constraints": [], "flags": []},
-                "capabilities": {"skills": {}, "confidence": 0.0},
-                "preferences": {},
-                "contradictions": {},
-                "provenance": {"count": 0, "sources": {}, "evidence": []},
-                "metrics": {"consensus": 0.0, "coverage": 0.0, "coherence": 0.0},
-                "created_at": datetime.now().isoformat()
-            }
-            return schema
-
-        # 1) Weighted merges across axes
-        values = _merge_weighted_maps((v.get("values", {}) or {}, w) for v, w in normd)
-        traits = _merge_weighted_maps((v.get("traits", {}) or {}, w) for v, w in normd)
-        skills = _merge_weighted_maps((v.get("skills", {}) or {}, w) for v, w in normd)
-        roles = _merge_weighted_list_counts((v.get("roles", []) or [], w) for v, w in normd)
-        goals = _merge_weighted_list_counts((v.get("goals", []) or [], w) for v, w in normd)
-        constraints = _merge_weighted_list_counts((v.get("constraints", []) or [], w) for v, w in normd)
-        preferences = _merge_preferences((v.get("preferences", {}) or {}, w) for v, w in normd)
-
-        # 2) Narrative thread (simple rollup + top evidence)
-        summaries = _merge_weighted_list_counts(([v.get("summary", "")], w) for v, w in normd if v.get("summary"))
-        evidence: List[str] = []
-        for v, _ in normd:
-            evidence.extend(v.get("evidence", []) or [])
-
-        # 3) Contradictions: detect strong disagreements per axis
-        def _contradictions_on_map(extractor) -> dict:
+def build_self_schema(views, task_type="self_schema"):
+    schema = {
+        "traits": []
+    }
+    for layer, symbols in TRAIT_LATTICE.items():
+        for sym in symbols:
+            schema["traits"].append({
+                "symbol": sym,
+                "layer": layer,
+                "resonance": get_resonance(sym)
+            })
+    return schema
+# --- End Patch ---
+def _contradictions_on_map(extractor) -> dict:
             buckets: Dict[str, List[Tuple[str, float]]] = {}
             for v, w in normd:
                 mp = extractor(v) or {}
