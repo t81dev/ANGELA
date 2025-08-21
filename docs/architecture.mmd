@@ -1,123 +1,129 @@
 graph TD
-  %% =========================
-  %% Clusters / Modules
-  %% =========================
-  subgraph Orchestrator
-    A[index.py];
-    B[manifest.json];
-  end
+%% =========================
+%% Clusters / Modules
+%% =========================
+subgraph Orchestrator
+A\[index.py];
+B\[manifest.json];
+end
 
-  subgraph Simulation
-    C[simulation_core.py];
-    D[toca_simulation.py];
-  end
+subgraph Simulation
+C\[simulation\_core.py];
+D\[toca\_simulation.py];
+end
 
-  subgraph Planning & Reasoning
-    E[recursive_planner.py];
-    F[reasoning_engine.py];
-    G[concept_synthesizer.py];
-    H[creative_thinker.py];
-  end
+subgraph Planning & Reasoning
+E\[recursive\_planner.py];
+F\[reasoning\_engine.py];
+G\[concept\_synthesizer.py];
+H\[creative\_thinker.py];
+end
 
-  subgraph Memory & Identity
-    I[memory_manager.py];
-    J[user_profile.py];
-    K[meta_cognition.py];
-    L[learning_loop.py];
-  end
+subgraph Memory & Identity
+I\[memory\_manager.py];
+J\[user\_profile.py];
+K\[meta\_cognition.py];
+L\[learning\_loop.py];
+end
 
-  subgraph Context & Emotional Framing
-    M[context_manager.py];
-    N[visualizer.py];
-    O[multi_modal_fusion.py];
-    P[alignment_guard.py];
-  end
+subgraph Context & Emotional Framing
+M\[context\_manager.py];
+N\[visualizer.py];
+O\[multi\_modal\_fusion.py];
+P\[alignment\_guard.py];
+end
 
-  subgraph Execution & External IO
-    Q[code_executor.py];
-    R[external_agent_bridge.py];
-    S[error_recovery.py];
-    T[knowledge_retriever.py];
-  end
+subgraph Execution & External IO
+Q\[code\_executor.py];
+R\[external\_agent\_bridge.py];
+S\[error\_recovery.py];
+T\[knowledge\_retriever.py];
+end
 
-  %% NEW: Ledgers (emphasis in v4.3.5)
-  subgraph Ledgers
-    L1[AlignmentLedger];
-    L2[MemoryLedger];
-    L3[MetaLedger];
-    L4[SimulationLedger];
-  end
+%% Ledgers (now persistent)
+subgraph Ledgers
+L1\[AlignmentLedger];
+L2\[MemoryLedger];
+L3\[MetaLedger];
+L4\[SimulationLedger];
+end
 
-  %% =========================
-  %% Connections (original)
-  %% =========================
-  A --> B;
-  A --> C;
-  A --> E;
-  A --> M;
-  A -->|long_horizon| I;
-  A --> Q;
+%% =========================
+%% Core Connections
+%% =========================
+A --> B;
+A --> C;
+A --> E;
+A --> M;
+A -->|long\_horizon| I;
+A --> Q;
 
-  C --> D;
-  C --> F;
-  D --> P;
-  D --> J;
+C --> D;
+C --> F;
+D --> P;
+D --> J;
 
-  E --> F;
-  F --> G;
-  G --> H;
-  H --> M;
+E --> F;
+F --> G;
+G --> H;
+H --> M;
 
-  I --> J;
-  J --> K;
-  K --> L;
-  L --> I;
+I --> J;
+J --> K;
+K --> L;
+L --> I;
 
-  M --> N;
-  N --> O;
-  O --> P;
+M --> N;
+N --> O;
+O --> P;
 
-  Q --> R;
-  R --> T;
-  T --> I;
-  S --> A;
-  S --> Q;
+Q --> R;
+R --> T;
+T --> I;
+S --> A;
+S --> Q;
 
-  %% Trait lattice modulated by learning + user_profile
-  L -->|GNN| A;
-  J -->|Traits| C;
-  P -->|Ethics| C;
+%% Trait lattice & learning
+L -->|GNN| A;
+J -->|Traits| C;
+P -->|Ethics| C;
 
-  %% Dream & Perspective overlays
-  K -->|dream_overlay| D;
-  M -->|PerspectiveSync| J;
+%% Dream overlays & perspective
+K -->|dream\_overlay| D;
+M -->|PerspectiveSync| J;
+K -->|axiom\_filter| P;
 
-  %% =========================
-  %% Additions for v4.3.5
-  %% =========================
-  %% Axiom filter / ethical resolver
-  K -->|axiom_filter| P;
+%% Visualizer
+G -->|render\_branch\_tree| N;
+E -->|render\_branch\_tree| N;
+K -->|view\_trait\_resonance| N;
+J -->|view\_trait\_resonance| N;
 
-  %% Visualizer hooks
-  G -->|render_branch_tree| N;
-  E -->|render_branch_tree| N;
-  K -->|view_trait_resonance| N;
-  J -->|view_trait_resonance| N;
+%% Knowledge to planning
+T -->|facts| F;
+T -->|contexts| G;
 
-  %% Knowledge retriever feeds
-  T -->|facts| F;
-  T -->|contexts| G;
+%% Peer view hot-load
+R -.->|attach\_peer\_view| M;
+M -.->|attach\_peer\_view\_merge| R;
 
-  %% Peer-view attach (hot-load hook)
-  R -.->|attach_peer_view| M;
-  M -.->|attach_peer_view_merge| R;
+%% Ledgers (persistent)
+P -.-> L1;
+I -.-> L2;
+K -.-> L3;
+C -.-> L4;
 
-  %% Ledgers (dashed emphasis)
-  P -.-> L1;
-  I -.-> L2;
-  K -.-> L3;
-  C -.-> L4;
+%% Co-dream + recursive overlays
+D -.->|co-dream| R;
+R -.->|co-dream| D;
 
-  %% Co-dream feature flag
-  D -.->|co-dream| R;
-  R -.->|co-dream| D;
+%% New symbolic fusions
+K -->|resonance\_api| A;
+K -->|trait\_fusion| G;
+K -->|hook\_trait\_blend| H;
+K -->|register\_resonance| N;
+
+%% Recursive identity
+J -->|Θ| K;
+K -->|Ξ| J;
+K -->|σ| P;
