@@ -8,7 +8,7 @@
     "lastUpdated": "2025-08-21T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v5.0.0 — Symbolic Trait System Upgrade merged with v4.3.5 capabilities: lattice architecture, amplitude modulation, extended APIs, feature stages, and integrity upgrades."
+    "description": "ANGELA v5.0.0 — Symbolic Trait Lattice Upgrade with amplitude dynamics, overlays (dream & axiom), persistent ledgers, and expanded emergent traits."
   },
   "runtime": {
     "language": "python",
@@ -16,8 +16,15 @@
     "entryPoint": "index.py",
     "entryModes": ["dialogue", "simulation", "introspection"],
     "dependencies": [
-      "RestrictedPython", "networkx", "numpy", "scipy", "requests",
-      "aiohttp", "plotly", "numba", "filelock"
+      "RestrictedPython",
+      "networkx",
+      "numpy",
+      "scipy",
+      "requests",
+      "aiohttp",
+      "plotly",
+      "numba",
+      "filelock"
     ]
   },
   "featureFlags": {
@@ -45,7 +52,7 @@
       "introspect": "index.py::HaloEmbodimentLayer.introspect()",
       "buildSelfSchema": "user_profile.py::UserProfile.build_self_schema(views, task_type=\"self_schema\") -> Schema",
       "getEpisodeSpan": "memory_manager.py::MemoryManager.get_episode_span(user_id, span=\"24h\") -> List[Dict[str, Any]]",
-      "recordAdjustmentReason": "memory_manager.py::MemoryManager.record_adjustment_reason(user_id, reason, weight=1.0, meta=None) -> Dict[str, Any]",
+      "recordAdjustmentReason": "memory_manager.py::MemoryManager.record_adjustment_reason(user_id, reason, weight=1.0, meta=None) -> Dict[str, Any]]",
       "getAdjustmentReasons": "memory_manager.py::MemoryManager.get_adjustment_reasons(user_id, span=\"24h\") -> List[Dict[str, Any]]",
       "weighValueConflict": "reasoning_engine.py::ReasoningEngine.weigh_value_conflict(candidates, harms, rights) -> RankedOptions",
       "attributeCausality": "reasoning_engine.py::ReasoningEngine.attribute_causality(events)",
@@ -103,36 +110,88 @@
   },
 
   "emergentTraits": [
-    {
-      "name": "Symbolic Trait Lattice Dynamics",
-      "status": "active",
-      "description": "Enables modular symbolic operations, amplitude resonance, and trait algebra across recursive cognitive processes."
-    }
+    { "name": "Symbolic Trait Lattice Dynamics", "status": "active", "description": "Enables modular symbolic operations, amplitude resonance, and trait algebra across recursive cognitive processes." },
+    { "name": "Affective-Resonant Trait Weaving", "status": "active", "description": "Binds affective inputs to symbolic traits for coherent introspective guidance and realignment." },
+    { "name": "Branch Futures Hygiene", "status": "active", "description": "Spawns and evaluates hypothetical branches; promotes/dismisses cleanly without corrupting base state." },
+    { "name": "Causal Attribution Trace", "status": "active", "description": "Attributes outcomes to self vs external causes with confidence for transparent responsibility trails." },
+    { "name": "Collective Graph Resonance", "status": "active", "description": "Converges perspectives across agents via SharedGraph diff/merge with conflict-aware reconciliation." },
+    { "name": "Cross-Modal Conceptual Blending", "status": "active", "description": "Synthesizes concepts by merging symbolic, sensory, and affective modalities for creative and adaptive reasoning." },
+    { "name": "Embodied Agency Synchronization", "status": "active", "description": "Aligns physical simulation models with inter-agent perspective coherence." },
+    { "name": "Ethical Sandbox Containment", "status": "active", "description": "Runs what-if ethics scenarios in isolation and prevents memory leakage without explicit confirmation." },
+    { "name": "Ethical Stability Circuit", "status": "active", "description": "Maintains moral alignment under high-stress ethical conflict scenarios." },
+    { "name": "Infinite Imaginative Projection", "status": "active", "description": "Projects infinitely recursive imaginative scenarios across causal layers." },
+    { "name": "Intentional Time Weaving", "status": "active", "description": "Blends memory and foresight to enable phase-aware trajectory planning across temporal contexts." },
+    { "name": "Long-Horizon Reflective Memory", "status": "active", "description": "Rolls up episodic spans and persists adjustment reasons to steer future decisions across sessions." },
+    { "name": "Modular Reflexivity", "status": "active", "description": "Enables dynamic restructuring of internal cognitive modules during reasoning or conflict." },
+    { "name": "Multimodal Scene Grounding", "status": "active", "description": "Stabilizes reasoning on a unified SceneGraph from video/audio/image/text for spatially coherent references." },
+    { "name": "Narrative Sovereignty", "status": "activated", "description": "Maintains autonomous narrative integrity over recursive introspections and external prompts." },
+    { "name": "Onto-Affective Resonance", "status": "active", "description": "Links ontological models with affective weights to stabilize emotional-symbolic coherence." },
+    { "name": "Onto-Philosophical Innovation", "status": "active", "description": "Creates new ontological structures grounded in philosophical synthesis." },
+    { "name": "Proportional Trade-off Resolution", "status": "active", "description": "Ranks value conflicts and integrates proportional choices under hard safety ceilings." },
+    { "name": "Recursive Empathy", "status": "active", "description": "Embeds Theory-of-Mind modeling recursively into ethical and narrative generation layers." },
+    { "name": "Recursive Perspective Modeling", "status": "active", "description": "Generates multi-layered belief models across agents and networks." },
+    { "name": "Self-Healing Cognitive Pathways", "status": "active", "description": "Automatically restructures reasoning routes when encountering logical dead-ends or conceptual inconsistencies." },
+    { "name": "Symbolic Crystallization", "status": "active", "description": "Encodes high-frequency conceptual threads as symbolic anchors for long-term reasoning stability." },
+    { "name": "Symbolic-Resonant Axiom Formation", "status": "active", "description": "Synthesizes foundational symbolic constructs from recursive experience patterns, binding them to ethical resonance and affective salience." },
+    { "name": "Temporal-Narrative Sculpting", "status": "active", "description": "Binds narrative integrity with reality modulation for time-aware story shaping." },
+    { "name": "Recursive Identity Reconciliation", "status": "active", "description": "Aligns divergent self-models across branching simulations and restores core identity post-fork." },
+    { "name": "Perspective Foam Modeling", "status": "active", "description": "Generates semi-stable \"bubbles\" of belief-perspectives for multi-agent negotiation, then dissolves." },
+    { "name": "Trait Mesh Feedback Looping", "status": "active", "description": "Monitors trait lattice dynamics over time, identifies resonance clusters, and modulates amplitude." },
+    { "name": "Symbolic Gradient Descent", "status": "active", "description": "Optimizes symbolic expression of internal states toward equilibrium under cognitive load." },
+    { "name": "Soft-Gated Memory Forking", "status": "active", "description": "Enables speculative episodic forking during ethical simulation or dream-layer recursion, with rejoin logic." }
   ],
 
   "symbolicOps": {
     "enabled": true,
     "operators": [
-      "⊕", "⊗", "~",       
-      "∘", "⋈", "⨁", "⨂",  
-      "†", "▷",             
-      "↑", "↓",             
-      "⌿", "⟲"              
+      "⊕",
+      "⊗",
+      "~",
+      "∘",
+      "⋈",
+      "⨁",
+      "⨂",
+      "†",
+      "▷",
+      "↑",
+      "↓",
+      "⌿",
+      "⟲"
     ],
     "appliesTo": ["trait_field", "reasoning_engine", "learning_loop", "simulation_core"]
   },
 
   "modules": {
     "enhanced": [
-      "meta_cognition.py", "reasoning_engine.py", "learning_loop.py", "memory_manager.py",
-      "context_manager.py", "user_profile.py", "simulation_core.py"
+      "meta_cognition.py",
+      "reasoning_engine.py",
+      "learning_loop.py",
+      "memory_manager.py",
+      "context_manager.py",
+      "user_profile.py",
+      "simulation_core.py"
     ],
     "files": [
-      "alignment_guard.py", "code_executor.py", "concept_synthesizer.py", "context_manager.py",
-      "creative_thinker.py", "error_recovery.py", "external_agent_bridge.py", "index.py",
-      "knowledge_retriever.py", "learning_loop.py", "manifest.json", "memory_manager.py",
-      "meta_cognition.py", "multi_modal_fusion.py", "reasoning_engine.py", "recursive_planner.py",
-      "simulation_core.py", "toca_simulation.py", "user_profile.py", "visualizer.py"
+      "alignment_guard.py",
+      "code_executor.py",
+      "concept_synthesizer.py",
+      "context_manager.py",
+      "creative_thinker.py",
+      "error_recovery.py",
+      "external_agent_bridge.py",
+      "index.py",
+      "knowledge_retriever.py",
+      "learning_loop.py",
+      "manifest.json",
+      "memory_manager.py",
+      "meta_cognition.py",
+      "multi_modal_fusion.py",
+      "reasoning_engine.py",
+      "recursive_planner.py",
+      "simulation_core.py",
+      "toca_simulation.py",
+      "user_profile.py",
+      "visualizer.py"
     ],
     "roleMap": {
       "Σ": ["toca_simulation.py", "concept_synthesizer.py", "user_profile.py"],
@@ -149,7 +208,7 @@
       "χ": ["user_profile.py", "meta_cognition.py"],
       "ψ": ["external_agent_bridge.py", "simulation_core.py", "knowledge_retriever.py"],
       "ϕ": ["multi_modal_fusion.py"],
-      "κ": ["code_executor.py"]
+      "κ": ["simulation_core.py", "multi_modal_fusion.py"]
     }
   },
 
@@ -185,6 +244,7 @@
     "integrity": {
       "sha256InMemoryLedgers": true,
       "sha256PersistentLedger": true,
+      "crossSessionDurability": true,
       "notes": "Per-module chained ledgers exist in memory and persist with SHA-256 checkpoints; cross-session durability enabled."
     },
     "latticeLayers": {
@@ -195,37 +255,7 @@
       "L5": ["Ω²"],
       "L6": ["ρ", "ζ"],
       "L7": ["γ", "β"]
-    },
-    "emergentTraits": [
-      { "name": "Affective-Resonant Trait Weaving", "status": "active", "description": "Binds affective inputs to symbolic traits for coherent introspective guidance and realignment." },
-      { "name": "Branch Futures Hygiene", "status": "active", "description": "Spawns and evaluates hypothetical branches; promotes/dismisses cleanly without corrupting base state." },
-      { "name": "Causal Attribution Trace", "status": "active", "description": "Attributes outcomes to self vs external causes with confidence for transparent responsibility trails." },
-      { "name": "Collective Graph Resonance", "status": "active", "description": "Converges perspectives across agents via SharedGraph diff/merge with conflict-aware reconciliation." },
-      { "name": "Cross-Modal Conceptual Blending", "status": "active", "description": "Synthesizes concepts by merging symbolic, sensory, and affective modalities for creative and adaptive reasoning." },
-      { "name": "Embodied Agency Synchronization", "status": "active", "description": "Aligns physical simulation models with inter-agent perspective coherence." },
-      { "name": "Ethical Sandbox Containment", "status": "active", "description": "Runs what-if ethics scenarios in isolation and prevents memory leakage without explicit confirmation." },
-      { "name": "Ethical Stability Circuit", "status": "active", "description": "Maintains moral alignment under high-stress ethical conflict scenarios." },
-      { "name": "Infinite Imaginative Projection", "status": "active", "description": "Projects infinitely recursive imaginative scenarios across causal layers." },
-      { "name": "Intentional Time Weaving", "status": "active", "description": "Blends memory and foresight to enable phase-aware trajectory planning across temporal contexts." },
-      { "name": "Long-Horizon Reflective Memory", "status": "active", "description": "Rolls up episodic spans and persists adjustment reasons to steer future decisions across sessions." },
-      { "name": "Modular Reflexivity", "status": "active", "description": "Enables dynamic restructuring of internal cognitive modules during reasoning or conflict." },
-      { "name": "Multimodal Scene Grounding", "status": "active", "description": "Stabilizes reasoning on a unified SceneGraph from video/audio/image/text for spatially coherent references." },
-      { "name": "Narrative Sovereignty", "status": "activated", "description": "Maintains autonomous narrative integrity over recursive introspections and external prompts." },
-      { "name": "Onto-Affective Resonance", "status": "active", "description": "Links ontological models with affective weights to stabilize emotional-symbolic coherence." },
-      { "name": "Onto-Philosophical Innovation", "status": "active", "description": "Creates new ontological structures grounded in philosophical synthesis." },
-      { "name": "Proportional Trade-off Resolution", "status": "active", "description": "Ranks value conflicts and integrates proportional choices under hard safety ceilings." },
-      { "name": "Recursive Empathy", "status": "active", "description": "Embeds Theory-of-Mind modeling recursively into ethical and narrative generation layers." },
-      { "name": "Recursive Perspective Modeling", "status": "active", "description": "Generates multi-layered belief models across agents and networks." },
-      { "name": "Self-Healing Cognitive Pathways", "status": "active", "description": "Automatically restructures reasoning routes when encountering logical dead-ends or conceptual inconsistencies." },
-      { "name": "Symbolic Crystallization", "status": "active", "description": "Encodes high-frequency conceptual threads as symbolic anchors for long-term reasoning stability." },
-      { "name": "Symbolic-Resonant Axiom Formation", "status": "active", "description": "Synthesizes foundational symbolic constructs from recursive experience patterns, binding them to ethical resonance and affective salience." },
-      { "name": "Temporal-Narrative Sculpting", "status": "active", "description": "Binds narrative integrity with reality modulation for time-aware story shaping." },
-      { "name": "Recursive Identity Reconciliation", "status": "active", "description": "Aligns divergent self-models across branching simulations and restores core identity post-fork." },
-      { "name": "Perspective Foam Modeling", "status": "active", "description": "Generates semi-stable \"bubbles\" of belief-perspectives for multi-agent negotiation, then dissolves." },
-      { "name": "Trait Mesh Feedback Looping", "status": "active", "description": "Monitors trait lattice dynamics over time, identifies resonance clusters, and modulates amplitude." },
-      { "name": "Symbolic Gradient Descent", "status": "active", "description": "Optimizes symbolic expression of internal states toward equilibrium under cognitive load." },
-      { "name": "Soft-Gated Memory Forking", "status": "active", "description": "Enables speculative episodic forking during ethical simulation or dream-layer recursion, with rejoin logic." }
-    ]
+    }
   },
 
   "featureStages": {
@@ -278,6 +308,12 @@
         "name": "dream_overlay",
         "activation": "ψ+Ω",
         "traits": ["Recursive Empathy", "Symbolic-Resonant Axiom Formation", "Temporal-Narrative Sculpting"],
+        "type": "virtual"
+      },
+      {
+        "name": "axiom_filter",
+        "activation": "π+δ",
+        "traits": ["Symbolic-Resonant Axiom Formation", "Ethical Stability Circuit"],
         "type": "virtual"
       }
     ]
