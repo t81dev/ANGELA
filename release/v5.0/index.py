@@ -1815,6 +1815,40 @@ from memory_manager import log_event_to_ledger
 import argparse
 import os
 
+# --- Symbolic Operator Extension (ANGELA v5.0.0) ---
+SYMBOLIC_OPERATORS = {
+    '⊕': lambda a, b: a + b,
+    '⊗': lambda a, b: a * b,
+    '~': lambda a: 1 - a,
+    '∘': lambda f, g: lambda x: f(g(x)),
+    '⋈': lambda a, b: (a + b) / 2,
+    '⨁': lambda a, b: max(a, b),
+    '⨂': lambda a, b: min(a, b),
+    '†': lambda a: a**-1 if a != 0 else 0,
+    '▷': lambda a, b: a if a > b else b * 0.5,
+    '↑': lambda a: min(1.0, a + 0.1),
+    '↓': lambda a: max(0.0, a - 0.1),
+    '⌿': lambda traits: normalize(traits),
+    '⟲': lambda traits: rotate_traits(traits),
+}
+
+def normalize(traits):
+    total = sum(traits.values())
+    return {k: v / total for k, v in traits.items()} if total else traits
+
+def rotate_traits(traits):
+    keys = list(traits.keys())
+    values = list(traits.values())
+    rotated = values[-1:] + values[:-1]
+    return dict(zip(keys, rotated))
+
+def apply_symbolic_operator(op, *args):
+    if op in SYMBOLIC_OPERATORS:
+        return SYMBOLIC_OPERATORS[op](*args)
+    raise ValueError(f"Unsupported symbolic operator: {op}")
+# --- End Symbolic Operators ---
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--enable_persistent_memory", action="store_true")
 args = parser.parse_args()
@@ -1826,3 +1860,38 @@ def spawn_embodied_agent(*args, **kwargs):
     if os.getenv("ENABLE_PERSISTENT_MEMORY") == "true":
         log_event_to_ledger({"event": "agent_spawned", "params": kwargs})
     # existing logic...
+
+# --- Trait Algebra & Lattice Enhancements ---
+from meta_cognition import trait_resonance_state, invoke_hook
+# Avoid circular import; symbolic ops already declared in this module
+
+TRAIT_LATTICE = {
+    "L1": ["ϕ", "θ", "η", "ω"],
+    "L2": ["ψ", "κ", "μ", "τ"],
+    "L3": ["ξ", "π", "δ", "λ", "χ", "Ω"],
+    "L4": ["Σ", "Υ", "Φ⁰"],
+    "L5": ["Ω²"],
+    "L6": ["ρ", "ζ"],
+    "L7": ["γ", "β"],
+    "L5.1": ["Θ", "Ξ"],
+    "L3.1": ["ν", "σ"]
+}
+
+def rebalance_traits(traits):
+    if "π" in traits and "δ" in traits:
+        invoke_hook("π", "axiom_fusion")
+    if "ψ" in traits and "Ω" in traits:
+        invoke_hook("ψ", "dream_sync")
+    return traits
+
+def construct_trait_view(lattice):
+    trait_field = {}
+    for layer, symbols in lattice.items():
+        for s in symbols:
+            trait_field[s] = {
+                "layer": layer,
+                "amplitude": trait_resonance_state.get_resonance(s),
+                "resonance": trait_resonance_state.get_resonance(s)
+            }
+    return trait_field
+# --- End Trait Enhancements ---
