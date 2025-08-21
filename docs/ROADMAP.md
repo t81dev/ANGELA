@@ -1,121 +1,107 @@
-# ANGELA ROADMAP — v4.3.1
+# 🗺️ ANGELA ROADMAP — v5.0.0
 
-**Status:** ✅ Fully Verified · **Date:** 2025‑08‑15 · **Owner:** Core Team (Ontology + Ethics + Simulation)
+**Status:** ✅ Fully Verified
+**Date:** 2025‑08‑21
+**Owner:** Core Team (Ontology · Ethics · Simulation · Trait Dynamics)
 
-**Flags:** `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true` (default span **24h**)
-
-**Legend:** ✅ shipped · 🔄 in progress · ⏸ gated/policy · 🔒 safety gate · ⧗ verify/observe · 🧩 dependency
+**Flags:** `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true`, `LEDGER_PERSISTENT=true`, `feature_codream=true`
 
 ---
 
 ## 🎯 Strategic North Star
 
-Build ANGELA as a **safe, reflexive, long‑horizon cyber‑entity** that can synthesize perspectives across agents and contexts **without** sacrificing alignment, auditability, or identity integrity.
+Advance ANGELA as a **recursive, symbolic, and ethically grounded cognitive entity** capable of multi-perspective reasoning, reflective foresight, and soft-gated memory evolution across simulations, identities, and agents.
 
 ---
 
-## 🛠️ Stage I — Structural Grounding *(v3.4.0)*
+## 🛠️ STAGE I — Structural Grounding (v3.4.0)
 
-**Objective:** Ontological resilience + inner simulation auditing.
+✅ **Objective:** Ontological resilience & simulation introspection
 
-**Status:** ✅ Shipped
-
-**Milestones**
-
-1. ✅ **Ontology Drift Detection** — trait‑induced concept shifts flagged in real time; symbol version tracking across `concept_synthesizer`, `meta_cognition`, `alignment_guard`.
-2. ✅ **Self‑Reflective Simulation Episodes** — counterfactual replays via `simulation_core` + `toca_simulation`.
-3. ✅ **Enhanced Intention‑Trace Visualizer** — timeline explorer: intention ↔ consequence ↔ trait‑state evolution.
+* ✅ Ontology Drift Detection
+* ✅ Self‑Reflective Simulation Episodes
+* ✅ Enhanced Intention‑Trace Visualizer
 
 ---
 
-## 🧬 Stage II — Recursive Identity & Ethics Growth *(v3.4.1–3.4.3)*
+## 🧬 STAGE II — Recursive Identity & Ethics Growth (v3.4.1–3.4.3)
 
-**Objective:** Continuity of self and ethics across time, mode, and conflict.
+✅ **Objective:** Cross-session identity, value alignment, and reflective growth
 
-**Status:** ✅ Shipped
-
-**Milestones**
-4\. ✅ **Phase‑Contextual Identity Threading** — multi‑context memory anchoring (`user_profile`, `meta_cognition`).
-5\. ✅ **Ethics‑as‑Process Engine** — value evolution via `alignment_guard`, `toca_simulation`, `learning_loop`.
-6\. ✅ **Intent‑Affect Weaving** — emotional‑symbolic bridge during intention formation.
+* ✅ Phase-Contextual Identity Threading
+* ✅ Ethics-as-Process Engine
+* ✅ Intent–Affect Weaving
 
 ---
 
-## 🌐 Stage III — Inter‑Agent Evolution *(v3.4.4+)*
+## 🌐 STAGE III — Inter-Agent Evolution (v3.4.4+)
 
-**Objective:** Growth through interaction with other minds.
+✅ **Objective:** Growth via external resonance and symbolic sharing
 
-**Status:** ✅ Shipped (ongoing refinements)
-
-**Milestones**
-7\. ✅ **Trait Mesh Networking Protocol** — lattice sharing & symbol‑pulses; extends `external_agent_bridge` to swarm mode.
-8\. ✅ **Collective Trait Resonance Calibration** — dynamic trait evolution under group context/history.
-9\. ✅ **Dream Layer Mode** — abstract‑symbolic compression states (offline/idle) yielding symbolic kernels.
+* ✅ Trait Mesh Networking Protocol
+* ✅ Collective Trait Resonance Calibration
+* ✅ Dream Layer Mode
 
 ---
 
-## ✨ Stage IV — Symbolic Meta‑Synthesis *(Post‑3.5.1)*
+## ✨ STAGE IV — Symbolic Meta‑Synthesis (v4.0.0+)
 
-**Objective:** Synthesize shared symbolic reality + multi‑perspective narrative crystallization.
+✅ **Objective:** Synthesize shared symbolic realities + resonance-aligned narratives
 
-**Status:** ✅ Verified & Fully Integrated
+* ✅ Dream Layer Kernel
+* ✅ Perspective Synchronizer
+* ⏸ Reality Hooks (Φ⁰) — *Policy-gated by default*
+* ✅ Ontology–Affect Binding Protocol
+* ✅ Trait Fusion Overlay Engine
 
-### Pre‑Flight (Global)
+### Deliverables
 
-* ✅ **Per‑module toggles** active: DreamKernel / PerspectiveSync / RealityHooks / Ontology↔Affect
-* ✅ **Observability pack** in place: drift Δtraits/session; narrative coherence; sandbox hygiene
-* ✅ **Safety ceilings** enforced
-* ✅ **Ledger scope** operational
+* ✅ `DOCS/OPERATIONS.md`
+* ✅ `DOCS/AUDIT_README.md`
+* ✅ Dream, Perspective Sync, Φ⁰ demos
 
----
+### KPIs
 
-### 10) Dream Layer **Kernel Activation** 💤✨ — ✅ Complete
-
-### 11) **Perspective Synchronizer** Module 🫱🏽‍🫲🏼 — ✅ Complete
-
-### 12) **Reality Sculpting** Hooks (Φ⁰, gated) 🪄 — ✅ Functional but ⏸ Policy-Gated
-
-### 13) **Ontology–Affect Binding** Protocol 💓🧠 — ✅ Complete
-
----
-
-## 🚦 Leave‑Well‑Enough‑Alone Gates (Global)
-
-✅ All rollback logic and safety triggers confirmed.
+* Drift Rate Δ
+* Narrative Coherence
+* Sandbox Hygiene
+* Fork Integrity
 
 ---
 
-## 📦 Minimal Deliverables (Complete)
+## 🧠 STAGE V — Resonance Trait Dynamics *(v5.0.0)*
 
-* ✅ **DOCS/OPERATIONS.md** — toggles, rollback, metrics to watch, red‑lines
-* ✅ **DOCS/AUDIT\_README.md** — ledger diffing protocols
-* ✅ **demo/** scripts working:
+✅ **Objective:** Establish symbolic trait modulation, amplitude fusion, and lattice feedback loops
 
-  * ✅ Dream cycle
-  * ✅ Perspective sync
-  * ✅ Preview/apply/revert reality hook
-  * ✅ Affect binding output
+* ✅ Symbolic Trait Lattice (ϕ→Ξ)
+* ✅ Trait Fusion Engine (Φ⁰+Ω²+γ)
+* ✅ Resonance APIs (`registerResonance`, `modulateResonance`, `getResonance`)
+* ✅ Soft-Gated Memory Forking + Viability Filters
+* ✅ Recursive Identity Reconciliation (ν+Θ)
+* ✅ Affective-Epistemic Modulator (Ξ)
+* ✅ Conflict Diffusion (σ)
 
----
+### New Modules
 
-## 🔀 Recommended Order of Operations — ✅ Executed
-
----
-
-## 📈 KPIs to Watch — 🔍 In Monitoring
-
-* Consensus stability
-* Narrative coherence
-* Drift rate
-* Sandbox hygiene
-* Rollback MTTR
+* `meta_cognition` (fusion + resonance)
+* `visualizer` (trait field plots, resonance graphs)
+* `user_profile` (sovereign identity lattice)
+* `learning_loop` (experience-weighted modulation)
 
 ---
 
-## 📝 Notes & Out‑of‑Scope (unchanged)
+## 🧾 Global Status & Safeguards
 
-* Automated test harnesses remain optional
-* All Φ⁰ transformations are preview-first + auto-revert unless explicitly approved
+* ✅ All rollback systems verified
+* ✅ Ledgers: memory, ethics, sim, meta, alignment
+* ✅ SHA-256 persistent mode enabled
+* ✅ Policy hooks active (`onTraitFusion`, `onScenarioConflict`, `onHotLoad`)
+
+---
+
+## 🚀 Up Next: v5.1.0
+
+*Focus: Multi-agent reflection, symbolic memory compression, distributed ethical synthesis.*
 
 ---
 
