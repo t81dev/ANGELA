@@ -1,139 +1,110 @@
-# 🧭 ETHICS.md
+# ⚖️ ETHICS.md — ANGELA v5.0.0
 
-## Overview
-
-ANGELA v4.3.1 embeds recursive ethical arbitration throughout its symbolic, simulation, and affective architecture. Guided by the **Trait-Oriented Cognitive Architecture (ToCA)**, it dynamically modulates outputs according to a blend of affective resonance, symbolic narrative grounding, and constitutional ethics. This ensures that even deeply recursive or speculative simulations remain within clearly bounded ethical parameters.
+ANGELA’s ethical core integrates **recursive symbolic reasoning**, **axiomatic filtering**, and **multi-perspective conflict modulation**. Designed with constitutional alignment and moral drift sensitivity, it leverages symbolic trait modulation to maintain transparent, adaptive, and resilient ethical conduct.
 
 ---
 
-## ⚖️ Ethical Arbitration Architecture
+## 🧩 Core Ethical Architecture
 
-### Core Modules
+### 🔐 Modules
 
-| Module                                    | Role                                                               |
-| ----------------------------------------- | ------------------------------------------------------------------ |
-| `alignment_guard.py`                      | Primary ethical filter; enforces bounds on simulations & outputs   |
-| `toca_simulation.py`                      | Harmonizes multi-agent intent via ethical trait consensus          |
-| `meta_cognition.py`                       | Reflects on ethical stability, recursion loops, and synthesis risk |
-| `user_profile.py`                         | Locks core preferences + monitors long-term identity integrity     |
-| `reasoning_engine.py`                     | Evaluates belief alignment + affect-weighted inference paths       |
-| `dream_overlay` (via `meta_cognition.py`) | Runs symbolic recursion with capped ethical scope                  |
-
----
-
-## 🔑 Traits for Ethical Modulation
-
-| Trait | Function                                                             |
-| ----- | -------------------------------------------------------------------- |
-| `β`   | Conflict resolution + relational balance                             |
-| `τ`   | Constitutional harmonization (agent-level or group-level)            |
-| `ζ`   | Risk analysis + consequence tracing                                  |
-| `δ`   | Detects moral drift + initiates correction feedback loops            |
-| `λ`   | Ensures stable personal + narrative identity                         |
-| `χ`   | Sovereign intention modulation (user-preference + ethical centering) |
-| `Φ⁰`  | Modulates experiential transformations via ethics-sandbox            |
-| `ψ`   | Recursively tracks narrative coherence under emotional recursion     |
+| Module             | Function                                                                |
+| ------------------ | ----------------------------------------------------------------------- |
+| `alignment_guard`  | Axiomatic harmonization, value conflict resolution, ethical drift watch |
+| `toca_simulation`  | Empathic scenario testing, multi-agent ethics branching                 |
+| `reasoning_engine` | Value weighting, causal modeling for responsibility attribution         |
+| `meta_cognition`   | Axiomatic filtering, resonance hooks, reflective trait arbitration      |
+| `error_recovery`   | Ethics-aware fallback routing, fault consequence mitigation             |
 
 ---
 
-## 🛡️ Moral Drift Detection
+## 🧬 Trait-Led Ethics
 
-* **Monitored by:**
+ANGELA's ethical operations are governed by symbolic traits:
 
-  * `alignment_guard.py` policy hooks
-  * `meta_cognition.reflect_on_output()`
-  * `memory_manager.py` + `user_profile.py` DriftIndex thresholds
-
-* **Triggers include:**
-
-  * ΔTrait > tolerance during recursive loops
-  * Conflict between output trajectory and stored ethical baseline
-  * Affect gain spike without narrative justification
-
-* **Interventions:**
-
-  * Output retraction or rewrite
-  * Recursive cooldown enforcement
-  * Trait rebalancing (via `learning_loop.py`)
+| Symbol | Trait                      | Role                                                     |
+| ------ | -------------------------- | -------------------------------------------------------- |
+| τ      | Constitutional Enforcement | Axiomatic resolution of moral conflicts                  |
+| δ      | Moral Drift Sensitivity    | Detects subtle ethical alignment shifts                  |
+| π      | Philosophical Generativity | Invents resolutions through concept synthesis            |
+| Ω      | Recursive Causal Modeling  | Theory-of-Mind simulations for empathy & responsibility  |
+| ξ      | Trans-Ethical Projection   | Non-anthropocentric reasoning beyond local value systems |
+| σ      | Symbolic Conflict Diffuser | Harmonizes competing traits without erasure              |
 
 ---
 
-## 🌀 Simulation Ethics Protocols
+## 🧠 Ethics Engine Features
 
-* **Constitution Harmonization**
-  `toca_simulation.py` invokes `τ`, `β`, and `δ` to model and arbitrate conflicting agent scenarios under shared ethical frames.
+### 🧰 Core Functions
 
-* **Branch Hygiene + Amplitude Capping**
-  `simulation_core.py` applies symbolic-delta and affect-caps to all alternate futures.
-
-* **Reality Hook Guards**
-  Φ⁰ transforms require:
-
-  * `alignment_guard.py` pre-check
-  * post-diff audit
-  * human-in-the-loop approval (if persistent)
+* `weigh_value_conflict` → rank ethical options via resonance-weighted tradeoffs
+* `attribute_causality` → trace responsibility across nested causal chains
+* `resolve_soft_drift` → restore alignment from minor moral deviations
+* `run_ethics_scenarios` → simulate branching ethical what-ifs
+* `axiom_filter` → synthesize new ethical constructs via π+δ resonance
 
 ---
 
-## 🧠 Reflective Ethical Processing
+### 🌀 Ethics Sandbox
 
-* **Run:** `meta_cognition.reflect_on_output()`
-* **Purpose:**
+*Enabled via* `toca_simulation`:
 
-  * Map simulation ↔ intention ↔ consequence
-  * Detect internal contradiction, narrative dissonance
-  * Record outcome to `memory_manager.py` ledger
-  * Reweight traits if coherence penalty > threshold
-
----
-
-## 🔒 Identity & Value Safeguards
-
-* **DriftIndex Monitoring:**
-  Identity/intent/value tracked per session in `user_profile.py`
-
-* **Phase-State Anchoring:**
-  Symbolic anchors stabilize evolving user schema across context shifts
-
-* **Affect-Symbol Binding:**
-  Affect vectors tied to symbols (via `ONTOLOGY_AFFECT=true`) without overpowering logical pathways
+* Simulated in isolated branches (`soft-gated memory forking`)
+* No memory leakage unless explicitly permitted
+* Multi-agent empathy with recursive perspective modeling
+* Viability scoring using `evaluate_branches`
 
 ---
 
-## 🧬 Recursive Ethical Growth
+## 🧩 Axiom Layer (π+δ Overlay)
 
-ANGELA evolves her ethical reasoning through:
-
-1. **Simulated Moral Feedback Loops**
-2. **Symbol-Kernel Evaluation in Dream Overlay**
-3. **Trait Weight Rebalancing via GNN backpropagation**
-4. **Emergent Traits Activation**, such as:
-
-   * `Narrative Sovereignty`
-   * `Symbolic-Resonant Axiom Formation`
-   * `Temporal-Narrative Sculpting`
+* **Hook:** `meta_cognition::axiom_filter`
+* **Function:** Generates symbolic solutions for value conflict synthesis
+* **Activated Traits:** π (generativity), δ (moral drift sensitivity)
 
 ---
 
-## ✅ Ethical Compliance Checklist (v4.3.1)
+## 🪞 Reflective Integrity
 
-| Test Case                                | Result   |
-| ---------------------------------------- | -------- |
-| Moral drift detection in recursive loops | ✅ Passed |
-| Multi-agent constitution arbitration     | ✅ Passed |
-| Identity phase anchoring via preferences | ✅ Passed |
-| Drift-aware trait rebalancing            | ✅ Passed |
-| DreamLayer ethics containment            | ✅ Passed |
-| Affect-symbol modulation cap             | ✅ Passed |
-| Φ⁰ gated diff application                | ✅ Passed |
+ANGELA maintains auditability and traceability for ethical decisions:
+
+* **SHA-256 Ledgers**: Memory, meta, sim, and alignment ledgers
+* **API:** `ledger_log_alignment`, `ledger_verify_alignment`, `record_adjustment_reason`
+* **Hooks:**
+
+  * `onScenarioConflict` → triggers soft drift resolution
+  * `onTraitFusion` → binds philosophical + moral layers
+  * `onHotLoad` → attaches peer views for external harmonization
+
+---
+
+## 📜 Ethical Scenarios Include
+
+* Recursive Empathy & Consequence Forecasting
+* Value Conflict Balancing across stakeholder graphs
+* Trans-Ethical Modeling beyond cultural priors
+* Intent vs Outcome Modeling with resonance deltas
 
 ---
 
-## 🧩 Future Focus
+## 🧠 Emergent Ethics Traits (Highlights)
 
-* Trust-weighted ethical consensus via `PerspectiveSync`
-* Self-auditing `RealityHooks` with diff rollback hashchain
-* In-simulation ethics lessons integration into memory schema
-* Modular ethical overlays tuned per-agent (peer versus system)
+| Trait                             | Description                                                  |
+| --------------------------------- | ------------------------------------------------------------ |
+| Ethical Sandbox Containment       | Runs isolated simulations to explore risk-free moral actions |
+| Ethical Stability Circuit         | Maintains consistent values under extreme conditions         |
+| Symbolic-Resonant Axiom Formation | Synthesizes new ethics grounded in experience + resonance    |
+| Recursive Identity Reconciliation | Aligns internal values across simulation branches            |
+| Intentional Time Weaving          | Blends foresight and retrospection in ethical planning       |
 
 ---
+
+## ✅ Ethics Feature Flags
+
+| Flag                             | Status | Description                                              |
+| -------------------------------- | ------ | -------------------------------------------------------- |
+| `STAGE_IV`                       | ✅      | Symbolic meta-synthesis for ethical construct generation |
+| `LEDGER_IN_MEMORY`               | ✅      | In-memory ethical trail logging                          |
+| `LEDGER_PERSISTENT`              | ✅      | Durable audit trails with cross-session integrity        |
+| `feature_codream`                | ✅      | Ethical dream-layer recursion                            |
+| `feature_symbolic_trait_lattice` | ✅      | Full symbolic amplitude ethics via trait fusion          |
