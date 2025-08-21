@@ -1,3 +1,21 @@
+# --- flat-layout bootstrap ---
+import sys, types, importlib, importlib.util, importlib.machinery, importlib.abc
+
+class FlatLayoutFinder(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path, target=None):
+        if fullname.startswith("modules."):
+            modname = fullname.split(".", 1)[1]
+            filename = f"/mnt/data/{modname}.py"
+            return importlib.util.spec_from_file_location(fullname, filename, loader=importlib.machinery.SourceFileLoader(fullname, filename))
+        elif fullname == "utils":
+            utils_mod = types.ModuleType("utils")
+            sys.modules["utils"] = utils_mod
+            return utils_mod.__spec__
+        return None
+
+sys.meta_path.insert(0, FlatLayoutFinder())
+# --- end flat-layout bootstrap ---
+
 
 # --- Trait Algebra & Lattice Enhancements ---
 TRAIT_LATTICE = {
