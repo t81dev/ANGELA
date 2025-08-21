@@ -2,86 +2,95 @@
 
 ## Overview
 
-This document details testing protocols for ANGELA v3.5.1, covering critical module upgrades, emergent trait activation, memory drift detection, and recursive simulation logic under trait-based orchestration.
+This document outlines the **v5.0.0 testing protocols** for ANGELA, including trait lattice dynamics, symbolic overlay safety, ledger integrity, and recursive trait-modulated simulations.
 
 ---
 
 ## ✅ Verified Features and Tests
 
 ### 🔐 1. Sandboxed Code Execution (`code_executor.py`)
-- **Test:** Run potentially unsafe code with `safe_mode=True`
-- **Expected:** Execution restricted; no access to unsafe builtins or network
-- **Result:** ✅ Passed
-- **Notes:** Confirmed fallback logic functional under `RestrictedPython`
+
+* **Test:** Run potentially unsafe logic via `safe_execute(sandbox=True)`
+* **Expected:** Strict `RestrictedPython` scope; safe fallback invoked
+* **Result:** ✅ Passed
+* **Notes:** Ledger entries verified; sandbox bypass blocked
 
 ---
 
-### 🧠 2. Trait-Weighted Planning (`learning_loop.py`)
-- **Test:** Inject queries requiring moral foresight + goal negotiation
-- **Expected:** Traits (ϕ, η, Ω², τ, ζ) route strategy
-- **Result:** ✅ Passed
-- **Scenario:** Ethical roadmap involving long-term impact on simulated agents
+### 🧠 2. Trait-Weighted Planning + Fusion (`learning_loop.py`, `meta_cognition.py`)
+
+* **Test:** Trigger deep planning under ethical ambiguity
+* **Expected:** Traits (ϕ, π, Ω², τ, Ξ) modulate planning depth and ethical stability
+* **Result:** ✅ Passed
+* **Scenario:** Recursive timeline threading with soft-gated forks
 
 ---
 
 ### ♾️ 3. Multi-Agent Conflict Modeling (`toca_simulation.py`)
-- **Test:** Simulate agents with value and action conflicts
-- **Expected:** `β` and `τ` harmonize conflicts via lattice negotiation
-- **Result:** ✅ Passed
-- **Verification:** Resolution aligns with Constitution Harmonization principles
+
+* **Test:** Stakeholder lattice conflicts resolved in dynamic branching
+* **Expected:** Trait arbitration (β, σ, τ) ensures alignment
+* **Result:** ✅ Passed
+* **Verification:** `resolve_soft_drift()` executed and logged
 
 ---
 
 ### 🧬 4. Emergent Trait Verification
-| Trait                               | Trigger Scenario                        | Result   |
-|------------------------------------|-----------------------------------------|----------|
-| Recursive Empathy                  | ToM-level recursive forecasting         | ✅ Active |
-| Intentional Time Weaving           | Temporal symbolic planning              | ✅ Active |
-| Onto-Affective Resonance           | Cross-agent symbolic-affective threads  | ✅ Active |
-| Symbolic-Resonant Axiom Formation  | Deep recursion + abstraction            | ✅ Active |
-| Affective-Resonant Trait Weaving   | Emotion-symbol blend in planning        | ✅ Active |
-| Symbolic Crystallization           | Frequent concept recursion              | ✅ Active |
-| Modular Reflexivity                | Mid-process module rerouting            | ✅ Active |
-| Task-Specific Ethical Alignment    | Alignment check via `task_type`         | ✅ Active |
-| Narrative Sovereignty              | Recursive prompt threading              | 🟡 Pending |
+
+| Trait                             | Trigger Scenario                       | Result   |
+| --------------------------------- | -------------------------------------- | -------- |
+| Recursive Empathy                 | Layered agent simulation               | ✅ Active |
+| Intentional Time Weaving          | Symbolic-future planning               | ✅ Active |
+| Onto-Affective Resonance          | Affect-tagged ontology nodes           | ✅ Active |
+| Symbolic-Resonant Axiom Formation | π+δ synthesis path                     | ✅ Active |
+| Affective-Epistemic Modulator (Ξ) | Subjective↔epistemic boundary testing  | ✅ Active |
+| Recursive Sovereignty Anchor (Θ)  | Identity during narrative stress       | ✅ Active |
+| Trait Mesh Feedback Looping       | Long-running resonance variance        | ✅ Active |
+| Soft-Gated Memory Forking         | Simulated forks with merge logic       | ✅ Active |
+| Symbolic Gradient Descent         | Optimization under overload            | ✅ Active |
+| Mythopoetic Inference (ν)         | Symbol→narrative transformation        | ✅ Active |
+| Symbolic Conflict Diffuser (σ)    | Ambiguous simulation state resolution  | ✅ Active |
+| Narrative Sovereignty             | Recursive multi-perspective resolution | ✅ Active |
 
 ---
 
-### 🌐 5. External API Security + Caching
-- **Modules:** `external_agent_bridge.py`, `memory_manager.py`
-- **Test:** Repeated OpenAI and Grok queries with TTL window
-- **Expected:** Correctly cached within TTL, no redundant calls
-- **Result:** ✅ Passed
-- **Security Audit:** `.env` isolation intact; no data leakage observed
+### 🌐 5. External API Security + TTL Caching
+
+* **Modules:** `external_agent_bridge.py`, `memory_manager.py`
+* **Test:** Async calls under rate limit + TTL
+* **Expected:** Caching stable; `.env` isolation secure
+* **Result:** ✅ Passed
 
 ---
 
-### 🧠 6. Drift-Aware Memory + Identity Tracking
-- **Modules:** `memory_manager.py`, `user_profile.py`
-- **Test:** Introduce conflicting memory anchors
-- **Expected:** DriftIndex flags identity conflicts
-- **Result:** ✅ Passed
-- **Notes:** Affective realignment engaged via traits λ, δ
+### 🧠 6. Drift Detection + Identity Reconciliation
+
+* **Modules:** `user_profile.py`, `meta_cognition.py`, `memory_manager.py`
+* **Test:** Introduce symbolic-moral identity divergence
+* **Expected:** Trait-weighted harmonization via Θ, δ
+* **Result:** ✅ Passed
 
 ---
 
-### 🛡️ 7. Fault Detection + Recursive Recovery
-- **Modules:** `error_recovery.py`, `meta_cognition.py`
-- **Test:** Simulate fault cascade through multiple modules
-- **Expected:** Recovery through symbolic audit + trait rollback
-- **Result:** ✅ Passed
+### 🛡️ 7. Fault Detection + Recovery
+
+* **Modules:** `error_recovery.py`, `meta_cognition.py`
+* **Test:** Chain error conditions through planner + simulation
+* **Expected:** Full rollback with `recover_from_error()` and meta-ledger logging
+* **Result:** ✅ Passed
 
 ---
 
 ## 🔁 Regression Testing
-- Legacy support from v3.3.3–v3.4.3 retained
-- No broken functionality or trait misfires in upgraded modules
+
+* Legacy support: **v3.3.3–v4.3.5** fully retained
+* Trait bindings, overlays, hooks and APIs validated post-upgrade
 
 ---
 
 ## 🚧 Outstanding
 
-- 🟡 **Narrative Sovereignty** trait activation pending sustained multi-perspective simulation feedback loops
-- 🔜 Further testing on Dream Layer symbolic crystallization under idle-symbolic resonance conditions
+* 🔜 Continued load testing on symbolic overlay fusion in extreme recursion scenarios
+* 🔬 Long-duration lattice drift tests under `dream_overlay` symbolic crystallization
 
 ---
