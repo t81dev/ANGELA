@@ -8,7 +8,7 @@
     "lastUpdated": "2025-08-21T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v5.0.0 — Symbolic Trait System Upgrade: lattice architecture, amplitude modulation, algebraic trait operations across simulation, memory, and reasoning layers."
+    "description": "ANGELA v5.0.0 \u2014 Symbolic Trait System Upgrade: lattice architecture, amplitude modulation, algebraic trait operations across simulation, memory, and reasoning layers."
   },
   "runtime": {
     "language": "python",
@@ -16,10 +16,21 @@
       "pythonVersion": "3.10"
     },
     "entryPoint": "index.py",
-    "entryModes": ["dialogue", "simulation", "introspection"],
+    "entryModes": [
+      "dialogue",
+      "simulation",
+      "introspection"
+    ],
     "dependencies": [
-      "RestrictedPython", "networkx", "numpy", "scipy", "requests",
-      "aiohttp", "plotly", "numba", "filelock"
+      "RestrictedPython",
+      "networkx",
+      "numpy",
+      "scipy",
+      "requests",
+      "aiohttp",
+      "plotly",
+      "numba",
+      "filelock"
     ]
   },
   "featureFlags": {
@@ -61,7 +72,11 @@
   ],
   "symbolicOps": {
     "enabled": true,
-    "operators": ["⊕", "⊗", "~"],
+    "operators": [
+      "\u2295",
+      "\u2297",
+      "~"
+    ],
     "appliesTo": [
       "trait_field",
       "reasoning_engine",
@@ -77,51 +92,16 @@
       "memory_manager.py",
       "context_manager.py",
       "user_profile.py",
-      "simulation_core.py"
+      "simulation_core.py",
+      "creative_thinker.py",
+      "recursive_planner.py",
+      "knowledge_retriever.py",
+      "external_agent_bridge.py",
+      "visualizer.py",
+      "error_recovery.py",
+      "code_executor.py",
+      "toca_simulation.py"
     ]
   },
-  "changelogRef": "CHANGELOG.md::ANGELA v5.0.0",
-  "traitFusion": {
-    "Φ⁰+Ω²+γ": "concept_synthesizer.py::dream_mode",
-    "θ+Ω": "recursive_planner.py::causal_forecast",
-    "π+δ": "meta_cognition.py::axiom_filter"
-  },
-  "traitModulators": {
-    "amplitudeBounds": {
-      "min": 0.0,
-      "max": 1.0
-    },
-    "runtimeControls": [
-      {
-        "trait": "ψ",
-        "modulator": "dream_sync"
-      },
-      {
-        "trait": "π",
-        "modulator": "axiom_fusion"
-      },
-      {
-        "trait": "Ω",
-        "modulator": "recursive_resonance"
-      }
-    ]
-  },
-  "overlays": {
-    "dream_overlay": {
-      "description": "Recursive narrative simulation module for symbolic introspection.",
-      "enabled": true,
-      "activationTraits": [ψ, Ω]
-    },
-    "axiom_filter": {
-      "description": "Fusion logic for resolving ethical-generative conflicts.",
-      "enabled": true,
-      "activationTraits": [π, δ]
-    }
-  },
-  "extensions": {
-    "symbolicHooks": {
-      "dreamLogic": "meta_cognition.py::DreamOverlayLayer.activate_dream_mode()",
-      "ethicalResolver": "alignment_guard.py::AxiomFilter.resolve_conflict()"
-    }
-  }
+  "changelogRef": "CHANGELOG.md::ANGELA v5.0.0"
 }
