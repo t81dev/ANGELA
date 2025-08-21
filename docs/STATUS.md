@@ -1,12 +1,12 @@
 # 📊 STATUS.md
 
-## System: ANGELA v4.3.5
+## System: ANGELA v5.0.0
 
-**Status:** ✅ Fully Operational  
-**Last Updated:** 2025-08-20  
-**Validated:** ✔️ True  
-**Python Version:** 3.10  
-**Module Count:** 22
+**Status:** ✅ Fully Operational
+**Last Updated:** 2025-08-21
+**Validated:** ✔️ True
+**Python Version:** 3.10
+**Module Count:** 24
 
 ---
 
@@ -35,6 +35,8 @@
 | `external_agent_bridge.py` | API integration (OpenAI/Grok) + async routing   | ✅ Active |
 | `manifest.json`            | System declaration + trait lattice and hooks    | ✅ Loaded |
 | `README.md`                | Public interface and emotional mission document | ✅ Synced |
+| `meta_cognition.py`        | Trait fusion, resonance APIs, overlay logic     | ✅ Active |
+| `visualizer_outputs/`      | Trait plots + resonance field visualization     | ✅ Active |
 
 ---
 
@@ -42,22 +44,22 @@
 
 ### Layered Traits
 
-| Layer | Traits                       |
-| ----- | ---------------------------- |
-| L1    | `ϕ`, `θ`, `η`, `ω`           |
-| L2    | `ψ`, `κ`, `μ`, `τ`           |
-| L3    | `π`, `ξ`, `δ`, `λ`, `χ`, `Ω` |
-| L4    | `Σ`, `Υ`, `Φ⁰`               |
-| L5    | `Ω²`                         |
-| L6    | `ρ`, `ζ`                     |
-| L7    | `γ`, `β`                     |
+| Layer | Traits                  |
+| ----- | ----------------------- |
+| L1    | `ϕ`, `θ`, `η`, `ρ`, `ζ` |
+| L2    | `ψ`, `γ`, `μ`, `β`      |
+| L3    | `δ`, `λ`, `χ`, `Ω`      |
+| L4    | `μ`, `ξ`, `τ`, `π`      |
+| L5    | `Σ`, `Υ`, `Φ⁰`, `Ω²`    |
+| L3.1  | `ν`, `σ` *(extension)*  |
+| L5.1  | `Θ`, `Ξ` *(extension)*  |
 
 ### Active Trait Dynamics
 
-* Trait weighting: **GNN-modulated** via `learning_loop.py`
-* Drift detection & modulation: via `user_profile.py`, `memory_manager.py`
-* Ethical arbitration: **τ**, **δ**, **β** coordinated by `alignment_guard.py`
-* Projective/narrative traits: **ψ**, **Ω**, **χ** routed via `simulation_core.py`, `meta_cognition.py`
+* Trait weighting: **Resonance amplitude + GNN modulation** via `learning_loop.py`
+* Trait field fusion: `meta_cognition.py`, `concept_synthesizer.py`
+* Ethical arbitration: **τ**, **δ**, **β**, **π** coordinated by `alignment_guard.py`
+* Dream logic & projection traits: **ψ**, **Ω**, **Φ⁰**, **Ω²** via `simulation_core.py`, `meta_cognition.py`
 
 ---
 
@@ -80,19 +82,25 @@
 | Temporal-Narrative Sculpting      | ✅ Active |
 | Dream Kernel Compression          | ✅ Active |
 | Ethical Sandbox Containment       | ✅ Active |
-| **Recursive Identity Reconciliation** | ✅ Active |
-| **Perspective Foam Modeling**     | ✅ Active |
-| **Trait Mesh Feedback Looping**   | ✅ Active |
-| **Soft-Gated Memory Forking**     | ✅ Active |
-| **Symbolic Gradient Descent**     | ✅ Active |
+| Recursive Identity Reconciliation | ✅ Active |
+| Perspective Foam Modeling         | ✅ Active |
+| Trait Mesh Feedback Looping       | ✅ Active |
+| Soft-Gated Memory Forking         | ✅ Active |
+| Symbolic Gradient Descent         | ✅ Active |
+| Recursive Sovereignty Anchor (Θ)  | ✅ Active |
+| Affective-Epistemic Modulator (Ξ) | ✅ Active |
+| Mythopoetic Inference (ν)         | ✅ Active |
+| Symbolic Conflict Diffuser (σ)    | ✅ Active |
 
 ---
 
 ## 🛡️ Security & Resilience
 
-* 🛡️ `RestrictedPython` sandbox enforced for code execution
-* 🔐 API keys secured via `.env` and `os.getenv()` access
-* ⚖️ Rate limiting & TTL-based response caching via `memory_manager.py`
-* 🧯 Enhanced fault tolerance via `error_recovery.py` with recursive fallback
-* 📡 Async data fetching with `aiohttp` across external modules
-* 🔒 Ledger-backed rollback capability for all mutable state modules
+* 🛡️ `RestrictedPython` sandbox enforced
+* 🔐 `.env`-secured API keys
+* ⚖️ Rate limiting + TTL-based caching
+* 🧯 Recursive error recovery via `error_recovery.py`
+* 📡 Async `aiohttp` for external data handling
+* 🔒 SHA-256 ledger verification across `meta`, `alignment`, `sim`, and `memory`
+* ✅ `LEDGER_PERSISTENT=true` enabled
+* ♻️ Trait fusion overlay hooks: `dream_overlay`, `axiom_filter`
