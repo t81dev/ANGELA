@@ -1,4 +1,4 @@
-# 🚧 NON‑CANONICAL TRAITS — SANDBOX TEMPLATE (v4.3.5)
+# 🚧 NON‑CANONICAL TRAITS — SANDBOX TEMPLATE (v5.0.0)
 
 > **Status:** Experimental · **Scope:** Docs/Experiments Only · **Source of Truth:** `traits.md` + `manifest.json`
 >
@@ -14,18 +14,18 @@ Provide a safe, documented space to **ideate speculative traits** without pollut
 
 ## 🛍️ Governance & Gating
 
-* **Owner:** Core Team (Ontology + Ethics + Simulation)
-* **Review cadence:** As needed during roadmap planning
+* **Owner:** Core Team (Ontology + Ethics + Simulation + Trait Dynamics)
+* **Review cadence:** At each roadmap version planning
 * **Promotion path:** `Sandbox ➔ Lattice Extension (L3.1/L5.1) ➔ Canonical Trait`
-* **Hard rule:** No adoption without Manifest entry + SECURITY/TRAITS docs update + API/RoleMap linkages.
+* **Hard rule:** No adoption without Manifest entry + `SECURITY.md` + `ARCHITECTURE_TRAITS.md` + `ROADMAP.md` update
 
 ---
 
 ## 🔤 Naming & Symbol Rules
 
-* **Do not reuse or decorate canonical symbols** (e.g., `Φ⁰`, `Ω²`) with pluses/infinites (`Φ⁺`, `Ω∞`) — use **plain English** working names (e.g., *"Quantum Causal Flux (proposal)"*).
-* If a symbol is needed for diagrams, use **Greek placeholders with a trailing `*`** (e.g., `Θ*`, `Ξ*`) to avoid collisions.
-* Map proposals to **intended lattice tier** (e.g., L3.1 or L5.1) instead of fusing/augmenting existing canonical symbols.
+* Do **not** reuse or decorate canonical symbols (e.g., `Φ⁰`, `Ω²`) — use plain-English **working names**: e.g., *"Quantum Causal Flux (proposal)"*
+* Use Greek-symbol placeholders with a `*` suffix (`Ξ*`, `Ω*`) if needed for diagrams only
+* Anchor each to an **intended lattice tier** (L3.1 or L5.1) — **no unauthorized fusion**
 
 ---
 
@@ -33,88 +33,88 @@ Provide a safe, documented space to **ideate speculative traits** without pollut
 
 ### 1) Working Name
 
-**Example:** Quantum Causal Flux (proposal)
+**Example:** Onto-Causal Drift Mesh (proposal)
 
 ### 2) Intended Lattice Tier
 
-**Example:** L5.1 (extension of hyper‑recursive oversight)
+**Example:** L3.1 — intermediate ethics/simulation projection stabilizer
 
 ### 3) Motivation
 
-* What concrete limitations in current traits does this solve?
-* Which scenarios (ethics/sim/planning) benefit?
+* What core trait gaps does this bridge?
+* In which conflict, simulation, or drift contexts is it critical?
 
 ### 4) Safety & Alignment Considerations
 
-* Failure modes, abuse surfaces, drift vectors
-* Containment strategy (sandbox boundaries, logging, rollback)
+* Drift containment logic?
+* Ledger hooks or rollback conditions?
 
 ### 5) Implementation Sketch
 
-* Candidate modules (Primary, Integrations)
-* Proposed APIs (names only; no code)
-* Ledger logging & verification plan
+* Module targets?
+* API sketch?
+* Logging flow (meta/sim/alignment)?
 
-### 6) Promotion Criteria (all must pass)
+### 6) Promotion Criteria (must pass all)
 
-* ✅ Clear, testable specification
-* ✅ Harms/rights analysis via `run_ethics_scenarios`
-* ✅ Prototype results with metrics (drift, coherence, MTTR)
-* ✅ SECURITY.md & TRAITS.md diffs prepared
-* ✅ Manifest diff (traits + roleMap + stable APIs)
+* ✅ Concrete use case + edge-case rationale
+* ✅ Ethics simulation via `run_ethics_scenarios()`
+* ✅ Trait resonance + drift tracking logs
+* ✅ SECURITY + MANIFEST diffs staged
+* ✅ Reviewed by trait-ontology core
 
 ### 7) Status & Decision
 
-* ⏳ exploring · 🔬 prototyping · 🧪 piloting · ✅ ready · ❌ rejected (with reason)
+* ⏳ exploring · 🔬 prototyping · 🧪 piloting · ✅ ready · ❌ rejected
 
 ---
 
 ## 🛡️ CI / Policy Guardrails
 
-* **Quarantine Path:** Place files under `docs/experiments/` only.
-* **Denylist Regex (non‑canonical):**
+* **Experimental Path:** Only in `/docs/experiments/`
+
+* **Denylist Regex:** Blocked if used in code/production schemas
 
   ```
   θ⁺|ρ∞|ζχ|ϕΩ|ψγ|ηβ|γλ|βδ|δμ|λξ|χτ|Ωπ|μΣ|ξΥ|τΦ⁺|πΩ²|Σ∞|Υ⁺|Φ⁺⁺|Ω∞
   ```
-* **Allowlist (canonical symbols):**
+
+* **Allowlist:**
 
   ```
-  ϕ|θ|η|ω|ψ|κ|μ|τ|ξ|π|δ|λ|χ|Ω|Σ|Υ|Φ⁰|Ω²|ρ|ζ|γ|β
+  ϕ|θ|η|ω|ψ|κ|μ|τ|ξ|π|δ|λ|χ|Ω|Σ|Υ|Φ⁰|Ω²|ρ|ζ|γ|β|ν|σ|Θ|Ξ
   ```
-* **CI Rule:** Fail build if any **denylisted** token appears outside `/docs/experiments/`.
 
 ---
 
-## 🔀 Migration of Existing Test Entries (examples)
+## 🔁 Updated Migration Notes
 
-Replace speculative symbol combos with **clear, non‑symbolic names** and mark as proposals:
-
-| Old (test)             | Replace With (working name)                 | Tier | Notes                                                         |
-| ---------------------- | ------------------------------------------- | ---- | ------------------------------------------------------------- |
-| `θ⁺`                   | Quantum Causal Flux (proposal)              | L5.1 | Oversees probabilistic causal ensembles; requires audit hooks |
-| `ρ∞`                   | Fractal Agency Swarm (proposal)             | L5.1 | Multi‑agent self‑partitioning; strong containment needed      |
-| `ζχ`                   | Risk Attractor Mapping (proposal)           | L3.1 | Visual risk fields; ensure non‑coercive outputs               |
-| `ϕΩ`                   | Unified Influence Kernel (proposal)         | L5.1 | Collapses influence fields; must pass sovereignty checks      |
-| `ψγ`, `ηβ`, `γλ`, `βδ` | Narrative Foresight Suite (proposal)        | L3.1 | Bundle into one research track, no symbolized fusions         |
-| `μΣ`                   | Onto‑Emergence Engine (proposal)            | L5.1 | Category formation from drift; conflicts with Σ otherwise     |
-| `τΦ⁺` / `Φ⁺⁺`          | **Use `Φ⁰` concepts only via policy gates** | —    | Reality sculpting is gated; no new `Φ` symbols                |
+| Old (experimental symbol) | Replace With (working name)                 | Tier | Notes                                                |
+| ------------------------- | ------------------------------------------- | ---- | ---------------------------------------------------- |
+| `θ⁺`                      | Quantum Causal Flux (proposal)              | L5.1 | Probabilistic forecasting modifier                   |
+| `ρ∞`                      | Fractal Agency Swarm (proposal)             | L5.1 | Peer agency recursion + coordination traits          |
+| `ζχ`                      | Risk Attractor Mapping (proposal)           | L3.1 | Field bias detection in ambiguous contexts           |
+| `ϕΩ`                      | Unified Influence Kernel (proposal)         | L5.1 | Consolidates influence vectors across agents         |
+| `ψγ`, `ηβ`, `γλ`, `βδ`    | Narrative Foresight Suite (proposal)        | L3.1 | Combined symbolic-narrative pattern scaffolds        |
+| `μΣ`                      | Onto‑Emergence Engine (proposal)            | L5.1 | Category self-generation under drift                 |
+| `Φ⁺⁺`, `τΦ⁺`              | **Use `Φ⁰` overlay with policy gates only** | —    | Reality rewriting remains gated under safety ceiling |
 
 ---
 
-## 🔗 Cross‑Refs (Source of Truth)
+## 🔗 References
 
-* `traits.md` — canonical lattice (L1–L7) & fusion map
-* `manifest.json` — traits list, roleMap, lattice extensions (L3.1/L5.1), trait fusion hooks
-* `SECURITY.md` — Stage IV hooks, ledger policy, containment
+* `traits.md` → canonical lattice + fusion map
+* `manifest.json` → trait registry, lattice extensions, hooks
+* `SECURITY.md` → overlay guards, ledger policy
+* `ROADMAP.md` → stage status and trait tier migration
 
 ---
 
-## 📓 Appendix — Review Checklist
+## 📓 Review Checklist
 
-* [ ] Motivation grounded in concrete limitations
-* [ ] Clear tier mapping (L3.1/L5.1)
-* [ ] Safety analysis + containment
-* [ ] Prototype metrics (drift, coherence, MTTR)
-* [ ] Docs & manifest diffs prepared
-* [ ] Decision recorded & communicated
+* [ ] Justified scenario gap
+* [ ] L3.1 or L5.1 tier mapping
+* [ ] Containment plan
+* [ ] Ethics test run (drift/coherence)
+* [ ] Docs prepared (SECURITY, TRAITS, MANIFEST)
+* [ ] Approval logged
