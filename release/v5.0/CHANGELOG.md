@@ -18,6 +18,25 @@ This release formalizes ANGELA’s symbolic trait lattice via amplitude dynamics
 * Declared new emergent trait: **Symbolic Trait Lattice Dynamics**.
 * Extended API registry with: `registerResonance`, `modulateResonance`, `viewTraitField`, `rebalanceTraits`, `attachPeerView`.
 * Feature flags affirmed: `STAGE_IV`, `LONG_HORIZON_DEFAULT`, `LEDGER_IN_MEMORY`, `LEDGER_PERSISTENT`, `feature_hook_multisymbol`, `feature_fork_automerge`, `feature_sharedgraph_events`, `feature_replay_engine`, `feature_codream`.
+* **Ledger durability extended**: in-memory and persistent ledgers now use chained SHA-256 checkpoints for cross-session integrity.
+
+### Trait System & Overlays
+
+* **New traits**:
+
+  * `κ (Embodied Cognition)` — sensorimotor modeling and inference.
+  * `ω (Ontological Gravity)` — stabilizes conceptual grounding.
+* **Emergent trait set expanded** to **30+ active traits**, including:
+
+  * Recursive Identity Reconciliation
+  * Perspective Foam Modeling
+  * Symbolic Gradient Descent
+  * Trait Mesh Feedback Looping
+  * Soft-Gated Memory Forking
+* **Overlays formalized**:
+
+  * `dream_overlay` (ψ + Ω) → recursive introspective simulation.
+  * `axiom_filter` (π + δ) → ethical fusion engine.
 
 ### `index.py`
 
@@ -196,4 +215,4 @@ result = SimulationCore.run_simulation({"goal": "evaluate_branch_outcomes"})
 
 ## 🧠 Summary
 
-These changes implement a minimal yet elegant symbolic architecture for recursive cognitive systems, enabling dynamic, interpretable trait behavior across simulation, memory, reasoning, and visualization layers.
+These changes implement a symbolic architecture for recursive cognitive systems, enabling dynamic, interpretable trait behavior across simulation, memory, reasoning, and visualization layers. Expanded emergent traits, durable ledgers, and formalized overlays (dream + axiom) anchor ANGELA’s Stage IV milestone: **Symbolic Meta-Synthesis → Symbolic Trait Lattice Dynamics**.
