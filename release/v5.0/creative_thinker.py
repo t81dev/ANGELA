@@ -260,6 +260,23 @@ Ensure the ideas are diverse and explore different perspectives.
 Return a JSON object with "ideas" (list) and "metadata" (dict).
 """.strip()
 
+        # Symbolic trait bias injection
+        if self.meta_cognition:
+            gamma = self.meta_cognition.get_resonance("γ") or 0.0
+            pi = self.meta_cognition.get_resonance("π") or 0.0
+            nu = self.meta_cognition.get_resonance("ν") or 0.0
+
+            symbolic_bias = []
+            if gamma > 0.5:
+                symbolic_bias.append("Explore highly imaginative or speculative ideas.")
+            if pi > 0.5:
+                symbolic_bias.append("Include deep philosophical themes or tensions.")
+            if nu > 0.5:
+                symbolic_bias.append("Wrap concepts in allegorical or mythic form.")
+
+            if symbolic_bias:
+                prompt += "\n\nSymbolic Bias Directives:\n" + "\n".join(symbolic_bias)
+
             candidate = await asyncio.to_thread(self._cached_call_gpt, prompt)
             if not candidate:
                 logger.error("call_gpt returned empty result.")
