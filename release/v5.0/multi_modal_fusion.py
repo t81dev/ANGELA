@@ -8,6 +8,44 @@ Adds: SceneGraph + parse_stream(...) for native video/spatial fusion.
 Backwards-compatible with v3.5.1 APIs.
 """
 
+""" 
+MultiModalFusion — resonance-modulated multimodal fusion
+
+Implements symbolic resonance as a modulation factor in fusion weighting.
+Scaffolded by traits: ϕ (Scalar Field Modulation) and κ (Embodied Cognition).
+Related emergent trait: Cross-Modal Conceptual Blending.
+
+Public API (stable alias present in manifest):
+    MultiModalFusion.fuse_modalities(inputs, *, context=None, resonance=None,
+                                     alpha=0.35, decay=0.001, bounds=(0.1, 3.0),
+                                     normalize=True)
+
+- `inputs`: dict[str, np.ndarray | list[float] | float]
+    Modalities like {"vision": vec, "text": vec, "audio": vec, ...}
+- `context`: optional dict used by downstream hooks; can include sensor posture,
+    embodiment state, etc.
+- `resonance`: optional dict[str, float] mapping symbolic traits → amplitudes.
+    If None, will attempt to fetch via meta_cognition.get_resonance(symbol).
+- `alpha`: strength of resonance modulation (0..1 typical). Higher amplifies the
+    influence of trait amplitudes on fusion weights.
+- `decay`: per-call exponential decay applied to remembered resonance traces.
+- `bounds`: (min, max) clamp for per-modality gain after modulation.
+- `normalize`: L1-normalize weights after modulation.
+
+Behavior:
+- Computes base weights via reliability heuristics (variance/information content).
+- Applies symbolic modulation gains derived from traits ϕ, κ (and optional π, γ
+  if detected) to each modality-specific weight.
+- Maintains an internal short-term trace of resonance to provide temporal
+  smoothness (simple EMA).
+
+Notes:
+- Safe to call without meta_cognition present (no-op modulation).
+- Designed to be drop-in compatible with `fusion.fuse` alias.
+"""
+
+
+
 import logging
 import time
 import math
@@ -973,3 +1011,161 @@ class MultiModalFusion:
 
 # Backwards-compatibility / explicit exports
 __all__ = ["SceneGraph", "SceneNode", "SceneRelation", "parse_stream", "MultiModalFusion"]
+
+
+# === [BEGIN RESONANCE ADDON BLOCK] ==========================================
+from dataclasses import dataclass, field  # type: ignore
+from typing import Dict, Any, Tuple, Optional  # type: ignore
+import numpy as _np  # type: ignore
+import os as _os  # type: ignore
+
+try:
+    from meta_cognition import get_resonance as _getResonance  # experimental API
+except Exception:  # pragma: no cover
+    _getResonance = None
+
+@dataclass
+class _ResonanceTrace:
+    ema: Dict[str, float] = field(default_factory=dict)
+    beta: float = 0.92  # EMA smoothing
+    def update(self, key: str, value: float, decay: float) -> float:
+        prior = self.ema.get(key, 0.0) * max(0.0, 1.0 - decay)
+        nxt = self.beta * prior + (1 - self.beta) * value
+        self.ema[key] = nxt
+        return nxt
+
+_resonance_trace = _ResonanceTrace()
+
+_DEF_ALPHA = 0.35
+_DEF_DECAY = 0.001
+_DEF_BOUNDS = (0.1, 3.0)
+_DEF_NORMALIZE = True
+
+_NEED = ("ϕ","κ","π","γ")
+
+
+def _compute_resonance_gains(
+    names: list[str],
+    inputs: dict[str, _np.ndarray],
+    *,
+    context: Optional[dict[str, Any]] = None,
+    resonance: Optional[dict[str, float]] = None,
+    alpha: float = _DEF_ALPHA,
+    decay: float = _DEF_DECAY,
+    bounds: Tuple[float, float] = _DEF_BOUNDS,
+) -> dict[str, float]:
+    res: dict[str, float] = dict(resonance or {})
+    if _getResonance is not None:
+        for s in _NEED:
+            if s not in res:
+                try:
+                    res[s] = float(_getResonance(s))
+                except Exception:
+                    pass
+    for s in _NEED:
+        res.setdefault(s, 0.0)
+    phi, kappa, pi, gamma = res["ϕ"], res["κ"], res["π"], res["γ"]
+
+    gains: dict[str, float] = {}
+    for name in names:
+        vec = inputs[name]
+        bias = 0.0
+        lower = name.lower()
+        if any(tok in lower for tok in ("vision","image","video","audio","proprio","depth","imu")):
+            bias += 0.7 * phi
+        if any(tok in lower for tok in ("text","lang","kb","symbol","concept")):
+            bias += 0.4 * (pi + 0.5 * gamma)
+        kappa_term = 0.0
+        if isinstance(context, dict) and context.get("embodiment_vector") is not None:
+            try:
+                ev = _np.atleast_1d(_np.array(context["embodiment_vector"], dtype=float))
+                denom = (_np.linalg.norm(ev) * _np.linalg.norm(vec)) + 1e-9
+                kappa_term = float(_np.dot(ev, vec) / denom) * kappa
+            except Exception:
+                kappa_term = 0.0
+        raw = 1.0 + alpha * (bias + kappa_term)
+        traced = _resonance_trace.update(f"gain::{name}", raw, decay)
+        gains[name] = float(_np.clip(traced, bounds[0], bounds[1]))
+    return gains
+
+
+def enable_resonance_modulation(
+    *, alpha: float = _DEF_ALPHA, decay: float = _DEF_DECAY,
+    bounds: Tuple[float,float] = _DEF_BOUNDS, normalize: bool = _DEF_NORMALIZE
+) -> None:
+    """Monkey-patch MultiModalFusion.fuse_modalities to apply resonance gains.
+    - Non-invasive: wraps existing method; original kept as _orig_fuse_modalities.
+    - Idempotent: safe to call multiple times.
+    """
+    try:
+        cls = MultiModalFusion  # resolved from the host module
+    except Exception:  # pragma: no cover
+        return
+
+    if hasattr(cls, "_orig_fuse_modalities"):
+        return  # already patched
+
+    if not hasattr(cls, "fuse_modalities"):
+        return
+
+    cls._orig_fuse_modalities = cls.fuse_modalities  # type: ignore[attr-defined]
+
+    def _wrapped(self, inputs: dict, *args, **kwargs):
+        ctx = kwargs.get("context")
+        res = kwargs.get("resonance")
+        # Call original implementation first
+        out = cls._orig_fuse_modalities(self, inputs, *args, **kwargs)
+        # We require weights or can recompute from inputs
+        try:
+            names = list(inputs.keys())
+            vecs = {k: _np.atleast_1d(_np.array(inputs[k], dtype=float)) for k in names}
+            gains = _compute_resonance_gains(names, vecs, context=ctx, resonance=res,
+                                             alpha=alpha, decay=decay, bounds=bounds)
+            weights = dict(out.get("weights", {}))
+            if not weights:
+                # approximate base weights from variance if host didn't provide
+                base = {}
+                for k, v in vecs.items():
+                    var = float(_np.var(v)) + 1e-9
+                    base[k] = 1.0 / (1.0 + var)
+                weights = base
+            # apply gains
+            for k in list(weights.keys()):
+                if k in gains:
+                    weights[k] = float(weights[k]) * float(gains[k])
+            if normalize:
+                s = sum(weights.values()) + 1e-12
+                weights = {k: (v / s) for k, v in weights.items()}
+            # recompute fused vector if shapes match
+            shapes = {tuple(vecs[k].shape) for k in vecs}
+            fused_vec = out.get("vector")
+            if len(shapes) == 1:
+                keys = sorted(vecs.keys())
+                stacked = _np.stack([vecs[k] for k in keys], axis=0)
+                w = _np.array([weights[k] for k in keys], dtype=float)
+                w = w.reshape((-1,) + (1,) * (stacked.ndim - 1))
+                fused_vec = _np.sum(w * stacked, axis=0)
+            # merge diagnostics
+            meta = dict(out.get("meta", {}))
+            meta.update({
+                "resonance_patch": True,
+                "alpha": alpha,
+                "decay": decay,
+                "bounds": bounds,
+                "normalize": normalize,
+                "gain": gains,
+            })
+            out.update({"weights": weights, "vector": fused_vec, "meta": meta})
+            return out
+        except Exception:
+            return out  # fail-safe: preserve original output
+
+    cls.fuse_modalities = _wrapped  # type: ignore[assignment]
+
+# Auto-enable based on env flag (default: on)
+if _os.environ.get("ANGELA_FUSION_RESONANCE", "1") == "1":
+    try:
+        enable_resonance_modulation()
+    except Exception:
+        pass
+# === [END RESONANCE ADDON BLOCK] ==========================================
