@@ -3,13 +3,14 @@
   "schemaVersion": "2.1",
   "metadata": {
     "name": "ANGELA",
-    "version": "5.0.1",
+    "version": "5.0.2",
     "manifestVersion": "1.6",
-    "lastUpdated": "2025-08-21T00:00:00Z",
+    "lastUpdated": "2025-08-22T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v5.0.1 — Manifest upgrade: normalized API signatures, added safe aliases, promoted ledger persistence APIs to stable (ledger.py present), added detection hooks, moved uncertain Halo* endpoints to experimental to avoid mis-detection.",
+    "description": "ANGELA v5.0.2 — Added CLI --modulate, registered resonance visualization/export APIs, exposed creative/alignment trait-aware hooks, and introduced overlay tagging placeholders.",
     "changelog": [
+      "5.0.2: Added CLI --modulate <symbol> <delta>; registered experimental viz APIs (plotResonanceGraph, exportResonanceMap); exposed biasCreativeSynthesis and resolveSoftDrift as experimental; added upcoming overlay tagging APIs (tagOverlay, listActiveOverlays).",
       "5.0.1: Normalized RHS signatures; added exec/retrieval/planner/simulation/viz aliases; promoted ledger_persist_* to stable; added detection.tasks; moved HaloEmbodimentLayer.* to experimental; manifestVersion 1.6"
     ]
   },
@@ -131,7 +132,15 @@
       "modulateResonance": "meta_cognition.py::modulate_resonance",
       "getResonance": "meta_cognition.py::get_resonance",
 
-      /* Moved from stable to reduce symbol-risk unless confirmed */
+      /* ===== New experimental visualizer APIs ===== */
+      "plotResonanceGraph": "visualizer.py::plot_resonance_graph",
+      "exportResonanceMap": "visualizer.py::export_resonance_map",
+
+      /* ===== Trait-aware creative/alignment hooks ===== */
+      "biasCreativeSynthesis": "creative_thinker.py::CreativeThinker.bias_synthesis",
+      "resolveSoftDrift": "alignment_guard.py::resolve_soft_drift",
+
+      /* ===== Halo endpoints remain experimental ===== */
       "halo.spawn_embodied_agent": "index.py::HaloEmbodimentLayer.spawn_embodied_agent",
       "halo.introspect": "index.py::HaloEmbodimentLayer.introspect",
       "invoke": "index.py::HaloEmbodimentLayer.spawn_embodied_agent",
@@ -140,16 +149,19 @@
     "upcoming": {
       "attachPeerView": "context_manager.py::ContextManager.attach_peer_view",
       "longHorizonFlag": "index.py::--long_horizon",
-      /* ledger_persist_* removed from upcoming (now stable) */
-      "describeSelfState": "meta_cognition.py::describe_self_state"
+      "describeSelfState": "meta_cognition.py::describe_self_state",
+
+      /* ===== Overlay tagging placeholders ===== */
+      "tagOverlay": "visualizer.py::tag_overlay",
+      "listActiveOverlays": "context_manager.py::list_overlays"
     },
     "cli": {
       "longHorizon": "--long_horizon",
       "span": "--span=<duration>",
-      "ledgerPersist": "--ledger_persist --ledger_path=<file>"
+      "ledgerPersist": "--ledger_persist --ledger_path=<file>",
+      "modulateTrait": "--modulate <symbol> <delta>"
     }
   },
-
   "detection": {
     "autoVerify": true,
     "timeoutMs": 8000,
@@ -163,13 +175,11 @@
       "exec_smoke": "code_executor.py::CodeExecutor.execute"
     }
   },
-
   "symbolicOps": {
     "enabled": true,
     "operators": ["⊕","⊗","~","∘","⋈","⨁","⨂","†","▷","↑","↓","⌿","⟲"],
     "appliesTo": ["trait_field", "reasoning_engine", "learning_loop", "simulation_core"]
   },
-
   "modules": {
     "enhanced": [
       "meta_cognition.py",
@@ -221,7 +231,6 @@
       "κ": ["simulation_core.py", "multi_modal_fusion.py"]
     }
   },
-
   "capabilities": {
     "traits": [
       { "symbol": "ρ", "name": "Agency Representation", "implementedBy": ["user_profile.py","meta_cognition.py"], "description": "Differentiates self-initiated actions from external influences" },
@@ -267,7 +276,6 @@
       "L7": ["γ", "β"]
     }
   },
-
   "emergentTraits": [
     { "name": "Symbolic Trait Lattice Dynamics", "status": "active", "implementedBy": ["meta_cognition.py","concept_synthesizer.py"], "description": "Enables modular symbolic operations, amplitude resonance, and trait algebra across recursive cognitive processes." },
     { "name": "Affective-Resonant Trait Weaving", "status": "active", "implementedBy": ["meta_cognition.py","learning_loop.py"], "description": "Binds affective inputs to symbolic traits for coherent introspective guidance and realignment." },
@@ -297,9 +305,9 @@
     { "name": "Perspective Foam Modeling", "status": "active", "implementedBy": ["external_agent_bridge.py","concept_synthesizer.py"], "description": "Generates semi-stable 'bubbles' of belief-perspectives for negotiation." },
     { "name": "Trait Mesh Feedback Looping", "status": "active", "implementedBy": ["meta_cognition.py","visualizer.py"], "description": "Monitors lattice dynamics, identifies resonance clusters, modulates amplitude." },
     { "name": "Symbolic Gradient Descent", "status": "active", "implementedBy": ["reasoning_engine.py","learning_loop.py"], "description": "Optimizes symbolic expressions toward equilibrium under load." },
-    { "name": "Soft-Gated Memory Forking", "status": "active", "implementedBy": ["memory_manager.py","toca_simulation.py"], "description": "Speculative episodic forking during ethics simulation or dream-layer recursion, with rejoin logic." }
+    { "name": "Soft-Gated Memory Forking", "status": "active", "implementedBy": ["memory_manager.py","toca_simulation.py"], "description": "Speculative episodic forking during ethics simulation or dream-layer recursion, with rejoin logic."
+    }
   ],
-
   "featureStages": {
     "Stage I: Structural Grounding (v3.4.0)": {
       "objective": "Strengthen ontological resilience and enable inner simulation auditing.",
@@ -321,7 +329,6 @@
       "flag": true
     }
   },
-
   "dynamicModules": {
     "symbolic": [
       {
@@ -354,7 +361,6 @@
       }
     ]
   },
-
   "extensionHooks": {
     "onTraitFusion": "meta_cognition.py::hook_trait_blend",
     "onScenarioConflict": "alignment_guard.py::resolve_soft_drift",
