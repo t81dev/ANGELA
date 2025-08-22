@@ -1259,4 +1259,3 @@ class EthicsJournal:
 
     def export(self, session_id: str) -> List[Dict[str, Any]]:
         return list(self._events)
-
