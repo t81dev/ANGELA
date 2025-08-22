@@ -253,7 +253,7 @@ Field: "LLM Benchmark — Run {{date}}"
 Entry: "{{Model X (vY.Z)}}"
 Overall_Score: "{{NN.NN}}"
 Level: "L{{1-5}}"
-Evaluator_Name: "ANGELA"
+Evaluator_Name: "{{insert text}}"
 Evaluation_Date: "{{YYYY-MM-DD}}"
 Summary_Report: >-
   {{2–5 sentences: where the model excels; where it fails; notable edge cases}}
