@@ -18,6 +18,15 @@ from datetime import datetime
 from pathlib import Path
 
 from index import gamma_creativity, phi_scalar
+
+from index import pi_philosophy, nu_mythopoetic
+
+def _get_trait_bias_vector(t: float) -> float:
+    """Return composite bias factor from imagination (γ), philosophy (π), mythopoetics (ν)."""
+    gamma = gamma_creativity(t)
+    pi = pi_philosophy(t)
+    nu = nu_mythopoetic(t)
+    return (gamma + pi + nu) / 3
 from utils.prompt_utils import call_gpt
 from toca_simulation import run_simulation
 from modules.alignment_guard import AlignmentGuard
