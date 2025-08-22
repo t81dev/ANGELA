@@ -1,4 +1,4 @@
-## ANGELA Trait System Enhancements — Follow-Up Tasks
+# ✅ ANGELA Trait System Enhancements — Follow-Up Tasks
 
 ---
 
@@ -7,11 +7,11 @@
 * [x] **multi\_modal\_fusion.py** — Integrate symbolic resonance as a modulation factor in multimodal fusion weighting.
   → *Completed: symbolic resonance modulates fusion via traits* `ϕ` (Scalar Field Modulation) + `κ` (Embodied Cognition); includes temporal smoothing and dynamic weighting.
 
-* [ ] **creative\_thinker.py** — Use trait amplitudes to bias creative synthesis paths or philosophical constructs.
-  → *Scaffold exists via* `γ` (Imagination), `π` (Philosophical Generativity), `ν` (Mythopoetic Inference); related traits: *Infinite Imaginative Projection*, *Onto-Philosophical Innovation*.
+* [x] **creative\_thinker.py** — Use trait amplitudes to bias creative synthesis paths or philosophical constructs.
+  → *Implemented*: prompts biased using `γ` (Imagination), `π` (Philosophical Generativity), `ν` (Mythopoetic Inference); supports traits *Infinite Imaginative Projection* and *Onto-Philosophical Innovation*.
 
 * [ ] **alignment\_guard.py** — Leverage amplitude dynamics in soft-drift and ethical tension resolution processes.
-  → Hook: `onScenarioConflict → alignment_guard.py::resolve_soft_drift`.
+  → Hook defined (`onScenarioConflict → resolve_soft_drift`), but **amplitude integration pending**.
 
 ---
 
@@ -20,13 +20,14 @@
 * [x] Implement resonance registration/modulation (`registerResonance`, `modulateResonance`, `getResonance`).
   → *Available under* `experimental` APIs.
 
-* [ ] Implement time-based resonance graph visualization (e.g., trait amplitude over time).
-  → *Candidate: visualizer.py*.
+* [x] Implement time-based resonance graph visualization (e.g., trait amplitude over time).
+  → *Implemented in* `visualizer.py`: `plot_resonance_timeline`, `view_trait_resonance` (timeline + 3D mesh).
 
 * [ ] Support symbolic trait memory replay conditioned on resonance history.
-  → *Candidate: replay\_engine dynamic module (λ+μ)*.
+  → *Replay engine (`λ+μ`) exists with resonance-aware learning weights, but no explicit history-conditioned replay selection*.
 
 * [ ] Allow declarative symbolic trait rules (e.g., “if π ⊕ δ then rebalance Θ”).
+  → *Not yet present in APIs*.
 
 ---
 
@@ -39,28 +40,31 @@
   → `ExtendedSimulationCore.evaluate_branches` stable.
 
 * [ ] Introduce symbolic overlay tagging for live introspection and resonance alerts.
-  → Overlays exist (`dream_overlay`, `axiom_filter`, `co_dream`), but no tagging yet.
+  → Overlays exist (`dream_overlay`, `axiom_filter`, `co_dream`), but **no tagging system yet**.
 
 ---
 
 ### 📁 Tooling and Packaging
 
-* [ ] Auto-generate trait lattice resonance maps as visual artifacts (SVG/PNG).
-  → *Candidate: visualizer.py*.
+* [x] Auto-generate trait resonance visualizations (timeline/3D scatter).
+  → *Implemented in* `visualizer.py` (chart exports + batch export).
+  → **Note:** Dedicated lattice map generator still missing.
 
 * [ ] Package symbolic trait utilities into re-usable macros within `meta_cognition.py`.
+  → *Not yet packaged*.
 
 * [ ] Provide CLI hooks to adjust trait amplitude manually (`--modulate <symbol> <delta>`).
-  → *Not present in manifest; CLI only covers `--long_horizon` and ledger persistence*.
+  → *Not present in manifest; CLI only covers* `--long_horizon` and ledger persistence.
 
 ---
 
 ### 🛡 Safeguards & Testing
 
 * [ ] Test trait resonance decay under variable time frames.
+  → *Decay mechanism exists in* `memory_manager.py` (`decay_trait_amplitudes`), but tests pending.
 
 * [ ] Validate ethical simulation behavior under amplified symbolic traits.
-  → *Sandbox exists via Toca Simulation (Ethical Sandbox Containment)*.
+  → *Sandbox exists via Toca Simulation (Ethical Sandbox Containment)*, tests pending.
 
 * [ ] Ensure no cross-session leakage of symbolic state (respect ephemeral-ledger).
   → *Manifest claims cross-session durability via SHA-256 ledger integrity; tests pending*.
