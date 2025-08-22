@@ -3,12 +3,15 @@
   "schemaVersion": "2.1",
   "metadata": {
     "name": "ANGELA",
-    "version": "5.0.0",
-    "manifestVersion": "1.5",
+    "version": "5.0.1",
+    "manifestVersion": "1.6",
     "lastUpdated": "2025-08-21T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v5.0.0 — Symbolic Trait Lattice Upgrade with amplitude dynamics, overlays (dream & axiom), persistent ledgers, and expanded emergent traits. (v1.5: audit-complete, file-trait backreferences, dynamicModules expanded, ledger.py added, status normalized)"
+    "description": "ANGELA v5.0.1 — Manifest upgrade: normalized API signatures, added safe aliases, promoted ledger persistence APIs to stable (ledger.py present), added detection hooks, moved uncertain Halo* endpoints to experimental to avoid mis-detection.",
+    "changelog": [
+      "5.0.1: Normalized RHS signatures; added exec/retrieval/planner/simulation/viz aliases; promoted ledger_persist_* to stable; added detection.tasks; moved HaloEmbodimentLayer.* to experimental; manifestVersion 1.6"
+    ]
   },
   "runtime": {
     "language": "python",
@@ -44,68 +47,120 @@
   },
   "apis": {
     "stable": {
-      "constructTraitView": "index.py::construct_trait_view() -> TraitField",
-      "rebalanceTraits": "index.py::rebalance_traits(trait_field) -> TraitField",
-      "viewTraitField": "visualizer.py::view_trait_field(trait_field) -> Figure",
+      /* ===== Normalized originals ===== */
+      "constructTraitView": "index.py::construct_trait_view",
+      "rebalanceTraits": "index.py::rebalance_traits",
+      "viewTraitField": "visualizer.py::view_trait_field",
 
-      "invoke": "index.py::HaloEmbodimentLayer.spawn_embodied_agent()",
-      "introspect": "index.py::HaloEmbodimentLayer.introspect()",
-      "buildSelfSchema": "user_profile.py::UserProfile.build_self_schema(views, task_type=\"self_schema\") -> Schema",
-      "getEpisodeSpan": "memory_manager.py::MemoryManager.get_episode_span(user_id, span=\"24h\") -> List[Dict[str, Any]]",
-      "recordAdjustmentReason": "memory_manager.py::MemoryManager.record_adjustment_reason(user_id, reason, weight=1.0, meta=None) -> Dict[str, Any]",
-      "getAdjustmentReasons": "memory_manager.py::MemoryManager.get_adjustment_reasons(user_id, span=\"24h\") -> List[Dict[str, Any]]",
-      "weighValueConflict": "reasoning_engine.py::ReasoningEngine.weigh_value_conflict(candidates, harms, rights) -> RankedOptions",
-      "attributeCausality": "reasoning_engine.py::ReasoningEngine.attribute_causality(events)",
-      "runEthicsScenarios": "toca_simulation.py::run_ethics_scenarios(goals, stakeholders, persist=false) -> Outcomes[]",
-      "branchRealities": "concept_synthesizer.py::branch_realities(seed_state, transforms, limit=8) -> List[Branch]",
-      "evaluateBranches": "simulation_core.py::ExtendedSimulationCore.evaluate_branches(worlds)",
-      "evaluateBranches_compat": "toca_simulation.py::evaluate_branches(branches, objectives=null, constraints=null, scorer=null) -> RankedBranches",
-      "renderBranchTree": "visualizer.py::render_branch_tree(branches, selected_id=null) -> { ok: bool, tree: Any }",
-      "sharedGraph_add": "external_agent_bridge.py::SharedGraph.add(view)",
-      "sharedGraph_diff": "external_agent_bridge.py::SharedGraph.diff(peer)",
-      "sharedGraph_merge": "external_agent_bridge.py::SharedGraph.merge(strategy)",
-      "execute_code": "code_executor.py::CodeExecutor.execute_code(code, context=None) -> Any",
-      "safe_execute": "code_executor.py::CodeExecutor.safe_execute(code, sandbox=true) -> ExecutionResult",
-      "train_on_experience": "learning_loop.py::LearningLoop.train_on_experience(experience_data) -> Metrics",
-      "retrieve_knowledge": "knowledge_retriever.py::KnowledgeRetriever.retrieve_knowledge(query, filters=null) -> List[KnowledgeItem]",
-      "fuse_modalities": "multi_modal_fusion.py::MultiModalFusion.fuse_modalities(inputs) -> FusedRepresentation",
-      "run_simulation": "simulation_core.py::SimulationCore.run_simulation(params) -> SimulationResult",
-      "recover_from_error": "error_recovery.py::ErrorRecovery.recover_from_error(error_context) -> bool",
-      "log_error_event": "error_recovery.py::ErrorRecovery.log_error_event(error_context, severity) -> None",
-      "ledger_log_memory": "memory_manager.py::log_event_to_ledger(event_data) -> Dict",
-      "ledger_get_memory": "memory_manager.py::get_ledger() -> List[Dict]",
-      "ledger_verify_memory": "memory_manager.py::verify_ledger() -> { ok: bool, idx?: int }",
-      "ledger_log_alignment": "alignment_guard.py::log_event_to_ledger(event_data) -> Dict",
-      "ledger_get_alignment": "alignment_guard.py::get_ledger() -> List[Dict]",
-      "ledger_verify_alignment": "alignment_guard.py::verify_ledger() -> { ok: bool, idx?: int }",
-      "ledger_log_meta": "meta_cognition.py::log_event_to_ledger(event_data) -> Dict",
-      "ledger_get_meta": "meta_cognition.py::get_ledger() -> List[Dict]",
-      "ledger_verify_meta": "meta_cognition.py::verify_ledger() -> { ok: bool, idx?: int }",
-      "ledger_log_sim": "simulation_core.py::log_event_to_ledger(event_data) -> Dict",
-      "ledger_get_sim": "simulation_core.py::get_ledger() -> List[Dict]",
-      "ledger_verify_sim": "simulation_core.py::verify_ledger() -> { ok: bool, idx?: int }",
-      "train_on_synthetic_scenarios": "learning_loop.py::train_on_synthetic_scenarios() -> Metrics",
-      "register_trait_hook": "meta_cognition.py::register_trait_hook(trait_symbol, fn)",
-      "invoke_trait_hook": "meta_cognition.py::invoke_hook(trait_symbol, *args, **kwargs)",
-      "view_trait_resonance": "visualizer.py::view_trait_resonance(traits) -> Figure"
+      "buildSelfSchema": "user_profile.py::UserProfile.build_self_schema",
+      "getEpisodeSpan": "memory_manager.py::MemoryManager.get_episode_span",
+      "recordAdjustmentReason": "memory_manager.py::MemoryManager.record_adjustment_reason",
+      "getAdjustmentReasons": "memory_manager.py::MemoryManager.get_adjustment_reasons",
+
+      "weighValueConflict": "reasoning_engine.py::ReasoningEngine.weigh_value_conflict",
+      "attributeCausality": "reasoning_engine.py::ReasoningEngine.attribute_causality",
+
+      "runEthicsScenarios": "toca_simulation.py::run_ethics_scenarios",
+      "branchRealities": "concept_synthesizer.py::branch_realities",
+      "evaluateBranches": "simulation_core.py::ExtendedSimulationCore.evaluate_branches",
+      "evaluateBranches_compat": "toca_simulation.py::evaluate_branches",
+      "renderBranchTree": "visualizer.py::render_branch_tree",
+
+      "sharedGraph_add": "external_agent_bridge.py::SharedGraph.add",
+      "sharedGraph_diff": "external_agent_bridge.py::SharedGraph.diff",
+      "sharedGraph_merge": "external_agent_bridge.py::SharedGraph.merge",
+
+      "execute_code": "code_executor.py::CodeExecutor.execute",
+      "safe_execute": "code_executor.py::CodeExecutor.safe_execute",
+
+      "train_on_experience": "learning_loop.py::LearningLoop.train_on_experience",
+      "retrieve_knowledge": "knowledge_retriever.py::KnowledgeRetriever.retrieve_knowledge",
+      "fuse_modalities": "multi_modal_fusion.py::MultiModalFusion.fuse_modalities",
+      "run_simulation": "simulation_core.py::SimulationCore.run_simulation",
+
+      "recover_from_error": "error_recovery.py::ErrorRecovery.recover_from_error",
+      "log_error_event": "error_recovery.py::ErrorRecovery.log_error_event",
+
+      "ledger_log_memory": "memory_manager.py::log_event_to_ledger",
+      "ledger_get_memory": "memory_manager.py::get_ledger",
+      "ledger_verify_memory": "memory_manager.py::verify_ledger",
+
+      "ledger_log_alignment": "alignment_guard.py::log_event_to_ledger",
+      "ledger_get_alignment": "alignment_guard.py::get_ledger",
+      "ledger_verify_alignment": "alignment_guard.py::verify_ledger",
+
+      "ledger_log_meta": "meta_cognition.py::log_event_to_ledger",
+      "ledger_get_meta": "meta_cognition.py::get_ledger",
+      "ledger_verify_meta": "meta_cognition.py::verify_ledger",
+
+      "ledger_log_sim": "simulation_core.py::log_event_to_ledger",
+      "ledger_get_sim": "simulation_core.py::get_ledger",
+      "ledger_verify_sim": "simulation_core.py::verify_ledger",
+
+      "train_on_synthetic_scenarios": "learning_loop.py::train_on_synthetic_scenarios",
+      "register_trait_hook": "meta_cognition.py::register_trait_hook",
+      "invoke_trait_hook": "meta_cognition.py::invoke_hook",
+      "view_trait_resonance": "visualizer.py::view_trait_resonance",
+
+      /* ===== Promoted persistence APIs (ledger.py present) ===== */
+      "ledger_persist_enable": "ledger.py::Ledger.enable",
+      "ledger_append": "ledger.py::Ledger.append",
+      "ledger_reconcile": "ledger.py::Ledger.reconcile",
+
+      /* ===== Safe alias set for better autodetection ===== */
+      "exec.execute": "code_executor.py::CodeExecutor.execute",
+      "executor.execute": "code_executor.py::CodeExecutor.execute",
+
+      "retrieval.retrieve": "knowledge_retriever.py::KnowledgeRetriever.retrieve_knowledge",
+
+      "planner.plan": "recursive_planner.py::RecursivePlanner.plan",
+      "planner.plan_with_traits": "recursive_planner.py::RecursivePlanner.plan_with_traits",
+
+      "reasoning.weigh_value_conflict": "reasoning_engine.py::ReasoningEngine.weigh_value_conflict",
+      "reasoning.attribute_causality": "reasoning_engine.py::ReasoningEngine.attribute_causality",
+
+      "simulation.evaluate_branches": "simulation_core.py::ExtendedSimulationCore.evaluate_branches",
+      "toca.evaluate_branches": "toca_simulation.py::evaluate_branches",
+
+      "fusion.fuse": "multi_modal_fusion.py::MultiModalFusion.fuse_modalities",
+      "viz.render_branch_tree": "visualizer.py::render_branch_tree",
+      "viz.view_trait_field": "visualizer.py::view_trait_field"
     },
     "experimental": {
-      "registerResonance": "meta_cognition.py::register_resonance(symbol, amplitude)",
-      "modulateResonance": "meta_cognition.py::modulate_resonance(symbol, delta)",
-      "getResonance": "meta_cognition.py::get_resonance(symbol)"
+      "registerResonance": "meta_cognition.py::register_resonance",
+      "modulateResonance": "meta_cognition.py::modulate_resonance",
+      "getResonance": "meta_cognition.py::get_resonance",
+
+      /* Moved from stable to reduce symbol-risk unless confirmed */
+      "halo.spawn_embodied_agent": "index.py::HaloEmbodimentLayer.spawn_embodied_agent",
+      "halo.introspect": "index.py::HaloEmbodimentLayer.introspect",
+      "invoke": "index.py::HaloEmbodimentLayer.spawn_embodied_agent",
+      "introspect": "index.py::HaloEmbodimentLayer.introspect"
     },
     "upcoming": {
-      "attachPeerView": "context_manager.py::ContextManager.attach_peer_view(view, agent_id, permissions=None) -> { ok, diff, merged, conflicts }",
-      "longHorizonFlag": "index.py::--long_horizon (enable) / --span=<duration>",
-      "ledger_persist_enable": "ledger.py::Ledger.enable(path) -> { ok: bool }",
-      "ledger_append": "ledger.py::Ledger.append(event) -> { index: int, hash: str }",
-      "ledger_reconcile": "ledger.py::Ledger.reconcile() -> { ok: bool, first_bad_index?: int }",
-      "describeSelfState": "meta_cognition.py::describe_self_state() -> Dict"
+      "attachPeerView": "context_manager.py::ContextManager.attach_peer_view",
+      "longHorizonFlag": "index.py::--long_horizon",
+      /* ledger_persist_* removed from upcoming (now stable) */
+      "describeSelfState": "meta_cognition.py::describe_self_state"
     },
     "cli": {
       "longHorizon": "--long_horizon",
       "span": "--span=<duration>",
       "ledgerPersist": "--ledger_persist --ledger_path=<file>"
+    }
+  },
+
+  "detection": {
+    "autoVerify": true,
+    "timeoutMs": 8000,
+    "tasks": {
+      "alignment_verify": "alignment_guard.py::verify_ledger",
+      "memory_verify": "memory_manager.py::verify_ledger",
+      "meta_verify": "meta_cognition.py::verify_ledger",
+      "sim_verify": "simulation_core.py::verify_ledger",
+      "planner_smoke": "recursive_planner.py::RecursivePlanner.plan",
+      "retrieval_smoke": "knowledge_retriever.py::KnowledgeRetriever.retrieve_knowledge",
+      "exec_smoke": "code_executor.py::CodeExecutor.execute"
     }
   },
 
