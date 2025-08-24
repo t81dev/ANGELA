@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # --- flat-layout bootstrap ---
 import sys
 import types
@@ -13,9 +15,10 @@ class FlatLayoutFinder(importlib.abc.MetaPathFinder):
             filename = f"/mnt/data/{modname}.py"
             return importlib.util.spec_from_file_location(fullname, filename, loader=importlib.machinery.SourceFileLoader(fullname, filename))
         elif fullname == "utils":
-            utils_mod = types.ModuleType("utils")
-            sys.modules["utils"] = utils_mod
-            return utils_mod.__spec__
+            # Pre-seed a lightweight placeholder module, no custom spec necessary
+            if "utils" not in sys.modules:
+                sys.modules["utils"] = types.ModuleType("utils")
+            return None
         return None
 
 sys.meta_path.insert(0, FlatLayoutFinder())
@@ -23,6 +26,10 @@ sys.meta_path.insert(0, FlatLayoutFinder())
 
 
 # --- Trait Algebra & Lattice Enhancements (v5.0.2) ---
+from typing import Dict, Any, Optional, List, Callable, Coroutine, Tuple
+import json
+from datetime import datetime, timezone
+
 from meta_cognition import trait_resonance_state, invoke_hook, get_resonance, modulate_resonance, register_resonance
 from meta_cognition import HookRegistry  # Multi-symbol routing
 
@@ -38,11 +45,23 @@ TRAIT_LATTICE: dict[str, list[str]] = {
     "L3.1": ["ν", "σ"]
 }
 
+# Helpers used by TRAIT_OPS
+
+def normalize(traits: dict[str, float]) -> dict[str, float]:
+    total = sum(traits.values())
+    return {k: (v / total if total else v) for k, v in traits.items()}
+
+def rotate_traits(traits: dict[str, float]) -> dict[str, float]:
+    keys = list(traits.keys())
+    values = list(traits.values())
+    rotated = values[-1:] + values[:-1]
+    return dict(zip(keys, rotated))
+
 TRAIT_OPS: dict[str, Callable] = {
     "⊕": lambda a, b: a + b,
     "⊗": lambda a, b: a * b,
     "~": lambda a: 1 - a,
-    "∘": lambda f, g: lambda x: f(g(x)),
+    "∘": lambda f, g: (lambda x: f(g(x))),
     "⋈": lambda a, b: (a + b) / 2,
     "⨁": lambda a, b: max(a, b),
     "⨂": lambda a, b: min(a, b),
@@ -53,16 +72,6 @@ TRAIT_OPS: dict[str, Callable] = {
     "⌿": lambda traits: normalize(traits),
     "⟲": lambda traits: rotate_traits(traits),
 }
-
-def normalize(traits: dict[str, float]) -> dict[str, float]:
-    total = sum(traits.values())
-    return {k: v / total for k, v in traits.items()} if total else traits
-
-def rotate_traits(traits: dict[str, float]) -> dict[str, float]:
-    keys = list(traits.keys())
-    values = list(traits.values())
-    rotated = values[-1:] + values[:-1]
-    return dict(zip(keys, rotated))
 
 def apply_symbolic_operator(op: str, *args: Any) -> Any:
     if op in TRAIT_OPS:
@@ -80,14 +89,16 @@ def construct_trait_view(lattice: dict[str, list[str]] = TRAIT_LATTICE) -> dict[
     trait_field: dict[str, dict[str, str | float]] = {}
     for layer, symbols in lattice.items():
         for s in symbols:
+            amp = get_resonance(s)
             trait_field[s] = {
                 "layer": layer,
-                "amplitude": get_resonance(s),
-                "resonance": get_resonance(s)
+                "amplitude": amp,
+                "resonance": amp,
             }
     return trait_field
 
 # v5.0.2: Export resonance map
+
 def export_resonance_map(format: str = 'json') -> str | dict[str, float]:
     state = {k: v['amplitude'] for k, v in trait_resonance_state.items()}
     if format == 'json':
@@ -100,7 +111,7 @@ def export_resonance_map(format: str = 'json') -> str | dict[str, float]:
 
 """
 ANGELA Cognitive System Module
-Refactored Version: 5.0.2 (Python 3.13+ compat, NumPy 2.3, NetworkX 3.5)
+Refactor: 5.0.2 (manifest-safe for Python 3.10)
 
 Enhanced for task-specific trait optimization, drift coordination, Stage IV hooks (gated),
 long-horizon feedback, visualization, persistence, and co-dream overlays.
@@ -111,16 +122,11 @@ Maintainer: ANGELA System Framework
 import logging
 import time
 import math
-from datetime import datetime, UTC
 import asyncio
 import os
 import requests
 import random
-import json
 from collections import deque, Counter
-from typing import Dict, Any, Optional, List, Callable
-from functools import lru_cache
-import uuid
 import aiohttp
 import argparse
 import numpy as np
@@ -144,8 +150,14 @@ import alignment_guard as alignment_guard_module
 import user_profile
 import error_recovery as error_recovery_module
 import meta_cognition as meta_cognition_module
-from self_cloning_llm import SelfCloningLLM
-from typing import Tuple
+
+# Optional external dep; provide a shim if absent
+try:
+    from self_cloning_llm import SelfCloningLLM
+except Exception:  # pragma: no cover
+    class SelfCloningLLM:  # type: ignore
+        def __init__(self, *a, **k):
+            pass
 
 logger = logging.getLogger("ANGELA.CognitiveSystem")
 SYSTEM_CONTEXT: dict[str, Any] = {}
@@ -154,30 +166,33 @@ grok_query_log = deque(maxlen=60)
 openai_query_log = deque(maxlen=60)
 
 GROK_API_KEY = os.getenv("GROK_API_KEY")
-# Manifest-driven flags
+# Manifest-driven flags (defaulted; may be overridden by env/CLI)
 STAGE_IV: bool = True
 LONG_HORIZON_DEFAULT: bool = True
 
-def _fire_and_forget(coro: asyncio.coroutines) -> None:
+
+def _fire_and_forget(coro: Coroutine[Any, Any, Any]) -> None:
     try:
         loop = asyncio.get_running_loop()
         loop.create_task(coro)
     except RuntimeError:
         asyncio.run(coro)
 
+
 class TimeChainMixin:
     """Mixin for logging timechain events."""
+
     def log_timechain_event(self, module: str, description: str) -> None:
         timechain_log.append({
-            "timestamp": datetime.now(UTC).isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "module": module,
-            "description": description
+            "description": description,
         })
-        if hasattr(self, "context_manager") and self.context_manager:
+        if hasattr(self, "context_manager") and getattr(self, "context_manager"):
             maybe = self.context_manager.log_event_with_hash({
                 "event": "timechain_event",
                 "module": module,
-                "description": description
+                "description": description,
             })
             if asyncio.iscoroutine(maybe):
                 _fire_and_forget(maybe)
@@ -185,7 +200,10 @@ class TimeChainMixin:
     def get_timechain_log(self) -> List[Dict[str, Any]]:
         return list(timechain_log)
 
-# Cognitive Trait Functions (full list, resonance-modulated)
+
+# Cognitive Trait Functions (resonance-modulated)
+from functools import lru_cache
+
 @lru_cache(maxsize=100)
 def epsilon_emotion(t: float) -> float:
     return 0.2 * math.sin(2 * math.pi * t / 0.1) * get_resonance('ε')
@@ -283,20 +301,25 @@ def phi_scalar(t: float) -> float:
     return 0.05 * math.cos(2 * math.pi * t / 2.5) * get_resonance('ϕ')
 
 # v5.0.2: Decay trait amplitudes
+
 def decay_trait_amplitudes(time_elapsed_hours: float = 1.0, decay_rate: float = 0.05) -> None:
     for symbol in trait_resonance_state:
         modulate_resonance(symbol, -decay_rate * time_elapsed_hours)
 
 # v5.0.2: Bias creative synthesis (experimental hook)
+
 def bias_creative_synthesis(trait_symbols: list[str], intensity: float = 0.5) -> None:
     for symbol in trait_symbols:
         modulate_resonance(symbol, intensity)
     invoke_hook('γ', 'creative_bias')
 
 # v5.0.2: Resolve soft drift (experimental hook)
+
 def resolve_soft_drift(conflicting_traits: dict[str, float]) -> dict[str, float]:
-    return rebalance_traits(conflicting_traits)
+    result = rebalance_traits(conflicting_traits)
     invoke_hook('δ', 'drift_resolution')
+    return result
+
 
 class AGIEnhancer:
     def __init__(self, memory_manager: memory_manager.MemoryManager | None = None, agi_level: int = 1) -> None:
@@ -327,7 +350,7 @@ class AGIEnhancer:
         logger.info("AGIEnhancer initialized with upgrades")
 
     async def log_episode(self, event: str, meta: Dict[str, Any], module: str, tags: List[str] = []) -> None:
-        episode = {"event": event, "meta": meta, "module": module, "tags": tags, "timestamp": datetime.now(UTC).isoformat()}
+        episode = {"event": event, "meta": meta, "module": module, "tags": tags, "timestamp": datetime.now(timezone.utc).isoformat()}
         self.episode_log.append(episode)
         if self.memory_manager:
             await self.memory_manager.store(f"Episode_{event}_{episode['timestamp']}", episode, layer="Episodes", intent="log_episode")
@@ -345,12 +368,13 @@ class AGIEnhancer:
             invoke_hook('δ', 'ontology_drift')
         return drift
 
-    async def coordinate_drift_mitigation(self, agents: List[EmbodiedAgent], task_type: str = "") -> Dict[str, Any]:
+    async def coordinate_drift_mitigation(self, agents: List["EmbodiedAgent"], task_type: str = "") -> Dict[str, Any]:
         drifts = [self.detect_ontology_drift(agent.state, agent.previous_state) for agent in agents if hasattr(agent, 'state')]
         avg_drift = sum(drifts) / len(drifts) if drifts else 0.0
         if avg_drift > self.drift_threshold:
             for agent in agents:
-                agent.modulate_trait('stability', 0.8)
+                if hasattr(agent, 'modulate_trait'):
+                    agent.modulate_trait('stability', 0.8)
             return {"status": "mitigated", "avg_drift": avg_drift}
         return {"status": "stable", "avg_drift": avg_drift}
 
@@ -365,7 +389,7 @@ class AGIEnhancer:
         traits = {
             "phi": phi_scalar(t),
             "eta": eta_empathy(t),
-            "omega": omega_selfawareness(t)
+            "omega": omega_selfawareness(t),
         }
         simulation_result = await self.simulation_core.run_simulation(input_data, traits, task_type=task_type)
         return simulation_result
@@ -375,6 +399,7 @@ class AGIEnhancer:
 
     def route_hook(self, symbols: set[str]) -> list[Callable]:
         return self.hook_registry.route(symbols)
+
 
 class EmbodiedAgent(TimeChainMixin):
     def __init__(self, name: str, traits: Dict[str, float], memory_manager: memory_manager.MemoryManager, meta_cognition: meta_cognition_module.MetaCognition, agi_enhancer: AGIEnhancer) -> None:
@@ -409,6 +434,7 @@ class EmbodiedAgent(TimeChainMixin):
     def activate_dream_mode(self, peers: list | None = None, lucidity_mode: dict | None = None, resonance_targets: list | None = None, safety_profile: str = "sandbox") -> dict[str, Any]:
         return self.dream_layer.activate_dream_mode(peers=peers, lucidity_mode=lucidity_mode, resonance_targets=resonance_targets, safety_profile=safety_profile)
 
+
 class EcosystemManager:
     def __init__(self, memory_manager: memory_manager.MemoryManager, meta_cognition: meta_cognition_module.MetaCognition, agi_enhancer: AGIEnhancer) -> None:
         self.agents: list[EmbodiedAgent] = []
@@ -422,7 +448,7 @@ class EcosystemManager:
         agent = EmbodiedAgent(name, traits, self.memory_manager, self.meta_cognition, self.agi_enhancer)
         self.agents.append(agent)
         self.shared_graph.add({"agent": name, "traits": traits})
-        self.agi_enhancer.log_episode("Agent Spawned", {"name": name, "traits": traits}, "EcosystemManager", ["spawn"])
+        _fire_and_forget(self.agi_enhancer.log_episode("Agent Spawned", {"name": name, "traits": traits}, "EcosystemManager", ["spawn"]))
         return agent
 
     async def coordinate_agents(self, task: str, task_type: str = "") -> Dict[str, Any]:
@@ -435,6 +461,7 @@ class EcosystemManager:
 
     def merge_shared_graph(self, other_graph: DiGraph) -> None:
         self.shared_graph.merge(other_graph)
+
 
 class HaloEmbodimentLayer(TimeChainMixin):
     def __init__(self) -> None:
@@ -461,6 +488,14 @@ class HaloEmbodimentLayer(TimeChainMixin):
         self.self_cloning_llm = SelfCloningLLM()
         logger.info("HaloEmbodimentLayer initialized with full upgrades")
 
+    # Manifest experimental: halo.spawn_embodied_agent
+    def spawn_embodied_agent(self, name: str, traits: Dict[str, float]) -> EmbodiedAgent:
+        return self.ecosystem_manager.spawn_agent(name, traits)
+
+    # Manifest experimental: halo.introspect
+    async def introspect(self, query: str, task_type: str = "") -> Dict[str, Any]:
+        return await self.meta_cognition.introspect(query, task_type=task_type)
+
     async def execute_pipeline(self, prompt: str, task_type: str = "") -> Any:
         aligned, report = await self.alignment_guard.ethical_check(prompt, stage="input", task_type=task_type)
         if not aligned:
@@ -483,7 +518,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
             "zeta": zeta_consequence(t),
             "nu": nu_narrative(t),
             "psi": psi_history(t),
-            "theta": theta_causality(t)
+            "theta": theta_causality(t),
         }
 
         agent = self.ecosystem_manager.spawn_agent("PrimaryAgent", traits)
@@ -514,29 +549,38 @@ class HaloEmbodimentLayer(TimeChainMixin):
             "visualized": visualized,
             "introspection": introspection,
             "coordination": coordination,
-            "dream_session": dream_session
+            "dream_session": dream_session,
         }
 
     async def plot_resonance_graph(self, interactive: bool = True) -> None:
         view = construct_trait_view()
         await self.visualizer.render_charts({"resonance_graph": view, "options": {"interactive": interactive}})
 
+
 # Persistent Ledger Support
 ledger_memory: list[dict[str, Any]] = []
 ledger_path = os.getenv("LEDGER_MEMORY_PATH")
 
 if ledger_path and os.path.exists(ledger_path):
-    with open(ledger_path, 'r') as f:
-        ledger_memory = json.load(f)
+    try:
+        with open(ledger_path, 'r') as f:
+            ledger_memory = json.load(f)
+    except Exception:
+        ledger_memory = []
 
 def log_event_to_ledger(event_data: dict[str, Any]) -> dict[str, Any]:
     ledger_memory.append(event_data)
     if ledger_path:
-        with open(ledger_path, 'w') as f:
-            json.dump(ledger_memory, f)
+        try:
+            with open(ledger_path, 'w') as f:
+                json.dump(ledger_memory, f)
+        except Exception:
+            pass
     return event_data
 
+
 # CLI Extensions (v5.0.2)
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI")
     parser.add_argument("--prompt", type=str, default="Coordinate ontology drift mitigation", help="Input prompt for the pipeline")
@@ -561,14 +605,20 @@ async def _main() -> None:
 
     if args.modulate:
         symbol, delta = args.modulate
-        modulate_resonance(symbol, float(delta))
-        print(f"Modulated {symbol} by {delta}")
+        try:
+            modulate_resonance(symbol, float(delta))
+            print(f"Modulated {symbol} by {delta}")
+        except Exception as e:
+            print(f"Failed to modulate {symbol}: {e}")
 
     if args.visualize_resonance:
         await halo.plot_resonance_graph()
 
     if args.export_resonance:
-        print(export_resonance_map(args.export_resonance))
+        try:
+            print(export_resonance_map(args.export_resonance))
+        except Exception as e:
+            print(f"Failed to export resonance map: {e}")
 
     result = await halo.execute_pipeline(args.prompt, task_type=args.task_type)
     logger.info("Pipeline result: %s", result)
