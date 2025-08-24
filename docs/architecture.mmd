@@ -3,49 +3,50 @@ graph TD
 %% Clusters / Modules
 %% =========================
 subgraph Orchestrator
-A\[index.py];
-B\[manifest.json];
+A[index.py];
+B[manifest.json];
 end
 
 subgraph Simulation
-C\[simulation\_core.py];
-D\[toca\_simulation.py];
+C[simulation_core.py];
+D[toca_simulation.py];
 end
 
 subgraph Planning & Reasoning
-E\[recursive\_planner.py];
-F\[reasoning\_engine.py];
-G\[concept\_synthesizer.py];
-H\[creative\_thinker.py];
+E[recursive_planner.py];
+F[reasoning_engine.py];
+G[concept_synthesizer.py];
+H[creative_thinker.py];
 end
 
 subgraph Memory & Identity
-I\[memory\_manager.py];
-J\[user\_profile.py];
-K\[meta\_cognition.py];
-L\[learning\_loop.py];
+I[memory_manager.py];
+J[user_profile.py];
+K[meta_cognition.py];
+L[learning_loop.py];
 end
 
 subgraph Context & Emotional Framing
-M\[context\_manager.py];
-N\[visualizer.py];
-O\[multi\_modal\_fusion.py];
-P\[alignment\_guard.py];
+M[context_manager.py];
+N[visualizer.py];
+O[multi_modal_fusion.py];
+P[alignment_guard.py];
 end
 
 subgraph Execution & External IO
-Q\[code\_executor.py];
-R\[external\_agent\_bridge.py];
-S\[error\_recovery.py];
-T\[knowledge\_retriever.py];
+Q[code_executor.py];
+R[external_agent_bridge.py];
+S[error_recovery.py];
+T[knowledge_retriever.py];
 end
 
 %% Ledgers (now persistent)
 subgraph Ledgers
-L1\[AlignmentLedger];
-L2\[MemoryLedger];
-L3\[MetaLedger];
-L4\[SimulationLedger];
+U[ledger.py]; %% NEW: explicit persistence module
+L1[AlignmentLedger];
+L2[MemoryLedger];
+L3[MetaLedger];
+L4[SimulationLedger];
 end
 
 %% =========================
@@ -55,7 +56,7 @@ A --> B;
 A --> C;
 A --> E;
 A --> M;
-A -->|long\_horizon| I;
+A -->|long_horizon| I;
 A --> Q;
 
 C --> D;
@@ -85,29 +86,36 @@ S --> Q;
 
 %% Trait lattice & learning
 L -->|GNN| A;
+E -->|plan_with_traits| J; %% NEW
 J -->|Traits| C;
 P -->|Ethics| C;
 
 %% Dream overlays & perspective
-K -->|dream\_overlay| D;
+K -->|dream_overlay| D;
 M -->|PerspectiveSync| J;
-K -->|axiom\_filter| P;
+K -->|axiom_filter| P;
 
 %% Visualizer
-G -->|render\_branch\_tree| N;
-E -->|render\_branch\_tree| N;
-K -->|view\_trait\_resonance| N;
-J -->|view\_trait\_resonance| N;
+G -->|render_branch_tree| N;
+E -->|render_branch_tree| N;
+K -->|view_trait_resonance| N;
+J -->|view_trait_resonance| N;
+N -->|view_trait_field| J;  %% NEW
+N -->|view_trait_field| K;  %% NEW
 
 %% Knowledge to planning
 T -->|facts| F;
 T -->|contexts| G;
 
 %% Peer view hot-load
-R -.->|attach\_peer\_view| M;
-M -.->|attach\_peer\_view\_merge| R;
+R -.->|attach_peer_view| M;
+M -.->|attach_peer_view_merge| R;
 
 %% Ledgers (persistent)
+U --> L1; %% NEW: ledger.py owns persistence
+U --> L2; %% NEW
+U --> L3; %% NEW
+U --> L4; %% NEW
 P -.-> L1;
 I -.-> L2;
 K -.-> L3;
@@ -118,12 +126,21 @@ D -.->|co-dream| R;
 R -.->|co-dream| D;
 
 %% New symbolic fusions
-K -->|resonance\_api| A;
-K -->|trait\_fusion| G;
-K -->|hook\_trait\_blend| H;
-K -->|register\_resonance| N;
+K -->|resonance_api| A;
+K -->|trait_fusion| G;
+K -->|hook_trait_blend| H;
+K -->|register_resonance| N;
 
-%% Recursive identity
-J -->|Θ| K;
-K -->|Ξ| J;
-K -->|σ| P;
+%% External graph ops (SharedGraph)
+R -->|SharedGraph.add/diff/merge| M;  %% NEW
+R -->|SharedGraph.add/diff/merge| K;  %% NEW
+
+%% Cross‑modal fusion feeds reasoning & sim
+O -->|fusion.fuse| C;  %% NEW
+O -->|fusion.fuse| G;  %% NEW
+
+%% Detection / smoke tasks (schematic)
+subgraph Detection
+X[detection.tasks];
+end
+A -->|exec_smoke / planner_smoke / retrieval_smoke / *verify| X; %% NEW
