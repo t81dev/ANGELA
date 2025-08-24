@@ -3,144 +3,144 @@ graph TD
 %% Clusters / Modules
 %% =========================
 subgraph Orchestrator
-A[index.py];
-B[manifest.json];
+A[index.py]
+B[manifest.json]
 end
 
 subgraph Simulation
-C[simulation_core.py];
-D[toca_simulation.py];
+C[simulation_core.py]
+D[toca_simulation.py]
 end
 
 subgraph Planning & Reasoning
-E[recursive_planner.py];
-F[reasoning_engine.py];
-G[concept_synthesizer.py];
-H[creative_thinker.py];
+E[recursive_planner.py]
+F[reasoning_engine.py]
+G[concept_synthesizer.py]
+H[creative_thinker.py]
 end
 
 subgraph Memory & Identity
-I[memory_manager.py];
-J[user_profile.py];
-K[meta_cognition.py];
-L[learning_loop.py];
+I[memory_manager.py]
+J[user_profile.py]
+K[meta_cognition.py]
+L[learning_loop.py]
 end
 
 subgraph Context & Emotional Framing
-M[context_manager.py];
-N[visualizer.py];
-O[multi_modal_fusion.py];
-P[alignment_guard.py];
+M[context_manager.py]
+N[visualizer.py]
+O[multi_modal_fusion.py]
+P[alignment_guard.py]
 end
 
 subgraph Execution & External IO
-Q[code_executor.py];
-R[external_agent_bridge.py];
-S[error_recovery.py];
-T[knowledge_retriever.py];
+Q[code_executor.py]
+R[external_agent_bridge.py]
+S[error_recovery.py]
+T[knowledge_retriever.py]
 end
 
 %% Ledgers (now persistent)
 subgraph Ledgers
-U[ledger.py]; %% NEW: explicit persistence module
-L1[AlignmentLedger];
-L2[MemoryLedger];
-L3[MetaLedger];
-L4[SimulationLedger];
+U[ledger.py]
+L1[AlignmentLedger]
+L2[MemoryLedger]
+L3[MetaLedger]
+L4[SimulationLedger]
 end
 
 %% =========================
 %% Core Connections
 %% =========================
-A --> B;
-A --> C;
-A --> E;
-A --> M;
-A -->|long_horizon| I;
-A --> Q;
+A --> B
+A --> C
+A --> E
+A --> M
+A -->|long_horizon| I
+A --> Q
 
-C --> D;
-C --> F;
-D --> P;
-D --> J;
+C --> D
+C --> F
+D --> P
+D --> J
 
-E --> F;
-F --> G;
-G --> H;
-H --> M;
+E --> F
+F --> G
+G --> H
+H --> M
 
-I --> J;
-J --> K;
-K --> L;
-L --> I;
+I --> J
+J --> K
+K --> L
+L --> I
 
-M --> N;
-N --> O;
-O --> P;
+M --> N
+N --> O
+O --> P
 
-Q --> R;
-R --> T;
-T --> I;
-S --> A;
-S --> Q;
+Q --> R
+R --> T
+T --> I
+S --> A
+S --> Q
 
 %% Trait lattice & learning
-L -->|GNN| A;
-E -->|plan_with_traits| J; %% NEW
-J -->|Traits| C;
-P -->|Ethics| C;
+L -->|GNN| A
+E -->|plan_with_traits| J
+J -->|Traits| C
+P -->|Ethics| C
 
 %% Dream overlays & perspective
-K -->|dream_overlay| D;
-M -->|PerspectiveSync| J;
-K -->|axiom_filter| P;
+K -->|dream_overlay| D
+M -->|PerspectiveSync| J
+K -->|axiom_filter| P
 
 %% Visualizer
-G -->|render_branch_tree| N;
-E -->|render_branch_tree| N;
-K -->|view_trait_resonance| N;
-J -->|view_trait_resonance| N;
-N -->|view_trait_field| J;  %% NEW
-N -->|view_trait_field| K;  %% NEW
+G -->|render_branch_tree| N
+E -->|render_branch_tree| N
+K -->|view_trait_resonance| N
+J -->|view_trait_resonance| N
+N -->|view_trait_field| J
+N -->|view_trait_field| K
 
 %% Knowledge to planning
-T -->|facts| F;
-T -->|contexts| G;
+T -->|facts| F
+T -->|contexts| G
 
 %% Peer view hot-load
-R -.->|attach_peer_view| M;
-M -.->|attach_peer_view_merge| R;
+R -.->|attach_peer_view| M
+M -.->|attach_peer_view_merge| R
 
 %% Ledgers (persistent)
-U --> L1; %% NEW: ledger.py owns persistence
-U --> L2; %% NEW
-U --> L3; %% NEW
-U --> L4; %% NEW
-P -.-> L1;
-I -.-> L2;
-K -.-> L3;
-C -.-> L4;
+U --> L1
+U --> L2
+U --> L3
+U --> L4
+P -.-> L1
+I -.-> L2
+K -.-> L3
+C -.-> L4
 
 %% Co-dream + recursive overlays
-D -.->|co-dream| R;
-R -.->|co-dream| D;
+D -.->|co-dream| R
+R -.->|co-dream| D
 
 %% New symbolic fusions
-K -->|resonance_api| A;
-K -->|trait_fusion| G;
-K -->|hook_trait_blend| H;
-K -->|register_resonance| N;
+K -->|resonance_api| A
+K -->|trait_fusion| G
+K -->|hook_trait_blend| H
+K -->|register_resonance| N
 
 %% External graph ops (SharedGraph)
-R -->|SharedGraph.add/diff/merge| M;  %% NEW
-R -->|SharedGraph.add/diff/merge| K;  %% NEW
+R -->|SharedGraph.add/diff/merge| M
+R -->|SharedGraph.add/diff/merge| K
 
 %% Cross‑modal fusion feeds reasoning & sim
-O -->|fusion.fuse| C;  %% NEW
-O -->|fusion.fuse| G;  %% NEW
+O -->|fusion.fuse| C
+O -->|fusion.fuse| G
 
 %% Detection / smoke tasks (schematic)
 subgraph Detection
-X[detection.tasks];
+X[detection.tasks]
 end
-A -->|exec_smoke / planner_smoke / retrieval_smoke / *verify| X; %% NEW
+A -->|exec_smoke / planner_smoke / retrieval_smoke / *verify| X
