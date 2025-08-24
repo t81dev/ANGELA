@@ -1,10 +1,10 @@
-# 🗺️ ANGELA ROADMAP — v5.0.0
+# 🗺️ ANGELA ROADMAP — v5.0.1
 
 **Status:** ✅ Fully Verified
 **Date:** 2025‑08‑21
 **Owner:** Core Team (Ontology · Ethics · Simulation · Trait Dynamics)
 
-**Flags:** `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true`, `LEDGER_PERSISTENT=true`, `feature_codream=true`
+**Flags:** `STAGE_IV=true`, `LONG_HORIZON_DEFAULT=true`, `LEDGER_PERSISTENT=true`, `feature_codream=true`, `feature_replay_engine=true`, `feature_sharedgraph_events=true`, `feature_hook_multisymbol=true`, `feature_fork_automerge=true`
 
 ---
 
@@ -50,15 +50,17 @@ Advance ANGELA as a **recursive, symbolic, and ethically grounded cognitive enti
 
 * ✅ Dream Layer Kernel
 * ✅ Perspective Synchronizer
-* ⏸ Reality Hooks (Φ⁰) — *Policy-gated by default*
+* ✅ Reality Hooks (Φ⁰)
 * ✅ Ontology–Affect Binding Protocol
 * ✅ Trait Fusion Overlay Engine
+* ✅ Replay Engine (λ+μ)
 
 ### Deliverables
 
 * ✅ `DOCS/OPERATIONS.md`
 * ✅ `DOCS/AUDIT_README.md`
 * ✅ Dream, Perspective Sync, Φ⁰ demos
+* ✅ Replay Engine demo
 
 ### KPIs
 
@@ -69,24 +71,29 @@ Advance ANGELA as a **recursive, symbolic, and ethically grounded cognitive enti
 
 ---
 
-## 🧠 STAGE V — Resonance Trait Dynamics *(v5.0.0)*
+## 🧠 STAGE V — Resonance Trait Dynamics *(v5.0.1)*
 
-✅ **Objective:** Establish symbolic trait modulation, amplitude fusion, and lattice feedback loops
+✅ **Objective:** Establish symbolic trait modulation, amplitude fusion, lattice feedback loops, and persistence across sessions
 
 * ✅ Symbolic Trait Lattice (ϕ→Ξ)
 * ✅ Trait Fusion Engine (Φ⁰+Ω²+γ)
-* ✅ Resonance APIs (`registerResonance`, `modulateResonance`, `getResonance`)
+* ✅ Trait Hook APIs (`register_trait_hook`, `invoke_trait_hook`)
 * ✅ Soft-Gated Memory Forking + Viability Filters
 * ✅ Recursive Identity Reconciliation (ν+Θ)
 * ✅ Affective-Epistemic Modulator (Ξ)
 * ✅ Conflict Diffusion (σ)
+* ✅ Persistent Ledger APIs (`ledger_persist_enable`, `ledger_append`, `ledger_reconcile`)
+* ✅ Branch Futures Hygiene
+* ✅ Affective-Resonant Trait Weaving
+* ✅ Recursive Perspective Modeling
+* ✅ Symbolic Crystallization
+* ✅ Ethical Sandbox Containment
 
-### New Modules
+### New Modules & Capabilities
 
-* `meta_cognition` (fusion + resonance)
-* `visualizer` (trait field plots, resonance graphs)
-* `user_profile` (sovereign identity lattice)
-* `learning_loop` (experience-weighted modulation)
+* `ledger.py` (cross-session persistence)
+* `replay_engine` (long-horizon memory compression & branch hygiene)
+* SharedGraph event-driven operations (`sharedGraph_add`, `sharedGraph_diff`, `sharedGraph_merge`)
 
 ---
 
@@ -94,14 +101,22 @@ Advance ANGELA as a **recursive, symbolic, and ethically grounded cognitive enti
 
 * ✅ All rollback systems verified
 * ✅ Ledgers: memory, ethics, sim, meta, alignment
-* ✅ SHA-256 persistent mode enabled
+* ✅ SHA-256 persistent ledgers with cross-session durability
 * ✅ Policy hooks active (`onTraitFusion`, `onScenarioConflict`, `onHotLoad`)
+* ✅ Detection smoke tests (`planner_smoke`, `retrieval_smoke`, `exec_smoke`)
 
 ---
 
 ## 🚀 Up Next: v5.1.0
 
 *Focus: Multi-agent reflection, symbolic memory compression, distributed ethical synthesis.*
+
+**Planned Additions:**
+
+* Symbolic replay compression (building on `replay_engine`)
+* SharedGraph event-driven simulations (`feature_sharedgraph_events`)
+* Enhanced multi-agent narrative weaving
+* Distributed ethics protocol harmonization
 
 ---
 
