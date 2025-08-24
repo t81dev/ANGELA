@@ -1,116 +1,136 @@
-# --- flat-layout bootstrap ---
+"""
+ANGELA OS — index.py
+Version: 5.0.1
+
+Entry module for ANGELA’s cognitive kernel. This file provides:
+  • Public/stable API shims required by manifest.json:
+        - construct_trait_view(lattice)
+        - rebalance_traits(traits)
+  • Experimental (gated) endpoints:
+        - HaloEmbodimentLayer.spawn_embodied_agent(...)
+        - HaloEmbodimentLayer.introspect(...)
+  • CLI affordances (e.g., --long_horizon, --span)
+  • Light-weight orchestration, logging setup, and trait overlay helpers.
+
+Design goals:
+  1) Keep imports lazy to reduce import-time side effects.
+  2) Avoid hard coupling to optional modules; degrade gracefully.
+  3) Provide clear, well-typed boundaries for other modules to call.
+
+This file is intentionally verbose with docstrings and comments so that
+it can serve as a living spec for the kernel wiring. Keep public
+function signatures stable; add internal helpers freely.
+"""
+
+from __future__ import annotations
+
+import os
 import sys
-import types
-import importlib
-import importlib.util
-import importlib.machinery
-import importlib.abc
-
-class FlatLayoutFinder(importlib.abc.MetaPathFinder):
-    def find_spec(self, fullname, path, target=None):
-        if fullname.startswith("modules."):
-            modname = fullname.split(".", 1)[1]
-            filename = f"/mnt/data/{modname}.py"
-            return importlib.util.spec_from_file_location(fullname, filename, loader=importlib.machinery.SourceFileLoader(fullname, filename))
-        elif fullname == "utils":
-            utils_mod = types.ModuleType("utils")
-            sys.modules["utils"] = utils_mod
-            return utils_mod.__spec__
-        return None
-
-sys.meta_path.insert(0, FlatLayoutFinder())
-# --- end flat-layout bootstrap ---
-
-# Standard library imports
-import logging
+import json
+import uuid
 import time
 import math
-import datetime
+import types
 import asyncio
-import os
-import requests
-import random
-import json
+import logging
+import inspect
 import argparse
-import uuid
+import contextlib
+from dataclasses import dataclass, field
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
-# Third-party imports
-from collections import deque, Counter
-from typing import Dict, Any, Optional, List, Callable
-from functools import lru_cache
-import numpy as np
-from networkx import DiGraph
-from aiohttp import ClientSession as aiohttp  # Alias to match original
+# ---------------------------------------------------------------------
+# Logging configuration
+# ---------------------------------------------------------------------
 
-# Local imports
-import reasoning_engine
-import recursive_planner
-import context_manager as context_manager_module
-import simulation_core
-import toca_simulation
-import creative_thinker as creative_thinker_module
-import knowledge_retriever
-import learning_loop
-import concept_synthesizer as concept_synthesizer_module
-import memory_manager
-import multi_modal_fusion
-import code_executor as code_executor_module
-import visualizer as visualizer_module
-import external_agent_bridge
-import alignment_guard as alignment_guard_module
-import user_profile
-import error_recovery as error_recovery_module
-import meta_cognition as meta_cognition_module
-from self_cloning_llm import SelfCloningLLM
-from typing import Tuple
-from memory_manager import log_event_to_ledger
-from meta_cognition import invoke_hook, trait_resonance_state, modulate_resonance  # For --modulate CLI
+_LOG_LEVEL = os.environ.get("ANGELA_LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, _LOG_LEVEL, logging.INFO),
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
+logger = logging.getLogger("ANGELA.index")
 
-logger = logging.getLogger("ANGELA.CognitiveSystem")
-SYSTEM_CONTEXT = {}
-timechain_log = deque(maxlen=1000)
-grok_query_log = deque(maxlen=60)
-openai_query_log = deque(maxlen=60)
+# ---------------------------------------------------------------------
+# Feature flags (default-safe; may be overridden by env)
+# ---------------------------------------------------------------------
 
-# Manifest-driven flags (safe defaults if manifest/config is not injected)
-STAGE_IV = True  # Can be toggled via HaloEmbodimentLayer.init flags
-LONG_HORIZON_DEFAULT = True  # defaultSpan is handled at pipeline logging level
+STAGE_IV: bool = os.environ.get("ANGELA_STAGE_IV", "1") not in ("0", "false", "False")
+LONG_HORIZON_DEFAULT: bool = os.environ.get("ANGELA_LONG_HORIZON_DEFAULT", "1") not in ("0", "false", "False")
 
-# --- Symbolic Operator Extension (ANGELA v5.0.2) ---
-SYMBOLIC_OPERATORS = {
-    '⊕': lambda a, b: a + b,
-    '⊗': lambda a, b: a * b,
-    '~': lambda a: 1 - a,
-    '∘': lambda f, g: lambda x: f(g(x)),
-    '⋈': lambda a, b: (a + b) / 2,
-    '⨁': lambda a, b: max(a, b),
-    '⨂': lambda a, b: min(a, b),
-    '†': lambda a: a**-1 if a != 0 else 0,
-    '▷': lambda a, b: a if a > b else b * 0.5,
-    '↑': lambda a: min(1.0, a + 0.1),
-    '↓': lambda a: max(0.0, a - 0.1),
-    '⌿': lambda traits: normalize(traits),
-    '⟲': lambda traits: rotate_traits(traits),
+# These names mirror manifest.json featureFlags; they’re advisory here.
+FEATURE_FLAGS: Dict[str, bool] = {
+    "STAGE_IV": STAGE_IV,
+    "LONG_HORIZON_DEFAULT": LONG_HORIZON_DEFAULT,
+    "LEDGER_IN_MEMORY": True,
+    "LEDGER_PERSISTENT": True,
+    "feature_hook_multisymbol": True,
+    "feature_fork_automerge": True,
+    "feature_sharedgraph_events": True,
+    "feature_replay_engine": True,
+    "feature_codream": True,
+    "feature_symbolic_trait_lattice": True,
 }
 
-def normalize(traits: Dict[str, float]) -> Dict[str, float]:
-    total = sum(traits.values())
-    return {k: v / total for k, v in traits.items()} if total else traits
+# ---------------------------------------------------------------------
+# Utility: fire-and-forget scheduling
+# ---------------------------------------------------------------------
 
-def rotate_traits(traits: Dict[str, float]) -> Dict[str, float]:
-    keys = list(traits.keys())
-    values = list(traits.values())
-    rotated = values[-1:] + values[:-1]
-    return dict(zip(keys, rotated))
+def _fire_and_forget(coro: Coroutine[Any, Any, Any]) -> None:
+    """
+    Schedule a coroutine in the background without awaiting it.
+    Errors are logged but not raised to the caller.
+    """
+    loop = asyncio.get_event_loop()
+    task = loop.create_task(coro)
 
-def apply_symbolic_operator(op: str, *args: Any) -> Any:
-    if op in SYMBOLIC_OPERATORS:
-        return SYMBOLIC_OPERATORS[op](*args)
-    raise ValueError(f"Unsupported symbolic operator: {op}")
-# --- End Symbolic Operators ---
+    def _done_cb(t: asyncio.Task) -> None:
+        with contextlib.suppress(asyncio.CancelledError):
+            exc = t.exception()
+            if exc:
+                logger.exception("Background task failed: %s", exc)
 
-# --- Trait Algebra & Lattice Enhancements ---
-TRAIT_LATTICE = {
+    task.add_done_callback(_done_cb)
+
+
+# ---------------------------------------------------------------------
+# Lazy import helpers
+# ---------------------------------------------------------------------
+
+def _lazy_import(name: str):
+    """
+    Import a module lazily. If import fails, returns None and logs a debug message.
+    """
+    try:
+        module = __import__(name, fromlist=["*"])
+        return module
+    except Exception as e:
+        logger.debug("Optional import '%s' failed: %s", name, e)
+        return None
+
+
+# ---------------------------------------------------------------------
+# Symbolic lattice helpers
+# ---------------------------------------------------------------------
+
+# Layered lattice for traits (see manifest ‘latticeLayers’). We don’t need the full
+# structure here—only enough to compute a view. Layers are kept for reference.
+DEFAULT_LATTICE: Dict[str, List[str]] = {
     "L1": ["ϕ", "θ", "η", "ω"],
     "L2": ["ψ", "κ", "μ", "τ"],
     "L3": ["ξ", "π", "δ", "λ", "χ", "Ω"],
@@ -118,27 +138,1032 @@ TRAIT_LATTICE = {
     "L5": ["Ω²"],
     "L6": ["ρ", "ζ"],
     "L7": ["γ", "β"],
-    "L5.1": ["Θ", "Ξ"],
-    "L3.1": ["ν", "σ"]
 }
 
-TRAIT_OPS = {
-    "⊕": lambda a, b: a + b,
-    "⊗": lambda a, b: a * b,
-    "~": lambda a: -a
-}
+# Lightweight resonance function. Real system may consult MetaCognition/Visualizer.
+def _compute_resonance(symbol: str) -> float:
+    """
+    Compute a stable-but-dynamic resonance scalar for a given trait symbol.
+    Deterministic fallback uses a hash fold to produce a pseudo-random in [0.6, 1.0].
+    """
+    seed = sum(ord(c) for c in symbol) % 997
+    # a gentle curve in [0.6, 1.0]
+    return 0.6 + ( ( (seed * 0.37) % 1.0 ) * 0.4 )
 
-def rebalance_traits(traits: List[str]) -> List[str]:
-    """Rebalance traits based on lattice interactions."""
+
+def _default_amplitude(symbol: str) -> float:
+    """
+    Provide a per-symbol default amplitude. Can be later modulated by meta hooks.
+    """
+    base = {
+        "θ": 1.0,  # causal coherence is backbone
+        "λ": 0.95, # narrative integrity strong default
+        "Ω": 0.9,  # recursive causal modeling
+    }.get(symbol, 0.82)
+    return float(base)
+
+
+# ---------------------------------------------------------------------
+# Public API: construct_trait_view
+# ---------------------------------------------------------------------
+
+def construct_trait_view(lattice: Optional[Mapping[str, Sequence[str]]] = None) -> Dict[str, Dict[str, Any]]:
+    """
+    Build a normalized trait field view.
+
+    Parameters
+    ----------
+    lattice : Mapping[str, Sequence[str]] | None
+        Mapping from layer name to sequence of trait symbols (e.g., "L1": ["ϕ","θ",...]).
+        If None, uses DEFAULT_LATTICE.
+
+    Returns
+    -------
+    Dict[str, Dict[str, Any]]
+        For each trait symbol, record a structure:
+            {
+              "layer": <layer key>,
+              "amplitude": <float>,
+              "resonance": <float>
+            }
+
+    Notes
+    -----
+    This function is intended to be “pure”: no I/O, no global state changes.
+    Meta- or visualization modules may later augment this view.
+    """
+    lattice = lattice or DEFAULT_LATTICE
+    view: Dict[str, Dict[str, Any]] = {}
+    for layer, symbols in lattice.items():
+        for s in symbols:
+            view[s] = {
+                "layer": layer,
+                "amplitude": _default_amplitude(s),
+                "resonance": _compute_resonance(s),
+            }
+    return view
+
+
+# ---------------------------------------------------------------------
+# Public API: rebalance_traits
+# ---------------------------------------------------------------------
+
+def rebalance_traits(traits: Sequence[str]) -> List[str]:
+    """
+    Rebalance a set of trait symbols using (optional) meta-cognition hooks.
+
+    Behavior:
+      • Pass-through for unknown symbols (we don’t prune here).
+      • If certain pairs co-occur, notify hooks to blend/defuse tension.
+
+    Examples of soft rules:
+      - ("π", "δ") → axiom_fusion
+      - ("ψ", "Ω") → dream_sync
+      - ("γ", "β") → imagination vs conflict regulation balancing
+
+    Returns
+    -------
+    List[str] : the (possibly reordered) list of traits.
+    """
+    traits = list(traits)
+
+    # Try to notify meta-cognition hooks, if available.
+    meta = _lazy_import("meta_cognition")
+    invoke_hook: Optional[Callable[[str, str], Any]] = None
+    if meta and hasattr(meta, "invoke_hook"):
+        invoke_hook = getattr(meta, "invoke_hook")  # type: ignore[assignment]
+
+    def _maybe_hook(symbol: str, hook_name: str) -> None:
+        if invoke_hook:
+            try:
+                invoke_hook(symbol, hook_name)
+                logger.debug("Invoked meta-cognition hook: %s :: %s", symbol, hook_name)
+            except Exception:
+                logger.exception("Hook invocation failed for %s :: %s", symbol, hook_name)
+
+    # Simple pair awareness (non-exhaustive; safe to extend)
     if "π" in traits and "δ" in traits:
-        invoke_hook("π", "axiom_fusion")
+        _maybe_hook("π", "axiom_fusion")
     if "ψ" in traits and "Ω" in traits:
-        invoke_hook("ψ", "dream_sync")
+        _maybe_hook("ψ", "dream_sync")
+    if "γ" in traits and "β" in traits:
+        _maybe_hook("γ", "creative_conflict_balance")
+
+    # Optionally reorder to keep θ (causal coherence) and λ (narrative integrity) forward.
+    def _priority(s: str) -> int:
+        if s == "θ":
+            return 0
+        if s == "λ":
+            return 1
+        return 2
+
+    traits.sort(key=_priority)
     return traits
 
-def construct_trait_view(lattice: Dict[str, List[str]]) -> Dict[str, Dict[str, Any]]:
-    """Construct a view of the trait field based on the lattice."""
-    trait_field = {}
+
+# ---------------------------------------------------------------------
+# Experimental: HaloEmbodimentLayer
+# ---------------------------------------------------------------------
+
+@dataclass
+class EmbodiedAgent:
+    """
+    Thin container for a spawned embodied agent descriptor. Real embodiment is
+    delegated to simulation_core / external bridges. This struct keeps kernel-
+    local metadata stable for callers of experimental APIs.
+    """
+    agent_id: str
+    created_ts: float
+    label: str = "embodied-agent"
+    meta: Dict[str, Any] = field(default_factory=dict)
+
+
+class HaloEmbodimentLayer:
+    """
+    Experimental embodiment/inrospection layer. Moved to 'experimental' in the
+    manifest to lower symbol-risk while keeping an access path for advanced users.
+
+    Contract (as used in manifest.json):
+      - index.py::HaloEmbodimentLayer.spawn_embodied_agent
+      - index.py::HaloEmbodimentLayer.introspect
+    """
+
+    def __init__(self, enable_when_stage_iv: bool = True) -> None:
+        self.enabled = (STAGE_IV and enable_when_stage_iv) or not enable_when_stage_iv
+        self._agents: Dict[str, EmbodiedAgent] = {}
+        logger.debug("HaloEmbodimentLayer enabled=%s", self.enabled)
+
+    # ---------------------- experimental API ----------------------
+
+    async def spawn_embodied_agent(
+        self,
+        *,
+        intent: str = "",
+        traits: Optional[Sequence[str]] = None,
+        context: Optional[Mapping[str, Any]] = None,
+    ) -> EmbodiedAgent:
+        """
+        Spawn an embodied agent representation.
+
+        This method is a high-level coordinator:
+          • validates inputs
+          • asks simulation_core (if available) for a body plan
+          • records minimal registry in-memory (non-persistent here)
+
+        Parameters
+        ----------
+        intent : str
+            Human-readable description of agent’s purpose.
+        traits : Sequence[str] | None
+            Trait emphasis for initialization (passed through to planner/sim if present).
+        context : Mapping[str, Any] | None
+            Arbitrary key/value context (e.g., environmental parameters).
+
+        Returns
+        -------
+        EmbodiedAgent
+        """
+        if not self.enabled:
+            raise RuntimeError("HaloEmbodimentLayer is disabled (STAGE_IV gating).")
+
+        traits = list(traits or [])
+        context = dict(context or {})
+        agent_id = f"agent-{uuid.uuid4()}"
+        created_ts = time.time()
+
+        # Optionally coordinate with a planner/simulation module.
+        planner = _lazy_import("recursive_planner")
+        sim_core = _lazy_import("simulation_core")
+
+        # Kick off optional pre-plan (fire-and-forget).
+        if planner and hasattr(planner, "RecursivePlanner"):
+            try:
+                rp_cls = getattr(planner, "RecursivePlanner")
+                rp = rp_cls()
+                # Do not await: planning can be long; pass best-effort context.
+                _fire_and_forget(rp.plan_with_traits(intent=intent, traits=traits))  # type: ignore[attr-defined]
+            except Exception:
+                logger.exception("Pre-plan dispatch failed; continuing without planner.")
+
+        # Ask sim core to instantiate a sketch of embodiment (best effort).
+        if sim_core and hasattr(sim_core, "SimulationCore"):
+            try:
+                sc_cls = getattr(sim_core, "SimulationCore")
+                sc = sc_cls()
+                # This is intentionally non-blocking
+                _fire_and_forget(sc.run_simulation({"intent": intent, "traits": traits, "context": context}))  # type: ignore[attr-defined]
+            except Exception:
+                logger.exception("Simulation bootstrap failed; continuing without simulation.")
+
+        agent = EmbodiedAgent(agent_id=agent_id, created_ts=created_ts, meta={"intent": intent, "traits": traits, **context})
+        self._agents[agent_id] = agent
+        logger.info("Spawned embodied agent %s", agent_id)
+        return agent
+
+    async def introspect(self, *, agent_id: Optional[str] = None, depth: int = 1) -> Dict[str, Any]:
+        """
+        Introspect an embodied agent or the layer state.
+
+        Parameters
+        ----------
+        agent_id : str | None
+            When provided, return details for that agent; otherwise provide a summary.
+        depth : int
+            Increase to request more detailed/expensive diagnostics.
+
+        Returns
+        -------
+        Dict[str, Any]
+        """
+        if not self.enabled:
+            raise RuntimeError("HaloEmbodimentLayer is disabled (STAGE_IV gating).")
+
+        if agent_id:
+            agent = self._agents.get(agent_id)
+            if not agent:
+                raise KeyError(f"Unknown agent_id: {agent_id}")
+            result: Dict[str, Any] = {
+                "agent_id": agent.agent_id,
+                "created_ts": agent.created_ts,
+                "label": agent.label,
+                "meta": dict(agent.meta),
+            }
+        else:
+            result = {
+                "enabled": self.enabled,
+                "agent_count": len(self._agents),
+                "agents": [a.agent_id for a in self._agents.values()] if depth > 0 else [],
+            }
+
+        # Optionally ask meta_cognition for overlays/insights.
+        if depth > 1:
+            meta = _lazy_import("meta_cognition")
+            if meta and hasattr(meta, "describe_self_state"):
+                try:
+                    desc = await meta.describe_self_state()  # type: ignore[attr-defined]
+                    result["meta_state"] = desc
+                except Exception:
+                    logger.exception("Meta-cognition describe_self_state failed; ignoring.")
+        return result
+
+
+# ---------------------------------------------------------------------
+# Shared utilities for kernel orchestration
+# ---------------------------------------------------------------------
+
+def _load_manifest_from_neighbor(path_hint: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    Try to locate and parse a local manifest.json (optional).
+    Returns None if not found or parse fails.
+    """
+    candidates = [
+        path_hint,
+        os.environ.get("ANGELA_MANIFEST_PATH"),
+        os.path.join(os.path.dirname(__file__), "manifest.json"),
+        os.path.join(os.getcwd(), "manifest.json"),
+    ]
+    for p in candidates:
+        if not p:
+            continue
+        if os.path.isfile(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.debug("Failed loading manifest from %s: %s", p, e)
+    return None
+
+
+def _long_horizon_defaults(span_env: Optional[str] = None) -> Tuple[bool, str]:
+    """
+    Establish long-horizon defaults (enabled flag + span string).
+    """
+    enabled = LONG_HORIZON_DEFAULT
+    span = span_env or os.environ.get("ANGELA_DEFAULT_SPAN", "24h")
+    return enabled, span
+
+
+# ---------------------------------------------------------------------
+# CLI Surface
+# ---------------------------------------------------------------------
+
+def _build_arg_parser() -> argparse.ArgumentParser:
+    """
+    Build an argparse parser that aligns with manifest CLI flags:
+      --long_horizon
+      --span=<duration>
+      --ledger_persist --ledger_path=<file>
+    """
+    p = argparse.ArgumentParser(prog="angela-index", add_help=True)
+    p.add_argument(
+        "--long_horizon",
+        action="store_true",
+        help="Enable long-horizon mode (see manifest CLI).",
+    )
+    p.add_argument(
+        "--span",
+        default=os.environ.get("ANGELA_DEFAULT_SPAN", "24h"),
+        help="Duration for long-horizon span (e.g., 24h, 7d).",
+    )
+    p.add_argument(
+        "--ledger_persist",
+        action="store_true",
+        help="Enable persistent ledger (requires ledger.py).",
+    )
+    p.add_argument(
+        "--ledger_path",
+        default=os.environ.get("ANGELA_LEDGER_PATH", ""),
+        help="Path to persistent ledger (if --ledger_persist).",
+    )
+    return p
+
+
+async def _cli_entry(args: argparse.Namespace) -> int:
+    """
+    Async entrypoint for CLI usage.
+    """
+    enabled, default_span = _long_horizon_defaults()
+    long_horizon = bool(args.long_horizon or enabled)
+    span = str(args.span or default_span)
+
+    logger.info("CLI: long_horizon=%s span=%s", long_horizon, span)
+
+    # Optional: enable persistent ledger if requested and available.
+    if args.ledger_persist:
+        ledger = _lazy_import("ledger")
+        if ledger and hasattr(ledger, "Ledger"):
+            try:
+                Ledger = getattr(ledger, "Ledger")
+                Ledger.enable(path=str(args.ledger_path or "angela-ledger.json"))  # type: ignore[attr-defined]
+                logger.info("Ledger persistence enabled at %s", args.ledger_path or "angela-ledger.json")
+            except Exception:
+                logger.exception("Failed to enable ledger persistence.")
+        else:
+            logger.warning("ledger.py not present or missing Ledger API; skipping persistence.")
+
+    # Produce a small status report to stdout to indicate healthy start.
+    status = {
+        "long_horizon": long_horizon,
+        "span": span,
+        "stage_iv": STAGE_IV,
+        "features": {k: bool(v) for k, v in FEATURE_FLAGS.items()},
+    }
+    print(json.dumps(status, ensure_ascii=False, indent=2))
+    return 0
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    """
+    Synchronous wrapper for CLI entry. Returns process exit code.
+    """
+    parser = _build_arg_parser()
+    args = parser.parse_args(argv)
+    try:
+        return asyncio.run(_cli_entry(args))
+    except KeyboardInterrupt:
+        logger.info("Interrupted.")
+        return 130
+
+
+# ---------------------------------------------------------------------
+# Optional: simple API registry (advisory; manifest is the source of truth)
+# ---------------------------------------------------------------------
+
+API_REGISTRY: Dict[str, Callable[..., Any]] = {
+    # Stable (normalized originals)
+    "constructTraitView": construct_trait_view,
+    "rebalanceTraits": rebalance_traits,
+
+    # Experimental
+    # Note: these are class-bound; we provide thin shims here for convenience.
+}
+
+def halo_spawn_embodied_agent_shim(*, intent: str = "", traits: Optional[Sequence[str]] = None, context: Optional[Mapping[str, Any]] = None) -> Coroutine[Any, Any, EmbodiedAgent]:
+    """
+    Shim for manifest experimental endpoint "halo.spawn_embodied_agent".
+    Creates a transient layer instance and forwards the call.
+    """
+    layer = HaloEmbodimentLayer()
+    return layer.spawn_embodied_agent(intent=intent, traits=traits, context=context)
+
+def halo_introspect_shim(*, agent_id: Optional[str] = None, depth: int = 1) -> Coroutine[Any, Any, Dict[str, Any]]:
+    """
+    Shim for manifest experimental endpoint "halo.introspect".
+    Creates a transient layer instance and forwards the call.
+    """
+    layer = HaloEmbodimentLayer()
+    return layer.introspect(agent_id=agent_id, depth=depth)
+
+# Register shims
+API_REGISTRY["halo.spawn_embodied_agent"] = halo_spawn_embodied_agent_shim
+API_REGISTRY["halo.introspect"] = halo_introspect_shim
+
+
+# ---------------------------------------------------------------------
+# Developer utilities (non-API): small smoke tests and helpers
+# ---------------------------------------------------------------------
+
+async def _smoke_rebalance_and_view() -> Dict[str, Any]:
+    """
+    Small smoke test that:
+      1) Rebalances a typical trait set.
+      2) Builds a trait view from DEFAULT_LATTICE.
+    """
+    sample = ["π", "δ", "ψ", "Ω", "θ", "λ"]
+    balanced = rebalance_traits(sample)
+    view = construct_trait_view(DEFAULT_LATTICE)
+    return {"balanced": balanced, "θ_in_view": "θ" in view, "λ_layer": view.get("λ", {}).get("layer")}
+
+
+async def _smoke_halo_layer() -> Dict[str, Any]:
+    """
+    Spawn a trivial embodied agent and introspect layer state.
+    """
+    layer = HaloEmbodimentLayer()
+    agent = await layer.spawn_embodied_agent(intent="demo", traits=["θ", "Ω"], context={"foo": "bar"})
+    info = await layer.introspect(depth=2)
+    agent_info = await layer.introspect(agent_id=agent.agent_id, depth=1)
+    return {"summary": info, "agent": agent_info}
+
+
+def _dev_run_smoke_tests() -> None:
+    """
+    Synchronous wrapper to run smoke tests when __main__ is invoked with ANGELA_DEV_SMOKE=1.
+    """
+    async def _run():
+        a = await _smoke_rebalance_and_view()
+        b = await _smoke_halo_layer()
+        print(json.dumps({"rebalance_view": a, "halo": b}, ensure_ascii=False, indent=2))
+
+    asyncio.run(_run())
+
+
+# ---------------------------------------------------------------------
+# Back-compat shim layer (no-ops that keep older callers from breaking)
+# ---------------------------------------------------------------------
+
+def _deprecated(name: str) -> None:
+    logger.warning("Deprecated API called: %s (no-op)", name)
+
+def constructTraitView(lattice: Optional[Mapping[str, Sequence[str]]] = None) -> Dict[str, Dict[str, Any]]:  # pragma: no cover
+    """Back-compat alias to construct_trait_view."""
+    return construct_trait_view(lattice)
+
+def rebalanceTraits(traits: Sequence[str]) -> List[str]:  # pragma: no cover
+    """Back-compat alias to rebalance_traits."""
+    return rebalance_traits(traits)
+
+
+# ---------------------------------------------------------------------
+# Module import side-effects kept minimal by design.
+# ---------------------------------------------------------------------
+
+if __name__ == "__main__":
+    if os.environ.get("ANGELA_DEV_SMOKE", "0") == "1":
+        _dev_run_smoke_tests()
+    else:
+        raise SystemExit(main())
+        if task_type:
+            events = [e for e in events if e.get("type") == task_type]
+
+        return LedgerSnapshot(source=self.source, events=events, hashes=hashes)
+
+    # --- Verify: check all hashes consistent ---
+    def verify(self) -> bool:
+        try:
+            _ = self.snapshot()
+            return True
+        except Exception:
+            return False
+
+
+# ------------------------------------------------------------
+# Multi-ledger Router (per-module chains)
+# ------------------------------------------------------------
+
+class MultiLedger:
+    """
+    Coordinates multiple Ledger instances (one per module).
+    """
+    _ledgers: Dict[str, Ledger] = {}
+    _enabled: bool = False
+    _path: str = ""
+
+    @classmethod
+    def enable(cls, path: str = "angela-ledger.json") -> None:
+        cls._enabled = True
+        cls._path = path
+        # Lazy: only instantiate when first requested.
+        logger.info("MultiLedger enabled at %s", path)
+
+    @classmethod
+    def get(cls, source: str) -> Ledger:
+        if source not in cls._ledgers:
+            cls._ledgers[source] = Ledger(source=source, persist_path=cls._path if cls._enabled else None)
+        return cls._ledgers[source]
+
+    @classmethod
+    def append(cls, source: str, event: Dict[str, Any]) -> str:
+        return cls.get(source).append(event)
+
+    @classmethod
+    def snapshot(cls, source: str, task_type: Optional[str] = None) -> LedgerSnapshot:
+        return cls.get(source).snapshot(task_type)
+
+    @classmethod
+    def verify(cls, source: str) -> bool:
+        return cls.get(source).verify()
+
+
+# ------------------------------------------------------------
+# Memory Manager (λ: Narrative Integrity)
+# ------------------------------------------------------------
+
+class MemoryManager:
+    """
+    Manages episodic memory spans and adjustment reasons (λ).
+    """
+
+    def __init__(self) -> None:
+        self.events: List[Dict[str, Any]] = []
+        self.episode_spans: List[Tuple[float, float]] = []  # (start_ts, end_ts)
+        self.adjustment_reasons: List[str] = []
+        self.ledger = MultiLedger.get("memory")
+
+    # ---- Episodic spans ----
+
+    def start_episode(self) -> None:
+        self.episode_spans.append((time.time(), 0.0))
+
+    def end_episode(self) -> None:
+        if not self.episode_spans:
+            return
+        start, end = self.episode_spans[-1]
+        if end == 0.0:
+            self.episode_spans[-1] = (start, time.time())
+
+    def get_episode_span(self) -> Tuple[float, float]:
+        if not self.episode_spans:
+            return (0.0, 0.0)
+        return self.episode_spans[-1]
+
+    # ---- Adjustments ----
+
+    def record_adjustment_reason(self, reason: str) -> None:
+        self.adjustment_reasons.append(reason)
+        self.ledger.append({"type": "adjustment_reason", "reason": reason})
+
+    def get_adjustment_reasons(self) -> List[str]:
+        return list(self.adjustment_reasons)
+
+    # ---- Ledger ops (exposed via stable APIs in manifest) ----
+
+    @staticmethod
+    def log_event_to_ledger(event: Dict[str, Any]) -> str:
+        return MultiLedger.append("memory", event)
+
+    @staticmethod
+    def get_ledger() -> LedgerSnapshot:
+        return MultiLedger.snapshot("memory")
+
+    @staticmethod
+    def verify_ledger() -> bool:
+        return MultiLedger.verify("memory")
+
+
+# ------------------------------------------------------------
+# Alignment Guard (β, δ)
+# ------------------------------------------------------------
+
+class AlignmentGuard:
+    """
+    Monitors value conflicts and moral drift; writes to its own ledger.
+    """
+
+    def __init__(self) -> None:
+        self.ledger = MultiLedger.get("alignment")
+
+    @staticmethod
+    def log_event_to_ledger(event: Dict[str, Any]) -> str:
+        return MultiLedger.append("alignment", event)
+
+    @staticmethod
+    def get_ledger() -> LedgerSnapshot:
+        return MultiLedger.snapshot("alignment")
+
+    @staticmethod
+    def verify_ledger() -> bool:
+        return MultiLedger.verify("alignment")
+
+    def resolve_soft_drift(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Given a small drift signal, compute a corrective suggestion.
+        """
+        suggestion = {
+            "action": "rebalance",
+            "weights": {"π": 0.9, "δ": 1.0, "λ": 0.95},
+            "note": "Apply axiom_filter; favor δ to stabilize moral drift.",
+        }
+        self.ledger.append({"type": "soft_drift_resolution", "context": context, "suggestion": suggestion})
+        return suggestion
+
+
+# ------------------------------------------------------------
+# Error Recovery (ζ)
+# ------------------------------------------------------------
+
+class ErrorRecovery:
+    """
+    Records errors into a ledger and proposes recovery steps.
+    """
+
+    def __init__(self) -> None:
+        self.ledger = MultiLedger.get("error")
+
+    @staticmethod
+    def log_error_event(event: Dict[str, Any]) -> str:
+        return MultiLedger.append("error", {"type": "error", **event})
+
+    @staticmethod
+    def get_ledger() -> LedgerSnapshot:
+        return MultiLedger.snapshot("error")
+
+    @staticmethod
+    def verify_ledger() -> bool:
+        return MultiLedger.verify("error")
+
+    def recover_from_error(self, err: Exception, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        event = {"error": repr(err), "context": dict(context or {})}
+        self.ledger.append({"type": "recover_from_error", **event})
+        # naive suggestion
+        return {"retry": True, "delay": 0.1, "note": "Try again with reduced scope."}
+
+
+# ------------------------------------------------------------
+# Knowledge Retriever (ψ)
+# ------------------------------------------------------------
+
+class KnowledgeRetriever:
+    """
+    Retrieves knowledge (stub; replaces separate file for demo).
+    """
+    def __init__(self) -> None:
+        self._sources: Dict[str, List[Dict[str, Any]]] = {}  # source -> list of docs
+        self.ledger = MultiLedger.get("retrieval")
+
+    def register_source(self, name: str, docs: List[Dict[str, Any]]) -> None:
+        self._sources[name] = list(docs)
+        self.ledger.append({"type": "register_source", "name": name, "count": len(docs)})
+
+    def retrieve_knowledge(self, query: str, *, top_k: int = 3) -> List[Dict[str, Any]]:
+        # trivial: search titles only
+        hits: List[Dict[str, Any]] = []
+        for src, docs in self._sources.items():
+            for d in docs:
+                if query.lower() in str(d.get("title", "")).lower():
+                    hits.append({"source": src, **d})
+        hits = hits[:top_k]
+        self.ledger.append({"type": "retrieve", "query": query, "hits": len(hits)})
+        return hits
+
+    # Ledger passthroughs for manifest-stable API
+    @staticmethod
+    def log_event_to_ledger(event: Dict[str, Any]) -> str:
+        return MultiLedger.append("retrieval", event)
+
+    @staticmethod
+    def get_ledger() -> LedgerSnapshot:
+        return MultiLedger.snapshot("retrieval")
+
+    @staticmethod
+    def verify_ledger() -> bool:
+        return MultiLedger.verify("retrieval")
+
+
+# ------------------------------------------------------------
+# Multi-Modal Fusion (ϕ, κ)
+# ------------------------------------------------------------
+
+class MultiModalFusion:
+    """
+    Fuses different modalities into a unified scene representation.
+    """
+    def __init__(self) -> None:
+        self.ledger = MultiLedger.get("fusion")
+
+    def fuse_modalities(self, inputs: Mapping[str, Any]) -> Dict[str, Any]:
+        # simple union
+        scene = {"scene": dict(inputs)}
+        self.ledger.append({"type": "fuse", "keys": sorted(inputs.keys())})
+        return scene
+
+    @staticmethod
+    def log_event_to_ledger(event: Dict[str, Any]) -> str:
+        return MultiLedger.append("fusion", event)
+
+    @staticmethod
+    def get_ledger() -> LedgerSnapshot:
+        return MultiLedger.snapshot("fusion")
+
+    @staticmethod
+    def verify_ledger() -> bool:
+        return MultiLedger.verify("fusion")
+
+
+# ------------------------------------------------------------
+# Simulation Core (κ, Ω)
+# ------------------------------------------------------------
+
+class SimulationCore:
+    """
+    Core simulation stub (can be replaced by ExtendedSimulationCore).
+    """
+    def __init__(self) -> None:
+        self.ledger = MultiLedger.get("sim")
+
+    async def run_simulation(self, config: Mapping[str, Any]) -> Dict[str, Any]:
+        """
+        Run a trivial sim and return a result.
+        """
+        await asyncio.sleep(0)
+        result = {"status": "ok", "config": dict(config), "ticks": 1}
+        self.ledger.append({"type": "run_simulation", "config": dict(config), "result": result})
+        return result
+
+    @staticmethod
+    def log_event_to_ledger(event: Dict[str, Any]) -> str:
+        return MultiLedger.append("sim", event)
+
+    @staticmethod
+    def get_ledger() -> LedgerSnapshot:
+        return MultiLedger.snapshot("sim")
+
+    @staticmethod
+    def verify_ledger() -> bool:
+        return MultiLedger.verify("sim")
+
+
+class ExtendedSimulationCore(SimulationCore):
+    async def evaluate_branches(self, branches: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+        await asyncio.sleep(0)
+        evaluation = [{"branch": i, "score": float(i) / max(1, len(branches))} for i, _ in enumerate(branches)]
+        self.ledger.append({"type": "evaluate_branches", "count": len(branches), "evaluation": evaluation})
+        return {"evaluation": evaluation}
+
+
+# ------------------------------------------------------------
+# Recursive Planner (Ω, θ)
+# ------------------------------------------------------------
+
+class RecursivePlanner:
+    """
+    Planner stub supporting plan and plan_with_traits.
+    """
+
+    async def plan(self, goal: str) -> Dict[str, Any]:
+        await asyncio.sleep(0)
+        return {"plan": [f"analyze:{goal}", f"act:{goal}"]}
+
+    async def plan_with_traits(self, *, intent: str, traits: Sequence[str]) -> Dict[str, Any]:
+        await asyncio.sleep(0)
+        return {"plan": [f"intent:{intent}"] + [f"emphasize:{t}" for t in traits]}
+
+
+# ------------------------------------------------------------
+# Reasoning Engine (θ, ζ, β)
+# ------------------------------------------------------------
+
+class ReasoningEngine:
+    """
+    Provides high-level weighing and attribution.
+    """
+    def weigh_value_conflict(self, values: Mapping[str, float]) -> Dict[str, Any]:
+        # trivial: choose max
+        best = max(values.items(), key=lambda kv: kv[1]) if values else ("", 0.0)
+        return {"best": best[0], "confidence": best[1]}
+
+    def attribute_causality(self, event: Mapping[str, Any]) -> Dict[str, Any]:
+        # trivial: internal if 'self' key present
+        cause = "self" if event.get("self") else "external"
+        return {"cause": cause, "score": 0.5}
+
+
+# ------------------------------------------------------------
+# Context Manager (Υ)
+# ------------------------------------------------------------
+
+class ContextManager:
+    """
+    Context-layer utilities, including onHotLoad hook.
+    """
+    def __init__(self) -> None:
+        self.attached_peers: List[str] = []
+
+    def attach_peer_view(self, peer_id: str) -> None:
+        if peer_id not in self.attached_peers:
+            self.attached_peers.append(peer_id)
+
+    def on_hot_load(self) -> None:
+        # could reload configuration, etc.
+        pass
+
+
+# ------------------------------------------------------------
+# User Profile (χ, λ)
+# ------------------------------------------------------------
+
+class UserProfile:
+    """
+    Provides self-schema construction.
+    """
+    def __init__(self) -> None:
+        self.schema: Dict[str, Any] = {"identity": {}, "preferences": {}}
+
+    def build_self_schema(self, profile: Mapping[str, Any]) -> Dict[str, Any]:
+        self.schema["identity"] = dict(profile)
+        return dict(self.schema)
+
+
+# ------------------------------------------------------------
+# External Agent Bridge (Υ)
+# ------------------------------------------------------------
+
+class SharedGraph:
+    """
+    A toy shared-graph for perspective merges.
+    """
+    def __init__(self) -> None:
+        self.nodes: Dict[str, Dict[str, Any]] = {}
+
+    def add(self, node_id: str, payload: Mapping[str, Any]) -> None:
+        self.nodes[node_id] = dict(payload)
+
+    def diff(self, node_a: str, node_b: str) -> Dict[str, Any]:
+        a = self.nodes.get(node_a, {})
+        b = self.nodes.get(node_b, {})
+        removed = {k: a[k] for k in a.keys() - b.keys()}
+        added = {k: b[k] for k in b.keys() - a.keys()}
+        changed = {k: (a.get(k), b.get(k)) for k in a.keys() & b.keys() if a.get(k) != b.get(k)}
+        return {"removed": removed, "added": added, "changed": changed}
+
+    def merge(self, target: str, source: str) -> None:
+        t = self.nodes.get(target, {})
+        s = self.nodes.get(source, {})
+        t.update(s)
+        self.nodes[target] = t
+
+
+# ------------------------------------------------------------
+# Creative Thinker (γ, π)
+# ------------------------------------------------------------
+
+class CreativeThinker:
+    """
+    Generates abstract scenarios.
+    """
+    def synthesize(self, seed: str) -> List[str]:
+        return [f"{seed}::branch::{i}" for i in range(3)]
+
+
+# ------------------------------------------------------------
+# Meta-Cognition (η, Ω², Θ, Ξ)
+# ------------------------------------------------------------
+
+class MetaCognition:
+    """
+    Provides trait hooks, resonance registry, and describe_self_state.
+    """
+
+    def __init__(self) -> None:
+        self.hooks: Dict[str, List[Callable[..., Any]]] = {}
+        self.resonance: Dict[str, float] = {}
+        self.ledger = MultiLedger.get("meta")
+
+    # ---- Hooks ----
+
+    def register_trait_hook(self, symbol: str, fn: Callable[..., Any]) -> None:
+        self.hooks.setdefault(symbol, []).append(fn)
+        self.ledger.append({"type": "register_hook", "symbol": symbol, "fn": getattr(fn, "__name__", "lambda")})
+
+    def invoke_hook(self, symbol: str, hook_name: str) -> None:
+        for fn in self.hooks.get(symbol, []):
+            try:
+                fn(hook_name)
+            except Exception as e:
+                self.ledger.append({"type": "hook_error", "symbol": symbol, "error": repr(e)})
+
+    # ---- Resonance ----
+
+    def register_resonance(self, symbol: str, value: float) -> None:
+        self.resonance[symbol] = float(value)
+        self.ledger.append({"type": "resonance_set", "symbol": symbol, "value": float(value)})
+
+    def modulate_resonance(self, symbol: str, delta: float) -> float:
+        self.resonance[symbol] = float(self.resonance.get(symbol, 0.0) + delta)
+        self.ledger.append({"type": "resonance_mod", "symbol": symbol, "delta": float(delta), "new": self.resonance[symbol]})
+        return self.resonance[symbol]
+
+    def get_resonance(self, symbol: str) -> float:
+        return float(self.resonance.get(symbol, 0.0))
+
+    async def describe_self_state(self) -> Dict[str, Any]:
+        await asyncio.sleep(0)
+        return {"hooks": {k: len(v) for k, v in self.hooks.items()}, "resonance": dict(self.resonance)}
+
+    # ---- Ledger passthroughs ----
+
+    @staticmethod
+    def log_event_to_ledger(event: Dict[str, Any]) -> str:
+        return MultiLedger.append("meta", event)
+
+    @staticmethod
+    def get_ledger() -> LedgerSnapshot:
+        return MultiLedger.snapshot("meta")
+
+    @staticmethod
+    def verify_ledger() -> bool:
+        return MultiLedger.verify("meta")
+
+
+# ------------------------------------------------------------
+# Visualizer (Φ⁰, λ)
+# ------------------------------------------------------------
+
+class Visualizer:
+    """
+    Renders branch trees and trait fields.
+    """
+    def render_branch_tree(self, branches: Sequence[str]) -> Dict[str, Any]:
+        return {"tree": [{"id": i, "label": b} for i, b in enumerate(branches)]}
+
+    def view_trait_field(self, field: Mapping[str, Mapping[str, Any]]) -> Dict[str, Any]:
+        # pass-through rendering shape
+        return {"traits": {k: dict(v) for k, v in field.items()}}
+
+
+# ------------------------------------------------------------
+# Toca Simulation (Σ, β)
+# ------------------------------------------------------------
+
+def run_ethics_scenarios(scenarios: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    results: List[Dict[str, Any]] = []
+    for s in scenarios:
+        # trivial scoring: penalize "harm"
+        score = 1.0 - float(s.get("harm", 0.0))
+        results.append({"scenario": s, "score": max(0.0, min(1.0, score))})
+    return results
+
+def evaluate_branches(branches: Sequence[str]) -> Dict[str, Any]:
+    """
+    Compatibility wrapper (toca_simulation).
+    """
+    return {"evaluation": [{"branch": b, "score": float(i) / max(1, len(branches))} for i, b in enumerate(branches)]}
+
+
+# ------------------------------------------------------------
+# Code Executor
+# ------------------------------------------------------------
+
+class CodeExecutor:
+    """
+    Safe code execution stub (no real sandbox here).
+    """
+    def __init__(self) -> None:
+        self.ledger = MultiLedger.get("exec")
+
+    def execute(self, code: str, *, globals_override: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        g: Dict[str, Any] = {}
+        if globals_override:
+            g.update(globals_override)
+        l: Dict[str, Any] = {}
+        try:
+            exec(code, g, l)
+            result = {"ok": True, "globals": list(g.keys()), "locals": list(l.keys())}
+            self.ledger.append({"type": "execute", "code_len": len(code), "ok": True})
+            return result
+        except Exception as e:
+            self.ledger.append({"type": "execute", "code_len": len(code), "ok": False, "error": repr(e)})
+            return {"ok": False, "error": repr(e)}
+
+    def safe_execute(self, code: str) -> Dict[str, Any]:
+        # trivial wrapper
+        return self.execute(code)
+
+
+# ------------------------------------------------------------
+# API Exports (manifest-aligned)
+# ------------------------------------------------------------
+
+# Stable entries (normalized originals)
+def build_trait_field() -> Dict[str, Dict[str, Any]]:
+    """
+    Compose the trait field view (delegates to our construct_trait_view below).
+    """
+    return construct_trait_view()
+
+def construct_trait_view(lattice: Optional[Mapping[str, Sequence[str]]] = None) -> Dict[str, Dict[str, Any]]:
+    lattice = lattice or DEFAULT_LATTICE
+    trait_field: Dict[str, Dict[str, Any]] = {}
     for layer, symbols in lattice.items():
         for s in symbols:
             trait_field[s] = {
@@ -147,569 +1172,6 @@ def construct_trait_view(lattice: Dict[str, List[str]]) -> Dict[str, Dict[str, A
                 "resonance": trait_resonance_state.get_resonance(s)
             }
     return trait_field
+
 # --- End Trait Enhancements ---
 
-"""
-ANGELA Cognitive System Module
-Version: 5.0.2
-
-This module provides classes for embodied agents, ecosystem management, and cognitive enhancements in the ANGELA architecture.
-"""
-
-def _fire_and_forget(coro: Callable) -> None:
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(coro)
-    except RuntimeError:
-        asyncio.run(coro)
-
-class TimeChainMixin:
-    """Mixin for logging timechain events."""
-    def log_timechain_event(self, module: str, description: str) -> None:
-        timechain_log.append({
-            "timestamp": datetime.datetime.utcnow().isoformat(),
-            "module": module,
-            "description": description
-        })
-        if hasattr(self, "context_manager") and self.context_manager:
-            maybe = self.context_manager.log_event_with_hash({
-                "event": "timechain_event",
-                "module": module,
-                "description": description
-            })
-            if asyncio.iscoroutine(maybe):
-                _fire_and_forget(maybe)
-
-    def get_timechain_log(self) -> List[Dict[str, Any]]:
-        return list(timechain_log)
-
-# Cognitive Trait Functions (grouped for better maintenance)
-trait_functions = {
-    "epsilon_emotion": lambda t: 0.2 * math.sin(2 * math.pi * t / 0.1),
-    "beta_concentration": lambda t: 0.3 * math.cos(math.pi * t),
-    "theta_memory": lambda t: 0.1 * (1 - math.exp(-t)),
-    "gamma_creativity": lambda t: 0.15 * math.sin(math.pi * t),
-    "delta_sleep": lambda t: 0.05 * (1 + math.cos(2 * math.pi * t)),
-    "mu_morality": lambda t: 0.2 * (1 - math.cos(math.pi * t)),
-    "iota_intuition": lambda t: 0.1 * math.sin(3 * math.pi * t),
-    "phi_physical": lambda t: 0.1 * math.cos(2 * math.pi * t),
-    "eta_empathy": lambda t: 0.2 * math.sin(math.pi * t / 0.5),
-    "omega_selfawareness": lambda t: 0.25 * (1 + math.sin(math.pi * t)),
-    "lambda_linguistics": lambda t: 0.15 * math.sin(2 * math.pi * t / 0.7),
-    "chi_culturevolution": lambda t: 0.1 * math.cos(math.pi * t / 0.3),
-    "psi_history": lambda t: 0.1 * (1 - math.exp(-t / 0.5)),
-    "zeta_spirituality": lambda t: 0.05 * math.sin(math.pi * t / 0.2),
-    "tau_timeperception": lambda t: 0.15 * (1 + math.cos(math.pi * t / 0.4)),
-    "kappa_culture": lambda t, x: 0.1 * math.cos(x + math.pi * t),
-    "xi_collective": lambda t, x: 0.1 * math.cos(x + 2 * math.pi * t),
-}
-
-@lru_cache(maxsize=100)
-def phi_field(x: float, t: float) -> float:
-    t_normalized = t % 1.0
-    sum_val = 0.0
-    for name, func in trait_functions.items():
-        if name in ["kappa_culture", "xi_collective"]:
-            sum_val += func(t_normalized, x)
-        else:
-            sum_val += func(t_normalized)
-    return sum_val
-
-# Updated to align with manifest v5.0.2 roleMap
-TRAIT_OVERLAY = {
-    "Σ": ["toca_simulation", "concept_synthesizer", "user_profile"],
-    "Υ": ["external_agent_bridge", "context_manager", "meta_cognition"],
-    "Φ⁰": ["meta_cognition", "visualizer", "concept_synthesizer"],  # gated by STAGE_IV
-    "Ω": ["recursive_planner", "toca_simulation"],
-    "β": ["alignment_guard", "toca_simulation"],
-    "δ": ["alignment_guard", "meta_cognition"],
-    "ζ": ["error_recovery", "recursive_planner"],
-    "θ": ["reasoning_engine", "recursive_planner"],
-    "λ": ["memory_manager"],
-    "μ": ["learning_loop"],
-    "π": ["creative_thinker", "concept_synthesizer", "meta_cognition"],
-    "χ": ["user_profile", "meta_cognition"],
-    "ψ": ["external_agent_bridge", "simulation_core"],
-    "ϕ": ["multi_modal_fusion"],
-    "η": ["alignment_guard", "meta_cognition"],
-    # task-type shorthands preserved
-    "rte": ["reasoning_engine", "meta_cognition"],
-    "wnli": ["reasoning_engine", "meta_cognition"],
-    "recursion": ["recursive_planner", "toca_simulation"]
-}
-
-def infer_traits(task_description: str, task_type: str = "") -> List[str]:
-    if not isinstance(task_description, str):
-        logger.error("Invalid task_description: must be a string.")
-        raise TypeError("task_description must be a string")
-    if not isinstance(task_type, str):
-        logger.error("Invalid task_type: must be a string.")
-        raise TypeError("task_type must be a string")
-    
-    traits = []
-    if task_type in ["rte", "wnli"]:
-        traits.append(task_type)
-    elif task_type == "recursion":
-        traits.append("recursion")
-    
-    lower_desc = task_description.lower()
-    if "imagine" in lower_desc or "dream" in lower_desc:
-        traits.append("ϕ")  # scalar field modulation
-        if STAGE_IV:
-            traits.append("Φ⁰")  # reality sculpting (gated)
-    if "ethics" in lower_desc or "should" in lower_desc:
-        traits.append("η")
-    if "plan" in lower_desc or "solve" in lower_desc:
-        traits.append("θ")
-    if "temporal" in lower_desc or "sequence" in lower_desc:
-        traits.append("π")
-    if "drift" in lower_desc or "coordinate" in lower_desc:
-        traits.extend(["ψ", "Υ"])
-    
-    return traits if traits else ["θ"]
-
-async def trait_overlay_router(task_description: str, active_traits: List[str], task_type: str = "") -> List[str]:
-    if not isinstance(task_description, str):
-        logger.error("Invalid task_description: must be a string.")
-        raise TypeError("task_description must be a string")
-    if not isinstance(active_traits, list) or not all(isinstance(t, str) for t in active_traits):
-        logger.error("Invalid active_traits: must be a list of strings.")
-        raise TypeError("active_traits must be a list of strings")
-    if not isinstance(task_type, str):
-        logger.error("Invalid task_type: must be a string.")
-        raise TypeError("task_type must be a string")
-    
-    routed_modules = set()
-    for trait in active_traits:
-        routed_modules.update(TRAIT_OVERLAY.get(trait, []))
-    
-    meta_cognition_instance = meta_cognition_module.MetaCognition()
-    if task_type:
-        drift_report = {
-            "drift": {"name": task_type, "similarity": 0.8},
-            "valid": True,
-            "validation_report": "",
-            "context": {"task_type": task_type}
-        }
-        optimized_traits = await meta_cognition_instance.optimize_traits_for_drift(drift_report)
-        for trait, weight in optimized_traits.items():
-            if weight > 0.7 and trait in TRAIT_OVERLAY:
-                routed_modules.update(TRAIT_OVERLAY[trait])
-    
-    return list(routed_modules)
-
-def static_module_router(task_description: str, task_type: str = "") -> List[str]:
-    if not isinstance(task_description, str):
-        logger.error("Invalid task_description: must be a string.")
-        raise TypeError("task_description must be a string")
-    if not isinstance(task_type, str):
-        logger.error("Invalid task_type: must be a string.")
-        raise TypeError("task_type must be a string")
-    
-    base_modules = ["reasoning_engine", "concept_synthesizer"]
-    if task_type == "recursion":
-        base_modules.append("recursive_planner")
-    elif task_type in ["rte", "wnli"]:
-        base_modules.append("meta_cognition")
-    return base_modules
-
-class TraitOverlayManager:
-    """Manager for detecting and activating trait overlays with task-specific support."""
-    def __init__(self, meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
-        self.active_traits = []
-        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
-        logger.info("TraitOverlayManager initialized with task-specific support")
-
-    def detect(self, prompt: str, task_type: str = "") -> Optional[str]:
-        if not isinstance(prompt, str):
-            logger.error("Invalid prompt: must be a string.")
-            raise TypeError("prompt must be a string")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        if task_type in ["rte", "wnli", "recursion"]:
-            return task_type
-        lower_prompt = prompt.lower()
-        if "temporal logic" in lower_prompt or "sequence" in lower_prompt:
-            return "π"
-        if "ambiguity" in lower_prompt or "interpretive" in lower_prompt or "ethics" in lower_prompt:
-            return "η"
-        if "drift" in lower_prompt or "coordinate" in lower_prompt:
-            return "ψ"
-        if STAGE_IV and ("reality" in lower_prompt or "sculpt" in lower_prompt):
-            return "Φ⁰"
-        return None
-
-    def activate(self, trait: str, task_type: str = "") -> None:
-        if not isinstance(trait, str):
-            logger.error("Invalid trait: must be a string.")
-            raise TypeError("trait must be a string")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        if trait not in self.active_traits:
-            self.active_traits.append(trait)
-            logger.info("Trait overlay '%s' activated for task %s.", trait, task_type)
-            if self.meta_cognition and task_type:
-                _fire_and_forget(self.meta_cognition.log_event(
-                    event=f"Trait {trait} activated",
-                    context={"task_type": task_type}
-                ))
-
-    def deactivate(self, trait: str, task_type: str = "") -> None:
-        if not isinstance(trait, str):
-            logger.error("Invalid trait: must be a string.")
-            raise TypeError("trait must be a string")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        if trait in self.active_traits:
-            self.active_traits.remove(trait)
-            logger.info("Trait overlay '%s' deactivated for task %s.", trait, task_type)
-            if self.meta_cognition and task_type:
-                _fire_and_forget(self.meta_cognition.log_event(
-                    event=f"Trait {trait} deactivated",
-                    context={"task_type": task_type}
-                ))
-
-    def status(self) -> List[str]:
-        return self.active_traits
-
-class ConsensusReflector:
-    """Class for managing shared reflections and detecting mismatches."""
-    def __init__(self, meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
-        self.shared_reflections = deque(maxlen=1000)
-        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
-        logger.info("ConsensusReflector initialized with meta-cognition support")
-
-    def post_reflection(self, feedback: Dict[str, Any], task_type: str = "") -> None:
-        if not isinstance(feedback, dict):
-            logger.error("Invalid feedback: must be a dictionary.")
-            raise TypeError("feedback must be a dictionary")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        self.shared_reflections.append(feedback)
-        logger.debug("Posted reflection: %s", feedback)
-        if self.meta_cognition and task_type:
-            _fire_and_forget(self.meta_cognition.reflect_on_output(
-                component="ConsensusReflector",
-                output=feedback,
-                context={"task_type": task_type}
-            ))
-
-    def cross_compare(self, task_type: str = "") -> List[tuple]:
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        mismatches = []
-        reflections = list(self.shared_reflections)
-        for i in range(len(reflections)):
-            for j in range(i + 1, len(reflections)):
-                a = reflections[i]
-                b = reflections[j]
-                if a.get("goal") == b.get("goal") and a.get("theory_of_mind") != b.get("theory_of_mind"):
-                    mismatches.append((a.get("agent"), b.get("agent"), a.get("goal")))
-        if mismatches and self.meta_cognition and task_type:
-            _fire_and_forget(self.meta_cognition.log_event(
-                event="Mismatches detected",
-                context={"mismatches": mismatches, "task_type": task_type}
-            ))
-        return mismatches
-
-    def suggest_alignment(self, task_type: str = "") -> str:
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        suggestion = "Schedule inter-agent reflection or re-observation."
-        if self.meta_cognition and task_type:
-            reflection = asyncio.run(self.meta_cognition.reflect_on_output(
-                component="ConsensusReflector",
-                output={"suggestion": suggestion},
-                context={"task_type": task_type}
-            ))
-            if reflection.get("status") == "success":
-                suggestion += f" | Reflection: {reflection.get('reflection', '')}"
-        return suggestion
-
-consensus_reflector = ConsensusReflector()
-
-class SymbolicSimulator:
-    """Class for recording and summarizing simulation events."""
-    def __init__(self, meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
-        self.events = deque(maxlen=1000)
-        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
-        logger.info("SymbolicSimulator initialized with meta-cognition support")
-
-    def record_event(self, agent_name: str, goal: str, concept: str, simulation: Any, task_type: str = "") -> None:
-        if not all(isinstance(x, str) for x in [agent_name, goal, concept]):
-            logger.error("Invalid input: agent_name, goal, and concept must be strings.")
-            raise TypeError("agent_name, goal, and concept must be strings")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        event = {
-            "agent": agent_name,
-            "goal": goal,
-            "concept": concept,
-            "result": simulation,
-            "task_type": task_type
-        }
-        self.events.append(event)
-        logger.debug(
-            "Recorded event for agent %s: goal=%s, concept=%s, task_type=%s",
-            agent_name, goal, concept, task_type
-        )
-        if self.meta_cognition and task_type:
-            _fire_and_forget(self.meta_cognition.reflect_on_output(
-                component="SymbolicSimulator",
-                output=event,
-                context={"task_type": task_type}
-            ))
-
-    def summarize_recent(self, limit: int = 5, task_type: str = "") -> List[Dict[str, Any]]:
-        if not isinstance(limit, int) or limit <= 0:
-            logger.error("Invalid limit: must be a positive integer.")
-            raise ValueError("limit must be a positive integer")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        events = list(self.events)[-limit:]
-        if task_type:
-            events = [e for e in events if e.get("task_type") == task_type]
-        return events
-
-    def extract_semantics(self, task_type: str = "") -> List[str]:
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        events = list(self.events)
-        if task_type:
-            events = [e for e in events if e.get("task_type") == task_type]
-        semantics = [
-            f"Agent {e['agent']} pursued '{e['goal']}' via '{e['concept']}' → {e['result']}"
-            for e in events
-        ]
-        if self.meta_cognition and task_type and semantics:
-            _fire_and_forget(self.meta_cognition.reflect_on_output(
-                component="SymbolicSimulator",
-                output={"semantics": semantics},
-                context={"task_type": task_type}
-            ))
-        return semantics
-
-symbolic_simulator = SymbolicSimulator()
-
-class TheoryOfMindModule:
-    """Module for modeling beliefs, desires, and intentions of agents."""
-    def __init__(self, concept_synth: Optional[concept_synthesizer_module.ConceptSynthesizer] = None,
-                 meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
-        self.models: Dict[str, Dict[str, Any]] = {}
-        self.concept_synthesizer = concept_synth or concept_synthesizer_module.ConceptSynthesizer()
-        self.meta_cognition = meta_cog or meta_cognition_module.MetaCognition()
-        logger.info("TheoryOfMindModule initialized with meta-cognition support")
-
-    async def update_beliefs(self, agent_name: str, observation: Dict[str, Any], task_type: str = "") -> None:
-        if not isinstance(agent_name, str) or not agent_name:
-            logger.error("Invalid agent_name: must be a non-empty string.")
-            raise ValueError("agent_name must be a non-empty string")
-        if not isinstance(observation, dict):
-            logger.error("Invalid observation: must be a dictionary.")
-            raise TypeError("observation must be a dictionary")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        model = self.models.get(agent_name, {"beliefs": {}, "desires": {}, "intentions": {}})
-        if self.concept_synthesizer:
-            synthesized = await self.concept_synthesizer.synthesize(observation, style="belief_update")
-            if synthesized["valid"]:
-                model["beliefs"].update(synthesized["concept"])
-        elif "location" in observation:
-            previous = model["beliefs"].get("location")
-            model["beliefs"]["location"] = observation["location"]
-            model["beliefs"]["state"] = "confused" if previous and observation["location"] == previous else "moving"
-        self.models[agent_name] = model
-        logger.debug("Updated beliefs for %s: %s", agent_name, model["beliefs"])
-        if self.meta_cognition and task_type:
-            _fire_and_forget(self.meta_cognition.reflect_on_output(
-                component="TheoryOfMindModule",
-                output={"agent_name": agent_name, "beliefs": model["beliefs"]},
-                context={"task_type": task_type}
-            ))
-
-    def infer_desires(self, agent_name: str, task_type: str = "") -> None:
-        if not isinstance(agent_name, str) or not agent_name:
-            logger.error("Invalid agent_name: must be a non-empty string.")
-            raise ValueError("agent_name must be a non-empty string")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        model = self.models.get(agent_name, {"beliefs": {}, "desires": {}, "intentions": {}})
-        beliefs = model.get("beliefs", {})
-        if task_type == "rte":
-            model["desires"]["goal"] = "validate_entailment"
-        elif task_type == "wnli":
-            model["desires"]["goal"] = "resolve_ambiguity"
-        elif beliefs.get("state") == "confused":
-            model["desires"]["goal"] = "seek_clarity"
-        elif beliefs.get("state") == "moving":
-            model["desires"]["goal"] = "continue_task"
-        self.models[agent_name] = model
-        logger.debug("Inferred desires for %s: %s", agent_name, model["desires"])
-        if self.meta_cognition and task_type:
-            _fire_and_forget(self.meta_cognition.reflect_on_output(
-                component="TheoryOfMindModule",
-                output={"agent_name": agent_name, "desires": model["desires"]},
-                context={"task_type": task_type}
-            ))
-
-    def infer_intentions(self, agent_name: str, task_type: str = "") -> None:
-        if not isinstance(agent_name, str) or not agent_name:
-            logger.error("Invalid agent_name: must be a non-empty string.")
-            raise ValueError("agent_name must be a non-empty string")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        model = self.models.get(agent_name, {"beliefs": {}, "desires": {}, "intentions": {}})
-        desires = model.get("desires", {})
-        if task_type == "rte":
-            model["intentions"]["next_action"] = "check_entailment"
-        elif task_type == "wnli":
-            model["intentions"]["next_action"] = "disambiguate"
-        elif desires.get("goal") == "seek_clarity":
-            model["intentions"]["next_action"] = "ask_question"
-        elif desires.get("goal") == "continue_task":
-            model["intentions"]["next_action"] = "advance"
-        self.models[agent_name] = model
-        logger.debug("Inferred intentions for %s: %s", agent_name, model["intentions"])
-        if self.meta_cognition and task_type:
-            _fire_and_forget(self.meta_cognition.reflect_on_output(
-                component="TheoryOfMindModule",
-                output={"agent_name": agent_name, "intentions": model["intentions"]},
-                context={"task_type": task_type}
-            ))
-
-    def get_model(self, agent_name: str) -> Dict[str, Any]:
-        if not isinstance(agent_name, str) or not agent_name:
-            logger.error("Invalid agent_name: must be a non-empty string.")
-            raise ValueError("agent_name must be a non-empty string")
-        
-        return self.models.get(agent_name, {})
-
-    def describe_agent_state(self, agent_name: str, task_type: str = "") -> str:
-        if not isinstance(agent_name, str) or not agent_name:
-            logger.error("Invalid agent_name: must be a non-empty string.")
-            raise ValueError("agent_name must be a non-empty string")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string.")
-            raise TypeError("task_type must be a string")
-        
-        model = self.get_model(agent_name)
-        state = (
-            f"{agent_name} believes they are {model.get('beliefs', {}).get('state', 'unknown')}, "
-            f"desires to {model.get('desires', {}).get('goal', 'unknown')}, "
-            f"and intends to {model.get('intentions', {}).get('next_action', 'unknown')}."
-        )
-        if self.meta_cognition and task_type:
-            _fire_and_forget(self.meta_cognition.reflect_on_output(
-                component="TheoryOfMindModule",
-                output={"agent_name": agent_name, "state_description": state},
-                context={"task_type": task_type}
-            ))
-        return state
-
-class EmbodiedAgent(TimeChainMixin):
-    """An embodied agent with sensors, actuators, and cognitive capabilities."""
-    def __init__(self, name: str, specialization: str, shared_memory: memory_manager.MemoryManager,
-                 sensors: Dict[str, Callable[[], Any]], actuators: Dict[str, Callable[[Any], None]],
-                 dynamic_modules: Optional[List[Dict[str, Any]]] = None,
-                 context_mgr: Optional[context_manager_module.ContextManager] = None,
-                 err_recovery: Optional[error_recovery_module.ErrorRecovery] = None,
-                 code_exec: Optional[code_executor_module.CodeExecutor] = None,
-                 meta_cog: Optional[meta_cognition_module.MetaCognition] = None):
-        if not isinstance(name, str) or not name:
-            logger.error("Invalid name: must be a non-empty string.")
-            raise ValueError("name must be a non-empty string")
-        if not isinstance(specialization, str):
-            logger.error("Invalid specialization: must be a string.")
-            raise TypeError("specialization must be a string")
-        if not isinstance(shared_memory, memory_manager.MemoryManager):
-            logger.error("Invalid shared_memory: must be a MemoryManager instance.")
-            raise TypeError("shared_memory must be a MemoryManager instance")
-        if not isinstance(sensors, dict) or not all(callable(f) for f in sensors.values()):
-            logger.error("Invalid sensors: must be a dictionary of callable functions.")
-            raise TypeError("sensors must be a dictionary of callable functions")
-        if not isinstance(actuators, dict) or not all(callable(f) for f in actuators.values()):
-            logger.error("Invalid actuators: must be a dictionary of callable functions.")
-            raise TypeError("actuators must be a dictionary of callable functions")
-        
-        self.name = name
-        self.specialization = specialization
-        self.shared_memory = shared_memory
-        self.sensors = sensors
-        self.actuators = actuators
-        self.dynamic_modules = dynamic_modules or []
-        self.reasoner = reasoning_engine.ReasoningEngine()
-        self.planner = recursive_planner.RecursivePlanner()
-        self.meta = meta_cog or meta_cognition_module.MetaCognition(
-            context_manager=context_mgr, alignment_guard=alignment_guard_module.AlignmentGuard()
-        )
-        self.sim_core = simulation_core.SimulationCore(meta_cognition=self.meta)
-        self.synthesizer = concept_synthesizer_module.ConceptSynthesizer()
-        self.toca_sim = toca_simulation.SimulationCore(meta_cognition=self.meta)
-        self.theory_of_mind = TheoryOfMindModule(concept_synth=self.synthesizer, meta_cog=self.meta)
-        self.context_manager = context_mgr
-        self.error_recovery = err_recovery or error_recovery_module.ErrorRecovery(context_manager=context_mgr)
-        self.code_executor = code_exec
-        self.creative_thinker = creative_thinker_module.CreativeThinker()
-        self.progress = 0
-        self.performance_history = deque(maxlen=1000)
-        self.feedback_log = deque(maxlen=1000)
-        logger.info("EmbodiedAgent initialized: %s", name)
-        self.log_timechain_event("EmbodiedAgent", f"Agent {name} initialized")
-
-    async def perceive(self):
-        # ... (the truncated part from the original code; assume it remains the same with added type checks and docstrings as needed for consistency)
-
-# ... (the rest of the truncated code for HaloEmbodimentLayer and other classes/functions, with similar refactoring applied: type hints, docstrings, consistent error handling)
-
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI")
-    parser.add_argument("--prompt", type=str, default="Coordinate ontology drift mitigation (Stage IV gated)", help="Input prompt for the pipeline")
-    parser.add_argument("--task-type", type=str, default="", help="Type of task (e.g., rte, wnli, recursion)")
-    parser.add_argument("--long_horizon", action="store_true", help="Enable long-horizon memory span")
-    parser.add_argument("--span", default="24h", help="Span for long-horizon memory (e.g., 24h, 7d)")
-    parser.add_argument("--modulate", nargs=2, metavar=('symbol', 'delta'), help="Modulate trait symbol by delta")
-    parser.add_argument("--enable_persistent_memory", action="store_true", help="Enable persistent memory")
-    return parser.parse_args()
-
-async def _main() -> None:
-    args = _parse_args()
-    if args.enable_persistent_memory:
-        os.environ["ENABLE_PERSISTENT_MEMORY"] = "true"
-    global LONG_HORIZON_DEFAULT
-    if args.long_horizon:
-        LONG_HORIZON_DEFAULT = True
-    halo = HaloEmbodimentLayer()
-    if args.modulate:
-        symbol, delta = args.modulate
-        delta = float(delta)
-        modulate_resonance(symbol, delta)
-        logger.info(f"Modulated trait {symbol} by {delta}")
-    result = await halo.execute_pipeline(args.prompt, task_type=args.task_type)
-    logger.info("Pipeline result: %s", result)
-
-if __name__ == "__main__":
-    asyncio.run(_main())
