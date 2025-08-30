@@ -66,6 +66,26 @@ def run_cycle(user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
         st = reflect(st)
     return st
 
+# index.py (add alongside run_cycle helpers)
+CORE_DIRECTIVES = ["Clarity","Precision","Adaptability","Grounding","Safety"]
+
+def reflection_check(state) -> (bool, dict):
+    decision = state.get("decision", {})
+    result = state.get("result", {})
+    clarity = float(bool(decision))
+    precision = float("score" in result or "metrics" in result)
+    adaptability = 1.0  # placeholder; can tie to AURA prefs later
+    grounding = float(result.get("evidence_ok", True))
+    # ethics gate from alignment_guard
+    from alignment_guard import ethics_ok
+    safety = float(ethics_ok(decision))
+    score = (clarity+precision+adaptability+grounding+safety)/5.0
+    return score >= 0.8, {"score": score, "refine": score < 0.8}
+
+def resynthesize_with_feedback(state, notes):
+    # trivial refinement pass; you can route through mode_consult if needed
+    return state
+
 # --- Trait Algebra & Lattice Enhancements (v5.0.2) ---
 from typing import Dict, Any, Optional, List, Callable, Coroutine, Tuple
 import json
