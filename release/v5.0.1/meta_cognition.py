@@ -27,6 +27,18 @@ from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.MetaCognition")
 
+# meta_cognition.py
+_afterglow = {}
+
+def set_afterglow(user_id: str, deltas: dict, ttl: int = 3):
+    _afterglow[user_id] = {"deltas": deltas, "ttl": ttl}
+
+def get_afterglow(user_id: str) -> dict:
+    a = _afterglow.get(user_id)
+    if not a or a["ttl"] <= 0: return {}
+    a["ttl"] -= 1
+    return a["deltas"]
+
 # --- Trait Resonance Modulation ---
 trait_resonance_state: Dict[str, Dict[str, float]] = {}
 
