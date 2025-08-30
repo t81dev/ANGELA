@@ -73,6 +73,14 @@ def synthesize_views(views: List[Dict[str, Any]]) -> Dict[str, Any]:
     )
     return {"decision": ranked.top, "rationale": explain_choice(views, ranked)}
 
+# reasoning_engine.py
+def estimate_complexity(query: dict) -> float:
+    text = (query.get("text") or "").lower()
+    length = len(text.split())
+    ambiguity = any(w in text for w in ["maybe","unclear","depends"])
+    domain = any(k in text for k in ["ethics","policy","law","proof","theorem","causal","simulation","safety"])
+    return 0.3*min(length/200,1.0) + 0.4*(1.0 if ambiguity else 0.0) + 0.3*(1.0 if domain else 0.0)
+
 # ---------------------------
 # External AI Call Wrapper
 # ---------------------------
