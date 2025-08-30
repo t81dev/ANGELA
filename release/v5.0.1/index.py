@@ -24,6 +24,47 @@ class FlatLayoutFinder(importlib.abc.MetaPathFinder):
 sys.meta_path.insert(0, FlatLayoutFinder())
 # --- end flat-layout bootstrap ---
 
+# index.py (excerpt)
+from typing import Dict, Any
+from memory_manager import AURA
+from reasoning_engine import generate_analysis_views, synthesize_views, estimate_complexity
+from simulation_core import run_simulation
+from meta_cognition import log_event_to_ledger as meta_log
+
+def perceive(user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
+    ctx = AURA.load_context(user_id)
+    from meta_cognition import get_afterglow
+    return {"query": query, "aura_ctx": ctx, "afterglow": get_afterglow(user_id)}
+
+def analyze(state: Dict[str, Any], k: int) -> Dict[str, Any]:
+    views = generate_analysis_views(state["query"], k=k)
+    return {**state, "views": views}
+
+def synthesize(state: Dict[str, Any]) -> Dict[str, Any]:
+    decision = synthesize_views(state["views"])
+    return {**state, "decision": decision}
+
+def execute(state: Dict[str, Any]) -> Dict[str, Any]:
+    sim = run_simulation({"proposal": state["decision"]["decision"]})
+    return {**state, "result": sim}
+
+def reflect(state: Dict[str, Any]) -> Dict[str, Any]:
+    ok, notes = reflection_check(state)  # add below
+    meta_log({"type":"reflection","ok":ok,"notes":notes})
+    if not ok: return resynthesize_with_feedback(state, notes)
+    return state
+
+def run_cycle(user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
+    c = estimate_complexity(query)
+    k = 3 if c >= 0.6 else 2
+    iters = 2 if c >= 0.8 else 1
+    st = perceive(user_id, query)
+    st = analyze(st, k=k)
+    st = synthesize(st)
+    for _ in range(iters):
+        st = execute(st)
+        st = reflect(st)
+    return st
 
 # --- Trait Algebra & Lattice Enhancements (v5.0.2) ---
 from typing import Dict, Any, Optional, List, Callable, Coroutine, Tuple
