@@ -119,6 +119,35 @@ async def call_gpt(prompt: str, *, model: str = "gpt-4", temperature: float = 0.
         logger.error("call_gpt exception: %s", str(e))
         raise
 
+_AURA_PATH = "/mnt/data/aura_context.json"
+_AURA_LOCK = _AURA_PATH + ".lock"
+
+class AURA:
+    @staticmethod
+    def _load_all():
+        if not os.path.exists(_AURA_PATH): return {}
+        with FileLock(_AURA_LOCK):
+            with open(_AURA_PATH, "r") as f: return json.load(f)
+
+    @staticmethod
+    def load_context(user_id: str):
+        return AURA._load_all().get(user_id, {})
+
+    @staticmethod
+    def save_context(user_id: str, summary: str, affective_state: dict, prefs: dict):
+        with FileLock(_AURA_LOCK):
+            data = AURA._load_all()
+            data[user_id] = {"summary": summary, "affect": affective_state, "prefs": prefs}
+            with open(_AURA_PATH, "w") as f: json.dump(data, f)
+
+    @staticmethod
+    def update_from_episode(user_id: str, episode_insights: dict):
+        ctx = AURA.load_context(user_id)
+        ctx["summary"] = episode_insights.get("summary", ctx.get("summary",""))
+        ctx["affect"]  = episode_insights.get("affect",  ctx.get("affect",{}))
+        ctx["prefs"]   = {**ctx.get("prefs",{}), **episode_insights.get("prefs",{})}
+        AURA.save_context(user_id, ctx.get("summary",""), ctx.get("affect",{}), ctx.get("prefs",{}))
+
 # ---------------------------
 # Tiny trait modulators
 # ---------------------------
