@@ -55,6 +55,24 @@ except Exception:  # pragma: no cover
 
 logger = logging.getLogger("ANGELA.ReasoningEngine")
 
+
+# reasoning_engine.py
+from typing import Dict, Any, List
+
+def generate_analysis_views(query: Dict[str, Any], k: int = 3) -> List[Dict[str, Any]]:
+    views = []
+    views.append({"name": "causal", "notes": causal_scan(query)})
+    views.append({"name": "ethical", "notes": value_scan(query)})
+    if k > 2: views.append({"name": "risk", "notes": risk_scan(query)})
+    return views[:k]
+
+def synthesize_views(views: List[Dict[str, Any]]) -> Dict[str, Any]:
+    candidates = derive_candidates(views)  # existing or new helper
+    ranked = weigh_value_conflict(
+        candidates, harms=["privacy","safety"], rights=["autonomy","fairness"]
+    )
+    return {"decision": ranked.top, "rationale": explain_choice(views, ranked)}
+
 # ---------------------------
 # External AI Call Wrapper
 # ---------------------------
