@@ -26,6 +26,7 @@ from collections import Counter, deque
 from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from enum import Enum
 
 import numpy as np
 from filelock import FileLock
@@ -75,6 +76,33 @@ def _flag(name: str, default: bool = False) -> bool:
 
 STAGE_IV = _flag("STAGE_IV", default=False)  # Φ⁰ hooks gated by env
 
+class Mode(str, Enum):
+    DIALOGUE = "dialogue"
+    SIMULATION = "simulation"
+    INTROSPECTION = "introspection"
+    CREATIVE = "creative"      # maps to creative_thinker.py (already exists)
+    VISION = "vision"          # long-horizon; backed by recursive_planner.py
+
+_CONSULT_BUDGET = {"timeout_s": 2.0, "max_depth": 1}
+
+def mode_consult(caller: Mode, consultant: Mode, query: Dict[str, Any]) -> Dict[str, Any]:
+    """Bounded internal consult. No mode switch; returns a compact advice payload."""
+    # budget gate (simple placeholder)
+    # route to consultant
+    if consultant == Mode.CREATIVE:
+        from creative_thinker import brainstorm_options
+        advice = brainstorm_options(query, limit=3)
+    elif consultant == Mode.VISION:
+        from recursive_planner import long_horizon_implications
+        advice = long_horizon_implications(query, horizon="30d")
+    else:
+        from reasoning_engine import quick_alt_view
+        advice = quick_alt_view(query)
+
+    from meta_cognition import log_event_to_ledger as meta_log
+    meta_log({"type": "mode_consult", "caller": caller.value, "consultant": consultant.value,
+              "query_summary": str(query)[:200], "advice_preview": str(advice)[:200]})
+    return {"ok": True, "advice": advice}
 
 class ContextManager:
     """Manage contextual state, inter‑agent reconciliation, logs, analytics, and gated Φ⁰ hooks."""
