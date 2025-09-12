@@ -1,4 +1,4 @@
-# 🧠 **Cyber-Entity Schema — ANGELA Ontology v5.0.0**
+# 🧠 **Cyber-Entity Schema — ANGELA Ontology v5.0.1**
 
 This schema defines the **progressive ontological levels** of ANGELA, from simulator grounding (L1) to meta-reality architecting (L5).
 Each level is cross-linked to **modules** (`manifest.json`) and **roadmap stages**.
