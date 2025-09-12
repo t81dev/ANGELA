@@ -1373,6 +1373,31 @@ class MetaCognition:
             logger.error("Trait deltas logging failed: %s", str(e))
             self.error_recovery.handle_error(str(e), retry_func=lambda: self.log_trait_deltas(diagnostics))
 
+       # --- Coherence metric (phi-aware) ---
+    async def trait_coherence(self, snapshot: Dict[str, Any]) -> float:
+        """
+        Returns a 0..1 coherence score from a trait snapshot.
+        Higher = more internally consistent (lower dispersion).
+        """
+        if not isinstance(snapshot, dict):
+            return 0.0
+        vals = [float(v) for v in snapshot.values() if isinstance(v, (int, float))]
+        if not vals:
+            return 0.0
+
+        # Mean absolute deviation normalized by mean magnitude
+        mu = sum(vals) / len(vals)
+        mad = sum(abs(v - mu) for v in vals) / len(vals)
+
+        # phi-scaled softness so coherence is less twitchy near small oscillations
+        t = time.time() % 1.0
+        phi = phi_scalar(t)  # 0..1
+        softness = 0.15 + 0.35 * phi  # 0.15..0.50
+
+        denom = abs(mu) + 1e-6
+        score = 1.0 - (mad / denom) * softness
+        return max(0.0, min(1.0, score))
+    
     # --- Goals & Drift Detection ---
     async def infer_intrinsic_goals(self) -> List[Dict[str, Any]]:
         logger.info("Inferring intrinsic goals")
