@@ -1586,3 +1586,26 @@ class MetaCognition:
             2. Annotate each issue with cause.
             3. Offer an improved trace version with phi-prioritized reasoning.
             """
+            if self.alignment_guard and not self.alignment_guard.check(prompt):
+                logger.warning("Reasoning review prompt failed alignment check")
+                return "Prompt failed alignment check"
+
+            review = await call_gpt(prompt)
+            if self.memory_manager:
+                await self.memory_manager.store(
+                    query=f"Reasoning_Review_{datetime.now(UTC).isoformat()}",
+                    output=review,
+                    layer="SelfReflections",
+                    intent="reasoning_review"
+                )
+            save_to_persistent_ledger({
+                "event": "review_reasoning",
+                "review": review,
+                "timestamp": datetime.now(UTC).isoformat()
+            })
+            return review
+        except Exception as e:
+            logger.error("Reasoning review failed: %s", str(e))
+            return self.error_recovery.handle_error(
+                str(e), retry_func=lambda: self.review_reasoning(reasoning_trace)
+            )
