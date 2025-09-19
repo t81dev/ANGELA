@@ -1,7 +1,3 @@
-Below is a Markdown file (`index.md`) that converts the provided `index.py` code into plain English, describing the functionality of the ANGELA Cognitive System in a way that an LLM can understand without relying on code syntax. The content is organized into sections corresponding to the major components of the code, such as the flat-layout bootstrap, cognitive processing cycle, trait algebra, and system architecture. Each section explains the purpose and behavior of the code in clear, non-technical language, focusing on what the system does and how it works.
-
----
-
 # index.md
 
 ## Overview of the ANGELA Cognitive System
