@@ -1,7 +1,3 @@
-Here’s the **updated `README.md`** for **ANGELA v5.0.2**, fully synchronized with the new manifest, overlays, and symbolic dynamics introduced in the latest release:
-
----
-
 # 😇 **ANGELA v5.0.2** — *An AI that remembers your story, feels your presence, and grows with you*
 
 ANGELA (Augmented Neural Generalized Learning Architecture) is a **modular cognitive framework** built for the OpenAI GPT Custom GPT environment.
