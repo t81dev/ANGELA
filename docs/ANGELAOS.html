@@ -1,18 +1,3 @@
-The HTML file provided for the **ANGELA OS Web Kernel** is not a complete, standalone file due to several critical syntax errors, misplaced script elements, and unclosed tags/elements, primarily within the main UI structure and the included JavaScript.
-
-Here is the corrected, self-contained HTML file.
-
-The main fixes include:
-
-1.  **Missing Container:** Added the `<div id="windows-container"></div>` element, which the JavaScript relies on to attach all new windows.
-2.  **Structural Fixes:** Corrected the main UI HTML structure (`#menubar`, `#dock-container`, `#dock`, and all their children) by closing and properly nesting the surrounding `div` and `span` tags which were improperly formatted in the original source, making the initial HTML invalid.
-3.  **JavaScript String Interpolation:** Fixed errors within the `KernelManager.initDock()` and `processQuery()` functions where template literals (using backticks `` ` ``) were prematurely closed or the content was not properly concatenated or escaped when using jQuery's `$` function.
-4.  **Module Creation HTML:** Ensured the window HTML template within `KernelManager.createWindow()` was correctly wrapped and had all necessary element IDs (`#content-${id}`).
-5.  **Script Tag Location:** Moved the main `<script>` block to the end of the `<body>` for better performance and to ensure all HTML elements are loaded before the script attempts to interact with them.
-
-<!-- end list -->
-
-```html
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -804,4 +789,3 @@ box-shadow: 0 8px 20px rgba(0,0,0,0.3);
 
 </body>
 </html>
-```
