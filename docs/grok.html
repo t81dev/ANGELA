@@ -5,12 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>macOS Web Experience with Grok Integration</title>
 
-<!-- External Libraries via CDN for single-file functionality -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.minrate:1.0.1 !important; margin: 0px; padding: 0px; font-size: 0px; background: rgb(255, 255, 255);"></script>
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script> <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
 <style>
     :root {
@@ -288,15 +286,12 @@
 </head>
 <body>
 
-    <!-- Boot Screen -->
     <div id="boot-screen">
         <i class="fab fa-apple apple-logo"></i>
         <div class="loading-bar"><div class="loading-progress"></div></div>
     </div>
 
-    <!-- Desktop Environment -->
     <div id="desktop">
-        <!-- Menu Bar -->
         <div id="menubar">
             <div class="menu-left">
                 <div class="menu-item"><i class="fab fa-apple apple-icon"></i>
@@ -377,10 +372,8 @@
             </div>
         </div>
 
-        <!-- Windows Container -->
         <div id="windows-container"></div>
 
-        <!-- Context Menu -->
         <div id="context-menu">
             <div class="ctx-item" onclick="newFolder()">New Folder</div>
             <div class="ctx-hr"></div>
@@ -390,7 +383,6 @@
             <div class="ctx-item">Sort By</div>
         </div>
 
-        <!-- Dock -->
         <div id="dock-container">
             <div id="dock"></div>
         </div>
@@ -549,7 +541,8 @@
         }
 
         createWindow(id, config) {
-            this.windows Spur id] = config;
+            // CRITICAL FIX: The original code had a typo here: 'this.windows Spur id] = config;'
+            this.windows[id] = config;
             let w = 600, h = 400;
             if(id === 'calculator') { w = 250; h = 350; }
             if(id === 'paint' || id === 'studio') { w = 700; h = 500; }
@@ -1081,8 +1074,7 @@
                     <button class="calc-btn c-num" onclick="calcNum(3)">3</button>
                     <button class="calc-btn c-op" onclick="calcOp('+')">+</button>
                     <button class="calc-btn c-num c-zero" onclick="calcNum(0)">0</button>
-                    <button class="calc-btn c-num">.</button>
-                    <button class="calc-btn c-op" onclick="calcEq()">=</button>
+                    <button class="calc-btn c-num" onclick="calcNum('.')">.</button> <button class="calc-btn c-op" onclick="calcEq()">=</button>
                 </div>
             </div>
         `);
@@ -1091,7 +1083,16 @@
     let calcCur = '0', calcPrev = null, calcOper = null, newNum = true;
     const updateDisp = () => $('#calc-display').val(calcCur);
     window.calcNum = (num) => {
-        if(newNum) { calcCur = num.toString(); newNum = false; } else { calcCur = calcCur === '0' ? num.toString() : calcCur + num; }
+        if (num === '.') { // Added decimal point handling
+            if (calcCur.includes('.')) return;
+            calcCur += '.';
+            newNum = false;
+        } else if(newNum) { 
+            calcCur = num.toString(); 
+            newNum = false; 
+        } else { 
+            calcCur = calcCur === '0' ? num.toString() : calcCur + num; 
+        }
         updateDisp();
     };
     window.calcOp = (op) => { calcPrev = parseFloat(calcCur); calcOper = op; newNum = true; };
