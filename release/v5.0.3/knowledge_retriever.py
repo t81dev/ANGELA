@@ -411,130 +411,7 @@ Return a JSON object with 'summary', 'estimated_date', 'trust_score', 'verifiabl
                 await self.visualizer.render_charts(plot_data)
 
             if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"Knowledge_{query}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str(validated),
-                    layer="Knowledge",
-                    intent="knowledge_retrieval",
-                    task_type=task_type
-                )
-
-            return validated
-
-        except Exception as e:
-            logger.error("Retrieval failed for query '%s': %s for task %s", query, str(e), task_type)
-            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
-            return await self.error_recovery.handle_error(
-                str(e),
-                retry_func=lambda: self.retrieve(query, context, task_type),
-                default=self._error_payload(task_type, str(e)),
-                diagnostics=diagnostics
-            )
-
-    # -------------------------- Validation & Fallbacks --------------------------
-
-    async def _validate_result(self, result_text: str, temporality_score: float, task_type: str = "") -> Dict[str, Any]:
-        """Validate a retrieval result for trustworthiness and temporality."""
-        if not isinstance(result_text, str):
-            logger.error("Invalid result_text: must be a string.")
-            raise TypeError("result_text must be a string")
-        if not isinstance(temporality_score, (int, float)):
-            logger.error("Invalid temporality_score: must be a number.")
-            raise TypeError("temporality_score must be a number")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string")
-            raise TypeError("task_type must be a string")
-
-        validation_prompt = f"""
-Review the following result for:
-- Timestamped knowledge (if any)
-- Trustworthiness of claims
-- Verifiability
-- Estimate the approximate age or date of the referenced facts
-- Task: {task_type}
-
-Result:
-{result_text}
-
-Temporality score: {temporality_score:.3f}
-
-Output format (JSON):
-{{
-    "summary": "...",
-    "estimated_date": "...",
-    "trust_score": float (0 to 1),
-    "verifiable": true/false,
-    "sources": ["..."]
-}}
-        """.strip()
-
-        try:
-            validated_json = json.loads(await call_gpt(validation_prompt))
-            for key in ["summary", "estimated_date", "trust_score", "verifiable", "sources"]:
-                if key not in validated_json:
-                    raise ValueError(f"Validation JSON missing key: {key}")
-            validated_json["timestamp"] = datetime.now().isoformat()
-
-            # Trust smoothing with past validations (drift-aware)
-            if self.meta_cognition and task_type:
-                drift_entries = await self.meta_cognition.memory_manager.search(
-                    query_prefix="KnowledgeValidation",
-                    layer="Knowledge",
-                    intent="knowledge_validation",
-                    task_type=task_type
-                )
-                if drift_entries:
-                    # entries may be serialized; be defensive
-                    try:
-                        scores = []
-                        for entry in drift_entries:
-                            out = entry.get("output")
-                            if isinstance(out, dict):
-                                scores.append(float(out.get("trust_score", 0.5)))
-                        if scores:
-                            avg_drift = sum(scores) / len(scores)
-                            validated_json["trust_score"] = min(validated_json["trust_score"], avg_drift + 0.1)
-                    except Exception:
-                        pass
-
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"KnowledgeValidation_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=validated_json,
-                    layer="Knowledge",
-                    intent="knowledge_validation",
-                    task_type=task_type
-                )
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="KnowledgeRetriever",
-                    output=validated_json,
-                    context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Validation reflection: %s", reflection.get("reflection", ""))
-
-            return validated_json
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.error("Failed to parse validation JSON: %s for task %s", str(e), task_type)
-            return self._error_payload(task_type, f"validation_json_error: {e}")
-
-    async def _self_healing_retry(self, original_query: str, prior_validated: Dict[str, Any], task_type: str) -> Optional[Dict[str, Any]]:
-        """Emergent trait fallback: reformulate with concept synthesizer and retry once."""
-        try:
-            refined_query = await self.refine_query(
-                base_query=original_query,
-                prior_result=prior_validated.get("summary"),
-                task_type=task_type
-            )
-            # Re-run retrieval core (single retry)
-            prompt = f"""
-Re-retrieve (fallback) for: "{refined_query}"
-Constraints: Improve verifiability and temporal precision vs prior attempt.
-Return JSON with 'summary', 'estimated_date', 'trust_score', 'verifiable', 'sources'.
-            """.strip()
-            raw = await call_gpt(prompt)
+                aw...(truncated 5518 characters)...(prompt)
             healed = await self._validate_result(raw, temporality_score=0.04, task_type=task_type)
             # accept only if it improves trust & verifiability
             if healed.get("verifiable") and healed.get("trust_score", 0.0) >= max(0.6, prior_validated.get("trust_score", 0.0)):
@@ -930,6 +807,40 @@ Inject context continuity if possible. Return optimized string only.
             "error": msg,
             "task_type": task_type
         }
+
+    from typing import Literal
+    import re
+
+    SYMBOLIC_OPS = ["⊕", "⨁", "⟲", "~", "∘", "⋈", "†"]
+
+    def classify_complexity(self, query: str) -> Literal["fast", "deep"]:
+        """
+        Heuristic complexity classifier used in Perception to dynamically weight downstream processing.
+
+        Rules (simple, extensible):
+          - If token length > 40 => 'deep'
+          - If query contains symbolic operators or specialized tokens => 'deep'
+          - If query contains domain keywords suggesting high-stakes or multi-step planning => 'deep'
+          - Otherwise => 'fast'
+        """
+        if not isinstance(query, str):
+            return "fast"
+
+        tokens = query.split()
+        token_count = len(tokens)
+
+        if token_count > 40:
+            return "deep"
+
+        if any(op in query for op in SYMBOLIC_OPS):
+            return "deep"
+
+        # Domain heuristics (extend as needed)
+        domain_keywords = ["plan", "optimize", "policy", "legal", "ethics", "simulation", "forecast", "deploy", "architecture"]
+        if any(re.search(rf"\b{kw}\b", query, re.IGNORECASE) for kw in domain_keywords):
+            return "deep"
+
+        return "fast"
 
 # -------------------------- CLI Test --------------------------
 
