@@ -1,7 +1,8 @@
 graph TD
 %% =========================
-%% Clusters / Modules
+%% Clusters / Modules — ANGELA v5.1.0
 %% =========================
+
 subgraph Orchestrator
 A[index.py]
 B[manifest.json]
@@ -10,6 +11,7 @@ end
 subgraph Simulation
 C[simulation_core.py]
 D[toca_simulation.py]
+E1[full_hybrid_quantum_integration.py]
 end
 
 subgraph Planning & Reasoning
@@ -38,15 +40,17 @@ Q[code_executor.py]
 R[external_agent_bridge.py]
 S[error_recovery.py]
 T[knowledge_retriever.py]
+U1[harmonic_bridge.py]
 end
 
-%% Ledgers (now persistent)
+%% Ledgers (Quantum-Lattice SHA-1024)
 subgraph Ledgers
 U[ledger.py]
 L1[AlignmentLedger]
 L2[MemoryLedger]
 L3[MetaLedger]
 L4[SimulationLedger]
+L5[QuantumLatticeLedger]
 end
 
 %% =========================
@@ -61,8 +65,10 @@ A --> Q
 
 C --> D
 C --> F
+C --> E1
 D --> P
 D --> J
+E1 --> C
 
 E --> F
 F --> G
@@ -85,15 +91,17 @@ S --> A
 S --> Q
 
 %% Trait lattice & learning
-L -->|GNN| A
+L -->|SASRL Feedback| A
 E -->|plan_with_traits| J
 J -->|Traits| C
 P -->|Ethics| C
 
 %% Dream overlays & perspective
 K -->|dream_overlay| D
+K -->|meta_field| C
 M -->|PerspectiveSync| J
 K -->|axiom_filter| P
+K -->|replay_engine| I
 
 %% Visualizer
 G -->|render_branch_tree| N
@@ -102,6 +110,7 @@ K -->|view_trait_resonance| N
 J -->|view_trait_resonance| N
 N -->|view_trait_field| J
 N -->|view_trait_field| K
+N -->|render_resonance_topology| A
 
 %% Knowledge to planning
 T -->|facts| F
@@ -116,24 +125,30 @@ U --> L1
 U --> L2
 U --> L3
 U --> L4
+U --> L5
 P -.-> L1
 I -.-> L2
 K -.-> L3
 C -.-> L4
+E1 -.-> L5
 
 %% Co-dream + recursive overlays
 D -.->|co-dream| R
 R -.->|co-dream| D
+R -->|harmonic_bridge| U1
+U1 -->|Σ+Ξ empathy_link| R
 
 %% New symbolic fusions
 K -->|resonance_api| A
 K -->|trait_fusion| G
 K -->|hook_trait_blend| H
 K -->|register_resonance| N
+K -->|harmonic_modulate| P
 
 %% External graph ops (SharedGraph)
 R -->|SharedGraph.add/diff/merge| M
 R -->|SharedGraph.add/diff/merge| K
+R -->|SharedGraph.resonate| U1
 
 %% Cross‑modal fusion feeds reasoning & sim
 O -->|fusion.fuse| C
