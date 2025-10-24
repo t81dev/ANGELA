@@ -34,7 +34,6 @@ def verify_ledger():
     return True
 # --- End Ledger Logic ---
 
-
 import json
 import os
 import time
@@ -308,6 +307,115 @@ class MemoryManager:
         # If LONG_HORIZON is enabled, start the auto-rollup task
         if long_horizon_enabled:
             asyncio.create_task(self._auto_rollup_task())
+
+        # Initialize AURA store
+        self._ensure_aura_store()
+
+    # -------- AURA context management --------
+    # default aura file path (can be overridden on MemoryManager init)
+    AURA_DEFAULT_PATH = os.getenv("AURA_CONTEXT_PATH", "aura_context.json")
+    AURA_LOCK_PATH = AURA_DEFAULT_PATH + ".lock"
+
+    def _ensure_aura_store(self):
+        """
+        Ensure the MemoryManager instance has an in-memory aura_context dict and aura_path.
+        Call this at MemoryManager.__init__ or lazily on first use.
+        """
+        if not hasattr(self, "aura_context"):
+            self.aura_context: Dict[str, Dict[str, Any]] = {}
+        if not hasattr(self, "aura_path"):
+            self.aura_path = getattr(self, "aura_path", self.AURA_DEFAULT_PATH)
+
+    def _persist_aura_store(self) -> None:
+        """
+        Persist the in-memory aura_context to disk (best-effort). Uses FileLock for atomicity.
+        """
+        try:
+            self._ensure_aura_store()
+            lock = FileLock(getattr(self, "aura_path", self.AURA_DEFAULT_PATH) + ".lock")
+            with lock:
+                with open(self.aura_path, "w", encoding="utf-8") as fh:
+                    json.dump(self.aura_context, fh, ensure_ascii=False, indent=2)
+            # ledger entry for persistence event
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "aura.persist", "path": self.aura_path, "timestamp": time.time()})
+            except Exception:
+                pass
+        except Exception:
+            # best-effort: do not raise to avoid interfering with critical flows
+            pass
+
+    def _load_aura_store(self) -> None:
+        """
+        Load persisted aura_context into memory (best-effort). Called at init or on demand.
+        """
+        try:
+            self._ensure_aura_store()
+            if os.path.exists(self.aura_path):
+                lock = FileLock(self.aura_path + ".lock")
+                with lock:
+                    with open(self.aura_path, "r", encoding="utf-8") as fh:
+                        self.aura_context = json.load(fh)
+        except Exception:
+            # If loading fails, keep the existing in-memory dict
+            pass
+
+    def save_context(self, user_id: str, summary: str, affective_state: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Save a compact AURA context for a user.
+
+        Parameters
+        ----------
+        user_id :
+            Unique user identifier.
+        summary :
+            Short textual summary of recent interaction / rapport cues.
+        affective_state :
+            Optional structured affective pattern (e.g., {"valence": 0.6, "arousal": 0.2}).
+        """
+        try:
+            self._ensure_aura_store()
+            entry = {
+                "summary": summary,
+                "affect": affective_state or {},
+                "updated_at": time.time()
+            }
+            self.aura_context[user_id] = entry
+            # Persist asynchronously-ish (best-effort synchronous write here)
+            self._persist_aura_store()
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "aura.save", "user_id": user_id, "timestamp": entry["updated_at"]})
+            except Exception:
+                pass
+        except Exception as exc:
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "aura.save.error", "user_id": user_id, "error": repr(exc)})
+            except Exception:
+                pass
+
+    def load_context(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Load a user's AURA context (returns None if missing).
+
+        The function first ensures the in-memory store is seeded from disk (if present),
+        then returns the user-specific entry.
+        """
+        try:
+            self._ensure_aura_store()
+            # Best-effort load from disk before returning
+            self._load_aura_store()
+            entry = self.aura_context.get(user_id)
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "aura.load", "user_id": user_id, "found": entry is not None, "timestamp": time.time()})
+            except Exception:
+                pass
+            return entry
+        except Exception as exc:
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "aura.load.error", "user_id": user_id, "error": repr(exc)})
+            except Exception:
+                pass
+            return None
 
     # -------- Periodic Roll-up Task --------
     async def _auto_rollup_task(self):
@@ -1181,6 +1289,26 @@ class MemoryManager:
         self.traces[user_id].append(entry)
         return entry
 
+    def _load_memory(self):
+        """Load memory from disk (best-effort)."""
+        try:
+            if os.path.exists(self.path):
+                with FileLock(self.path + ".lock"):
+                    with open(self.path, "r", encoding="utf-8") as f:
+                        return json.load(f)
+            return {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}}
+        except Exception as e:
+            logger.error("Failed to load memory: %s", str(e))
+            return {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}}
+
+    def _persist_memory(self, memory: Dict[str, Any]) -> None:
+        """Persist memory to disk (best-effort)."""
+        try:
+            with FileLock(self.path + ".lock"):
+                with open(self.path, "w", encoding="utf-8") as f:
+                    json.dump(memory, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error("Failed to persist memory: %s", str(e))
 
 # -------- self-test --------
 if __name__ == "__main__":  # pragma: no cover
@@ -1213,7 +1341,6 @@ def log_event_to_ledger(event_data):
             json.dump(ledger_memory, f)
     return event_data
 
-
 ### ANGELA UPGRADE: ReplayLog
 
 class ReplayLog:
@@ -1240,7 +1367,6 @@ class ReplayLog:
             for ev in cur["events"]:
                 f.write(json.dumps(ev)+"\n")
         return {"ok": True, "path": path, "events": len(cur["events"])}
-
 
 # --- Time-Based Trait Amplitude Decay Patch ---
 from meta_cognition import modulate_resonance
