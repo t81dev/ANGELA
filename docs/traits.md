@@ -1,4 +1,4 @@
-# 🧬 **ANGELA — Traits Reference (v5.1.1)**
+# 🧬 **ANGELA — Traits Reference (v5.1.0)**
 
 ## 🧩 **Core Trait Lattice**
 
