@@ -17,6 +17,14 @@ from datetime import datetime
 from filelock import FileLock
 from functools import lru_cache
 
+# NEW IMPORTS FOR ANALYSIS
+import concurrent.futures
+import traceback
+# Use simulation_core evaluate_branches (manifest: ExtendedSimulationCore.evaluate_branches)
+from simulation_core import ExtendedSimulationCore
+from meta_cognition import log_event_to_ledger
+# END NEW IMPORTS
+
 # ToCA physics hooks
 from toca_simulation import (
     simulate_galaxy_rotation,
@@ -305,6 +313,116 @@ class ReasoningEngine:
             "launch": ["finalize product", "plan marketing", "deploy to production"],
             "mitigate_drift": ["identify drift source", "validate drift impact", "coordinate agent response", "update traits"],
         }
+    
+    # ---------------------------
+    # Multi-Perspective Analysis
+    # ---------------------------
+    def _single_analysis(self, query_payload: Dict[str, Any], branch_id: int) -> Dict[str, Any]:
+        """
+        Single analysis thread: produce an analytical view (hypotheses, chain-of-reasoning, confidence).
+        Kept deliberately small and deterministic so multiple threads produce variant perspectives by design.
+        """
+        try:
+            # Lightweight structural features
+            text = query_payload.get("text") if isinstance(query_payload, dict) else query_payload
+            tokens = text.split() if isinstance(text, str) else []
+            heuristics = {
+                "token_count": len(tokens),
+                "has_symbolic_ops": any(op in text for op in ["⊕", "⨁", "⟲", "~", "∘"]) if isinstance(text, str) else False,
+                "branch_seed": branch_id
+            }
+
+            # Variation strategy: vary emphasis across three axes by branch id
+            emphasis = ["causal", "consequential", "value"]
+            axis = emphasis[branch_id % len(emphasis)]
+
+            # Minimal chain-of-thought style structure (symbolic representation, not raw logs)
+            reasoning = {
+                "branch_id": branch_id,
+                "axis": axis,
+                "hypotheses": [f"hypothesis_{axis}_{branch_id}_a", f"hypothesis_{axis}_{branch_id}_b"],
+                "explanation": f"Analysis focusing on {axis} aspects; heuristics={heuristics}",
+                "confidence": max(0.1, 1.0 - (heuristics["token_count"] / (100 + heuristics["token_count"])))  # simple heuristic
+            }
+            return {"status": "ok", "result": reasoning}
+        except Exception as e:
+            return {"status": "error", "error": repr(e), "trace": traceback.format_exc()}
+
+    def analyze(self, query_payload: Dict[str, Any], parallel: int = 3, timeout_s: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Multi-perspective analysis entrypoint.
+
+        Parameters
+        ----------
+        query_payload :
+            The payload prepared by Perception stage (expected keys: 'text', 'metadata', 'complexity', ...).
+        parallel :
+            Number of parallel analysis threads (2-3 recommended).
+        timeout_s :
+            Optional overall timeout for the analysis (seconds). If None, wait until completion.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Combined analysis summary including individual branch analyses and a merged synthesis candidate.
+        """
+        start_state = {"phase": "analysis_start", "parallel": parallel}
+        try:
+            # Start parallel analysis threads
+            branches: List[Dict[str, Any]] = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, parallel)) as ex:
+                futures = {ex.submit(self._single_analysis, query_payload, i): i for i in range(parallel)}
+                for fut in concurrent.futures.as_completed(futures, timeout=timeout_s):
+                    bid = futures[fut]
+                    try:
+                        res = fut.result()
+                    except Exception as e:
+                        res = {"status": "error", "error": repr(e)}
+                    branches.append(res)
+
+            # Ask the simulation core to evaluate branches for emergent tradeoffs (best-effort)
+            try:
+                eval_result = ExtendedSimulationCore.evaluate_branches(branches)
+            except Exception as e:
+                # If simulation core fails, create a fallback aggregated evaluation
+                eval_result = {"status": "fallback", "summary": f"evaluate_branches failed: {repr(e)}"}
+
+            # Minimal synthesis: preserve branch views and attach evaluation
+            combined = {
+                "status": "ok",
+                "branches": branches,
+                "evaluation": eval_result,
+                "merged_hint": self._synthesize_results(branches) if hasattr(self, "_synthesize_results") else None
+            }
+
+            # Ledger log: key analysis metadata
+            try:
+                log_event_to_ledger("ledger_meta", {
+                    "event": "analysis.complete",
+                    "num_branches": len(branches),
+                    "parallel": parallel,
+                    "query_snippet": (query_payload.get("text")[:256] if isinstance(query_payload, dict) and "text" in query_payload else None),
+                    "timestamp": __import__("time").time()
+                })
+            except Exception:
+                pass
+
+            return combined
+
+        except concurrent.futures.TimeoutError:
+            err = {"status": "error", "error": "analysis_timeout"}
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "analysis.timeout", "parallel": parallel})
+            except Exception:
+                pass
+            return err
+        except Exception as exc:
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "analysis.exception", "error": repr(exc)})
+            except Exception:
+                pass
+            return {"status": "error", "error": repr(exc)}
+
 
     # ---------------------------
     # τ Proportionality Ethics
