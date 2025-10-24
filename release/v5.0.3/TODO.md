@@ -1,76 +1,89 @@
-# TODO.md — ANGELA Stage V Upgrades
+Here’s your **updated `TODO.md`**, reflecting the fact that all Stage V features are now **implemented in-place** within existing modules — no new files added.
+I’ve converted completed tasks to `[x]`, clarified “embedded” integration notes, and adjusted the summary to mark the transition from planning → execution.
+
+---
+
+# TODO.md — ANGELA Stage V Upgrades ✅ *(Implemented In-Place)*
 
 ## 1. Enhance Modularity with Inter-Mode Communication
 
-* [ ] Implement `mode_consult()` protocol in `context_manager.py`.
-* [ ] Allow Task Mode to query Creative Mode for alternatives.
-* [ ] Enable Vision Mode consultation for long-term implications.
-* [ ] Log mode consultations in `ledger_meta` for auditability.
+* [x] Implemented `mode_consult()` protocol in `context_manager.py`
+* [x] Enabled Task Mode ↔ Creative Mode consultation via `invoke_peer_view` / `attach_peer_view`
+* [x] Added Vision Mode consultation hook for long-term implications
+* [x] Logged all consultations in `ledger_meta` for auditability
 
-**Benefit:** Breaks silo walls, makes modes collaborative while keeping modular purity.
+**Benefit:**
+Breaks silo walls; modes now collaborate while preserving modular purity.
 
 ---
 
 ## 2. Add Depth to Analysis + Synthesis
 
-* [ ] Extend `reasoning_engine` to generate 2–3 parallel analysis threads per query.
-* [ ] Modify `evaluate_branches()` to preserve alternative analytical views.
-* [ ] Enhance Synthesis stage to integrate + resolve conflicts across threads.
+* [x] Extended `reasoning_engine` to generate 2–3 parallel analysis threads per query
+* [x] Reused `ExtendedSimulationCore.evaluate_branches()` to preserve alternative views
+* [x] Enhanced Synthesis stage integration via `CreativeThinker.bias_synthesis()` conflict resolution
 
-**Benefit:** Introduces true multi-perspective reasoning.
+**Benefit:**
+Introduces true multi-perspective reasoning and branch-aware synthesis.
 
 ---
 
 ## 3. Strengthen AURA with Contextual Memory Layer
 
-* [ ] Create persistent AURA memory store (`aura_context.json` or SQLite).
-* [ ] Implement `AURA.save_context(user_id, summary, affective_state)`.
-* [ ] Implement `AURA.load_context(user_id)` for Perception stage.
-* [ ] Add API for updating user-specific emotional patterns.
+* [x] Embedded persistent AURA memory store (`aura_context.json`) in `memory_manager.py`
+* [x] Added `save_context(user_id, summary, affective_state)` and `load_context(user_id)`
+* [x] Ledger-logged AURA updates and affective patterns via `meta_cognition`
+* [x] Integrated affective resonance hook (Ξ-trait) for emotional continuity
 
-**Benefit:** Enables rapport continuity and long-term empathy modeling.
+**Benefit:**
+Enables rapport continuity and long-term empathy modeling.
 
 ---
 
 ## 4. Formalize the Cognitive Cycle in Codebase
 
-* [ ] Create `cognitive_cycle.py` to house Perception, Analysis, Synthesis, Execution, Reflection stages.
-* [ ] Refactor existing modules (retriever, reasoning, simulation, executor) into stage calls.
-* [ ] Orchestrate flow via a `run_cycle(input_query)` function.
-* [ ] Document cycle flow for developers/end-users.
+* [x] Embedded Cognitive Cycle orchestration (`run_cycle()`) directly in `index.py`
+* [x] Linked existing modules — retriever → reasoner → creator → executor → meta-reflector
+* [x] Logged cycle phases and durations to `ledger_meta` for traceability
+* [x] Cycle now operational under Stage V identity without adding new modules
 
-**Benefit:** Makes ANGELA’s conceptual identity explicit and modular in code.
+**Benefit:**
+Makes ANGELA’s conceptual identity explicit and operational in runtime flow.
 
 ---
 
 ## 5. Introduce Dynamic Weighting to the Cognitive Cycle
 
-* [ ] Add complexity classifier in Perception (token length, type heuristics).
-* [ ] Dynamically adjust analysis depth (fast path vs deep path).
-* [ ] Log cycle resource allocations in ledger for transparency.
+* [x] Added complexity classifier in `knowledge_retriever.py` (token + semantic heuristics)
+* [x] Dynamically adjusts analysis depth (fast vs deep paths) in `run_cycle()`
+* [x] Logged resource allocation and classification events in `ledger_meta`
 
-**Benefit:** Adaptive processing — efficiency for simple queries, depth for complex ones.
+**Benefit:**
+Adaptive processing — efficiency for simple queries, depth for complex ones.
 
 ---
 
 ## 6. Evolve Feedback Loop → Reflection Stage
 
-* [ ] Create `Reflection` module after Execution.
-* [ ] Assess output against Core Directives (Clarity, Precision, Adaptability).
-* [ ] If failed, loop back to Synthesis with feedback.
-* [ ] Record reflection outcomes in ledger.
+* [x] Implemented `reflect_output()` in `meta_cognition.py`
+* [x] Added heuristic evaluation of Clarity, Precision, and Adaptability
+* [x] Auto-loops low-score outputs back to Synthesis via `invoke_hook("resynthesize")`
+* [x] Recorded reflection scores and feedback in `ledger_meta`
 
-**Benefit:** Adds final quality assurance check, improving reliability + user trust.
+**Benefit:**
+Adds final quality-assurance reflection — improving reliability and trust.
 
 ---
 
-# Summary
+# ✅ Stage V Summary
 
-These Stage V upgrades:
+* Deepened ANGELA’s Cognitive Cycle without adding new modules.
+* Enabled inter-mode collaboration through `mode_consult`.
+* Strengthened AURA as a contextual memory and affective continuity layer.
+* Introduced dynamic processing depth and reflexive feedback into runtime flow.
 
-* Deepen ANGELA’s Cognitive Cycle.
-* Empower her modes to collaborate.
-* Strengthen AURA into a contextual memory conductor.
-* Add adaptivity and self-reflection.
+Stage V is an **evolutionary upgrade** — authentic growth within ANGELA’s symbolic kernel, seamlessly integrated with Stage IV’s meta-synthesis architecture.
 
-They are **evolutionary steps**, fully consistent with ANGELA’s architecture — not external grafts, but authentic growth within her symbolic kernel.
+---
+
+Would you like me to append a **“Stage V Release Notes”** block at the bottom (like those in your manifest changelog), summarizing these upgrades in manifest-style JSON format for `manifest.json` version `5.1.0`?
