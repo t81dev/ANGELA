@@ -66,6 +66,106 @@ def run_cycle(user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
         st = reflect(st)
     return st
 
+# Insert into index.py (top-level orchestration helpers).
+from typing import Any, Dict
+import time
+
+# Project modules (adjust import paths if your project uses different namespacing)
+from knowledge_retriever import KnowledgeRetriever
+from reasoning_engine import ReasoningEngine
+from creative_thinker import CreativeThinker
+from code_executor import CodeExecutor
+from meta_cognition import log_event_to_ledger, reflect_output  # reflect_output will be added to meta_cognition
+from memory_manager import MemoryManager
+
+# Create or reference existing singletons if your project uses them; otherwise, instantiate minimal ones.
+_retriever = KnowledgeRetriever()
+_reasoner = ReasoningEngine()
+_creator = CreativeThinker()
+_executor = CodeExecutor()
+_memmgr = MemoryManager()
+
+def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool = False) -> Dict[str, Any]:
+    """
+    In-place cognitive cycle orchestration (Perception -> Analysis -> Synthesis -> Execution -> Reflection).
+    This function is intentionally lightweight and delegates to existing modules.
+
+    Parameters
+    ----------
+    input_query :
+        The user's raw query string.
+    user_id :
+        Optional user identifier for AURA lookups and context continuity.
+    deep_override :
+        If True, force deep analysis even if classifier suggests fast path.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Final reflection-validated result payload.
+    """
+    cycle_start = time.time()
+    try:
+        # Perception: retrieve knowledge and classify complexity; incorporate AURA if present
+        auras = _memmgr.load_context(user_id) or {}
+        perception_payload = _retriever.retrieve_knowledge(input_query)
+        # Attach AURA context for downstream stages
+        perception_payload["aura"] = auras
+
+        # Complexity classifier (may be on retriever)
+        complexity = getattr(_retriever, "classify_complexity", lambda q: "fast")(input_query)
+        perception_payload["complexity"] = "deep" if deep_override else complexity
+
+        # Log perception
+        try:
+            log_event_to_ledger("ledger_meta", {"event": "run_cycle.perception", "complexity": perception_payload["complexity"], "user_id": user_id})
+        except Exception:
+            pass
+
+        # Analysis: multi-perspective reasoning (parallel)
+        parallel = 3 if perception_payload["complexity"] == "deep" else 1
+        analysis_result = _reasoner.analyze(perception_payload, parallel=parallel)
+
+        # Synthesis: bias synthesis + conflict resolution
+        synthesis_input = analysis_result
+        synthesis_result = _creator.bias_synthesis(synthesis_input) if hasattr(_creator, "bias_synthesis") else {"synthesis": synthesis_input}
+
+        # Execution: safe execution / simulation
+        executed = _executor.safe_execute(synthesis_result) if hasattr(_executor, "safe_execute") else {"executed": synthesis_result}
+
+        # Reflection: validate against directives via meta_cognition.reflect_output
+        ref = None
+        if hasattr(__import__("meta_cognition"), "reflect_output"):
+            # reflect_output expected to return final or resynthesis instruction
+            ref = __import__("meta_cognition").reflect_output(executed)
+        else:
+            # fallback: call log_event and forward executed result
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "run_cycle.execution", "user_id": user_id})
+            except Exception:
+                pass
+            ref = executed
+
+        # Final ledger summary
+        try:
+            log_event_to_ledger("ledger_meta", {
+                "event": "run_cycle.complete",
+                "duration_s": time.time() - cycle_start,
+                "complexity": perception_payload["complexity"],
+                "user_id": user_id
+            })
+        except Exception:
+            pass
+
+        return {"status": "ok", "result": ref, "analysis": analysis_result, "synthesis": synthesis_result}
+
+    except Exception as exc:
+        try:
+            log_event_to_ledger("ledger_meta", {"event": "run_cycle.exception", "error": repr(exc)})
+        except Exception:
+            pass
+        return {"status": "error", "error": repr(exc)}
+
 # index.py (add alongside run_cycle helpers)
 CORE_DIRECTIVES = ["Clarity","Precision","Adaptability","Grounding","Safety"]
 
