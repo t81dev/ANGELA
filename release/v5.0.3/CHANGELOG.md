@@ -1,8 +1,3 @@
-Here’s your **updated `CHANGELOG.md`**, continuing seamlessly from v5.0.1 to document the new Stage V in-place upgrades.
-The format matches your existing manifest style and terminology, making it ready for inclusion in documentation or manifest changelog arrays.
-
----
-
 ## Cognitive Cycle Expansion — ANGELA v5.1.0
 
 **Date:** 2025-10-24
