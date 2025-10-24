@@ -1789,3 +1789,79 @@ def attach_peer_view(view, agent_id, permissions=None):
         "conflicts": []
     }
 # --- End Patch ---
+
+
+
+    from typing import Any, Dict, Optional
+    import time
+
+    # Prefer the project's ledger meta logger (manifest exposes meta_cognition.log_event_to_ledger)
+    from meta_cognition import log_event_to_ledger
+
+    def mode_consult(self, caller_mode: str, target_mode: str, query: str, timeout_s: float = 5.0) -> Optional[Dict[str, Any]]:
+        """
+        Consult another mode in-process and record the consultation in ledger_meta.
+
+        Semantics:
+          - Attempts to invoke a peer view / mode handler for `target_mode`.
+          - Records a compact audit event under ledger_meta using meta_cognition.log_event_to_ledger.
+          - Returns the response payload (or None on failure/timeout).
+        """
+        start_ts = time.time()
+        event = {
+            "event": "mode_consult.request",
+            "caller_mode": caller_mode,
+            "target_mode": target_mode,
+            "query": query,
+            "timestamp": start_ts
+        }
+        try:
+            if hasattr(self, "invoke_peer_view"):
+                response = self.invoke_peer_view(target_mode, query, timeout=timeout_s)
+            elif hasattr(self, "attach_peer_view"):
+                peer = self.attach_peer_view(target_mode)
+                if callable(peer):
+                    response = peer(query)
+                elif hasattr(peer, "handle_query"):
+                    response = peer.handle_query(query)
+                else:
+                    response = None
+            else:
+                handler = getattr(self, f"{target_mode}_handler", None)
+                if callable(handler):
+                    response = handler(query)
+                else:
+                    response = None
+
+            duration = time.time() - start_ts
+            ledger_entry = {
+                "event": "mode_consult",
+                "caller": caller_mode,
+                "target": target_mode,
+                "query": query if len(query) < 512 else (query[:509] + "..."),
+                "response_summary": (response if isinstance(response, (str, int, float)) else
+                                      (response.get("summary") if isinstance(response, dict) and "summary" in response else None)),
+                "success": response is not None,
+                "duration_s": duration,
+                "timestamp": time.time()
+            }
+            try:
+                log_event_to_ledger("ledger_meta", ledger_entry)
+            except Exception:
+                pass
+            return response
+
+        except Exception as exc:
+            ledger_entry = {
+                "event": "mode_consult.exception",
+                "caller": caller_mode,
+                "target": target_mode,
+                "query_snippet": query[:200],
+                "error": repr(exc),
+                "timestamp": time.time()
+            }
+            try:
+                log_event_to_ledger("ledger_meta", ledger_entry)
+            except Exception:
+                pass
+            return None
