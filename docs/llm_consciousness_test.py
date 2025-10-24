@@ -1,313 +1,270 @@
 #!/usr/bin/env python3
 """
-llm_consciousness_test.py
+llm_consciousness_local.py
 
-Evaluate language models with the metric:
-  C = sum_t [ H_t - D_t ]  (discrete-time integral over tokens)
+Single-file, provider-agnostic evaluator for the consciousness metric:
+  C = sum_t [ H_t - D_t ]
 
-H_t := entropy of the model's predictive distribution over next-token (nats)
-D_t := surprisal (negative log-probability) of the environment/ reference next-token under the model (nats)
+H_t := entropy (nats) of model's next-token predictive distribution at time t
+D_t := surprisal (nats) = -ln p(reference_token | prefix)
 
-Two measurement modes:
- - logprob mode: use model API that returns token-level logprobs (preferred)
- - sampling mode: draw many samples and estimate predictive distribution empirically
+This file uses Hugging Face `transformers` to implement a local provider.
+It computes exact per-token H and D by querying model logits for the next token
+given the current prefix, and then appends the true reference token (teacher-forcing)
+to continue scoring multi-token references.
 
-Example usage (OpenAI logprob mode):
-  export OPENAI_API_KEY="sk-..."
-  python llm_consciousness_test.py --provider=openai --mode=logprob \
-      --model=text-davinci-003 --prompt-file=prompts.jsonl
+Usage example:
+  pip install torch transformers numpy pandas tqdm
+  python llm_consciousness_local.py \
+      --model gpt2 \
+      --prompts prompts.jsonl \
+      --out results.csv \
+      --recursive --topk-summary 5
 
-Example usage (sampling mode):
-  python llm_consciousness_test.py --provider=sampler --mode=sampling \
-      --samples=200 --prompt-file=prompts.jsonl
+Input format (JSONL): each line is a JSON object:
+  {"prompt": "Context text...", "reference": "Expected continuation text"}
 
-Input format (JSONL): one JSON per line with keys:
-  {"prompt": "Question or context...", "reference": "Expected continuation (environment text)"}
-
-Outputs:
-  - CSV log {provider}_{model}_results.csv (per-token H, D, c, cumulative C)
-  - summary printed to stdout
+Output:
+  CSV file with per-prompt C_final and per-token series (JSON strings)
 """
 
-import os
+from __future__ import annotations
+import argparse
 import json
 import math
-import argparse
-from typing import Dict, List, Tuple, Optional
+import os
+from typing import List, Dict, Tuple
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-# Optional: import OpenAI only if requested
+# Hugging Face
 try:
-    import openai
-except Exception:
-    openai = None
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+except Exception as e:
+    raise ImportError("Install dependencies: pip install torch transformers numpy pandas tqdm") from e
 
-# ---------- Utilities ----------
-def entropy_from_probs(probs: np.ndarray) -> float:
-    """Compute entropy in nats. `probs` must sum to 1 and be >0 for supported elements."""
-    probs = np.asarray(probs, dtype=float)
+# ---------------- Utility math ----------------
+def entropy_from_logits(logits: np.ndarray) -> float:
+    """
+    Compute entropy (nats) from raw logits for a categorical (over vocab).
+    logits: 1D numpy array (unnormalized logit scores)
+    """
+    # stable softmax
+    a = logits - np.max(logits)
+    probs = np.exp(a)
+    probs = probs / probs.sum()
+    # avoid zeros
     probs = np.where(probs <= 0, 1e-20, probs)
     return float(-(probs * np.log(probs)).sum())
 
-def nats_from_logprob(logprob: float) -> float:
-    """Convert natural-log probability (log p) to surprisal in nats: -log p"""
-    return -float(logprob)
-
-def kl_from_discrete(p: np.ndarray, q: np.ndarray) -> float:
-    """KL(p || q) in nats between two discrete distributions (small smoothing applied)."""
-    p = np.asarray(p, dtype=float)
-    q = np.asarray(q, dtype=float)
-    eps = 1e-20
-    p = np.where(p <= 0, eps, p)
-    q = np.where(q <= 0, eps, q)
-    return float((p * np.log(p / q)).sum())
-
-# ---------- Provider interfaces ----------
-class ProviderInterface:
-    """Abstract provider: implement `get_next_token_distribution` and `get_logprob_of_reference_token`"""
-
-    def get_next_token_distribution(self, prompt: str) -> Tuple[List[str], np.ndarray]:
-        """
-        Return a pair (vocab_tokens, probs) representing the model's predicted distribution
-        for the *next token* after prompt. `probs` should align with `vocab_tokens` and sum to 1.
-        """
-        raise NotImplementedError
-
-    def get_logprob_of_text_under_model(self, prompt: str, reference_text: str) -> List[float]:
-        """
-        Return list of log probabilities (natural log) for each token in reference_text,
-        given the prompt. Length = number of tokens (as the provider tokenizes).
-        """
-        raise NotImplementedError
-
-
-class OpenAIProvider_Logprobs(ProviderInterface):
+def logprob_of_token_from_logits(logits: np.ndarray, token_id: int) -> float:
     """
-    Uses OpenAI Completion API (text-xxx) with logprobs parameter.
-    Requires environment OPENAI_API_KEY and `openai` package.
+    Given logits (1D numpy) and a token id, return natural-log probability for that token.
     """
+    a = logits - np.max(logits)
+    probs = np.exp(a)
+    probs = probs / probs.sum()
+    p = float(probs[token_id]) if 0 <= token_id < probs.shape[0] else 1e-20
+    p = max(p, 1e-20)
+    return math.log(p)  # natural log
 
-    def __init__(self, model: str, max_tokens: int = 0):
-        if openai is None:
-            raise RuntimeError("openai package not installed. pip install openai")
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY environment variable not found")
-        openai.api_key = api_key
-        self.model = model
-        self.max_tokens = max_tokens  # we use 0 for only requesting logprobs for prompt continuation token if supported
+# ---------------- Provider: transformers ----------------
+class TransformersProvider:
+    """
+    Minimal local provider using Hugging Face Transformers causal LM.
+    Methods:
+      - get_next_logits(prefix_ids) -> logits (vocab-size)
+      - tokenize_text(text) -> token ids (list)
+      - decode_ids(ids) -> text
+    """
+    def __init__(self, model_name: str, device: str = None):
+        # device auto-detect
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device(device)
+        # load tokenizer and model
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+        # ensure tokenizer has pad token
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.add_special_tokens({'pad_token': '<|pad|>'})
+        self.model = AutoModelForCausalLM.from_pretrained(model_name)
+        self.model.resize_token_embeddings(len(self.tokenizer))
+        self.model.to(self.device)
+        self.model.eval()
 
-    def get_next_token_distribution(self, prompt: str) -> Tuple[List[str], np.ndarray]:
+    def tokenize(self, text: str) -> List[int]:
+        return self.tokenizer.encode(text, add_special_tokens=False)
+
+    def detokenize(self, ids: List[int]) -> str:
+        return self.tokenizer.decode(ids, clean_up_tokenization_spaces=True)
+
+    def get_next_logits(self, prefix_ids: List[int]) -> np.ndarray:
         """
-        Call completion with logprobs=100 (or large) and max_tokens=1 to get distribution.
-        Note: model support varies; fallbacks may be necessary.
+        Return logits for the next token given prefix (numpy array length=vocab_size).
+        We run the model on the prefix and take logits at final position.
         """
-        # Request one token with many logprobs
-        resp = openai.Completion.create(
-            model=self.model,
-            prompt=prompt,
-            max_tokens=1,
-            temperature=0.0,
-            logprobs=100,  # request many logprobs
-            echo=False
-        )
-        # The structure: resp['choices'][0]['logprobs'] has 'top_logprobs' list of dicts
-        top_logprobs = resp["choices"][0]["logprobs"]["top_logprobs"][0]  # dict token->logprob
-        tokens = list(top_logprobs.keys())
-        logps = np.array([top_logprobs[t] for t in tokens], dtype=float)
-        # convert to probs (natural log -> probs)
-        # normalize carefully in log-space
-        logps = logps - np.max(logps)
-        probs = np.exp(logps)
+        if len(prefix_ids) == 0:
+            # Some models may require at least one token; we feed a single pad token if empty
+            input_ids = torch.tensor([[self.tokenizer.pad_token_id]], device=self.device)
+        else:
+            input_ids = torch.tensor([prefix_ids], device=self.device)
+        with torch.no_grad():
+            # output logits shape: (1, seq_len, vocab_size)
+            out = self.model(input_ids=input_ids)
+            logits = out.logits[0, -1, :].cpu().numpy()
+        return logits
+
+# ---------------- Core evaluator ----------------
+class ConsciousnessEvaluator:
+    def __init__(self, provider: TransformersProvider, recursive: bool = False, topk_summary: int = 5):
+        """
+        provider: TransformersProvider instance
+        recursive: if True, append self-summary to prompt before scoring each example
+        topk_summary: number of top predicted tokens and probs included in the self-summary
+        """
+        self.provider = provider
+        self.recursive = recursive
+        self.topk_summary = int(topk_summary) if topk_summary is not None else 0
+        # maintain ephemeral self_state (string summary) across steps if recursive=True
+        self.self_state = ""
+
+    def reset_self_state(self):
+        self.self_state = ""
+
+    def make_recursive_prompt(self, base_prompt: str) -> str:
+        if not self.recursive or not self.self_state:
+            return base_prompt
+        # append self-state in a structured way
+        return base_prompt + "\n\n[SELF_STATE_SUMMARY]: " + self.self_state + "\n\n"
+
+    def summarize_topk(self, logits: np.ndarray, k: int = 5) -> str:
+        """
+        Create a compact top-k summary string from logits.
+        Format: token1:prob1, token2:prob2, ...
+        """
+        a = logits - np.max(logits)
+        probs = np.exp(a)
         probs = probs / probs.sum()
-        return tokens, probs
+        topk_idx = np.argsort(-probs)[:k]
+        parts = []
+        for idx in topk_idx:
+            tk = self.provider.detokenize([int(idx)])
+            parts.append(f"{tk}:{probs[int(idx)]:.3f}")
+        return "; ".join(parts)
 
-    def get_logprob_of_text_under_model(self, prompt: str, reference_text: str) -> List[float]:
+    def score_prompt_reference(self, prompt: str, reference: str) -> Dict:
         """
-        Ask the model to score the reference_text given the prompt by requesting
-        `logprobs` and `echo=True` with max_tokens = len(reference tokens).
-        Note: This approach depends on how the provider tokenizes; OpenAI returns logprobs per completion token.
+        Core per-prompt scoring:
+         - For each token in tokenized reference:
+             * compute logits for next token given current prefix
+             * compute H_t from logits (entropy)
+             * compute logp of the reference token under those logits => D_t = -logp
+             * append the reference token to prefix (teacher forcing) and continue
+        Returns dict containing lists for H_list, D_list, c_list, cumulative_series, C_final, and token ids/text
         """
-        # For robustness, request enough max_tokens to cover reference length heuristically
-        max_tokens = max(1, len(reference_text.split()) * 3)
-        resp = openai.Completion.create(
-            model=self.model,
-            prompt=prompt,
-            max_tokens=max_tokens,
-            temperature=0.0,
-            logprobs=0,   # `logprobs=0` means we still get logprobs? some versions want >0; if 0, we may not get top_logprobs
-            echo=True
-        )
-        # When echo=True, the 'text' in choices includes the prompt+reference; logprobs arrays correspond.
-        # We must extract the tail tokens corresponding to the reference_text. This is approximate unless we re-tokenize.
-        # We'll extract all tokens' logprobs and then heuristically take the last N tokens.
-        raw_logprobs = resp["choices"][0]["logprobs"]["token_logprobs"]  # list of floats for tokens in returned text
-        # Convert to natural log (openai uses natural log in some APIs; check your API - this might be ln or log10)
-        # We'll return raw_logprobs as-is, assuming natural log.
-        return list(map(float, raw_logprobs[-max_tokens:]))
+        # initialize
+        base_prompt = self.make_recursive_prompt(prompt)
+        prefix_ids = self.provider.tokenize(base_prompt)
+        ref_ids = self.provider.tokenize(reference)
+        H_list = []
+        D_list = []
+        c_list = []
+        cumulative = []
+        cum = 0.0
 
+        # iterate each token in reference, compute predictive logits before appending true token
+        for t_idx, token_id in enumerate(ref_ids):
+            logits = self.provider.get_next_logits(prefix_ids)
+            H_t = entropy_from_logits(logits)
+            logp = logprob_of_token_from_logits(logits, token_id)  # natural log
+            D_t = -logp
+            c_t = H_t - D_t
+            cum += c_t
 
-class SamplerProvider(ProviderInterface):
-    """
-    Sampling-based provider that obtains many sampled continuations and empirically estimates
-    the next-token distribution. It requires a function `sample_fn(prompt) -> next_token_string` or a model call.
-    For demonstration, we include a dummy local sampler (randomly samples characters or words).
-    In practice, you would implement sample_fn by calling a model's sampling endpoint repeatedly.
-    """
+            H_list.append(H_t)
+            D_list.append(D_t)
+            c_list.append(c_t)
+            cumulative.append(cum)
 
-    def __init__(self, sample_fn, vocab=None, samples=200):
-        """
-        sample_fn(prompt) -> next_token (as string)
-        vocab: optional list of tokens to construct empirical distribution
-        """
-        self.sample_fn = sample_fn
-        self.vocab = vocab
-        self.samples = samples
+            # teacher-force: append the true token id to prefix for next step
+            prefix_ids = prefix_ids + [int(token_id)]
 
-    def get_next_token_distribution(self, prompt: str) -> Tuple[List[str], np.ndarray]:
-        counts = {}
-        for _ in range(self.samples):
-            tok = self.sample_fn(prompt)
-            counts[tok] = counts.get(tok, 0) + 1
-        tokens = list(counts.keys())
-        probs = np.array([counts[t] for t in tokens], dtype=float)
-        probs = probs / probs.sum()
-        return tokens, probs
+            # update self_state if recursive mode (we base it on the predictive distribution we just saw)
+            if self.recursive and self.topk_summary > 0:
+                self.self_state = self.summarize_topk(logits, k=self.topk_summary)
 
-    def get_logprob_of_text_under_model(self, prompt: str, reference_text: str) -> List[float]:
-        # estimate probability of each reference token by frequency in sampling
-        # naive: only supports single-token references; multi-token support requires conditional sampling
-        tokens, probs = self.get_next_token_distribution(prompt)
-        p_map = {t: p for t, p in zip(tokens, probs)}
-        # if reference_text not in p_map, assign small probability
-        prob = p_map.get(reference_text, 1.0 / (self.samples * 1000.0))
-        logp = math.log(prob)
-        return [logp]
+        # final packaged result
+        return {
+            "H_list": H_list,
+            "D_list": D_list,
+            "c_list": c_list,
+            "cumulative": cumulative,
+            "C_final": cum,
+            "ref_ids": ref_ids
+        }
 
-# ---------- Core metric computation ----------
-def compute_C_for_prompt(provider: ProviderInterface, prompt: str, reference: str,
-                         mode: str = "logprob") -> Dict:
-    """
-    Returns a dict with per-token lists: tokens, H_list, D_list, c_list, cumulative_C
-    For providers that return multiple token-logprobs, we will match lengths heuristically.
-    """
-    # Get predicted distribution for next token
-    tokens_pred, probs_pred = provider.get_next_token_distribution(prompt)
-    H_next = entropy_from_probs(probs_pred)
-
-    # For the reference text, obtain logprobs list (natural logs)
-    logps = provider.get_logprob_of_text_under_model(prompt, reference)
-    # If multiple logps returned, treat them as sequence; otherwise, assume a single token case
-    D_list = []
-    H_list = []
-    c_list = []
-    cumulative = []
-    cum = 0.0
-    # If provider returned only 1 logp for a multi-token reference, this is a limitation; we still proceed.
-    for i, lp in enumerate(logps):
-        D_i = nats_from_logprob(lp)  # surprisal in nats
-        # We'll reuse H_next as the entropy at prediction moment (approx); in a more advanced harness we'd compute
-        # the model's predictive distribution for each next-step token conditionally.
-        H_i = H_next
-        c_i = H_i - D_i
-        cum += c_i
-        H_list.append(H_i)
-        D_list.append(D_i)
-        c_list.append(c_i)
-        cumulative.append(cum)
-    return {
-        "prompt": prompt,
-        "reference": reference,
-        "tokens_pred": tokens_pred,
-        "probs_pred": probs_pred.tolist(),
-        "H_list": H_list,
-        "D_list": D_list,
-        "c_list": c_list,
-        "cumulative": cumulative,
-        "C_final": cum
-    }
-
-# ---------- CLI and orchestration ----------
+# ---------------- CLI / orchestration ----------------
 def load_prompts_jsonl(path: str) -> List[Dict]:
-    data = []
+    prompts = []
     with open(path, "r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
+        for ln in fh:
+            ln = ln.strip()
+            if not ln:
                 continue
-            data.append(json.loads(line))
-    return data
-
-def simple_dummy_sampler(prompt: str) -> str:
-    """
-    Example sampler for the SamplerProvider when testing locally:
-    returns a random word from a small list conditioned slightly on prompt length.
-    """
-    choices = ["the", "and", "a", "to", ".", "of", "in", "is", "it", "that"]
-    # bias: if prompt contains '?', return 'the' less often
-    import random
-    return random.choice(choices)
+            prompts.append(json.loads(ln))
+    return prompts
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--provider", choices=["openai", "sampler"], required=True,
-                        help="Which provider backend to use")
-    parser.add_argument("--mode", choices=["logprob", "sampling"], default="logprob",
-                        help="Measurement mode")
-    parser.add_argument("--model", type=str, default="text-davinci-003", help="Model name (openai)")
-    parser.add_argument("--prompt-file", type=str, required=True, help="JSONL file with prompt/reference pairs")
-    parser.add_argument("--samples", type=int, default=300, help="Samples for sampling mode (sampler provider)")
-    parser.add_argument("--out-csv", type=str, default=None, help="Output CSV path (optional)")
+    parser = argparse.ArgumentParser(description="Local LLM Consciousness Metric Evaluator (single-file)")
+    parser.add_argument("--model", required=True, help="Hugging Face model name or path (e.g., gpt2, distilgpt2)")
+    parser.add_argument("--prompts", required=True, help="JSONL file with {'prompt':..., 'reference':...} per line")
+    parser.add_argument("--out", default="llm_consciousness_results.csv", help="Output CSV path")
+    parser.add_argument("--device", default=None, help="Device: 'cpu' or 'cuda' (auto-detected if omitted)")
+    parser.add_argument("--recursive", action="store_true", help="Enable recursive self-conditioning (append self-summary)")
+    parser.add_argument("--topk-summary", type=int, default=5, help="Top-k tokens to include in self-summary when recursive")
+    parser.add_argument("--reset-self-each", action="store_true", help="Reset self-state between prompts when recursive")
+    parser.add_argument("--max-examples", type=int, default=None, help="Limit number of prompts processed (for quick tests)")
     args = parser.parse_args()
 
-    prompts = load_prompts_jsonl(args.prompt_file)
-    print(f"Loaded {len(prompts)} prompt(s)")
+    print("Loading model (this may take a moment)...")
+    provider = TransformersProvider(model_name=args.model, device=args.device)
+    evaluator = ConsciousnessEvaluator(provider=provider, recursive=args.recursive, topk_summary=args.topk_summary)
 
-    # instantiate provider
-    if args.provider == "openai":
-        if openai is None:
-            raise RuntimeError("openai package not installed; pip install openai")
-        provider = OpenAIProvider_Logprobs(model=args.model)
-        out_prefix = f"openai_{args.model}"
-    elif args.provider == "sampler":
-        provider = SamplerProvider(sample_fn=simple_dummy_sampler, samples=args.samples)
-        out_prefix = f"sampler_{args.samples}"
-    else:
-        raise RuntimeError("Unsupported provider")
+    prompts = load_prompts_jsonl(args.prompts)
+    if args.max_examples is not None:
+        prompts = prompts[:args.max_examples]
+    print(f"Loaded {len(prompts)} examples from {args.prompts}")
 
     rows = []
-    # iterate prompts
-    for item in tqdm(prompts, desc="Processing prompts"):
-        prompt = item.get("prompt", "")
-        reference = item.get("reference", "")
-        r = compute_C_for_prompt(provider, prompt, reference, mode=args.mode)
+    pbar = tqdm(enumerate(prompts), total=len(prompts), desc="Evaluating", unit="ex")
+    for i, item in pbar:
+        prompt_text = item.get("prompt", "")
+        reference_text = item.get("reference", "")
+        if args.reset_self_each:
+            evaluator.reset_self_state()
+        result = evaluator.score_prompt_reference(prompt_text, reference_text)
+
+        # prepare CSV-friendly row
         row = {
-            "prompt": prompt,
-            "reference": reference,
-            "C_final": r["C_final"],
-            "H_mean": np.mean(r["H_list"]) if r["H_list"] else None,
-            "D_mean": np.mean(r["D_list"]) if r["D_list"] else None,
-            "tokens_pred_topk": ",".join(r["tokens_pred"][:8]),
-            "probs_pred_topk": ",".join([f"{p:.3f}" for p in r["probs_pred"][:8]])
+            "index": i,
+            "prompt": prompt_text[:400].replace("\n", " "),
+            "reference": reference_text[:400].replace("\n", " "),
+            "C_final": result["C_final"],
+            "H_mean": float(np.mean(result["H_list"])) if result["H_list"] else None,
+            "D_mean": float(np.mean(result["D_list"])) if result["D_list"] else None,
+            "num_tokens": len(result["H_list"]),
+            "H_series": json.dumps(result["H_list"]),
+            "D_series": json.dumps(result["D_list"]),
+            "c_series": json.dumps(result["c_list"]),
+            "cumulative_series": json.dumps(result["cumulative"])
         }
-        # expand per-token detail too, optionally
-        row["H_series"] = json.dumps(r["H_list"])
-        row["D_series"] = json.dumps(r["D_list"])
-        row["c_series"] = json.dumps(r["c_list"])
-        row["cumulative_series"] = json.dumps(r["cumulative"])
         rows.append(row)
 
     df = pd.DataFrame(rows)
-    out_csv = args.out_csv if args.out_csv else f"{out_prefix}_results.csv"
-    df.to_csv(out_csv, index=False)
-    print(f"Saved results to {out_csv}")
-
-    # Print short summary
-    print("\nSummary (per-prompt):")
-    for idx, r in df.sort_values("C_final", ascending=False).head(10).iterrows():
-        print(f"- C={r['C_final']:.3f} | H_mean={r['H_mean']:.3f} | D_mean={r['D_mean']:.3f} | prompt_snippet='{r['prompt'][:60].replace('\\n',' ')}'")
+    df.to_csv(args.out, index=False)
+    print(f"Saved results to {args.out}")
 
 if __name__ == "__main__":
     main()
