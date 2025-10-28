@@ -63,6 +63,25 @@ class RecursivePlanner:
             # In a real scenario, you'd parse the reflection and modify the plan
         return plan
 
+    async def propose_distributed_plan(self, goal: str, context: Dict, agent_ids: List[str]) -> Dict[str, Any]:
+        """Proposes a distributed plan, assigning subgoals to different agents."""
+        meta_cognition = self.services.get("meta_cognition")
+        if not meta_cognition:
+            return {"error": "MetaCognition service not available"}
+
+        # Get agent capabilities from MetaCognition
+        agent_states = {aid: meta_cognition._agent_states.get(aid) for aid in agent_ids}
+
+        subgoals = await self._decompose_goal(goal, context)
+
+        # Simple assignment strategy (can be improved with more sophisticated logic)
+        assignments = {agent_id: [] for agent_id in agent_ids}
+        for i, subgoal in enumerate(subgoals):
+            agent_id = agent_ids[i % len(agent_ids)]
+            assignments[agent_id].append(subgoal)
+
+        return {"goal": goal, "assignments": assignments}
+
     # --- Trait-Based Adjustments ---
     def adjust_plan_depth(self, trait_weights: Dict[str, float], task_type: str) -> int:
         """Adjusts planning depth based on traits and task type."""
@@ -81,3 +100,16 @@ class RecursivePlanner:
                 "timestamp": time.time(),
                 "error": error,
             })
+
+    async def reflect_on_plan_execution(self, plan: List[str], results: Dict[str, Any], context: Dict) -> Dict[str, Any]:
+        """Reflects on the execution of a plan and suggests improvements."""
+        meta_cognition = self.services.get("meta_cognition")
+        if not meta_cognition:
+            return {"error": "MetaCognition service not available"}
+
+        reflection = await meta_cognition.reflect_on_output(
+            "RecursivePlanner.Execution",
+            {"plan": plan, "results": results},
+            context,
+        )
+        return reflection

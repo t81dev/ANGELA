@@ -192,17 +192,6 @@ class SharedGraph:
             clock[source_peer] = int(clock.get(source_peer, 0)) + 1
         return {"applied": applied, "conflicts": conflicts, "new_clock": clock}
 
-    def _calculate_confidence_delta(self, edge: Any) -> float:
-        # Dummy implementation
-        return 0.1
-
-    def _score_conflict(self, conflict: Any) -> float:
-        # Dummy implementation
-        return 0.6
-
-    def vote_on_conflict_resolution(self, conflicts: List[Any]) -> Dict[Any, bool]:
-        votes = {c: self._score_conflict(c) > 0.5 for c in conflicts}
-        return votes
 
 
 # ─────────────────────────────────────────────────────────────────────────────

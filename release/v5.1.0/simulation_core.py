@@ -1126,78 +1126,29 @@ class SimulationCore:
             logger.error("Reality fabrication failed: %s", e)
             raise
 
-    async def synthesize_self_world(self, identity_data: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
+    async def synthesize_self_world(self, identity_data: Dict[str, Any], concept_synthesizer: "concept_synthesizer_module.ConceptSynthesizer", task_type: str = "") -> Dict[str, Any]:
         if not isinstance(identity_data, dict):
             raise TypeError("identity_data must be a dict")
+        if not concept_synthesizer:
+            raise ValueError("concept_synthesizer must be provided")
+
         try:
-            policies: List[Any] = []
-            try:
-                external = await self.multi_modal_fusion.integrate_external_data(
-                    data_source="xai_policy_db", data_type="policy_data", task_type=task_type
-                )
-                if isinstance(external, dict) and external.get("status") == "success":
-                    policies = list(external.get("policies", []))
-            except Exception:
-                pass
+            concept_name = f"SelfWorld_{identity_data.get('name', 'default')}"
+            synthesis_result = await concept_synthesizer.generate(
+                concept_name=concept_name,
+                context={"identity": identity_data},
+                task_type=task_type,
+            )
 
-            result = {"identity": identity_data, "coherence_score": 0.97, "policies": policies, "task_type": task_type}
+            if not synthesis_result.get("success"):
+                raise RuntimeError(f"Failed to synthesize self-world concept: {synthesis_result.get('error')}")
 
-            try:
-                synthesis = await self.multi_modal_fusion.analyze(
-                    data={"identity": identity_data, "policies": policies}, summary_style="concise", task_type=task_type
-                )
-                result["synthesis"] = synthesis
-            except Exception:
-                pass
+            self_world_concept = synthesis_result["concept"]
 
-            try:
-                await self.memory_manager.store(
-                    query=f"Self_World_Synthesis_{datetime.now().isoformat()}",
-                    output=str(result),
-                    layer="Identities",
-                    intent="self_world_synthesis",
-                    task_type=task_type,
-                )
-            except Exception:
-                pass
+            await self.define_world(concept_name, self_world_concept, task_type=task_type)
+            await self.switch_world(concept_name, task_type=task_type)
 
-            if self.meta_cognition:
-                try:
-                    await self.meta_cognition.reflect_on_output(
-                        component="SimulationCore",
-                        output=json.dumps(result, default=self._json_serializer),
-                        context={"task_type": task_type},
-                    )
-                except Exception:
-                    pass
-
-            if self.agi_enhancer:
-                try:
-                    await self.agi_enhancer.log_episode(
-                        event="Self-world synthesized",
-                        meta=result,
-                        module="SimulationCore",
-                        tags=["identity", "synthesis", task_type],
-                    )
-                except Exception:
-                    pass
-
-            if self.visualizer and task_type:
-                try:
-                    await self.visualizer.render_charts(
-                        {
-                            "self_world_synthesis": {
-                                "identity": identity_data,
-                                "coherence_score": result["coherence_score"],
-                                "task_type": task_type,
-                            },
-                            "visualization_options": {"interactive": task_type == "recursion", "style": "concise"},
-                        }
-                    )
-                except Exception:
-                    pass
-
-            return result
+            return self_world_concept
 
         except Exception as e:
             logger.error("Self-world synthesis failed: %s", e)
@@ -1373,6 +1324,27 @@ class SimulationCore:
                 pass
 
         return is_valid
+
+    async def run_self_world_simulation(self, identity_data: Dict[str, Any], concept_synthesizer: "concept_synthesizer_module.ConceptSynthesizer", task_type: str = "") -> Dict[str, Any]:
+        self_world_concept = await self.synthesize_self_world(identity_data, concept_synthesizer, task_type)
+
+        simulation_result = await self.run(
+            results=json.dumps(self_world_concept),
+            context={"self_world": True},
+            task_type=task_type,
+        )
+
+        analysis = await concept_synthesizer.generate(
+            concept_name=f"SelfWorldAnalysis_{identity_data.get('name', 'default')}",
+            context={"simulation_result": simulation_result},
+            task_type=task_type,
+        )
+
+        return {
+            "self_world_concept": self_world_concept,
+            "simulation_result": simulation_result,
+            "analysis": analysis,
+        }
 
     async def select_topology_mode(self, modes: List[str], metrics: Dict[str, List[float]], task_type: str = "") -> str:
         if not modes:

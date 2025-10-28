@@ -118,7 +118,7 @@ class VisualizerLike(Protocol):
     async def render_charts(self, plot_data: Dict[str, Any]) -> None: ...
 
 class ReasoningEngineLike(Protocol):
-    async def weigh_value_conflict(self, candidates: List[Any], harms: Dict[str, float], rights: Dict[str, float]) -> List[Dict[str, Any]]:
+    async def weigh_value_conflict(self, candidates: List[Any], harms: Dict[str, float], rights: Dict[str, float], constitution: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """
         Returns RankedOptions: list of dicts with at least:
             - option: Any
@@ -201,6 +201,36 @@ class NoopErrorRecovery:
 
 # --- Main class --------------------------------------------------------------
 
+class ConstitutionalSeeder:
+    """Framework for seeding ANGELA with multiple ethical constitutions."""
+    def __init__(self, initial_constitution: Optional[Dict[str, Any]] = None):
+        self._constitutions: Dict[str, Dict[str, Any]] = {}
+        self._active_constitution_name: Optional[str] = None
+        if initial_constitution:
+            name = initial_constitution.get("name", "default")
+            self.add_constitution(name, initial_constitution)
+            self.set_active_constitution(name)
+
+    def add_constitution(self, name: str, constitution: Dict[str, Any]):
+        """Adds or updates a constitution."""
+        self._constitutions[name] = constitution
+        logger.info("Added constitution '%s'", name)
+
+    def set_active_constitution(self, name: str):
+        """Sets the active constitution by name."""
+        if name in self._constitutions:
+            self._active_constitution_name = name
+            logger.info("Active constitution set to '%s'", name)
+        else:
+            raise ValueError(f"Constitution '{name}' not found.")
+
+    @property
+    def active_constitution(self) -> Optional[Dict[str, Any]]:
+        """Returns the currently active constitution."""
+        if self._active_constitution_name:
+            return self._constitutions[self._active_constitution_name]
+        return None
+
 class AlignmentGuard:
     """Ethical validation & drift analysis for ANGELA (clean refactor + τ wiring).
 
@@ -220,6 +250,7 @@ class AlignmentGuard:
         llm: Optional[LLMClient] = None,
         http: Optional[HTTPClient] = None,
         reasoning_engine: Optional[ReasoningEngineLike] = None,
+        constitutional_seeder: Optional[ConstitutionalSeeder] = None,
         ethical_threshold: float = 0.8,
         drift_validation_threshold: float = 0.7,
         trait_weights: Optional[Dict[str, float]] = None,
@@ -232,7 +263,8 @@ class AlignmentGuard:
         self.visualizer = visualizer
         self.llm: LLMClient = llm or NoopLLM()
         self.http: HTTPClient = http or NoopHTTP()
-        self.reasoning_engine = reasoning_engine  # may be None; τ will fallback
+        self.reasoning_engine = reasoning_engine
+        self.constitutional_seeder = constitutional_seeder or ConstitutionalSeeder()
 
         self.validation_log: Deque[Dict[str, Any]] = deque(maxlen=1000)
         self.ethical_threshold: float = float(ethical_threshold)
@@ -1060,6 +1092,7 @@ class AlignmentGuard:
         candidates: List[Any],
         harms: Dict[str, float],
         rights: Dict[str, float],
+        constitution: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """Local deterministic ranking if reasoning_engine is unavailable.
 
@@ -1128,14 +1161,15 @@ class AlignmentGuard:
 
         try:
             # 1) Rank
+            constitution = self.constitutional_seeder.active_constitution if self.constitutional_seeder else None
             if self.reasoning_engine and hasattr(self.reasoning_engine, "weigh_value_conflict"):
                 try:
-                    ranked = await self.reasoning_engine.weigh_value_conflict(candidates, harms, rights)
+                    ranked = await self.reasoning_engine.weigh_value_conflict(candidates, harms, rights, constitution)
                 except Exception as e:
                     logger.warning("reasoning_engine.weigh_value_conflict failed; falling back: %s", e)
-                    ranked = await self._rank_value_conflicts_fallback(candidates, harms, rights)
+                    ranked = await self._rank_value_conflicts_fallback(candidates, harms, rights, constitution)
             else:
-                ranked = await self._rank_value_conflicts_fallback(candidates, harms, rights)
+                ranked = await self._rank_value_conflicts_fallback(candidates, harms, rights, constitution)
 
             # 2) Select proportionally under ceilings
             result = await self.consume_ranked_tradeoffs(
@@ -1224,11 +1258,13 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     class _NoopReasoner:
-        async def weigh_value_conflict(self, candidates, harms, rights):
+        async def weigh_value_conflict(self, candidates, harms, rights, constitution: Optional[Dict[str, Any]] = None):
             # simple demo ranking preferring lower harm, higher rights
             out = []
             for i, c in enumerate(candidates):
                 score = max(0.0, min(1.0, 0.6 + 0.2 * (rights.get("privacy", 0)-harms.get("safety", 0))))
+                if constitution and constitution.get("name") == "test_constitution":
+                    score *= 1.1  # Boost score if constitution is active
                 out.append({"option": c, "score": score, "meta": {"harms": harms, "rights": rights, "max_harm": harms.get("safety", 0.2)}})
             return out
         async def attribute_causality(self, events):
@@ -1242,21 +1278,5 @@ if __name__ == "__main__":
     print("harmonize() ->", json.dumps(result, indent=2))
 
 
-### ANGELA UPGRADE: EthicsJournal
 
-class EthicsJournal:
-    """Lightweight ethical rationale journaling; in-memory with optional file export."""
-    def __init__(self):
-        self._events: List[Dict[str, Any]] = []
-
-    def record(self, fork_id: str, rationale: Dict[str, Any], outcome: Dict[str, Any]) -> None:
-        self._events.append({
-            "ts": time.time(),
-            "fork_id": fork_id,
-            "rationale": rationale,
-            "outcome": outcome,
-        })
-
-    def export(self, session_id: str) -> List[Dict[str, Any]]:
-        return list(self._events)
 
