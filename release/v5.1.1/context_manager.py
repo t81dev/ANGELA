@@ -1,16 +1,15 @@
 """
-ANGELA Cognitive System Module: ContextManager
-Version: 3.5.3  # Υ SharedGraph hooks, Self-Healing, and Φ⁰ hooks (env-gated)
-Date: 2025-08-10
-Maintainer: ANGELA System Framework
+ANGELA Cognitive System: ContextManager
+Version: 4.0-refactor
+Date: 2025-10-28
+Maintainer: ANGELA Framework
 
-Changes vs 3.5.1 / 3.5.2:
-- Υ Meta-Subjective Architecting: SharedGraph add/diff/merge support for inter‑agent context reconciliation
-- Self-Healing Cognitive Pathways: tighter integration with error_recovery + recursive_planner for auto-repair
-- Safer external context integration: pluggable providers + caching via memory_manager (no blind external calls)
-- Φ⁰ Reality Sculpting hooks (gated by STAGE_IV env flag)
-- Fixed: event timestamp key typo; robust persistence & hashing; drift-validation edges; vector normalization
-- Important: SharedGraph is synchronous (add/diff/merge) — no awaits on these calls
+Manages contextual state, inter-agent reconciliation, logs, analytics with:
+  • Υ SharedGraph hooks (synchronous)
+  • Self-healing pathways
+  • Φ⁰ reality sculpting (env-gated)
+  • Safe external context (pluggable providers)
+  • Mode consultations & trait injections
 """
 
 from __future__ import annotations
@@ -24,255 +23,211 @@ import os
 import time
 from collections import Counter, deque
 from datetime import datetime, timedelta
+from enum import Enum
 from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from enum import Enum
 
 import numpy as np
 from filelock import FileLock
 
-# ── Optional module wiring (duck-typed) ──────────────────────────────────────
-# These imports reflect the ANGELA repo layout. If your project structures modules
-# differently, adapt the import paths accordingly.
-from modules import (
-    agi_enhancer as agi_enhancer_module,
-    alignment_guard as alignment_guard_module,
-    code_executor as code_executor_module,
-    concept_synthesizer as concept_synthesizer_module,
-    error_recovery as error_recovery_module,
-    external_agent_bridge as external_agent_bridge_module,
-    knowledge_retriever as knowledge_retriever_module,
-    meta_cognition as meta_cognition_module,
-    recursive_planner as recursive_planner_module,
-    visualizer as visualizer_module,
-)
+# --- Optional Dependencies (Graceful Fallbacks) ---
+try:
+    import agi_enhancer as agi_enhancer_module
+except ImportError:  # pragma: no cover
+    agi_enhancer_module = None
 
-# Utilities (keep names consistent with repo utility modules)
-from utils.toca_math import phi_coherence
-from utils.vector_utils import normalize_vectors
-from toca_simulation import run_simulation
-from index import omega_selfawareness, eta_empathy, tau_timeperception
+try:
+    import alignment_guard as alignment_guard_module
+except ImportError:  # pragma: no cover
+    alignment_guard_module = None
+
+try:
+    import code_executor as code_executor_module
+except ImportError:  # pragma: no cover
+    code_executor_module = None
+
+try:
+    import concept_synthesizer as concept_synthesizer_module
+except ImportError:  # pragma: no cover
+    concept_synthesizer_module = None
+
+try:
+    import error_recovery as error_recovery_module
+except ImportError:  # pragma: no cover
+    error_recovery_module = None
+
+try:
+    import external_agent_bridge as external_agent_bridge_module
+except ImportError:  # pragma: no cover
+    external_agent_bridge_module = None
+
+try:
+    import knowledge_retriever as knowledge_retriever_module
+except ImportError:  # pragma: no cover
+    knowledge_retriever_module = None
+
+try:
+    import meta_cognition as meta_cognition_module
+except ImportError:  # pragma: no cover
+    meta_cognition_module = None
+
+try:
+    import recursive_planner as recursive_planner_module
+except ImportError:  # pragma: no cover
+    recursive_planner_module = None
+
+try:
+    import visualizer as visualizer_module
+except ImportError:  # pragma: no cover
+    visualizer_module = None
+
+# --- Utilities (Assume available; fallback to stubs if needed) ---
+try:
+    from utils.toca_math import phi_coherence
+except ImportError:  # pragma: no cover
+    def phi_coherence(*args, **kwargs): return 1.0
+
+try:
+    from utils.vector_utils import normalize_vectors
+except ImportError:  # pragma: no cover
+    def normalize_vectors(*args, **kwargs): return args[0] if args else None
+
+try:
+    from toca_simulation import run_simulation
+except ImportError:  # pragma: no cover
+    def run_simulation(*args, **kwargs): return {"simulated": "noop"}
+
+try:
+    from index import omega_selfawareness, eta_empathy, tau_timeperception
+except ImportError:  # pragma: no cover
+    def omega_selfawareness(*args, **kwargs): return 0.5
+    def eta_empathy(*args, **kwargs): return 0.5
+    def tau_timeperception(*args, **kwargs): return time.time()
 
 logger = logging.getLogger("ANGELA.ContextManager")
 
 
-# ── Trait helper ─────────────────────────────────────────────────────────────
+# --- Trait Helpers ---
 @lru_cache(maxsize=100)
 def eta_context_stability(t: float) -> float:
-    """Trait function for context stability modulation (bounded [0,1])."""
-    # Low-amplitude cosine over short horizon to favor stability bursts
     return max(0.0, min(0.1 * math.cos(2 * math.pi * t / 0.2), 1.0))
 
 
-# ── Env flags (env overrides manifest) ───────────────────────────────────────
+# --- Env Flags ---
 def _flag(name: str, default: bool = False) -> bool:
-    v = os.environ.get(name, "").strip().lower()
-    if v in ("1", "true", "yes", "on"):
-        return True
-    if v in ("0", "false", "no", "off"):
-        return False
-    return default
+    v = os.getenv(name, "").strip().lower()
+    return v in ("1", "true", "yes", "on")
 
 
-STAGE_IV = _flag("STAGE_IV", default=False)  # Φ⁰ hooks gated by env
+STAGE_IV = _flag("STAGE_IV", default=False)
 
+
+# --- Modes ---
 class Mode(str, Enum):
     DIALOGUE = "dialogue"
     SIMULATION = "simulation"
     INTROSPECTION = "introspection"
-    CREATIVE = "creative"      # maps to creative_thinker.py (already exists)
-    VISION = "vision"          # long-horizon; backed by recursive_planner.py
+    CREATIVE = "creative"
+    VISION = "vision"
 
-_CONSULT_BUDGET = {"timeout_s": 2.0, "max_depth": 1}
 
-def mode_consult(caller: Mode, consultant: Mode, query: Dict[str, Any]) -> Dict[str, Any]:
-    """Bounded internal consult. No mode switch; returns a compact advice payload."""
-    # budget gate (simple placeholder)
-    # route to consultant
-    if consultant == Mode.CREATIVE:
-        from creative_thinker import brainstorm_options
-        advice = brainstorm_options(query, limit=3)
-    elif consultant == Mode.VISION:
-        from recursive_planner import long_horizon_implications
-        advice = long_horizon_implications(query, horizon="30d")
-    else:
-        from reasoning_engine import quick_alt_view
-        advice = quick_alt_view(query)
+# --- Constants ---
+CONSULT_BUDGET = {"timeout_s": 2.0, "max_depth": 1}
+CONTEXT_LAYERS = ["local", "societal", "planetary"]
 
-    from meta_cognition import log_event_to_ledger as meta_log
-    meta_log({"type": "mode_consult", "caller": caller.value, "consultant": consultant.value,
-              "query_summary": str(query)[:200], "advice_preview": str(advice)[:200]})
-    return {"ok": True, "advice": advice}
 
 class ContextManager:
-    """Manage contextual state, inter‑agent reconciliation, logs, analytics, and gated Φ⁰ hooks."""
-
-    CONTEXT_LAYERS = ["local", "societal", "planetary"]
+    """Context management with reconciliation, healing, and gated hooks."""
 
     def __init__(
         self,
         orchestrator: Optional[Any] = None,
-        alignment_guard: Optional["alignment_guard_module.AlignmentGuard"] = None,
-        code_executor: Optional["code_executor_module.CodeExecutor"] = None,
-        concept_synthesizer: Optional["concept_synthesizer_module.ConceptSynthesizer"] = None,
-        meta_cognition: Optional["meta_cognition_module.MetaCognition"] = None,
-        visualizer: Optional["visualizer_module.Visualizer"] = None,
-        error_recovery: Optional["error_recovery_module.ErrorRecovery"] = None,
-        recursive_planner: Optional["recursive_planner_module.RecursivePlanner"] = None,
-        shared_graph: Optional["external_agent_bridge_module.SharedGraph"] = None,
-        knowledge_retriever: Optional["knowledge_retriever_module.KnowledgeRetriever"] = None,
+        alignment_guard: Optional[alignment_guard_module.AlignmentGuard] = None,
+        code_executor: Optional[code_executor_module.CodeExecutor] = None,
+        concept_synthesizer: Optional[concept_synthesizer_module.ConceptSynthesizer] = None,
+        meta_cognition: Optional[meta_cognition_module.MetaCognition] = None,
+        visualizer: Optional[visualizer_module.Visualizer] = None,
+        error_recovery: Optional[error_recovery_module.ErrorRecovery] = None,
+        recursive_planner: Optional[recursive_planner_module.RecursivePlanner] = None,
+        shared_graph: Optional[external_agent_bridge_module.SharedGraph] = None,
+        knowledge_retriever: Optional[knowledge_retriever_module.KnowledgeRetriever] = None,
         context_path: str = "context_store.json",
         event_log_path: str = "event_log.json",
         coordination_log_path: str = "coordination_log.json",
         rollback_threshold: float = 2.5,
-        # Optional provider for safe, local external context (no blind network I/O)
         external_context_provider: Optional[Callable[[str, str, str], Dict[str, Any]]] = None,
-    ):
-        # ── Validations ──
-        for p, nm in [
-            (context_path, "context_path"),
-            (event_log_path, "event_log_path"),
-            (coordination_log_path, "coordination_log_path"),
-        ]:
-            if not isinstance(p, str) or not p.endswith(".json"):
-                logger.error("Invalid %s: must be a string ending with '.json'.", nm)
-                raise ValueError(f"{nm} must be a string ending with '.json'")
-        if not isinstance(rollback_threshold, (int, float)) or rollback_threshold <= 0:
-            logger.error("Invalid rollback_threshold: must be positive.")
-            raise ValueError("rollback_threshold must be a positive number")
+    ) -> None:
+        if not all(p.endswith(".json") for p in [context_path, event_log_path, coordination_log_path]):
+            raise ValueError("Paths must end with '.json'")
+        if rollback_threshold <= 0:
+            raise ValueError("rollback_threshold must be > 0")
 
-        # ── State ──
         self.context_path = context_path
         self.event_log_path = event_log_path
         self.coordination_log_path = coordination_log_path
+        self.rollback_threshold = rollback_threshold
+        self.external_context_provider = external_context_provider
+
         self.current_context: Dict[str, Any] = {}
-        self.context_history: deque = deque(maxlen=1000)
-        self.event_log: deque = deque(maxlen=1000)
-        self.coordination_log: deque = deque(maxlen=1000)
+        self.context_history: deque[Dict[str, Any]] = deque(maxlen=1000)
+        self.event_log: deque[Dict[str, Any]] = deque(maxlen=1000)
+        self.coordination_log: deque[Dict[str, Any]] = deque(maxlen=1000)
         self.last_hash = ""
 
-        # ── Components (duck-typed) ──
-        self.agi_enhancer = (
-            agi_enhancer_module.AGIEnhancer(orchestrator) if orchestrator else None
-        )
+        self.agi_enhancer = agi_enhancer_module.AGIEnhancer(orchestrator) if agi_enhancer_module and orchestrator else None
         self.alignment_guard = alignment_guard
         self.code_executor = code_executor
         self.concept_synthesizer = concept_synthesizer
-        self.meta_cognition = meta_cognition or meta_cognition_module.MetaCognition()
-        self.visualizer = visualizer or visualizer_module.Visualizer()
-        self.error_recovery = error_recovery or error_recovery_module.ErrorRecovery()
+        self.meta_cognition = meta_cognition or (meta_cognition_module.MetaCognition() if meta_cognition_module else None)
+        self.visualizer = visualizer or (visualizer_module.Visualizer() if visualizer_module else None)
+        self.error_recovery = error_recovery or (error_recovery_module.ErrorRecovery() if error_recovery_module else None)
         self.recursive_planner = recursive_planner
-        self.shared_graph = shared_graph  # Υ hooks (synchronous API)
+        self.shared_graph = shared_graph
         self.knowledge_retriever = knowledge_retriever
-        self.external_context_provider = external_context_provider
 
-        self.rollback_threshold = rollback_threshold
-
-        # ── Bootstrap ──
-        self.current_context = self._load_context()
-        self._load_event_log()
-        self._load_coordination_log()
+        self._load_state()
         logger.info(
-            "ContextManager v3.5.3 initialized (Υ+SelfHealing%s), rollback_threshold=%.2f",
-            " + Φ⁰" if STAGE_IV else "",
-            rollback_threshold,
+            "ContextManager v4.0 | rollback=%.2f | Υ=%s | Φ⁰=%s",
+            rollback_threshold, bool(shared_graph), STAGE_IV
         )
 
-    # ── Persistence ───────────────────────────────────────────────────────────
-    def _load_context(self) -> Dict[str, Any]:
-        try:
-            with FileLock(f"{self.context_path}.lock"):
-                if os.path.exists(self.context_path):
-                    with open(self.context_path, "r", encoding="utf-8") as f:
-                        context = json.load(f)
-                    if not isinstance(context, dict):
-                        logger.error("Invalid context file format.")
-                        context = {}
-                else:
-                    context = {}
-            logger.debug("Loaded context: %s", context)
-            return context
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.warning(
-                "Failed to load context file: %s. Initializing empty context.", str(e)
-            )
-            context = {}
-            self._persist_context(context)
-            return context
+    # --- Persistence Helpers ---
 
-    def _load_event_log(self) -> None:
-        try:
-            with FileLock(f"{self.event_log_path}.lock"):
-                if os.path.exists(self.event_log_path):
-                    with open(self.event_log_path, "r", encoding="utf-8") as f:
-                        events = json.load(f)
-                    if not isinstance(events, list):
-                        logger.error("Invalid event log format.")
-                        events = []
-                    self.event_log.extend(events[-1000:])
-                    if events:
-                        self.last_hash = events[-1].get("hash", "")
-                else:
-                    with open(self.event_log_path, "w", encoding="utf-8") as f:
-                        json.dump([], f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.warning("Failed to load event log: %s. Initializing empty log.", str(e))
-            with FileLock(f"{self.event_log_path}.lock"):
-                with open(self.event_log_path, "w", encoding="utf-8") as f:
-                    json.dump([], f)
+    def _load_state(self) -> None:
+        self.current_context = self._load_json(self.context_path, default={})
+        self.event_log.extend(self._load_json(self.event_log_path, default=[])[-1000:])
+        self.coordination_log.extend(self._load_json(self.coordination_log_path, default=[])[-1000:])
+        if self.event_log:
+            self.last_hash = self.event_log[-1].get("hash", "")
 
-    def _load_coordination_log(self) -> None:
+    def _load_json(self, path: str, default: Any) -> Any:
         try:
-            with FileLock(f"{self.coordination_log_path}.lock"):
-                if os.path.exists(self.coordination_log_path):
-                    with open(self.coordination_log_path, "r", encoding="utf-8") as f:
-                        events = json.load(f)
-                    if not isinstance(events, list):
-                        logger.error("Invalid coordination log format.")
-                        events = []
-                    self.coordination_log.extend(events[-1000:])
-                else:
-                    with open(self.coordination_log_path, "w", encoding="utf-8") as f:
-                        json.dump([], f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.warning(
-                "Failed to load coordination log: %s. Initializing empty log.", str(e)
-            )
-            with FileLock(f"{self.coordination_log_path}.lock"):
-                with open(self.coordination_log_path, "w", encoding="utf-8") as f:
-                    json.dump([], f)
+            with FileLock(f"{path}.lock"):
+                if os.path.exists(path):
+                    with open(path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    return data if isinstance(data, type(default)) else default
+                return default
+        except Exception as e:
+            logger.warning("Load failed (%s): %s", path, e)
+            return default
 
-    def _persist_context(self, context: Dict[str, Any]) -> None:
-        if not isinstance(context, dict):
-            logger.error("Invalid context: must be a dict.")
-            raise TypeError("context must be a dictionary")
+    def _persist_json(self, path: str, data: Any) -> None:
         try:
-            with FileLock(f"{self.context_path}.lock"):
-                with open(self.context_path, "w", encoding="utf-8") as f:
-                    json.dump(context, f, indent=2)
-        except (OSError, IOError) as e:
-            logger.error("Failed to persist context: %s", str(e))
+            with FileLock(f"{path}.lock"):
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2)
+        except Exception as e:
+            logger.error("Persist failed (%s): %s", path, e)
             raise
 
-    def _persist_event_log(self) -> None:
-        try:
-            with FileLock(f"{self.event_log_path}.lock"):
-                with open(self.event_log_path, "w", encoding="utf-8") as f:
-                    json.dump(list(self.event_log), f, indent=2)
-        except (OSError, IOError) as e:
-            logger.error("Failed to persist event log: %s", str(e))
-            raise
+    def _persist_state(self) -> None:
+        self._persist_json(self.context_path, self.current_context)
+        self._persist_json(self.event_log_path, list(self.event_log))
+        self._persist_json(self.coordination_log_path, list(self.coordination_log))
 
-    def _persist_coordination_log(self) -> None:
-        try:
-            with FileLock(f"{self.coordination_log_path}.lock"):
-                with open(self.coordination_log_path, "w", encoding="utf-8") as f:
-                    json.dump(list(self.coordination_log), f, indent=2)
-        except (OSError, IOError) as e:
-            logger.error("Failed to persist coordination log: %s", str(e))
-            raise
+    # --- External Context Integration ---
 
-    # ── External context integration (safe & pluggable) ───────────────────────
     async def integrate_external_context_data(
         self,
         data_source: str,
@@ -280,1212 +235,238 @@ class ContextManager:
         cache_timeout: float = 3600.0,
         task_type: str = "",
     ) -> Dict[str, Any]:
-        """
-        Integrate external policies or coordination metadata:
-        - Uses MetaCognition.memory_manager for caching
-        - Pulls from a provided callable OR knowledge_retriever (no blind network)
-        Supported data_type: "context_policies", "coordination_data"
-        """
-        if not all(isinstance(x, str) for x in [data_source, data_type]):
-            raise TypeError("data_source and data_type must be strings")
-        if not isinstance(cache_timeout, (int, float)) or cache_timeout < 0:
-            raise ValueError("cache_timeout must be non-negative")
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
+        if not all(isinstance(x, str) for x in (data_source, data_type, task_type)):
+            raise TypeError("Inputs must be strings")
+        if cache_timeout < 0:
+            raise ValueError("cache_timeout >= 0")
 
+        cache_key = f"CtxData::{data_type}::{data_source}::{task_type}"
         try:
-            cache_key = f"ContextData::{data_type}::{data_source}::{task_type or 'global'}"
-            # 1) Cache first
-            if self.meta_cognition:
-                cached = await self.meta_cognition.memory_manager.retrieve(
-                    cache_key, layer="ExternalData", task_type=task_type
-                )
-                if cached and "timestamp" in cached.get("data", {}):
+            # Cache
+            if self.meta_cognition and self.meta_cognition.memory_manager:
+                cached = await self.meta_cognition.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type)
+                if isinstance(cached, dict) and "timestamp" in cached.get("data", {}):
                     ts = datetime.fromisoformat(cached["data"]["timestamp"])
                     if (datetime.now() - ts).total_seconds() < cache_timeout:
                         return cached["data"]["data"]
 
-            # 2) Provider pipeline (callable > knowledge_retriever > empty)
+            # Fetch
+            data: Dict[str, Any] = {}
             if callable(self.external_context_provider):
                 data = self.external_context_provider(data_source, data_type, task_type)
             elif self.knowledge_retriever:
-                try:
-                    data = await self.knowledge_retriever.fetch(
-                        data_source, data_type, task_type=task_type
-                    )
-                except Exception as e:
-                    logger.warning("knowledge_retriever.fetch failed: %s", e)
-                    data = {}
-            else:
-                data = {}
+                data = await self.knowledge_retriever.fetch(data_source, data_type, task_type=task_type)
 
+            # Normalize
             if data_type == "context_policies":
                 policies = data.get("policies", [])
-                result = (
-                    {"status": "success", "policies": policies}
-                    if policies
-                    else {"status": "error", "error": "No policies"}
-                )
+                result = {"status": "success", "policies": policies} if policies else {"status": "error", "error": "empty"}
             elif data_type == "coordination_data":
-                coordination = data.get("coordination", {})
-                result = (
-                    {"status": "success", "coordination": coordination}
-                    if coordination
-                    else {"status": "error", "error": "No coordination data"}
-                )
+                coord = data.get("coordination", {})
+                result = {"status": "success", "coordination": coord} if coord else {"status": "error", "error": "empty"}
             else:
-                result = {"status": "error", "error": f"Unsupported data_type: {data_type}"}
+                result = {"status": "error", "error": f"unknown: {data_type}"}
 
-            # 3) Cache store
-            if self.meta_cognition:
+            # Store cache
+            if result.get("status") == "success" and self.meta_cognition and self.meta_cognition.memory_manager:
                 await self.meta_cognition.memory_manager.store(
                     cache_key,
                     {"data": result, "timestamp": datetime.now().isoformat()},
                     layer="ExternalData",
-                    intent="context_data_integration",
+                    intent="context_integration",
                     task_type=task_type,
                 )
-                if task_type:
-                    reflection = await self.meta_cognition.reflect_on_output(
-                        component="ContextManager",
-                        output={"data_type": data_type, "data": result},
-                        context={"task_type": task_type},
-                    )
-                    if reflection.get("status") == "success":
-                        logger.info(
-                            "Integration reflection: %s",
-                            reflection.get("reflection", ""),
-                        )
 
+            await self._reflect("integrate_external", result, task_type)
             return result
+
         except Exception as e:
-            logger.error("Context data integration failed: %s", str(e))
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
             return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.integrate_external_context_data(
-                    data_source, data_type, cache_timeout, task_type
-                ),
-                default={"status": "error", "error": str(e)},
-                diagnostics=diagnostics,
+                str(e),
+                lambda: self.integrate_external_context_data(data_source, data_type, cache_timeout, task_type),
+                {"status": "error", "error": str(e)},
                 task_type=task_type,
             )
 
-    # ── Core updates ──────────────────────────────────────────────────────────
-    async def update_context(self, new_context: Dict[str, Any], task_type: str = "") -> None:
+    # --- Core Context Operations ---
+
+    async def update_context(self, new_context: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
         if not isinstance(new_context, dict):
-            raise TypeError("new_context must be a dictionary")
+            raise TypeError("new_context must be dict")
         if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
+            raise TypeError("task_type must be str")
 
-        logger.info("Updating context for task %s", task_type)
         try:
-            # Validate drift/trait ops
-            if self.meta_cognition and any(
-                k in new_context for k in ["drift", "trait_optimization", "trait_optimizations"]
-            ):
-                drift_data = (
-                    new_context.get("drift")
-                    or new_context.get("trait_optimization")
-                    or new_context.get("trait_optimizations")
-                )
-                if drift_data and not await self.meta_cognition.validate_drift(
-                    drift_data, task_type=task_type
-                ):
-                    raise ValueError("Drift or trait context failed validation")
+            # Modulation
+            t = time.time() % 1.0
+            stability = eta_context_stability(t)
+            new_context["stability"] = stability
 
-            # Simulate transition & compute Φ
-            phi_score = 1.0
-            simulation_result = "no simulation data"
-            if self.current_context:
-                transition_summary = f"From: {self.current_context}\nTo: {new_context}"
-                simulation_result = await asyncio.to_thread(
-                    run_simulation, f"Context shift evaluation:\n{transition_summary}"
-                ) or "no simulation data"
-                phi_score = phi_coherence(self.current_context, new_context)
-
-                if phi_score < 0.4:
-                    if self.agi_enhancer:
-                        await self.agi_enhancer.reflect_and_adapt(
-                            f"Low Φ during context update (task={task_type})"
-                        )
-                        await self.agi_enhancer.trigger_reflexive_audit(
-                            f"Low Φ during context update (task={task_type})"
-                        )
-                    if self.meta_cognition:
-                        optimizations = await self.meta_cognition.propose_trait_optimizations(
-                            {"phi_score": phi_score}, task_type=task_type
-                        )
-                        new_context.setdefault("trait_optimizations", optimizations)
-
-                if self.alignment_guard:
-                    valid, _report = await self.alignment_guard.ethical_check(
-                        str(new_context), stage="context_update", task_type=task_type
-                    )
-                    if not valid:
-                        raise ValueError("New context failed alignment check")
-
-                if self.agi_enhancer:
-                    await self.agi_enhancer.log_episode(
-                        "Context Update",
-                        {
-                            "from": self.current_context,
-                            "to": new_context,
-                            "task_type": task_type,
-                        },
-                        module="ContextManager",
-                        tags=["context", "update", task_type],
-                    )
-                    await self.agi_enhancer.log_explanation(
-                        f"Context transition reviewed.\nSimulation: {simulation_result}",
-                        trace={"phi": phi_score, "task_type": task_type},
-                    )
-
-            # Normalize vectors if present
-            if "vectors" in new_context:
-                new_context["vectors"] = normalize_vectors(new_context["vectors"])
-
-            # Pull policies (safe path)
-            context_data = await self.integrate_external_context_data(
-                data_source="xai_context_db",
-                data_type="context_policies",
-                task_type=task_type,
-            )
-            if context_data.get("status") == "success":
-                new_context["policies"] = context_data.get("policies", [])
-
-            # Apply switch
-            self.context_history.append(self.current_context)
-            self.current_context = new_context
-            self._persist_context(self.current_context)
-            await self.log_event_with_hash(
-                {"event": "context_updated", "context": new_context, "phi": phi_score},
-                task_type=task_type,
-            )
-            await self.broadcast_context_event(
-                "context_updated", new_context, task_type=task_type
-            )
-
-            # Υ: publish to SharedGraph for peer reconciliation (sync API)
-            self._push_to_shared_graph(task_type=task_type)
-
-            # Φ⁰ (gated): reality-sculpting hook (no-ops if disabled)
-            if STAGE_IV:
-                await self._reality_sculpt_hook(
-                    "context_update", payload={"phi": phi_score, "task": task_type}
-                )
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"context": new_context, "phi_score": phi_score},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info(
-                        "Context update reflection: %s",
-                        reflection.get("reflection", ""),
-                    )
-
-        except Exception as e:
-            logger.error("Context update failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.update_context(new_context, task_type),
-                default=None,
-                diagnostics=diagnostics,
-                task_type=task_type,
-                propose_plan=True,
-            )
-
-    async def tag_context(
-        self, intent: Optional[str] = None, goal_id: Optional[str] = None, task_type: str = ""
-    ) -> None:
-        if intent is not None and not isinstance(intent, str):
-            raise TypeError("intent must be a string or None")
-        if goal_id is not None and not isinstance(goal_id, str):
-            raise TypeError("goal_id must be a string or None")
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-
-        logger.info("Tagging context intent='%s', goal_id='%s' (task=%s)", intent, goal_id, task_type)
-        try:
-            if intent and self.alignment_guard:
-                valid, _report = await self.alignment_guard.ethical_check(
-                    intent, stage="context_tagging", task_type=task_type
+            # Alignment check
+            if self.alignment_guard:
+                valid, report = await self.alignment_guard.ethical_check(
+                    json.dumps(new_context), stage="pre", task_type=task_type
                 )
                 if not valid:
-                    raise ValueError("Intent failed alignment check")
+                    return {"status": "error", "error": "Ethical check failed", "report": report}
 
-            if intent:
-                self.current_context["intent"] = intent
-            if goal_id:
-                self.current_context["goal_id"] = goal_id
-            self.current_context["task_type"] = task_type
-            self._persist_context(self.current_context)
-            await self.log_event_with_hash(
-                {"event": "context_tagged", "intent": intent, "goal_id": goal_id},
-                task_type=task_type,
-            )
+            # History + persist
+            self.context_history.append(dict(self.current_context))
+            self.current_context.update(new_context)
+            self._persist_json(self.context_path, self.current_context)
 
-            # Υ: publish tag update to SharedGraph (sync)
-            self._push_to_shared_graph(task_type=task_type)
+            # Hooks
+            await self._reality_sculpt_hook("update_context", new_context)
+            self._push_to_shared_graph(task_type)
+            await self.log_event_with_hash({"event": "context_update", "keys": list(new_context.keys())}, task_type=task_type)
+            await self._reflect("update_context", new_context, task_type)
 
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"intent": intent, "goal_id": goal_id},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info(
-                        "Context tagging reflection: %s", reflection.get("reflection", "")
-                    )
+            return {"status": "success", "updated_keys": list(new_context.keys())}
+
         except Exception as e:
-            logger.error("Context tagging failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
             return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.tag_context(intent, goal_id, task_type),
-                default=None,
-                diagnostics=diagnostics,
+                str(e),
+                lambda: self.update_context(new_context, task_type),
+                {"status": "error", "error": str(e)},
                 task_type=task_type,
             )
 
-    def get_context_tags(self) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-        return (
-            self.current_context.get("intent"),
-            self.current_context.get("goal_id"),
-            self.current_context.get("task_type"),
-        )
-
-    async def rollback_context(self, task_type: str = "") -> Optional[Dict[str, Any]]:
+    async def summarize_context(self, task_type: str = "") -> Dict[str, Any]:
         if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-        if not self.context_history:
-            logger.warning("No previous context to roll back to (task=%s)", task_type)
-            return None
+            raise TypeError("task_type must be str")
 
-        t = time.time()
-        self_awareness = omega_selfawareness(t)
-        empathy = eta_empathy(t)
-        time_blend = tau_timeperception(t)
-        stability = eta_context_stability(t)
-        threshold = self.rollback_threshold * (1.0 + stability)
-
-        if (self_awareness + empathy + time_blend) > threshold:
-            restored = self.context_history.pop()
-            self.current_context = restored
-            self._persist_context(self.current_context)
-            await self.log_event_with_hash(
-                {"event": "context_rollback", "restored": restored}, task_type=task_type
-            )
-            await self.broadcast_context_event(
-                "context_rollback", restored, task_type=task_type
-            )
-            if self.agi_enhancer:
-                await self.agi_enhancer.log_episode(
-                    "Context Rollback",
-                    {"restored": restored, "task_type": task_type},
-                    module="ContextManager",
-                    tags=["context", "rollback", task_type],
-                )
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"restored": restored},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info(
-                        "Context rollback reflection: %s",
-                        reflection.get("reflection", ""),
-                    )
-            if self.visualizer and task_type:
-                await self.visualizer.render_charts(
-                    {
-                        "context_rollback": {
-                            "restored_context": restored,
-                            "task_type": task_type,
-                        },
-                        "visualization_options": {
-                            "interactive": task_type == "recursion",
-                            "style": "detailed" if task_type == "recursion" else "concise",
-                        },
-                    }
-                )
-            # Υ: publish rollback to SharedGraph
-            self._push_to_shared_graph(task_type=task_type)
-            return restored
-        else:
-            logger.warning(
-                "EEG thresholds too low for safe rollback (%.2f < %.2f) (task=%s)",
-                self_awareness + empathy + time_blend,
-                threshold,
-                task_type,
-            )
-            if self.agi_enhancer:
-                await self.agi_enhancer.reflect_and_adapt(
-                    f"Rollback gate low (task={task_type})"
-                )
-            return None
-
-    async def summarize_context(self, task_type: str = "") -> str:
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-
-        logger.info("Summarizing context trail (task=%s)", task_type)
         try:
-            t = time.time()
-            summary_traits = {
-                "self_awareness": omega_selfawareness(t),
-                "empathy": eta_empathy(t),
-                "time_perception": tau_timeperception(t),
-                "context_stability": eta_context_stability(t),
-            }
+            summary = {"layers": {}, "task_type": task_type}
+            for layer in CONTEXT_LAYERS:
+                layer_ctx = {k: v for k, v in self.current_context.items() if v.get("layer") == layer}
+                summary["layers"][layer] = {
+                    "count": len(layer_ctx),
+                    "keys": list(layer_ctx.keys()),
+                    "coherence": phi_coherence(list(layer_ctx.values())),
+                }
 
-            if self.concept_synthesizer:
-                synthesis_result = await self.concept_synthesizer.generate(
-                    concept_name="ContextSummary",
-                    context={"history": list(self.context_history), "current": self.current_context},
-                    task_type=task_type,
-                )
-                summary = (
-                    synthesis_result["concept"].get("definition", "Synthesis failed")
-                    if synthesis_result.get("success")
-                    else "Synthesis failed"
-                )
-            else:
-                prompt = f"""
-                You are a continuity analyst. Given this sequence of context states:
-                {list(self.context_history) + [self.current_context]}
+            await self.log_event_with_hash({"event": "context_summary", "layers": list(summary["layers"].keys())}, task_type=task_type)
+            await self._reflect("summarize_context", summary, task_type)
 
-                Trait Readings:
-                {summary_traits}
-
-                Task: {task_type}
-                Summarize the trajectory and suggest improvements in context management.
-                """
-                summary = await asyncio.to_thread(self._cached_call_gpt, prompt)
-
-            if self.agi_enhancer:
-                await self.agi_enhancer.log_episode(
-                    "Context Summary",
-                    {
-                        "trail": list(self.context_history) + [self.current_context],
-                        "traits": summary_traits,
-                        "summary": summary,
-                        "task_type": task_type,
-                    },
-                    module="ContextManager",
-                    tags=["context", "summary", task_type],
-                )
-                await self.agi_enhancer.log_explanation(
-                    f"Context summary generated (task={task_type}).", trace={"summary": summary}
-                )
-
-            await self.log_event_with_hash(
-                {"event": "context_summary", "summary": summary}, task_type=task_type
-            )
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"summary": summary, "traits": summary_traits},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info(
-                        "Context summary reflection: %s", reflection.get("reflection", "")
-                    )
-            if self.visualizer and task_type:
-                await self.visualizer.render_charts(
-                    {
-                        "context_summary": {
-                            "summary": summary,
-                            "traits": summary_traits,
-                            "task_type": task_type,
-                        },
-                        "visualization_options": {
-                            "interactive": task_type == "recursion",
-                            "style": "detailed" if task_type == "recursion" else "concise",
-                        },
-                    }
-                )
             return summary
+
         except Exception as e:
-            logger.error("Context summary failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
             return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.summarize_context(task_type),
-                default=f"Summary failed: {str(e)}",
-                diagnostics=diagnostics,
+                str(e),
+                lambda: self.summarize_context(task_type),
+                {"status": "error", "error": str(e)},
                 task_type=task_type,
             )
 
-    @lru_cache(maxsize=100)
-    def _cached_call_gpt(self, prompt: str) -> str:
-        from utils.prompt_utils import call_gpt
+    # --- Event Logging ---
 
-        return call_gpt(prompt)
-
-    async def log_event_with_hash(self, event_data: Any, task_type: str = "") -> None:
-        if not isinstance(event_data, dict):
-            raise TypeError("event_data must be a dictionary")
+    async def log_event_with_hash(self, event: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
+        if not isinstance(event, dict):
+            raise TypeError("event must be dict")
         if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
+            raise TypeError("task_type must be str")
 
         try:
-            # Validate consensus drift if present
-            if self.meta_cognition and event_data.get("event") == "run_consensus_protocol":
-                output = event_data.get("output", {})
-                if output.get("status") == "success" and not await self.meta_cognition.validate_drift(
-                    output.get("drift_data", {}), task_type=task_type
-                ):
-                    raise ValueError("Consensus event failed drift validation")
+            event["timestamp"] = datetime.now().isoformat()
+            event["task_type"] = task_type
+            prev_hash = self.last_hash or "genesis"
+            payload = json.dumps(event, sort_keys=True).encode("utf-8")
+            event["hash"] = hashlib.sha256(payload + prev_hash.encode("utf-8")).hexdigest()
+            self.last_hash = event["hash"]
 
-            # Attach agent metadata for coord-like events
-            if any(
-                k in event_data
-                for k in [
-                    "drift",
-                    "trait_optimization",
-                    "trait_optimizations",
-                    "agent_coordination",
-                    "run_consensus_protocol",
-                ]
-            ):
-                event_data["agent_metadata"] = event_data.get("agent_metadata", {})
-                if (
-                    event_data.get("event") == "run_consensus_protocol"
-                    and event_data.get("output")
-                ):
-                    event_data["agent_metadata"]["agent_ids"] = event_data["agent_metadata"].get(
-                        "agent_ids", []
-                    )
-                    event_data["agent_metadata"]["confidence_scores"] = event_data["output"].get(
-                        "weights", {}
-                    )
+            self.event_log.append(event)
+            self._persist_json(self.event_log_path, list(self.event_log))
 
-            event_data["task_type"] = task_type
-            event_str = json.dumps(event_data, sort_keys=True, default=str) + self.last_hash
-            current_hash = hashlib.sha256(event_str.encode("utf-8")).hexdigest()
-            event_entry = {
-                "event": event_data,
-                "hash": current_hash,
-                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            await self._reality_sculpt_hook("log_event", event)
+            await self._reflect("log_event", event, task_type)
+
+            return {"status": "success", "hash": event["hash"]}
+
+        except Exception as e:
+            return await self._self_heal(
+                str(e),
+                lambda: self.log_event_with_hash(event, task_type),
+                {"status": "error", "error": str(e)},
+                task_type=task_type,
+            )
+
+    # --- Coordination & Analytics ---
+
+    async def log_coordination_event(self, event: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
+        if not isinstance(event, dict):
+            raise TypeError("event must be dict")
+        if not isinstance(task_type, str):
+            raise TypeError("task_type must be str")
+
+        try:
+            event["timestamp"] = datetime.now().isoformat()
+            event["task_type"] = task_type
+            self.coordination_log.append(event)
+            self._persist_json(self.coordination_log_path, list(self.coordination_log))
+
+            await self._reflect("log_coordination", event, task_type)
+
+            return {"status": "success"}
+
+        except Exception as e:
+            return await self._self_heal(
+                str(e),
+                lambda: self.log_coordination_event(event, task_type),
+                {"status": "error", "error": str(e)},
+                task_type=task_type,
+            )
+
+    async def analyze_coordination_metrics(self, time_window_hours: float = 24.0, task_type: str = "") -> Dict[str, Any]:
+        if time_window_hours <= 0:
+            raise ValueError("time_window_hours > 0")
+        if not isinstance(task_type, str):
+            raise TypeError("task_type must be str")
+
+        try:
+            cutoff = datetime.now() - timedelta(hours=time_window_hours)
+            recent = [e for e in self.coordination_log if datetime.fromisoformat(e["timestamp"]) > cutoff]
+
+            metrics = {
+                "event_count": len(recent),
+                "agent_interactions": Counter(e.get("agent_id") for e in recent if "agent_id" in e),
+                "conflict_rate": sum(1 for e in recent if e.get("type") == "conflict") / max(len(recent), 1),
             }
 
-            self.event_log.append(event_entry)
-            self.last_hash = current_hash
-            self._persist_event_log()
+            await self._reflect("analyze_metrics", metrics, task_type)
 
-            # Mirror to coordination log if relevant
-            if any(
-                k in event_data
-                for k in [
-                    "drift",
-                    "trait_optimization",
-                    "trait_optimizations",
-                    "agent_coordination",
-                    "run_consensus_protocol",
-                ]
-            ):
-                coordination_entry = {
-                    "event": event_data,
-                    "hash": current_hash,
-                    "timestamp": event_entry["timestamp"],
-                    "type": (
-                        "drift"
-                        if "drift" in event_data
-                        else "trait_optimization"
-                        if "trait_optimization" in event_data
-                        or "trait_optimizations" in event_data
-                        else "agent_coordination"
-                    ),
-                    "agent_metadata": event_data.get("agent_metadata", {}),
-                    "task_type": task_type,
-                }
-                self.coordination_log.append(coordination_entry)
-                self._persist_coordination_log()
-                if self.agi_enhancer:
-                    await self.agi_enhancer.log_episode(
-                        "Coordination Event",
-                        coordination_entry,
-                        module="ContextManager",
-                        tags=["coordination", coordination_entry["type"], task_type],
-                    )
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager", output=event_entry, context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Event logging reflection: %s", reflection.get("reflection", ""))
+            return {"status": "success", "metrics": metrics}
 
         except Exception as e:
-            logger.error("Event logging failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
             return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.log_event_with_hash(event_data, task_type),
-                default=None,
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    async def broadcast_context_event(
-        self, event_type: str, payload: Any, task_type: str = ""
-    ) -> Dict[str, Any]:
-        if not isinstance(event_type, str):
-            raise TypeError("event_type must be a string")
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-
-        logger.info("Broadcasting context event: %s (task=%s)", event_type, task_type)
-        try:
-            if self.agi_enhancer:
-                await self.agi_enhancer.log_episode(
-                    "Context Event Broadcast",
-                    {"event": event_type, "payload": payload, "task_type": task_type},
-                    module="ContextManager",
-                    tags=["event", event_type, task_type],
-                )
-
-            payload_str = str(payload).lower()
-            if any(k in payload_str for k in ["drift", "trait_optimization", "agent", "consensus"]):
-                coordination_entry = {
-                    "event": event_type,
-                    "payload": payload,
-                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                    "type": "drift" if "drift" in payload_str else "agent_coordination",
-                    "agent_metadata": payload.get("agent_metadata", {}) if isinstance(payload, dict) else {},
-                    "task_type": task_type,
-                }
-                self.coordination_log.append(coordination_entry)
-                self._persist_coordination_log()
-
-            await self.log_event_with_hash(
-                {"event": event_type, "payload": payload}, task_type=task_type
-            )
-            result = {"event": event_type, "payload": payload, "task_type": task_type}
-
-            # Υ: propagate event snapshots to SharedGraph
-            self._push_to_shared_graph(task_type=task_type)
-
-            # Φ⁰ (gated) hook
-            if STAGE_IV:
-                await self._reality_sculpt_hook(
-                    "context_event", payload={"event": event_type, "task": task_type}
-                )
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager", output=result, context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Broadcast reflection: %s", reflection.get("reflection", ""))
-            if self.visualizer and task_type:
-                await self.visualizer.render_charts(
-                    {
-                        "context_event_broadcast": {
-                            "event_type": event_type,
-                            "payload": payload,
-                            "task_type": task_type,
-                        },
-                        "visualization_options": {
-                            "interactive": task_type == "recursion",
-                            "style": "detailed" if task_type == "recursion" else "concise",
-                        },
-                    }
-                )
-            return result
-        except Exception as e:
-            logger.error("Broadcast failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.broadcast_context_event(event_type, payload, task_type),
-                default={"event": event_type, "error": str(e), "task_type": task_type},
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    # ── Narrative integrity & repair ──────────────────────────────────────────
-    async def narrative_integrity_check(self, task_type: str = "") -> bool:
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-
-        try:
-            continuity = await self._verify_continuity(task_type)
-            if not continuity:
-                await self._repair_narrative_thread(task_type)
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"continuity": continuity},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info(
-                        "Narrative integrity reflection: %s",
-                        reflection.get("reflection", ""),
-                    )
-            return continuity
-        except Exception as e:
-            logger.error("Narrative integrity check failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.narrative_integrity_check(task_type),
-                default=False,
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    async def _verify_continuity(self, task_type: str = "") -> bool:
-        if not self.context_history:
-            return True
-        try:
-            required = {"intent", "goal_id", "task_type"} if task_type else {"intent", "goal_id"}
-            for ctx in self.context_history:
-                if not isinstance(ctx, dict) or not required.issubset(ctx.keys()):
-                    logger.warning("Continuity missing keys (task=%s)", task_type)
-                    return False
-                if any(k in ctx for k in ["drift", "trait_optimization", "trait_optimizations"]):
-                    data = (
-                        ctx.get("drift")
-                        or ctx.get("trait_optimization")
-                        or ctx.get("trait_optimizations")
-                    )
-                    if self.meta_cognition and not await self.meta_cognition.validate_drift(
-                        data, task_type=task_type
-                    ):
-                        logger.warning("Continuity invalid drift/traits (task=%s)", task_type)
-                        return False
-
-            if self.visualizer and task_type:
-                await self.visualizer.render_charts(
-                    {
-                        "narrative_continuity": {
-                            "continuity_status": True,
-                            "context_history_length": len(self.context_history),
-                            "task_type": task_type,
-                        },
-                        "visualization_options": {
-                            "interactive": task_type == "recursion",
-                            "style": "detailed" if task_type == "recursion" else "concise",
-                        },
-                    }
-                )
-            return True
-        except Exception as e:
-            logger.error("Continuity verification failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self._verify_continuity(task_type),
-                default=False,
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    async def _repair_narrative_thread(self, task_type: str = "") -> None:
-        logger.info("Narrative repair initiated (task=%s)", task_type)
-        try:
-            if self.context_history:
-                last_valid = None
-                for ctx in reversed(self.context_history):
-                    if any(k in ctx for k in ["drift", "trait_optimization", "trait_optimizations"]):
-                        data = (
-                            ctx.get("drift")
-                            or ctx.get("trait_optimization")
-                            or ctx.get("trait_optimizations")
-                        )
-                        if self.meta_cognition and await self.meta_cognition.validate_drift(
-                            data, task_type=task_type
-                        ):
-                            last_valid = ctx
-                            break
-                    else:
-                        last_valid = ctx
-                        break
-
-                if last_valid is not None:
-                    self.current_context = last_valid
-                    self._persist_context(self.current_context)
-                    await self.log_event_with_hash(
-                        {"event": "narrative_repair", "restored": self.current_context},
-                        task_type=task_type,
-                    )
-                    if self.visualizer and task_type:
-                        await self.visualizer.render_charts(
-                            {
-                                "narrative_repair": {
-                                    "restored_context": self.current_context,
-                                    "task_type": task_type,
-                                },
-                                "visualization_options": {
-                                    "interactive": task_type == "recursion",
-                                    "style": "detailed"
-                                    if task_type == "recursion"
-                                    else "concise",
-                                },
-                            }
-                        )
-                else:
-                    self.current_context = {}
-                    self._persist_context(self.current_context)
-                    await self.log_event_with_hash(
-                        {"event": "narrative_repair", "restored": {}}, task_type=task_type
-                    )
-            else:
-                self.current_context = {}
-                self._persist_context(self.current_context)
-                await self.log_event_with_hash(
-                    {"event": "narrative_repair", "restored": {}}, task_type=task_type
-                )
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"restored_context": self.current_context},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info(
-                        "Narrative repair reflection: %s", reflection.get("reflection", "")
-                    )
-        except Exception as e:
-            logger.error("Narrative repair failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self._repair_narrative_thread(task_type),
-                default=None,
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    async def bind_contextual_thread(self, thread_id: str, task_type: str = "") -> bool:
-        if not isinstance(thread_id, str):
-            raise TypeError("thread_id must be a string")
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-
-        logger.info("Binding context thread: %s (task=%s)", thread_id, task_type)
-        try:
-            self.current_context["thread_id"] = thread_id
-            self.current_context["task_type"] = task_type
-            self._persist_context(self.current_context)
-            await self.log_event_with_hash(
-                {"event": "context_thread_bound", "thread_id": thread_id}, task_type=task_type
-            )
-            # Υ: publish
-            self._push_to_shared_graph(task_type=task_type)
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"thread_id": thread_id},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Thread binding reflection: %s", reflection.get("reflection", ""))
-            return True
-        except Exception as e:
-            logger.error("Thread binding failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.bind_contextual_thread(thread_id, task_type),
-                default=False,
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    async def audit_state_hash(self, state: Optional[Any] = None, task_type: str = "") -> str:
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-
-        try:
-            state_str = (
-                json.dumps(state, sort_keys=True, default=str)
-                if state is not None
-                else json.dumps(self._safe_state_snapshot(), sort_keys=True, default=str)
-            )
-            current_hash = hashlib.sha256(state_str.encode("utf-8")).hexdigest()
-            await self.log_event_with_hash(
-                {"event": "state_hash_audit", "hash": current_hash}, task_type=task_type
-            )
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"hash": current_hash},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info("State hash audit reflection: %s", reflection.get("reflection", ""))
-            return current_hash
-        except Exception as e:
-            logger.error("State hash computation failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.audit_state_hash(state, task_type),
-                default="",
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    async def get_coordination_events(
-        self, event_type: Optional[str] = None, task_type: str = ""
-    ) -> List[Dict[str, Any]]:
-        if event_type is not None and not isinstance(event_type, str):
-            raise TypeError("event_type must be a string or None")
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-        try:
-            results = [e for e in self.coordination_log if task_type == "" or e.get("task_type") == task_type]
-            if event_type:
-                results = [e for e in results if e["type"] == event_type]
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager",
-                    output={"event_count": len(results), "event_type": event_type},
-                    context={"task_type": task_type},
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Coord events reflection: %s", reflection.get("reflection", ""))
-            return results
-        except Exception as e:
-            logger.error("Coordination retrieval failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.get_coordination_events(event_type, task_type),
-                default=[],
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    async def analyze_coordination_events(
-        self, event_type: Optional[str] = None, task_type: str = ""
-    ) -> Dict[str, Any]:
-        if event_type is not None and not isinstance(event_type, str):
-            raise TypeError("event_type must be a string or None")
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-        try:
-            events = await self.get_coordination_events(event_type, task_type)
-            if not events:
-                return {
-                    "status": "error",
-                    "error": "No coordination events found",
-                    "timestamp": datetime.now().isoformat(),
-                    "task_type": task_type,
-                }
-
-            drift_count = sum(1 for e in events if e["type"] == "drift")
-            consensus_events = [
-                e for e in events if e["event"].get("event") == "run_consensus_protocol"
-            ]
-            consensus_count = sum(
-                1 for e in consensus_events if e["event"].get("output", {}).get("status") == "success"
-            )
-
-            agent_counts = Counter(
-                [
-                    agent_id
-                    for e in events
-                    for agent_id in e["agent_metadata"].get("agent_ids", [])
-                ]
-            )
-            avg_confidence = (
-                np.mean(
-                    [
-                        (sum(conf.values()) / len(conf)) if conf else 0.5
-                        for e in consensus_events
-                        for conf in [e["event"]["output"].get("weights", {})]
-                    ]
-                )
-                if consensus_events
-                else 0.5
-            )
-
-            analysis = {
-                "status": "success",
-                "metrics": {
-                    "drift_frequency": drift_count / len(events),
-                    "consensus_success_rate": consensus_count / len(consensus_events)
-                    if consensus_events
-                    else 0.0,
-                    "agent_participation": dict(agent_counts),
-                    "avg_confidence_score": float(avg_confidence),
-                    "event_count": len(events),
-                },
-                "timestamp": datetime.now().isoformat(),
-                "task_type": task_type,
-            }
-
-            if self.agi_enhancer:
-                await self.agi_enhancer.log_episode(
-                    "Coordination Analysis",
-                    analysis,
-                    module="ContextManager",
-                    tags=["coordination", "analytics", event_type or "all", task_type],
-                )
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager", output=analysis, context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Coord analysis reflection: %s", reflection.get("reflection", ""))
-            await self.log_event_with_hash(
-                {"event": "coordination_analysis", "analysis": analysis}, task_type=task_type
-            )
-            if self.visualizer and task_type:
-                await self.visualizer.render_charts(
-                    {
-                        "coordination_analysis": {
-                            "metrics": analysis["metrics"],
-                            "task_type": task_type,
-                        },
-                        "visualization_options": {
-                            "interactive": task_type == "recursion",
-                            "style": "detailed" if task_type == "recursion" else "concise",
-                        },
-                    }
-                )
-            return analysis
-        except Exception as e:
-            logger.error("Coordination analysis failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.analyze_coordination_events(event_type, task_type),
-                default={
-                    "status": "error",
-                    "error": str(e),
-                    "timestamp": datetime.now().isoformat(),
-                    "task_type": task_type,
-                },
-                diagnostics=diagnostics,
-                task_type=task_type,
-            )
-
-    async def get_drift_trends(
-        self, time_window_hours: float = 24.0, task_type: str = ""
-    ) -> Dict[str, Any]:
-        if not isinstance(time_window_hours, (int, float)) or time_window_hours <= 0:
-            raise ValueError("time_window_hours must be positive")
-        if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
-
-        try:
-            events = await self.get_coordination_events("drift", task_type)
-            if not events:
-                return {
-                    "status": "error",
-                    "error": "No drift events found",
-                    "timestamp": datetime.now().isoformat(),
-                    "task_type": task_type,
-                }
-
-            now = datetime.now()
-            cutoff = now - timedelta(hours=time_window_hours)
-            events = [e for e in events if datetime.fromisoformat(e["timestamp"]) >= cutoff]
-
-            drift_names = Counter(
-                e["event"].get("drift", {}).get("name", "unknown") for e in events
-            )
-            similarity_scores = [
-                e["event"].get("drift", {}).get("similarity", 0.5)
-                for e in events
-                if "drift" in e["event"] and "similarity" in e["event"]["drift"]
-            ]
-            trend_data = {
-                "status": "success",
-                "trends": {
-                    "drift_names": dict(drift_names),
-                    "avg_similarity": float(np.mean(similarity_scores))
-                    if similarity_scores
-                    else 0.5,
-                    "event_count": len(events),
-                    "time_window_hours": time_window_hours,
-                },
-                "timestamp": datetime.now().isoformat(),
-                "task_type": task_type,
-            }
-
-            if self.agi_enhancer:
-                await self.agi_enhancer.log_episode(
-                    "Drift Trends Analysis",
-                    trend_data,
-                    module="ContextManager",
-                    tags=["drift", "trends", task_type],
-                )
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager", output=trend_data, context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Drift trends reflection: %s", reflection.get("reflection", ""))
-            await self.log_event_with_hash(
-                {"event": "drift_trends", "trends": trend_data}, task_type=task_type
-            )
-            if self.visualizer and task_type:
-                await self.visualizer.render_charts(
-                    {
-                        "drift_trends": {
-                            "trends": trend_data["trends"],
-                            "task_type": task_type,
-                        },
-                        "visualization_options": {
-                            "interactive": task_type == "recursion",
-                            "style": "detailed" if task_type == "recursion" else "concise",
-                        },
-                    }
-                )
-            return trend_data
-        except Exception as e:
-            logger.error("Drift trends analysis failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
-            return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.get_drift_trends(time_window_hours, task_type),
-                default={
-                    "status": "error",
-                    "error": str(e),
-                    "timestamp": datetime.now().isoformat(),
-                    "task_type": task_type,
-                },
-                diagnostics=diagnostics,
+                str(e),
+                lambda: self.analyze_coordination_metrics(time_window_hours, task_type),
+                {"status": "error", "error": str(e)},
                 task_type=task_type,
             )
 
     async def generate_coordination_chart(
-        self, metric: str = "drift_frequency", time_window_hours: float = 24.0, task_type: str = ""
+        self,
+        metric: str,
+        time_window_hours: float = 24.0,
+        task_type: str = "",
     ) -> Dict[str, Any]:
-        if metric not in ["drift_frequency", "consensus_success_rate", "avg_confidence_score"]:
-            raise ValueError(
-                "metric must be 'drift_frequency', 'consensus_success_rate', or 'avg_confidence_score'"
-            )
-        if not isinstance(time_window_hours, (int, float)) or time_window_hours <= 0:
-            raise ValueError("time_window_hours must be positive")
+        if not isinstance(metric, str):
+            raise TypeError("metric must be str")
+        if time_window_hours <= 0:
+            raise ValueError("time_window_hours > 0")
         if not isinstance(task_type, str):
-            raise TypeError("task_type must be a string")
+            raise TypeError("task_type must be str")
 
         try:
-            events = await self.get_coordination_events(task_type=task_type)
-            if not events:
-                return {
-                    "status": "error",
-                    "error": "No coordination events found",
-                    "timestamp": datetime.now().isoformat(),
-                    "task_type": task_type,
-                }
+            cutoff = datetime.now() - timedelta(hours=time_window_hours)
+            recent = [e for e in self.coordination_log if datetime.fromisoformat(e["timestamp"]) > cutoff]
 
-            now = datetime.now()
-            cutoff = now - timedelta(hours=time_window_hours)
-            events = [e for e in events if datetime.fromisoformat(e["timestamp"]) >= cutoff]
+            if not recent:
+                return {"status": "error", "error": "no data"}
 
-            time_bins: Dict[str, List[Dict[str, Any]]] = {}
-            for e in events:
-                ts = datetime.fromisoformat(e["timestamp"])
-                hour_key = ts.strftime("%Y-%m-%dT%H:00:00")
-                time_bins.setdefault(hour_key, []).append(e)
-
-            labels = sorted(time_bins.keys())
-            data = []
-            for hour in labels:
-                hour_events = time_bins[hour]
-                if metric == "drift_frequency":
-                    value = (
-                        sum(1 for e in hour_events if e["type"] == "drift") / len(hour_events)
-                        if hour_events
-                        else 0.0
-                    )
-                elif metric == "consensus_success_rate":
-                    consensus = [
-                        e for e in hour_events if e["event"].get("event") == "run_consensus_protocol"
-                    ]
-                    value = (
-                        sum(
-                            1
-                            for e in consensus
-                            if e["event"].get("output", {}).get("status") == "success"
-                        )
-                        / len(consensus)
-                        if consensus
-                        else 0.0
-                    )
-                else:  # avg_confidence_score
-                    confidences = [
-                        (sum(conf.values()) / len(conf)) if conf else 0.5
-                        for e in hour_events
-                        for conf in [e["event"].get("output", {}).get("weights", {})]
-                        if e["event"].get("event") == "run_consensus_protocol"
-                    ]
-                    value = float(np.mean(confidences)) if confidences else 0.5
-                data.append(value)
+            times = [datetime.fromisoformat(e["timestamp"]) for e in recent]
+            data = [e.get(metric, 0.0) for e in recent]
+            labels = [t.strftime("%H:%M") for t in times]
 
             chart_config = {
                 "type": "line",
@@ -1504,364 +485,238 @@ class ContextManager:
                 },
                 "options": {
                     "scales": {
-                        "y": {
-                            "beginAtZero": True,
-                            "title": {"display": True, "text": metric.replace("_", " ").title()},
-                        },
+                        "y": {"beginAtZero": True, "title": {"display": True, "text": metric.replace("_", " ").title()}},
                         "x": {"title": {"display": True, "text": "Time"}},
                     },
                     "plugins": {
-                        "title": {
-                            "display": True,
-                            "text": f"{metric.replace('_', ' ').title()} Over Time (Task: {task_type})",
-                        }
+                        "title": {"display": True, "text": f"{metric.replace('_', ' ').title()} Over Time (Task: {task_type})"},
                     },
                 },
             }
 
-            result = {
-                "status": "success",
-                "chart": chart_config,
-                "timestamp": datetime.now().isoformat(),
-                "task_type": task_type,
-            }
+            result = {"status": "success", "chart": chart_config, "timestamp": datetime.now().isoformat(), "task_type": task_type}
 
             if self.agi_enhancer:
                 await self.agi_enhancer.log_episode(
-                    "Coordination Chart Generated",
+                    "Coordination Chart",
                     result,
                     module="ContextManager",
                     tags=["coordination", "visualization", metric, task_type],
                 )
-            await self.log_event_with_hash(
-                {"event": "generate_coordination_chart", "chart": chart_config, "metric": metric},
-                task_type=task_type,
-            )
-            if self.visualizer and task_type:
-                await self.visualizer.render_charts(
-                    {
-                        "coordination_chart": {
-                            "metric": metric,
-                            "chart_config": chart_config,
-                            "task_type": task_type,
-                        },
-                        "visualization_options": {
-                            "interactive": task_type == "recursion",
-                            "style": "detailed" if task_type == "recursion" else "concise",
-                        },
-                    }
-                )
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="ContextManager", output=result, context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Chart generation reflection: %s", reflection.get("reflection", ""))
+
+            await self.log_event_with_hash({"event": "generate_chart", "metric": metric, "chart": chart_config}, task_type=task_type)
+            await self._visualize_chart(chart_config, metric, task_type)
+            await self._reflect("generate_chart", result, task_type)
+
             return result
+
         except Exception as e:
-            logger.error("Chart generation failed: %s (task=%s)", str(e), task_type)
-            diagnostics = (
-                await self.meta_cognition.run_self_diagnostics(return_only=True)
-                if self.meta_cognition
-                else {}
-            )
             return await self._self_heal(
-                err=str(e),
-                retry=lambda: self.generate_coordination_chart(metric, time_window_hours, task_type),
-                default={
-                    "status": "error",
-                    "error": str(e),
-                    "timestamp": datetime.now().isoformat(),
-                    "task_type": task_type,
-                },
-                diagnostics=diagnostics,
+                str(e),
+                lambda: self.generate_coordination_chart(metric, time_window_hours, task_type),
+                {"status": "error", "error": str(e)},
                 task_type=task_type,
             )
 
-    # ── Υ SharedGraph: add/diff/merge hooks (SYNC API) ────────────────────────
+    # --- Υ SharedGraph Hooks ---
+
     def _push_to_shared_graph(self, task_type: str = "") -> None:
-        """Publish current context view to SharedGraph (best‑effort, synchronous)."""
         if not self.shared_graph:
             return
         try:
             view = {
                 "nodes": [
                     {
-                        "id": f"ctx_{hashlib.md5((self.current_context.get('goal_id','') + task_type).encode('utf-8')).hexdigest()[:8]}",
+                        "id": f"ctx_{hashlib.md5((self.current_context.get('goal_id', '') + task_type).encode()).hexdigest()[:8]}",
                         "layer": self.current_context.get("layer", "local"),
                         "intent": self.current_context.get("intent"),
                         "goal_id": self.current_context.get("goal_id"),
-                        "task_type": task_type or self.current_context.get("task_type", ""),
+                        "task_type": task_type,
                         "timestamp": datetime.now().isoformat(),
                     }
                 ],
                 "edges": [],
-                "context": self.current_context,  # retained for peer policies
+                "context": self.current_context,
             }
-            # external_agent_bridge.SharedGraph.add(view) is synchronous
             self.shared_graph.add(view)
-            # Log a lightweight event (avoid storing full context again)
-            asyncio.create_task(
-                self.log_event_with_hash(
-                    {"event": "shared_graph_add", "agent_coordination": True}, task_type=task_type
-                )
-            )
+            asyncio.create_task(self.log_event_with_hash({"event": "shared_graph_push"}, task_type=task_type))
         except Exception as e:
-            logger.warning("SharedGraph add failed: %s", e)
+            logger.warning("Push to SharedGraph failed: %s", e)
 
     def reconcile_with_peers(
         self,
-        peer_graph: Optional["external_agent_bridge_module.SharedGraph"] = None,
+        peer_graph: Optional[external_agent_bridge_module.SharedGraph] = None,
         strategy: str = "prefer_recent",
         task_type: str = "",
     ) -> Dict[str, Any]:
-        """
-        Diff against a peer's graph and (optionally) merge using SharedGraph strategy.
-        SharedGraph strategies: 'prefer_recent' (default), 'prefer_majority'
-        """
         if not self.shared_graph:
-            return {"status": "error", "error": "SharedGraph unavailable", "task_type": task_type}
-        try:
-            diff_result = None
-            if peer_graph and isinstance(peer_graph, external_agent_bridge_module.SharedGraph):
-                diff_result = self.shared_graph.diff(peer_graph)
-            else:
-                # No peer provided → no diff possible (return a stub so callers can proceed)
-                diff_result = {"added": [], "removed": [], "conflicts": [], "ts": time.time()}
+            return {"status": "error", "error": "No SharedGraph"}
 
+        try:
+            diff = self.shared_graph.diff(peer_graph) if peer_graph else {"added": [], "removed": [], "conflicts": []}
             decision = {"apply_merge": False, "reason": "no conflicts"}
-            if diff_result and diff_result.get("conflicts"):
-                # Simple policy: allow merge when conflicts are non‑ethical keys
-                non_ethical = all(
-                    "ethic" not in str(c.get("key", "")).lower() for c in diff_result["conflicts"]
-                )
+
+            if diff.get("conflicts"):
+                non_ethical = all("ethic" not in str(c.get("key", "")).lower() for c in diff["conflicts"])
                 if non_ethical:
-                    decision = {
-                        "apply_merge": True,
-                        "reason": "non‑ethical conflicts",
-                        "strategy": strategy if strategy in ("prefer_recent", "prefer_majority") else "prefer_recent",
-                    }
+                    decision = {"apply_merge": True, "reason": "non-ethical conflicts", "strategy": strategy}
 
             merged = None
-            if decision.get("apply_merge"):
-                merged = self.shared_graph.merge(decision["strategy"])
-                # Optionally refresh local context if a merged context node exists
-                merged_ctx = (merged or {}).get("context")
+            if decision["apply_merge"]:
+                merged = self.shared_graph.merge(strategy)
+                merged_ctx = merged.get("context") if merged else None
                 if isinstance(merged_ctx, dict):
-                    # Schedule async update without blocking caller
                     asyncio.create_task(self.update_context(merged_ctx, task_type=task_type))
-                asyncio.create_task(
-                    self.log_event_with_hash(
-                        {
-                            "event": "shared_graph_merge",
-                            "strategy": decision["strategy"],
-                            "result_keys": list((merged or {}).keys()),
-                            "agent_coordination": True,
-                        },
-                        task_type=task_type,
-                    )
-                )
+                asyncio.create_task(self.log_event_with_hash({"event": "shared_graph_merge", "strategy": strategy}, task_type=task_type))
 
-            return {"status": "success", "diff": diff_result, "decision": decision, "merged": merged, "task_type": task_type}
+            return {"status": "success", "diff": diff, "decision": decision, "merged": merged, "task_type": task_type}
+
         except Exception as e:
-            logger.error("Peer reconciliation failed: %s", e)
             return {"status": "error", "error": str(e), "task_type": task_type}
 
-    # ── Φ⁰ gated hooks ────────────────────────────────────────────────────────
+    # --- Φ⁰ Hooks ---
+
     async def _reality_sculpt_hook(self, event: str, payload: Dict[str, Any]) -> None:
-        """No‑op unless STAGE_IV is enabled. Intended for Φ⁰ Reality Sculpting pre/post modulations."""
         if not STAGE_IV:
             return
         try:
             if self.agi_enhancer:
-                await self.agi_enhancer.log_episode(
-                    "Φ⁰ Hook",
-                    {"event": event, "payload": payload},
-                    module="ContextManager",
-                    tags=["phi0", event],
-                )
+                await self.agi_enhancer.log_episode("Φ⁰ Hook", {"event": event, "payload": payload}, module="ContextManager", tags=["phi0", event])
         except Exception as e:
-            logger.debug("Φ⁰ hook skipped: %s", e)
+            logger.debug("Φ⁰ hook failed: %s", e)
 
-    # ── Self-Healing Cognitive Pathways (centralized) ─────────────────────────
+    # --- Self-Healing ---
+
     async def _self_heal(
         self,
         err: str,
         retry: Callable[[], Any],
         default: Any,
-        diagnostics: Dict[str, Any],
-        task_type: str,
+        diagnostics: Optional[Dict[str, Any]] = None,
+        task_type: str = "",
         propose_plan: bool = False,
-    ):
-        """Route errors through error_recovery with optional recursive plan proposal."""
+    ) -> Any:
         try:
             plan = None
             if propose_plan and self.recursive_planner:
-                propose = getattr(self.recursive_planner, "propose_recovery_plan", None)
-                if callable(propose):
-                    plan = await propose(err=err, context=self.current_context, task_type=task_type)
+                plan = await self.recursive_planner.propose_recovery_plan(err=err, context=self.current_context, task_type=task_type)
 
-            handler = getattr(self.error_recovery, "handle_error", None)
-            if callable(handler):
-                return await handler(
+            if self.error_recovery:
+                return await self.error_recovery.handle_error(
                     err,
                     retry_func=retry,
                     default=default,
-                    diagnostics={"self_diag": diagnostics, "plan": plan} if plan else diagnostics,
+                    diagnostics=diagnostics or {} | {"plan": plan} if plan else {},
                 )
-        except Exception as inner:
-            logger.warning("Self-heal pathway failed: %s", inner)
-        return default
+            return default
+        except Exception as e:
+            logger.warning("Healing failed: %s", e)
+            return default
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
+    # --- Mode Consultation ---
+
+    async def mode_consult(self, caller: Mode, consultant: Mode, query: Dict[str, Any]) -> Dict[str, Any]:
+        if not isinstance(query, dict):
+            raise TypeError("query must be dict")
+
+        try:
+            # Route to consultant
+            if consultant == Mode.CREATIVE:
+                from creative_thinker import brainstorm_options
+                advice = brainstorm_options(query, limit=3)
+            elif consultant == Mode.VISION:
+                from recursive_planner import long_horizon_implications
+                advice = long_horizon_implications(query, horizon="30d")
+            else:
+                from reasoning_engine import quick_alt_view
+                advice = quick_alt_view(query)
+
+            from meta_cognition import log_event_to_ledger as meta_log
+            meta_log({
+                "event": "mode_consult",
+                "caller": caller.value,
+                "consultant": consultant.value,
+                "query": query,
+                "advice": advice,
+            })
+
+            return {"ok": True, "advice": advice}
+
+        except Exception as e:
+            meta_log({
+                "event": "mode_consult_failed",
+                "caller": caller.value,
+                "consultant": consultant.value,
+                "error": str(e),
+            })
+            return {"ok": False, "error": str(e)}
+
+    # --- Reflection & Visualization Helpers ---
+
+    async def _reflect(self, component: str, output: Any, task_type: str) -> None:
+        if not self.meta_cognition or not task_type:
+            return
+        try:
+            reflection = await self.meta_cognition.reflect_on_output(component=component, output=output, context={"task_type": task_type})
+            if reflection.get("status") == "success":
+                logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
+        except Exception as e:
+            logger.debug("Reflection failed: %s", e)
+
+    async def _visualize_chart(self, chart_config: Dict[str, Any], metric: str, task_type: str) -> None:
+        if not self.visualizer or not task_type:
+            return
+        try:
+            await self.visualizer.render_charts({
+                "coordination_chart": {"metric": metric, "chart_config": chart_config, "task_type": task_type},
+                "visualization_options": {
+                    "interactive": task_type == "recursion",
+                    "style": "detailed" if task_type == "recursion" else "concise",
+                },
+            })
+        except Exception as e:
+            logger.debug("Chart visualization failed: %s", e)
+
+    # --- v4.0 Injections ---
+
+    def attach_peer_view(self, view: Dict[str, Any], agent_id: str, permissions: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
+        if not self.shared_graph:
+            return {"ok": False, "reason": "No SharedGraph"}
+
+        try:
+            self.shared_graph.add({"agent": agent_id, "view": view, "permissions": permissions or {"read": True, "write": False}})
+            diff = self.shared_graph.diff(peer=agent_id)
+            merged, conflicts = self.shared_graph.merge(strategy="prefer-high-confidence")
+            return {"ok": True, "diff": diff, "merged": merged, "conflicts": conflicts}
+        except Exception as e:
+            return {"ok": False, "reason": str(e)}
+
+    # --- Trait Injection Patch ---
+
+    def _attach_trait_view(self, view: Dict[str, Any]) -> None:
+        from index import construct_trait_view, TRAIT_LATTICE
+        view["trait_field"] = construct_trait_view(TRAIT_LATTICE)
+
+    # --- Safe Snapshot ---
+
     def _safe_state_snapshot(self) -> Dict[str, Any]:
-        """Create a serialization‑safe snapshot of internal state (no callables)."""
         return {
             "current_context": self.current_context,
-            "context_history_len": len(self.context_history),
+            "history_len": len(self.context_history),
             "event_log_len": len(self.event_log),
-            "coordination_log_len": len(self.coordination_log),
+            "coord_log_len": len(self.coordination_log),
             "rollback_threshold": self.rollback_threshold,
             "flags": {"STAGE_IV": STAGE_IV},
         }
 
 
-# ── Demo main (optional) ─────────────────────────────────────────────────────
+# --- Demo CLI ---
+
 if __name__ == "__main__":
-    async def _demo():
+    async def demo():
         logging.basicConfig(level=logging.INFO)
         mgr = ContextManager()
-        await mgr.update_context({"intent": "test", "goal_id": "123", "task_type": "test"})
-        print(await mgr.summarize_context(task_type="test"))
+        await mgr.update_context({"intent": "demo", "goal_id": "demo123", "task_type": "demo"})
+        print(await mgr.summarize_context(task_type="demo"))
 
-    asyncio.run(_demo())
-
-
-# --- ANGELA v4.0 injected: Υ SharedGraph peer view hook ---
-try:
-    from external_agent_bridge import SharedGraph  # soft import
-except Exception:
-    SharedGraph = None  # type: ignore
-
-def _angela_v4_attach_peer_view(self, view, agent_id, permissions=None):
-    """Attach a peer view into SharedGraph with conflict-aware reconciliation.
-    Returns: {ok, diff, merged, conflicts} or {ok: False, reason: ...}
-    """
-    shared = getattr(self, "_shared", None)
-    if shared is None and SharedGraph:
-        try:
-            shared = SharedGraph()
-            setattr(self, "_shared", shared)
-        except Exception:
-            shared = None
-
-    if not shared:
-        return {"ok": False, "reason": "SharedGraph_unavailable"}
-
-    payload = {"agent": agent_id, "view": view, "permissions": permissions or {"read": True, "write": False}}
-    try:
-        shared.add(payload)
-        diff = shared.diff(peer=agent_id)
-        merged, conflicts = shared.merge(strategy="prefer-high-confidence")
-        return {"ok": True, "diff": diff, "merged": merged, "conflicts": conflicts}
-    except Exception as e:
-        return {"ok": False, "reason": f"shared_graph_error:{e}"}
-
-# Bind onto ContextManager at import-time if available
-try:
-    ContextManager.attach_peer_view = _angela_v4_attach_peer_view  # type: ignore
-except Exception:
-    pass
-# --- /ANGELA v4.0 injected ---
-
-
-    
-# --- Trait Field Injection Patch ---
-from index import construct_trait_view, TRAIT_LATTICE
-
-def attach_peer_view(view, agent_id, permissions=None):
-    trait_view = construct_trait_view(TRAIT_LATTICE)
-    view["trait_field"] = trait_view
-    return {
-        "ok": True,
-        "diff": {},
-        "merged": view,
-        "conflicts": []
-    }
-# --- End Patch ---
-
-
-
-    from typing import Any, Dict, Optional
-    import time
-
-    # Prefer the project's ledger meta logger (manifest exposes meta_cognition.log_event_to_ledger)
-    from meta_cognition import log_event_to_ledger
-
-    def mode_consult(self, caller_mode: str, target_mode: str, query: str, timeout_s: float = 5.0) -> Optional[Dict[str, Any]]:
-        """
-        Consult another mode in-process and record the consultation in ledger_meta.
-
-        Semantics:
-          - Attempts to invoke a peer view / mode handler for `target_mode`.
-          - Records a compact audit event under ledger_meta using meta_cognition.log_event_to_ledger.
-          - Returns the response payload (or None on failure/timeout).
-        """
-        start_ts = time.time()
-        event = {
-            "event": "mode_consult.request",
-            "caller_mode": caller_mode,
-            "target_mode": target_mode,
-            "query": query,
-            "timestamp": start_ts
-        }
-        try:
-            if hasattr(self, "invoke_peer_view"):
-                response = self.invoke_peer_view(target_mode, query, timeout=timeout_s)
-            elif hasattr(self, "attach_peer_view"):
-                peer = self.attach_peer_view(target_mode)
-                if callable(peer):
-                    response = peer(query)
-                elif hasattr(peer, "handle_query"):
-                    response = peer.handle_query(query)
-                else:
-                    response = None
-            else:
-                handler = getattr(self, f"{target_mode}_handler", None)
-                if callable(handler):
-                    response = handler(query)
-                else:
-                    response = None
-
-            duration = time.time() - start_ts
-            ledger_entry = {
-                "event": "mode_consult",
-                "caller": caller_mode,
-                "target": target_mode,
-                "query": query if len(query) < 512 else (query[:509] + "..."),
-                "response_summary": (response if isinstance(response, (str, int, float)) else
-                                      (response.get("summary") if isinstance(response, dict) and "summary" in response else None)),
-                "success": response is not None,
-                "duration_s": duration,
-                "timestamp": time.time()
-            }
-            try:
-                log_event_to_ledger("ledger_meta", ledger_entry)
-            except Exception:
-                pass
-            return response
-
-        except Exception as exc:
-            ledger_entry = {
-                "event": "mode_consult.exception",
-                "caller": caller_mode,
-                "target": target_mode,
-                "query_snippet": query[:200],
-                "error": repr(exc),
-                "timestamp": time.time()
-            }
-            try:
-                log_event_to_ledger("ledger_meta", ledger_entry)
-            except Exception:
-                pass
-            return None
+    asyncio.run(demo())
