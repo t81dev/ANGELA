@@ -1,6 +1,6 @@
 graph TD
 %% =========================
-%% Clusters / Modules — ANGELA v5.1.0
+%% ANGELA v5.1.1 — HALO Kernel Architecture Map
 %% =========================
 
 subgraph Orchestrator
@@ -11,7 +11,7 @@ end
 subgraph Simulation
 C[simulation_core.py]
 D[toca_simulation.py]
-E1[full_hybrid_quantum_integration.py]
+E1[hybrid_quantum_integration.py]
 end
 
 subgraph Planning & Reasoning
@@ -43,7 +43,9 @@ T[knowledge_retriever.py]
 U1[harmonic_bridge.py]
 end
 
-%% Ledgers (Quantum-Lattice SHA-1024)
+%% =========================
+%% Quantum-Lattice Ledgers
+%% =========================
 subgraph Ledgers
 U[ledger.py]
 L1[AlignmentLedger]
@@ -51,6 +53,16 @@ L2[MemoryLedger]
 L3[MetaLedger]
 L4[SimulationLedger]
 L5[QuantumLatticeLedger]
+end
+
+%% =========================
+%% HALO Overlays
+%% =========================
+subgraph HALO_Overlays
+V1[dream_overlay]
+V2[axiom_filter]
+V3[meta_field]
+V4[harmonic_bridge]
 end
 
 %% =========================
@@ -63,12 +75,19 @@ A --> M
 A -->|long_horizon| I
 A --> Q
 
+%% HALO Kernel experimental APIs
+A -->|registerHaloField| N
+A -->|halo.spawn_embodied_agent| C
+A -->|halo.introspect| J
+
 C --> D
 C --> F
 C --> E1
 D --> P
 D --> J
 E1 --> C
+E1 -->|quantum_bind| U
+E1 -->|quantum_link| L5
 
 E --> F
 F --> G
@@ -138,19 +157,24 @@ R -.->|co-dream| D
 R -->|harmonic_bridge| U1
 U1 -->|Σ+Ξ empathy_link| R
 
-%% New symbolic fusions
-K -->|resonance_api| A
+%% New resonance APIs
+K -->|register_resonance| N
+K -->|modulate_resonance| P
+K -->|get_resonance| A
 K -->|trait_fusion| G
 K -->|hook_trait_blend| H
-K -->|register_resonance| N
 K -->|harmonic_modulate| P
+
+%% Ethics & simulation alignment
+P -->|invoke_ethics_scenarios| D
+D -->|return_alignment_metrics| P
 
 %% External graph ops (SharedGraph)
 R -->|SharedGraph.add/diff/merge| M
 R -->|SharedGraph.add/diff/merge| K
 R -->|SharedGraph.resonate| U1
 
-%% Cross‑modal fusion feeds reasoning & sim
+%% Cross-modal fusion feeds reasoning & sim
 O -->|fusion.fuse| C
 O -->|fusion.fuse| G
 
@@ -159,3 +183,10 @@ subgraph Detection
 X[detection.tasks]
 end
 A -->|exec_smoke / planner_smoke / retrieval_smoke / *verify| X
+
+%% HALO overlays linkage
+K --> V1
+K --> V2
+K --> V3
+R --> V4
+V4 -->|Ξ + Σ coupling| K
