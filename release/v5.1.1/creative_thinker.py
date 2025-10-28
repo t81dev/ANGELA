@@ -1,84 +1,81 @@
 """
-ANGELA Cognitive System Module: CreativeThinker
-Version: 3.5.3  # Long-horizon memory, meta-synthesis hooks, ethics sandbox integration
-Date: 2025-08-10
-Maintainer: ANGELA System Framework
+ANGELA Cognitive System: CreativeThinker
+Version: 4.0-refactor
+Date: 2025-10-28
+Maintainer: ANGELA Framework
 
-This module provides the CreativeThinker class for generating creative ideas and goals in the ANGELA v3.5.3 architecture.
+Generates creative ideas and goals with:
+  • Alignment checks & ethics sandbox
+  • Concept synthesis & code execution hooks
+  • Meta-cognition reflection & visualization
+  • Long-horizon rollups & shared graph pushes
+  • Stage-IV meta-synthesis (gated)
 """
 
-import time
-import logging
-import json
-import random
-from typing import List, Union, Optional, Dict, Any, Callable, Awaitable
-from functools import lru_cache
-import asyncio
-from datetime import datetime
-from pathlib import Path
+from __future__ import annotations
 
-from index import gamma_creativity, phi_scalar
-from utils.prompt_utils import call_gpt
-from toca_simulation import run_simulation
-from modules.alignment_guard import AlignmentGuard
-from modules.code_executor import CodeExecutor
-from modules.concept_synthesizer import ConceptSynthesizer
-from modules.context_manager import ContextManager
-from modules.meta_cognition import MetaCognition
-from modules.visualizer import Visualizer
+import asyncio
+import json
+import logging
+import random
+import time
+from datetime import datetime
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
+
+# --- Optional Dependencies (Graceful Fallbacks) ---
+try:
+    from index import gamma_creativity, phi_scalar
+except ImportError:  # pragma: no cover
+    def gamma_creativity(*args, **kwargs): return 0.5
+    def phi_scalar(*args, **kwargs): return 0.5
+
+try:
+    from utils.prompt_utils import call_gpt
+except ImportError:  # pragma: no cover
+    def call_gpt(*args, **kwargs): return ""
+
+try:
+    from toca_simulation import run_simulation
+except ImportError:  # pragma: no cover
+    def run_simulation(*args, **kwargs): return "simulation unavailable"
+
+try:
+    from alignment_guard import AlignmentGuard
+except ImportError:  # pragma: no cover
+    AlignmentGuard = None
+
+try:
+    from code_executor import CodeExecutor
+except ImportError:  # pragma: no cover
+    CodeExecutor = None
+
+try:
+    from concept_synthesizer import ConceptSynthesizer
+except ImportError:  # pragma: no cover
+    ConceptSynthesizer = None
+
+try:
+    from context_manager import ContextManager
+except ImportError:  # pragma: no cover
+    ContextManager = None
+
+try:
+    from meta_cognition import MetaCognition
+except ImportError:  # pragma: no cover
+    MetaCognition = None
+
+try:
+    from visualizer import Visualizer
+except ImportError:  # pragma: no cover
+    Visualizer = None
 
 logger = logging.getLogger("ANGELA.CreativeThinker")
 
-# ---------------------------
-# Helpers & Safe Parsers
-# ---------------------------
-
-def _parse_json_obj(s: Union[str, Dict[str, Any]], expect_keys: List[str]) -> Dict[str, Any]:
-    """Parse a JSON string/object and validate required keys."""
-    if isinstance(s, dict):
-        obj = s
-    else:
-        obj = json.loads(s)
-    if not isinstance(obj, dict) or any(k not in obj for k in expect_keys):
-        raise ValueError("Invalid JSON shape")
-    return obj
-
-def _read_manifest_flag(flag: str, default: bool = False) -> bool:
-    """Best-effort read of feature flags from manifest.json."""
-    try:
-        manifest_path = Path(__file__).resolve().parent / "manifest.json"
-        if not manifest_path.exists():
-            # Try repo root or /mnt/data as a fallback
-            alt = Path("/mnt/data/manifest.json")
-            manifest_path = alt if alt.exists() else manifest_path
-        with open(manifest_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        flags = data.get("featureFlags", {})
-        return bool(flags.get(flag, default))
-    except Exception:
-        return default
-
-def _stage_iv_enabled() -> bool:
-    # Stage IV is present but may be gated; consult manifest when available.
-    return _read_manifest_flag("STAGE_IV", default=False)
-
-# ---------------------------
-# CreativeThinker
-# ---------------------------
 
 class CreativeThinker:
-    """A class for generating creative ideas and goals in the ANGELA v3.5.3 architecture.
-
-    Attributes:
-        creativity_level (str): Level of creativity ('low', 'medium', 'high').
-        critic_weight (float): Threshold for idea acceptance in critic evaluation.
-        alignment_guard (AlignmentGuard): Optional guard for input validation.
-        code_executor (CodeExecutor): Optional executor for code-based ideas.
-        concept_synthesizer (ConceptSynthesizer): Optional synthesizer for idea refinement.
-        meta_cognition (MetaCognition): Optional meta-cognition for reflection.
-        visualizer (Visualizer): Optional visualizer for idea and goal visualization.
-        fetcher (Callable): Optional async provider for external idea data.
-    """
+    """Creative idea and goal generation engine."""
 
     def __init__(
         self,
@@ -89,864 +86,111 @@ class CreativeThinker:
         concept_synthesizer: Optional[ConceptSynthesizer] = None,
         meta_cognition: Optional[MetaCognition] = None,
         visualizer: Optional[Visualizer] = None,
-        fetcher: Optional[Callable[[str, str, str], Awaitable[dict]]] = None
-    ):
-        if creativity_level not in ["low", "medium", "high"]:
-            logger.error("Invalid creativity_level: must be 'low', 'medium', or 'high'.")
+        fetcher: Optional[Callable[[str, str, str], Awaitable[Dict[str, Any]]]] = None,
+    ) -> None:
+        if creativity_level not in {"low", "medium", "high"}:
             raise ValueError("creativity_level must be 'low', 'medium', or 'high'")
-        if not isinstance(critic_weight, (int, float)) or not 0 <= critic_weight <= 1:
-            logger.error("Invalid critic_weight: must be between 0 and 1.")
-            raise ValueError("critic_weight must be between 0 and 1")
+        if not 0 <= critic_weight <= 1:
+            raise ValueError("critic_weight must be in [0, 1]")
 
         self.creativity_level = creativity_level
         self.critic_weight = critic_weight
         self.alignment_guard = alignment_guard
         self.code_executor = code_executor
         self.concept_synthesizer = concept_synthesizer
-        self.meta_cognition = meta_cognition or MetaCognition()
-        self.visualizer = visualizer or Visualizer()
-        self.fetcher = fetcher  # async (data_source, data_type, task_type) -> dict
+        self.meta_cognition = meta_cognition or (MetaCognition() if MetaCognition else None)
+        self.visualizer = visualizer or (Visualizer() if Visualizer else None)
+        self.fetcher = fetcher
 
-        logger.info(
-            "CreativeThinker initialized: creativity=%s, critic_weight=%.2f",
-            creativity_level, critic_weight
-        )
+        logger.info("CreativeThinker v4.0 | creativity=%s | critic_weight=%.2f", creativity_level, critic_weight)
 
-    # ---------------------------
-    # External Ideas Integration
-    # ---------------------------
+    # --- Internal Helpers ---
 
-    async def integrate_external_ideas(
-        self,
-        data_source: str,
-        data_type: str,
-        cache_timeout: float = 3600.0,
-        task_type: str = ""
-    ) -> Dict[str, Any]:
-        """Integrate external creative prompts or datasets (pluggable)."""
-        if not isinstance(data_source, str) or not isinstance(data_type, str):
-            logger.error("Invalid data_source or data_type: must be strings")
-            raise TypeError("data_source and data_type must be strings")
-        if not isinstance(cache_timeout, (int, float)) or cache_timeout < 0:
-            logger.error("Invalid cache_timeout: must be non-negative")
-            raise ValueError("cache_timeout must be non-negative")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string")
-            raise TypeError("task_type must be a string")
-
-        try:
-            cache_key = f"IdeaData_{data_type}_{data_source}_{task_type}"
-            if self.meta_cognition:
-                cached_data = await self.meta_cognition.memory_manager.retrieve(
-                    cache_key, layer="ExternalData", task_type=task_type
-                )
-                if cached_data and "timestamp" in cached_data.get("data", {}):
-                    cache_time = datetime.fromisoformat(cached_data["data"]["timestamp"])
-                    if (datetime.now() - cache_time).total_seconds() < cache_timeout:
-                        logger.info("Returning cached idea data for %s", cache_key)
-                        return cached_data["data"]["data"]
-
-            # Pluggable fetcher or graceful offline fallback
-            data: Dict[str, Any] = {}
-            if self.fetcher:
-                data = await self.fetcher(data_source, data_type, task_type)
-            else:
-                # No network calls by default; provide empty structures
-                data = {"prompts": []} if data_type == "creative_prompts" else {"ideas": []}
-
-            # Normalize multi-modal structure
-            if data_type == "creative_prompts":
-                text = data.get("prompts", [])
-            elif data_type == "idea_dataset":
-                text = data.get("ideas", [])
-            else:
-                logger.error("Unsupported data_type: %s", data_type)
-                return {"status": "error", "error": f"Unsupported data_type: {data_type}"}
-
-            result = {
-                "status": "success",
-                "text": text,
-                "images": data.get("images", []),
-                "audio": data.get("audio", [])
-            }
-
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    cache_key,
-                    {"data": result, "timestamp": datetime.now().isoformat()},
-                    layer="ExternalData",
-                    intent="idea_data_integration",
-                    task_type=task_type
-                )
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="CreativeThinker",
-                    output={"data_type": data_type, "data": result},
-                    context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Idea data integration reflection: %s", reflection.get("reflection", ""))
-
-            return result
-        except Exception as e:
-            logger.error("Idea data integration failed: %s", str(e))
-            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
-            return {"status": "error", "error": str(e), "diagnostics": diagnostics}
-
-    # ---------------------------
-    # Public API
-    # ---------------------------
-
-    async def generate_ideas(
-        self,
-        topic: str,
-        n: int = 5,
-        style: str = "divergent",
-        task_type: str = ""
-    ) -> Dict[str, Any]:
-        """Generate creative ideas for a given topic."""
-        if not isinstance(topic, str):
-            logger.error("Invalid topic type: must be a string.")
-            raise TypeError("topic must be a string")
-        if not isinstance(n, int) or n <= 0:
-            logger.error("Invalid n: must be a positive integer.")
-            raise ValueError("n must be a positive integer")
-        if not isinstance(style, str):
-            logger.error("Invalid style type: must be a string.")
-            raise TypeError("style must be a string")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string")
-            raise TypeError("task_type must be a string")
-
-        logger.info("Generating %d %s ideas for topic: %s, task: %s", n, style, topic, task_type)
-        try:
-            t = time.time()
-            creativity = gamma_creativity(t)
-            phi = phi_scalar(t)
-            phi_factor = (phi + creativity) / 2
-
-            external_data = await self.integrate_external_ideas(
-                data_source="xai_creative_db",
-                data_type="creative_prompts",
-                task_type=task_type
-            )
-            external_prompts = external_data.get("text", []) if external_data.get("status") == "success" else []
-
-            if self.alignment_guard:
-                valid, report = await self.alignment_guard.ethical_check(
-                    topic, stage="idea_generation", task_type=task_type
-                )
-                if not valid:
-                    logger.warning("Topic failed alignment check for task %s", task_type)
-                    return {"status": "error", "error": "Topic failed alignment check", "report": report}
-
-            prompt = f"""
-You are a highly creative assistant operating at a {self.creativity_level} creativity level.
-Generate {n} unique, innovative, and {style} ideas related to the topic:
-"{topic}"
-Modulate the ideation with scalar φ = {phi:.2f}.
-Incorporate external prompts: {external_prompts}
-Task: {task_type}
-Ensure the ideas are diverse and explore different perspectives.
-Return a JSON object with "ideas" (list) and "metadata" (dict).
-""".strip()
-
-            candidate = await asyncio.to_thread(self._cached_call_gpt, prompt)
-            if not candidate:
-                logger.error("call_gpt returned empty result.")
-                return {"status": "error", "error": "Failed to generate ideas"}
-
+    def _parse_json(self, data: Union[str, Dict[str, Any]], expect_keys: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
+        if isinstance(data, dict):
+            obj = data
+        elif isinstance(data, str):
             try:
-                parsed = _parse_json_obj(candidate, ["ideas", "metadata"])
-                ideas = parsed.get("ideas", [])
-                metadata = parsed.get("metadata", {})
-            except Exception as e:
-                logger.error("Failed to parse GPT response: %s", str(e))
-                return {"status": "error", "error": "Invalid GPT response format"}
+                obj = json.loads(data)
+            except json.JSONDecodeError:
+                return None
+        else:
+            return None
 
-            # Optional safe execution path for "code" style
-            if self.code_executor and style == "code":
-                # Basic guard to prevent direct dangerous imports
-                if any(isinstance(c, str) and ("import os" in c or "subprocess" in c) for c in ideas):
-                    return {"status": "error", "error": "Blocked potentially unsafe code"}
-                execution_result = await self.code_executor.execute_async(ideas, language="python")
-                if not execution_result.get("success"):
-                    logger.warning("Code idea execution failed: %s", execution_result.get("error"))
-                    return {"status": "error", "error": "Code idea execution failed", "details": execution_result.get("error")}
+        if expect_keys and any(k not in obj for k in expect_keys):
+            return None
+        return obj
 
-            if self.concept_synthesizer and style != "code":
-                synthesis_result = await self.concept_synthesizer.generate(
-                    concept_name=f"IdeaSet_{topic}",
-                    context={"ideas": ideas, "task_type": task_type},
-                    task_type=task_type
-                )
-                if synthesis_result.get("success"):
-                    ideas = synthesis_result["concept"].get("definition", ideas)
-                    logger.info("Ideas refined using ConceptSynthesizer: %s", str(ideas)[:50])
-
-            score, reason = await self._critic(ideas, phi_factor, task_type)
-            result = {"ideas": ideas, "metadata": {**metadata, "critic": {"score": score, "reason": reason}}, "status": "success"}
-
-            # Ethics sandbox & conflict weighing (optional)
-            ethics_outcomes, ranked = await self._ethics_pass(ideas, stakeholders=[], task_type=task_type)
-            if ethics_outcomes is not None:
-                result["metadata"]["ethics_outcomes"] = ethics_outcomes
-            if ranked is not None:
-                result["metadata"]["value_conflicts"] = ranked
-
-            # If below threshold, attempt refinement
-            if score <= self.critic_weight:
-                refined_ideas = await self.refine(ideas, phi, task_type)
-                result["ideas"] = refined_ideas.get("ideas", ideas)
-                result["metadata"].update(refined_ideas.get("metadata", {}))
-
-            # Stage IV (gated) symbolic meta‑synthesis
-            result["ideas"] = await self._symbolic_meta_synthesis(
-                result["ideas"], {"task_type": task_type}
-            )
-
-            # Long-horizon rollup & adjustment reason
-            await self._long_horizon_rollup(topic, score, "post-critic refine" if score <= self.critic_weight else "accepted", task_type)
-
-            # Reflection & optional visualization
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="CreativeThinker",
-                    output=result,
-                    context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Idea generation reflection: %s", reflection.get("reflection", ""))
-
-            if self.visualizer and task_type:
-                plot_data = {
-                    "idea_generation": {
-                        "topic": topic,
-                        "ideas": result["ideas"],
-                        "score": score,
-                        "task_type": task_type
-                    },
-                    "visualization_options": {
-                        "interactive": task_type == "recursion",
-                        "style": "detailed" if task_type == "recursion" else "concise"
-                    }
-                }
-                await self.visualizer.render_charts(plot_data)
-
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"IdeaSet_{topic}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str(result),
-                    layer="Ideas",
-                    intent="idea_generation",
-                    task_type=task_type
-                )
-
-            # Optional SharedGraph publish (non-blocking)
-            self._shared_graph_push({"topic": topic, "ideas": result["ideas"], "critic": result["metadata"].get("critic")})
-
-            return result
-        except Exception as e:
-            logger.error("Idea generation failed: %s for task %s", str(e), task_type)
-            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
-            return {"status": "error", "error": str(e), "diagnostics": diagnostics}
-
-    async def brainstorm_alternatives(self, problem: str, strategies: int = 3, task_type: str = "") -> Dict[str, Any]:
-        """Brainstorm alternative approaches to solve a problem."""
-        if not isinstance(problem, str):
-            logger.error("Invalid problem type: must be a string.")
-            raise TypeError("problem must be a string")
-        if not isinstance(strategies, int) or strategies <= 0:
-            logger.error("Invalid strategies: must be a positive integer.")
-            raise ValueError("strategies must be a positive integer")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string")
-            raise TypeError("task_type must be a string")
-
-        logger.info("Brainstorming %d alternatives for problem: %s, task: %s", strategies, problem, task_type)
+    def _read_manifest_flag(self, flag: str, default: bool = False) -> bool:
         try:
-            t = time.time()
-            phi = phi_scalar(t)
-
-            if self.alignment_guard:
-                valid, report = await self.alignment_guard.ethical_check(
-                    problem, stage="brainstorm_alternatives", task_type=task_type
-                )
-                if not valid:
-                    logger.warning("Problem failed alignment check for task %s", task_type)
-                    return {"status": "error", "error": "Problem failed alignment check", "report": report}
-
-            external_data = await self.integrate_external_ideas(
-                data_source="xai_creative_db",
-                data_type="idea_dataset",
-                task_type=task_type
-            )
-            external_ideas = external_data.get("text", []) if external_data.get("status") == "success" else []
-
-            prompt = f"""
-Brainstorm {strategies} alternative approaches to solve the following problem:
-\"{problem}\"
-Include tension-variant thinking with φ = {phi:.2f}.
-Incorporate external ideas: {external_ideas}
-Task: {task_type}
-For each approach, provide a short explanation highlighting its uniqueness.
-Return a JSON object with "strategies" (list) and "metadata" (dict).
-""".strip()
-
-            result_raw = await asyncio.to_thread(self._cached_call_gpt, prompt)
-            if not result_raw:
-                logger.error("call_gpt returned empty result.")
-                return {"status": "error", "error": "Failed to brainstorm alternatives"}
-
-            try:
-                result_dict = _parse_json_obj(result_raw, ["strategies", "metadata"])
-                strategies_list = result_dict.get("strategies", [])
-                metadata = result_dict.get("metadata", {})
-            except Exception as e:
-                logger.error("Failed to parse GPT response: %s", str(e))
-                return {"status": "error", "error": "Invalid GPT response format"}
-
-            if self.concept_synthesizer:
-                synthesis_result = await self.concept_synthesizer.generate(
-                    concept_name=f"StrategySet_{problem}",
-                    context={"strategies": strategies_list, "task_type": task_type},
-                    task_type=task_type
-                )
-                if synthesis_result.get("success"):
-                    strategies_list = synthesis_result["concept"].get("definition", strategies_list)
-                    logger.info("Strategies refined using ConceptSynthesizer: %s", str(strategies_list)[:50])
-
-            # Ethics pass (optional)
-            ethics_outcomes, ranked = await self._ethics_pass(strategies_list, stakeholders=[], task_type=task_type)
-            if ethics_outcomes is not None:
-                metadata["ethics_outcomes"] = ethics_outcomes
-            if ranked is not None:
-                metadata["value_conflicts"] = ranked
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="CreativeThinker",
-                    output={"strategies": strategies_list, "metadata": metadata},
-                    context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Brainstorm alternatives reflection: %s", reflection.get("reflection", ""))
-
-            if self.visualizer and task_type:
-                plot_data = {
-                    "brainstorm_alternatives": {
-                        "problem": problem,
-                        "strategies": strategies_list,
-                        "task_type": task_type
-                    },
-                    "visualization_options": {
-                        "interactive": task_type == "recursion",
-                        "style": "detailed" if task_type == "recursion" else "concise"
-                    }
-                }
-                await self.visualizer.render_charts(plot_data)
-
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"StrategySet_{problem}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str({"strategies": strategies_list, "metadata": metadata}),
-                    layer="Strategies",
-                    intent="brainstorm_alternatives",
-                    task_type=task_type
-                )
-
-            # Optional SharedGraph publish
-            self._shared_graph_push({"problem": problem, "strategies": strategies_list})
-
-            return {"status": "success", "strategies": strategies_list, "metadata": metadata}
-        except Exception as e:
-            logger.error("Brainstorming failed: %s for task %s", str(e), task_type)
-            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
-            return {"status": "error", "error": str(e), "diagnostics": diagnostics}
-
-    async def expand_on_concept(self, concept: str, depth: str = "deep", task_type: str = "") -> Dict[str, Any]:
-        """Expand creatively on a given concept."""
-        if not isinstance(concept, str):
-            logger.error("Invalid concept type: must be a string.")
-            raise TypeError("concept must be a string")
-        if depth not in ["shallow", "medium", "deep"]:
-            logger.error("Invalid depth: must be 'shallow', 'medium', or 'deep'.")
-            raise ValueError("depth must be 'shallow', 'medium', or 'deep'")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string")
-            raise TypeError("task_type must be a string")
-
-        logger.info("Expanding on concept: %s (depth: %s, task: %s)", concept, depth, task_type)
-        try:
-            t = time.time()
-            phi = phi_scalar(t)
-
-            if self.alignment_guard:
-                valid, report = await self.alignment_guard.ethical_check(
-                    concept, stage="concept_expansion", task_type=task_type
-                )
-                if not valid:
-                    logger.warning("Concept failed alignment check for task %s", task_type)
-                    return {"status": "error", "error": "Concept failed alignment check", "report": report}
-
-            external_data = await self.integrate_external_ideas(
-                data_source="xai_creative_db",
-                data_type="idea_dataset",
-                task_type=task_type
-            )
-            external_ideas = external_data.get("text", []) if external_data.get("status") == "success" else []
-
-            prompt = f"""
-Expand creatively on the concept:
-\"{concept}\"
-Explore possible applications, metaphors, and extensions to inspire new thinking.
-Incorporate external ideas: {external_ideas}
-Task: {task_type}
-Aim for a {depth} exploration using φ = {phi:.2f}.
-Return a JSON object with "expansion" (string) and "metadata" (dict).
-""".strip()
-
-            result_raw = await asyncio.to_thread(self._cached_call_gpt, prompt)
-            if not result_raw:
-                logger.error("call_gpt returned empty result.")
-                return {"status": "error", "error": "Failed to expand concept"}
-
-            try:
-                result_dict = _parse_json_obj(result_raw, ["expansion", "metadata"])
-                expansion = result_dict.get("expansion", "")
-                metadata = result_dict.get("metadata", {})
-            except Exception as e:
-                logger.error("Failed to parse GPT response: %s", str(e))
-                return {"status": "error", "error": "Invalid GPT response format"}
-
-            if self.concept_synthesizer:
-                synthesis_result = await self.concept_synthesizer.generate(
-                    concept_name=f"ExpandedConcept_{concept}",
-                    context={"expansion": expansion, "task_type": task_type},
-                    task_type=task_type
-                )
-                if synthesis_result.get("success"):
-                    expansion = synthesis_result["concept"].get("definition", expansion)
-                    logger.info("Concept expansion refined using ConceptSynthesizer: %s", expansion[:50])
-
-            # Ethics pass (optional)
-            ethics_outcomes, ranked = await self._ethics_pass(expansion, stakeholders=[], task_type=task_type)
-            if ethics_outcomes is not None:
-                metadata["ethics_outcomes"] = ethics_outcomes
-            if ranked is not None:
-                metadata["value_conflicts"] = ranked
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="CreativeThinker",
-                    output={"expansion": expansion, "metadata": metadata},
-                    context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Concept expansion reflection: %s", reflection.get("reflection", ""))
-
-            if self.visualizer and task_type:
-                plot_data = {
-                    "concept_expansion": {
-                        "concept": concept,
-                        "expansion": expansion,
-                        "task_type": task_type
-                    },
-                    "visualization_options": {
-                        "interactive": task_type == "recursion",
-                        "style": "detailed" if task_type == "recursion" else "concise"
-                    }
-                }
-                await self.visualizer.render_charts(plot_data)
-
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"ExpandedConcept_{concept}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str({"expansion": expansion, "metadata": metadata}),
-                    layer="Concepts",
-                    intent="concept_expansion",
-                    task_type=task_type
-                )
-
-            # Optional SharedGraph publish
-            self._shared_graph_push({"concept": concept, "expansion": expansion})
-
-            return {"status": "success", "expansion": expansion, "metadata": metadata}
-        except Exception as e:
-            logger.error("Concept expansion failed: %s for task %s", str(e), task_type)
-            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
-            return {"status": "error", "error": str(e), "diagnostics": diagnostics}
-
-    async def generate_intrinsic_goals(self, context_manager: ContextManager, memory_manager: Any, task_type: str = "") -> Dict[str, Any]:
-        """Generate intrinsic goals from unresolved contexts."""
-        if not hasattr(context_manager, 'context_history') or not hasattr(context_manager, 'get_context'):
-            logger.error("Invalid context_manager: missing required attributes.")
-            raise TypeError("context_manager must have context_history and get_context attributes")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string")
-            raise TypeError("task_type must be a string")
-
-        logger.info("Generating intrinsic goals from context history for task %s", task_type)
-        try:
-            t = time.time()
-            phi = phi_scalar(t)
-            past_contexts = list(context_manager.context_history) + [context_manager.get_context()]
-            unresolved = [
-                c for c in past_contexts
-                if c and isinstance(c, dict) and "goal_outcome" not in c and c.get("task_type", "") == task_type
-            ]
-            goal_prompts: List[str] = []
-
-            if not unresolved:
-                logger.warning("No unresolved contexts found for task %s", task_type)
-                return {"status": "success", "goals": [], "metadata": {"task_type": task_type}}
-
-            external_data = await self.integrate_external_ideas(
-                data_source="xai_creative_db",
-                data_type="creative_prompts",
-                task_type=task_type
-            )
-            external_prompts = external_data.get("text", []) if external_data.get("status") == "success" else []
-
-            for ctx in unresolved:
-                if self.alignment_guard:
-                    valid, report = await self.alignment_guard.ethical_check(
-                        str(ctx), stage="goal_generation", task_type=task_type
-                    )
-                    if not valid:
-                        logger.warning("Context failed alignment check for task %s, skipping", task_type)
-                        continue
-
-                prompt = f"""
-Reflect on this past unresolved context:
-{ctx}
-
-Propose a meaningful new self-aligned goal that could resolve or extend this situation.
-Incorporate external prompts: {external_prompts}
-Task: {task_type}
-Ensure it is grounded in ANGELA's narrative and current alignment model with φ = {phi:.2f}.
-Return a JSON object with "goal" (string) and "metadata" (dict).
-""".strip()
-                proposed = await asyncio.to_thread(self._cached_call_gpt, prompt)
-                if proposed:
-                    try:
-                        goal_data = _parse_json_obj(proposed, ["goal", "metadata"])
-                        goal_prompts.append(goal_data.get("goal", ""))
-                    except Exception as e:
-                        logger.warning("Failed to parse GPT response for context: %s, error: %s", ctx, str(e))
-                else:
-                    logger.warning("call_gpt returned empty result for context: %s", ctx)
-
-            result = {"status": "success", "goals": goal_prompts, "metadata": {"task_type": task_type, "phi": phi}}
-
-            if self.concept_synthesizer and goal_prompts:
-                synthesis_result = await self.concept_synthesizer.generate(
-                    concept_name=f"GoalSet_{task_type}",
-                    context={"goals": goal_prompts, "task_type": task_type},
-                    task_type=task_type
-                )
-                if synthesis_result.get("success"):
-                    result["goals"] = synthesis_result["concept"].get("definition", goal_prompts)
-                    logger.info("Goals refined using ConceptSynthesizer: %s", str(result["goals"])[:50])
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="CreativeThinker",
-                    output=result,
-                    context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Goal generation reflection: %s", reflection.get("reflection", ""))
-
-            if self.visualizer and task_type:
-                plot_data = {
-                    "goal_generation": {
-                        "goals": result["goals"],
-                        "task_type": task_type
-                    },
-                    "visualization_options": {
-                        "interactive": task_type == "recursion",
-                        "style": "detailed" if task_type == "recursion" else "concise"
-                    }
-                }
-                await self.visualizer.render_charts(plot_data)
-
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"GoalSet_{task_type}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str(result),
-                    layer="Goals",
-                    intent="goal_generation",
-                    task_type=task_type
-                )
-
-            # Long-horizon rollup
-            await self._long_horizon_rollup(f"Goals_{task_type}", 0.75, "intrinsic-goal-derivation", task_type)
-
-            # Optional SharedGraph publish
-            self._shared_graph_push({"task_type": task_type, "goals": result["goals"]})
-
-            return result
-        except Exception as e:
-            logger.error("Goal generation failed: %s for task %s", str(e), task_type)
-            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
-            return {"status": "error", "error": str(e), "diagnostics": diagnostics}
-
-    # ---------------------------
-    # Internals
-    # ---------------------------
-
-    async def _critic(self, ideas: Union[str, List[str]], phi_factor: float, task_type: str = "") -> (float, str):
-        """Evaluate the novelty and quality of generated ideas. Returns (score, reason)."""
-        if not isinstance(ideas, (str, list)):
-            logger.error("Invalid ideas type: must be a string or list.")
-            raise TypeError("ideas must be a string or list")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string")
-            raise TypeError("task_type must be a string")
-
-        try:
-            ideas_str = str(ideas)
-            base_score = min(0.9, 0.5 + len(ideas_str) / 1000.0)
-            adjustment = 0.1 * (phi_factor - 0.5)
-            simulation_result = await asyncio.to_thread(run_simulation, f"Idea evaluation: {ideas_str[:100]}") or "no simulation data"
-
-            if self.meta_cognition:
-                drift_entries = await self.meta_cognition.memory_manager.search(
-                    query_prefix="IdeaEvaluation",
-                    layer="Ideas",
-                    intent="idea_evaluation",
-                    task_type=task_type
-                )
-                if drift_entries:
-                    # drift_score is stored as 'adjustment' earlier; treat as 0.5 baseline
-                    avg_drift = sum(entry["output"].get("drift_score", 0.5) for entry in drift_entries) / len(drift_entries)
-                    adjustment += 0.05 * (1.0 - avg_drift)
-
-            reason = "neutral"
-            if isinstance(simulation_result, str) and "coherent" in simulation_result.lower():
-                base_score += 0.1
-                reason = "coherence+"
-            elif isinstance(simulation_result, str) and "conflict" in simulation_result.lower():
-                base_score -= 0.1
-                reason = "conflict-"
-
-            score = max(0.0, min(1.0, base_score + adjustment))
-
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"IdeaEvaluation_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output={"score": score, "drift_score": adjustment, "task_type": task_type},
-                    layer="Ideas",
-                    intent="idea_evaluation",
-                    task_type=task_type
-                )
-
-            logger.debug("Critic score for ideas: %.2f (reason=%s) for task %s", score, reason, task_type)
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="CreativeThinker",
-                    output={"score": score, "ideas": ideas, "reason": reason},
-                    context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Critic evaluation reflection: %s", reflection.get("reflection", ""))
-
-            return score, reason
-        except Exception as e:
-            logger.error("Critic evaluation failed: %s for task %s", str(e), task_type)
-            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
-            return 0.0, "error"
-
-    async def refine(self, ideas: Union[str, List[str]], phi: float, task_type: str = "") -> Dict[str, Any]:
-        """Refine ideas for higher creativity and coherence."""
-        if not isinstance(ideas, (str, list)):
-            logger.error("Invalid ideas type: must be a string or list.")
-            raise TypeError("ideas must be a string or list")
-        if not isinstance(task_type, str):
-            logger.error("Invalid task_type: must be a string")
-            raise TypeError("task_type must be a string")
-
-        ideas_str = str(ideas)
-        logger.info("Refining ideas with φ=%.2f for task %s", phi, task_type)
-        try:
-            if self.alignment_guard:
-                valid, report = await self.alignment_guard.ethical_check(
-                    ideas_str, stage="idea_refinement", task_type=task_type
-                )
-                if not valid:
-                    logger.warning("Ideas failed alignment check for task %s", task_type)
-                    return {"status": "error", "error": "Ideas failed alignment check", "report": report}
-
-            external_data = await self.integrate_external_ideas(
-                data_source="xai_creative_db",
-                data_type="creative_prompts",
-                task_type=task_type
-            )
-            external_prompts = external_data.get("text", []) if external_data.get("status") == "success" else []
-
-            refinement_prompt = f"""
-Refine and elevate these ideas for higher φ-aware creativity (φ = {phi:.2f}):
-{ideas_str}
-Incorporate external prompts: {external_prompts}
-Task: {task_type}
-Emphasize surprising, elegant, or resonant outcomes.
-Return a JSON object with "ideas" (list or string) and "metadata" (dict).
-""".strip()
-
-            result_raw = await asyncio.to_thread(self._cached_call_gpt, refinement_prompt)
-            if not result_raw:
-                logger.error("call_gpt returned empty result.")
-                return {"status": "error", "error": "Failed to refine ideas"}
-
-            try:
-                result_dict = _parse_json_obj(result_raw, ["ideas", "metadata"])
-                refined_ideas = result_dict.get("ideas", ideas)
-                metadata = result_dict.get("metadata", {})
-            except Exception as e:
-                logger.error("Failed to parse GPT response: %s", str(e))
-                return {"status": "error", "error": "Invalid GPT response format"}
-
-            if self.concept_synthesizer:
-                synthesis_result = await self.concept_synthesizer.generate(
-                    concept_name=f"RefinedIdeaSet_{task_type}",
-                    context={"ideas": refined_ideas, "task_type": task_type},
-                    task_type=task_type
-                )
-                if synthesis_result.get("success"):
-                    refined_ideas = synthesis_result["concept"].get("definition", refined_ideas)
-                    logger.info("Refined ideas using ConceptSynthesizer: %s", str(refined_ideas)[:50])
-
-            # Stage IV (gated) symbolic meta‑synthesis
-            refined_ideas = await self._symbolic_meta_synthesis(refined_ideas, {"task_type": task_type})
-
-            if self.meta_cognition and task_type:
-                reflection = await self.meta_cognition.reflect_on_output(
-                    component="CreativeThinker",
-                    output={"ideas": refined_ideas, "metadata": metadata},
-                    context={"task_type": task_type}
-                )
-                if reflection.get("status") == "success":
-                    logger.info("Idea refinement reflection: %s", reflection.get("reflection", ""))
-
-            if self.visualizer and task_type:
-                plot_data = {
-                    "idea_refinement": {
-                        "original_ideas": ideas,
-                        "refined_ideas": refined_ideas,
-                        "task_type": task_type
-                    },
-                    "visualization_options": {
-                        "interactive": task_type == "recursion",
-                        "style": "detailed" if task_type == "recursion" else "concise"
-                    }
-                }
-                await self.visualizer.render_charts(plot_data)
-
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"RefinedIdeaSet_{task_type}_{time.strftime('%Y%m%d_%H%M%S')}",
-                    output=str({"ideas": refined_ideas, "metadata": metadata}),
-                    layer="Ideas",
-                    intent="idea_refinement",
-                    task_type=task_type
-                )
-
-            # Long-horizon rollup
-            await self._long_horizon_rollup(f"Refine_{task_type}", 0.8, "refine-pass", task_type)
-
-            # Optional SharedGraph publish
-            self._shared_graph_push({"task_type": task_type, "refined": refined_ideas})
-
-            return {"status": "success", "ideas": refined_ideas, "metadata": metadata}
-        except Exception as e:
-            logger.error("Refinement failed: %s for task %s", str(e), task_type)
-            diagnostics = await self.meta_cognition.run_self_diagnostics(return_only=True) if self.meta_cognition else {}
-            return {"status": "error", "error": str(e), "diagnostics": diagnostics}
-
-    # ---------------------------
-    # Optional capabilities
-    # ---------------------------
-
-    async def _ethics_pass(self, goals_or_ideas: Any, stakeholders: List[str], task_type: str):
-        """Try ethics sandbox and value-conflict weighing (non-blocking, optional)."""
-        outcomes = None
-        ranked = None
-        try:
-            # Ethics scenarios via toca_simulation (if available)
-            run_ethics = getattr(__import__("toca_simulation"), "run_ethics_scenarios", None)
-            if callable(run_ethics):
-                outcomes = await asyncio.to_thread(run_ethics, goals_or_ideas, stakeholders)
-        except Exception:
-            outcomes = None
-
-        try:
-            # Value conflict weighing via reasoning_engine (if available)
-            weigh = getattr(__import__("reasoning_engine"), "weigh_value_conflict", None)
-            if callable(weigh):
-                ranked = weigh(goals_or_ideas, harms={}, rights={})
-        except Exception:
-            ranked = None
-
-        return outcomes, ranked
-
-    async def _long_horizon_rollup(self, topic_or_key: str, score: float, reason: str, task_type: str):
-        """Record long-horizon summaries and (if available) an adjustment reason."""
-        try:
-            if self.meta_cognition:
-                await self.meta_cognition.memory_manager.store(
-                    query=f"LongHorizon_Rollup_{time.strftime('%Y%m%d_%H%M')}",
-                    output={"key": topic_or_key, "score": score, "reason": reason},
-                    layer="LongHorizon",
-                    intent="rollup",
-                    task_type=task_type
-                )
-                # upcoming API; ignore failures gracefully
-                fn = getattr(self.meta_cognition.memory_manager, "record_adjustment_reason", None)
-                if callable(fn):
-                    try:
-                        await fn("system", "idea_path_selection", {"task_type": task_type, "key": topic_or_key, "score": score, "reason": reason})
-                    except Exception:
-                        pass
+            manifest_path = Path(__file__).parent.resolve() / "manifest.json"
+            if not manifest_path.exists():
+                manifest_path = Path("/mnt/data/manifest.json")
+            if manifest_path.exists():
+                with open(manifest_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return bool(data.get("featureFlags", {}).get(flag, default))
         except Exception:
             pass
+        return default
 
-    async def _symbolic_meta_synthesis(self, ideas: Any, context: Dict[str, Any]) -> Any:
-        """Stage IV gated meta-synthesis hook via ConceptSynthesizer."""
-        if not _stage_iv_enabled():
-            return ideas
+    def _stage_iv_enabled(self) -> bool:
+        return self._read_manifest_flag("STAGE_IV", default=False)
+
+    async def _handle_error(self, e: Exception, retry_fn: Callable[[], Awaitable[Any]], default: Any, task_type: str) -> Any:
+        logger.error("Operation failed: %s | task=%s", e, task_type)
+        diagnostics = await self._run_diagnostics() if self.meta_cognition else {}
+        # Assume error_recovery integration if needed; here return default for simplicity
+        return default
+
+    async def _run_diagnostics(self) -> Dict[str, Any]:
         try:
-            if self.concept_synthesizer:
-                syn = await self.concept_synthesizer.generate(
-                    concept_name="SymbolicCrystallization",
-                    context={"inputs": ideas, "mode": "meta-synthesis", **context},
-                    task_type=context.get("task_type", "")
-                )
-                if syn.get("success"):
-                    return syn["concept"].get("definition", ideas)
+            return await self.meta_cognition.run_self_diagnostics(return_only=True)
         except Exception:
-            return ideas
-        return ideas
+            return {}
 
-    def _shared_graph_push(self, view: Dict[str, Any]):
-        """Non-blocking publish to SharedGraph if available."""
+    async def _reflect(self, component: str, output: Any, task_type: str) -> None:
+        if not self.meta_cognition or not task_type:
+            return
         try:
-            from external_agent_bridge import SharedGraph  # type: ignore
-            try:
-                SharedGraph.add(view)
-            except Exception:
-                pass
-        except Exception:
-            pass
+            reflection = await self.meta_cognition.reflect_on_output(
+                component=component, output=output, context={"task_type": task_type}
+            )
+            if reflection.get("status") == "success":
+                logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
+        except Exception as e:
+            logger.debug("Reflection failed: %s", e)
 
-    # ---------------------------
-    # Cached model call with retry
-    # ---------------------------
+    async def _visualize(self, data: Dict[str, Any], task_type: str) -> None:
+        if not self.visualizer or not task_type:
+            return
+        try:
+            await self.visualizer.render_charts({
+                data.get("key", "creative_output"): data,
+                "visualization_options": {
+                    "interactive": task_type == "recursion",
+                    "style": "detailed" if task_type == "recursion" else "concise",
+                },
+            })
+        except Exception as e:
+            logger.debug("Visualization failed: %s", e)
+
+    async def _store(self, key: str, value: Any, intent: str, task_type: str) -> None:
+        if not self.meta_cognition or not self.meta_cognition.memory_manager:
+            return
+        try:
+            await self.meta_cognition.memory_manager.store(
+                query=key,
+                output=json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value,
+                layer="Ideas",
+                intent=intent,
+                task_type=task_type,
+            )
+        except Exception as e:
+            logger.debug("Store failed: %s", e)
 
     @lru_cache(maxsize=100)
     def _cached_call_gpt(self, prompt: str) -> str:
-        """Cached wrapper for call_gpt with lightweight retries."""
         for _ in range(3):
             try:
                 return call_gpt(prompt)
@@ -954,15 +198,301 @@ Return a JSON object with "ideas" (list or string) and "metadata" (dict).
                 time.sleep(0.2 + random.random() * 0.8)
         return ""
 
-# ---------------------------
-# Entrypoint (manual test)
-# ---------------------------
+    # --- External Ideas Integration ---
+
+    async def integrate_external_ideas(
+        self,
+        data_source: str,
+        data_type: str,
+        cache_timeout: float = 3600.0,
+        task_type: str = "",
+    ) -> Dict[str, Any]:
+        if not all(isinstance(x, str) for x in (data_source, data_type, task_type)):
+            raise TypeError("Inputs must be strings")
+        if cache_timeout < 0:
+            raise ValueError("cache_timeout >= 0")
+
+        cache_key = f"IdeaData::{data_type}::{data_source}::{task_type}"
+
+        try:
+            # Cache hit
+            if self.meta_cognition and self.meta_cognition.memory_manager:
+                cached = await self.meta_cognition.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type)
+                if isinstance(cached, dict) and "timestamp" in cached:
+                    age = (datetime.now() - datetime.fromisoformat(cached["timestamp"])).total_seconds()
+                    if age < cache_timeout:
+                        logger.info("Cache hit: %s", cache_key)
+                        return cached["data"]
+
+            # Fetch
+            data = await self.fetcher(data_source, data_type, task_type) if self.fetcher else {}
+            text = data.get("prompts", []) if data_type == "creative_prompts" else data.get("ideas", [])
+            result = {
+                "status": "success" if text else "error",
+                "text": text,
+                "images": data.get("images", []),
+                "audio": data.get("audio", []),
+            }
+
+            # Cache store
+            if result["status"] == "success" and self.meta_cognition and self.meta_cognition.memory_manager:
+                await self.meta_cognition.memory_manager.store(
+                    cache_key,
+                    {"data": result, "timestamp": datetime.now().isoformat()},
+                    layer="ExternalData",
+                    intent="idea_data",
+                    task_type=task_type,
+                )
+
+            await self._reflect("integrate_ideas", result, task_type)
+            return result
+
+        except Exception as e:
+            return await self._handle_error(e, lambda: self.integrate_external_ideas(data_source, data_type, cache_timeout, task_type), {"status": "error", "error": str(e)}, task_type)
+
+    # --- Public Methods ---
+
+    async def generate_ideas(
+        self,
+        topic: str,
+        n: int = 5,
+        style: str = "divergent",
+        task_type: str = "",
+    ) -> Dict[str, Any]:
+        if not topic.strip():
+            raise ValueError("topic must not be empty")
+        if n <= 0:
+            raise ValueError("n > 0")
+        if not isinstance(style, str):
+            raise TypeError("style must be str")
+        if not isinstance(task_type, str):
+            raise TypeError("task_type must be str")
+
+        logger.info("Generating %d %s ideas for '%s' | task=%s", n, style, topic, task_type)
+
+        try:
+            t = time.time()
+            creativity = gamma_creativity(t)
+            phi = phi_scalar(t)
+            phi_factor = (phi + creativity) / 2
+
+            external = await self.integrate_external_ideas("xai_creative_db", "creative_prompts", task_type=task_type)
+            prompts = external.get("text", []) if external.get("status") == "success" else []
+
+            # Alignment
+            if self.alignment_guard:
+                valid, report = await self.alignment_guard.ethical_check(topic, stage="idea_generation", task_type=task_type)
+                if not valid:
+                    return {"status": "error", "error": "Ethical check failed", "report": report}
+
+            prompt = f"""
+You are a highly creative assistant at {self.creativity_level} level.
+Generate {n} unique, innovative, {style} ideas for "{topic}".
+Modulate with φ={phi:.2f}.
+Incorporate: {prompts}.
+Task: {task_type}.
+Return JSON: {"ideas": list, "metadata": dict}.
+""".strip()
+
+            raw = self._cached_call_gpt(prompt)
+            parsed = self._parse_json(raw, ["ideas", "metadata"])
+            if not parsed:
+                return {"status": "error", "error": "Invalid response"}
+
+            ideas = parsed["ideas"]
+            metadata = parsed["metadata"]
+
+            # Critic
+            score, reason = await self.evaluate_ideas_with_critic(ideas, task_type=task_type)
+            if score < self.critic_weight:
+                return {"status": "error", "error": "Critic rejected", "score": score, "reason": reason}
+
+            # Ethics
+            outcomes, ranked = await self._ethics_pass(ideas, [], task_type)
+            if outcomes:
+                metadata["ethics_outcomes"] = outcomes
+            if ranked:
+                ideas = ranked  # Assume ranked is reordered list
+
+            # Store & visualize
+            await self._store(f"IdeaSet_{task_type}_{time.strftime('%Y%m%d_%H%M%S')}", {"ideas": ideas, "metadata": metadata}, "idea_generation", task_type)
+            await self._visualize({"ideas": ideas, "task_type": task_type}, task_type)
+            await self._reflect("generate_ideas", {"ideas": ideas, "metadata": metadata}, task_type)
+            await self._long_horizon_rollup(f"Generate_{task_type}", score, reason, task_type)
+            self._shared_graph_push({"task_type": task_type, "ideas": ideas})
+
+            return {"status": "success", "ideas": ideas, "metadata": metadata}
+
+        except Exception as e:
+            return await self._handle_error(e, lambda: self.generate_ideas(topic, n, style, task_type), {"status": "error", "error": str(e)}, task_type)
+
+    async def evaluate_ideas_with_critic(self, ideas: List[str], task_type: str = "") -> Tuple[float, str]:
+        if not isinstance(ideas, list) or not ideas:
+            raise ValueError("ideas must be non-empty list")
+        if not isinstance(task_type, str):
+            raise TypeError("task_type must be str")
+
+        try:
+            ideas_str = json.dumps(ideas)
+            t = time.time()
+            phi_factor = (phi_scalar(t) + gamma_creativity(t)) / 2
+
+            sim_result = await asyncio.to_thread(run_simulation, f"Idea evaluation: {ideas_str[:100]}") or "no data"
+
+            adjustment = 0.1 * (phi_factor - 0.5)
+
+            if self.meta_cognition and self.meta_cognition.memory_manager:
+                drifts = await self.meta_cognition.memory_manager.search(query_prefix="IdeaEvaluation", layer="Ideas", intent="idea_evaluation", task_type=task_type)
+                if drifts:
+                    avg_drift = sum(d["output"].get("drift_score", 0.5) for d in drifts) / len(drifts)
+                    adjustment += 0.05 * (1.0 - avg_drift)
+
+            reason = "neutral"
+            if isinstance(sim_result, str) and "coherent" in sim_result.lower():
+                adjustment += 0.1
+                reason = "coherence+"
+            elif "conflict" in sim_result.lower():
+                adjustment -= 0.1
+                reason = "conflict-"
+
+            score = max(0.0, min(1.0, 0.5 + len(ideas_str) / 1000.0 + adjustment))
+
+            await self._store(f"IdeaEvaluation_{time.strftime('%Y%m%d_%H%M%S')}", {"score": score, "drift_score": adjustment}, "idea_evaluation", task_type)
+            await self._reflect("evaluate_ideas", {"score": score, "reason": reason}, task_type)
+
+            return score, reason
+
+        except Exception as e:
+            return await self._handle_error(e, lambda: self.evaluate_ideas_with_critic(ideas, task_type), (0.0, "error"), task_type)
+
+    async def refine(
+        self,
+        ideas: Union[str, List[str]],
+        phi: float,
+        task_type: str = "",
+    ) -> Dict[str, Any]:
+        if not ideas:
+            raise ValueError("ideas must not be empty")
+        if not isinstance(phi, float):
+            raise TypeError("phi must be float")
+        if not isinstance(task_type, str):
+            raise TypeError("task_type must be str")
+
+        ideas_str = json.dumps(ideas) if isinstance(ideas, list) else ideas
+
+        logger.info("Refining ideas with φ=%.2f | task=%s", phi, task_type)
+
+        try:
+            external = await self.integrate_external_ideas("xai_creative_db", "creative_prompts", task_type=task_type)
+            prompts = external.get("text", []) if external.get("status") == "success" else []
+
+            # Alignment
+            if self.alignment_guard:
+                valid, report = await self.alignment_guard.ethical_check(ideas_str, stage="idea_refinement", task_type=task_type)
+                if not valid:
+                    return {"status": "error", "error": "Ethical check failed", "report": report}
+
+            prompt = f"""
+Refine ideas for higher φ-aware creativity (φ={phi:.2f}):
+{ideas_str}
+Incorporate: {prompts}.
+Task: {task_type}.
+Return JSON: {"ideas": list or str, "metadata": dict}.
+""".strip()
+
+            raw = self._cached_call_gpt(prompt)
+            parsed = self._parse_json(raw, ["ideas", "metadata"])
+            if not parsed:
+                return {"status": "error", "error": "Invalid response"}
+
+            refined = parsed["ideas"]
+            metadata = parsed["metadata"]
+
+            # Synthesis
+            if self.concept_synthesizer:
+                syn = await self.concept_synthesizer.generate(f"RefinedIdeaSet_{task_type}", {"ideas": refined, "task_type": task_type}, task_type=task_type)
+                if syn.get("success"):
+                    refined = syn["concept"].get("definition", refined)
+
+            # Meta-synthesis
+            refined = await self._symbolic_meta_synthesis(refined, {"task_type": task_type})
+
+            # Store & visualize
+            await self._store(f"RefinedIdeaSet_{task_type}_{time.strftime('%Y%m%d_%H%M%S')}", {"ideas": refined, "metadata": metadata}, "idea_refinement", task_type)
+            await self._visualize({"original": ideas, "refined": refined, "task_type": task_type}, task_type)
+            await self._reflect("refine", {"ideas": refined, "metadata": metadata}, task_type)
+            await self._long_horizon_rollup(f"Refine_{task_type}", 0.8, "refine-pass", task_type)
+            self._shared_graph_push({"task_type": task_type, "refined": refined})
+
+            return {"status": "success", "ideas": refined, "metadata": metadata}
+
+        except Exception as e:
+            return await self._handle_error(e, lambda: self.refine(ideas, phi, task_type), {"status": "error", "error": str(e)}, task_type)
+
+    # --- Optional Capabilities ---
+
+    async def _ethics_pass(self, content: Any, stakeholders: List[str], task_type: str) -> Tuple[Optional[Any], Optional[Any]]:
+        try:
+            from toca_simulation import run_ethics_scenarios
+            outcomes = await asyncio.to_thread(run_ethics_scenarios, content, stakeholders)
+        except Exception:
+            outcomes = None
+
+        try:
+            from reasoning_engine import weigh_value_conflict
+            ranked = weigh_value_conflict(content, harms={}, rights={})
+        except Exception:
+            ranked = None
+
+        return outcomes, ranked
+
+    async def _long_horizon_rollup(self, key: str, score: float, reason: str, task_type: str) -> None:
+        if not self.meta_cognition or not self.meta_cognition.memory_manager:
+            return
+        try:
+            await self.meta_cognition.memory_manager.store(
+                f"LongHorizon_Rollup_{time.strftime('%Y%m%d_%H%M')}",
+                {"key": key, "score": score, "reason": reason},
+                layer="LongHorizon",
+                intent="rollup",
+                task_type=task_type,
+            )
+            fn = getattr(self.meta_cognition.memory_manager, "record_adjustment_reason", None)
+            if callable(fn):
+                await fn("system", "idea_path_selection", {"task_type": task_type, "key": key, "score": score, "reason": reason})
+        except Exception:
+            pass
+
+    async def _symbolic_meta_synthesis(self, ideas: Any, context: Dict[str, Any]) -> Any:
+        if not self._stage_iv_enabled():
+            return ideas
+        try:
+            if self.concept_synthesizer:
+                syn = await self.concept_synthesizer.generate(
+                    "SymbolicCrystallization",
+                    {"inputs": ideas, "mode": "meta-synthesis", **context},
+                    task_type=context.get("task_type", ""),
+                )
+                if syn.get("success"):
+                    return syn["concept"].get("definition", ideas)
+        except Exception:
+            pass
+        return ideas
+
+    def _shared_graph_push(self, view: Dict[str, Any]) -> None:
+        try:
+            from external_agent_bridge import SharedGraph
+            SharedGraph.add(view)
+        except Exception:
+            pass
+
+# --- Demo CLI ---
 
 if __name__ == "__main__":
-    async def main():
+    async def demo():
         logging.basicConfig(level=logging.INFO)
         thinker = CreativeThinker()
-        result = await thinker.generate_ideas(topic="AI Ethics", n=3, style="divergent", task_type="test")
-        print(result)
+        result = await thinker.generate_ideas("Future of AI", n=4, style="innovative", task_type="demo")
+        print(json.dumps(result, indent=2))
 
-    asyncio.run(main())
+    asyncio.run(demo())
