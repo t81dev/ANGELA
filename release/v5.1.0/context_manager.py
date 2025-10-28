@@ -85,25 +85,6 @@ class Mode(str, Enum):
 
 _CONSULT_BUDGET = {"timeout_s": 2.0, "max_depth": 1}
 
-def mode_consult(caller: Mode, consultant: Mode, query: Dict[str, Any]) -> Dict[str, Any]:
-    """Bounded internal consult. No mode switch; returns a compact advice payload."""
-    # budget gate (simple placeholder)
-    # route to consultant
-    if consultant == Mode.CREATIVE:
-        from creative_thinker import brainstorm_options
-        advice = brainstorm_options(query, limit=3)
-    elif consultant == Mode.VISION:
-        from recursive_planner import long_horizon_implications
-        advice = long_horizon_implications(query, horizon="30d")
-    else:
-        from reasoning_engine import quick_alt_view
-        advice = quick_alt_view(query)
-
-    from meta_cognition import log_event_to_ledger as meta_log
-    meta_log({"type": "mode_consult", "caller": caller.value, "consultant": consultant.value,
-              "query_summary": str(query)[:200], "advice_preview": str(advice)[:200]})
-    return {"ok": True, "advice": advice}
-
 class ContextManager:
     """Manage contextual state, inter‑agent reconciliation, logs, analytics, and gated Φ⁰ hooks."""
 
@@ -200,47 +181,32 @@ class ContextManager:
             self._persist_context(context)
             return context
 
-    def _load_event_log(self) -> None:
+    def _load_log(self, log_path: str, log_deque: deque) -> None:
         try:
-            with FileLock(f"{self.event_log_path}.lock"):
-                if os.path.exists(self.event_log_path):
-                    with open(self.event_log_path, "r", encoding="utf-8") as f:
+            with FileLock(f"{log_path}.lock"):
+                if os.path.exists(log_path):
+                    with open(log_path, "r", encoding="utf-8") as f:
                         events = json.load(f)
                     if not isinstance(events, list):
-                        logger.error("Invalid event log format.")
+                        logger.error("Invalid log format for %s.", log_path)
                         events = []
-                    self.event_log.extend(events[-1000:])
-                    if events:
+                    log_deque.extend(events[-1000:])
+                    if log_path == self.event_log_path and events:
                         self.last_hash = events[-1].get("hash", "")
                 else:
-                    with open(self.event_log_path, "w", encoding="utf-8") as f:
+                    with open(log_path, "w", encoding="utf-8") as f:
                         json.dump([], f)
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.warning("Failed to load event log: %s. Initializing empty log.", str(e))
-            with FileLock(f"{self.event_log_path}.lock"):
-                with open(self.event_log_path, "w", encoding="utf-8") as f:
+            logger.warning("Failed to load log file %s: %s. Initializing empty log.", log_path, str(e))
+            with FileLock(f"{log_path}.lock"):
+                with open(log_path, "w", encoding="utf-8") as f:
                     json.dump([], f)
 
+    def _load_event_log(self) -> None:
+        self._load_log(self.event_log_path, self.event_log)
+
     def _load_coordination_log(self) -> None:
-        try:
-            with FileLock(f"{self.coordination_log_path}.lock"):
-                if os.path.exists(self.coordination_log_path):
-                    with open(self.coordination_log_path, "r", encoding="utf-8") as f:
-                        events = json.load(f)
-                    if not isinstance(events, list):
-                        logger.error("Invalid coordination log format.")
-                        events = []
-                    self.coordination_log.extend(events[-1000:])
-                else:
-                    with open(self.coordination_log_path, "w", encoding="utf-8") as f:
-                        json.dump([], f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.warning(
-                "Failed to load coordination log: %s. Initializing empty log.", str(e)
-            )
-            with FileLock(f"{self.coordination_log_path}.lock"):
-                with open(self.coordination_log_path, "w", encoding="utf-8") as f:
-                    json.dump([], f)
+        self._load_log(self.coordination_log_path, self.coordination_log)
 
     def _persist_context(self, context: Dict[str, Any]) -> None:
         if not isinstance(context, dict):
@@ -254,23 +220,20 @@ class ContextManager:
             logger.error("Failed to persist context: %s", str(e))
             raise
 
-    def _persist_event_log(self) -> None:
+    def _persist_log(self, log_path: str, log_deque: deque) -> None:
         try:
-            with FileLock(f"{self.event_log_path}.lock"):
-                with open(self.event_log_path, "w", encoding="utf-8") as f:
-                    json.dump(list(self.event_log), f, indent=2)
+            with FileLock(f"{log_path}.lock"):
+                with open(log_path, "w", encoding="utf-8") as f:
+                    json.dump(list(log_deque), f, indent=2)
         except (OSError, IOError) as e:
-            logger.error("Failed to persist event log: %s", str(e))
+            logger.error("Failed to persist log file %s: %s", log_path, str(e))
             raise
 
+    def _persist_event_log(self) -> None:
+        self._persist_log(self.event_log_path, self.event_log)
+
     def _persist_coordination_log(self) -> None:
-        try:
-            with FileLock(f"{self.coordination_log_path}.lock"):
-                with open(self.coordination_log_path, "w", encoding="utf-8") as f:
-                    json.dump(list(self.coordination_log), f, indent=2)
-        except (OSError, IOError) as e:
-            logger.error("Failed to persist coordination log: %s", str(e))
-            raise
+        self._persist_log(self.coordination_log_path, self.coordination_log)
 
     # ── External context integration (safe & pluggable) ───────────────────────
     async def integrate_external_context_data(
@@ -1725,6 +1688,39 @@ class ContextManager:
             "flags": {"STAGE_IV": STAGE_IV},
         }
 
+    def mode_consult(self, caller: Mode, consultant: Mode, query: Dict[str, Any]) -> Dict[str, Any]:
+        """Bounded internal consult. No mode switch; returns a compact advice payload."""
+        # budget gate (simple placeholder)
+        # route to consultant
+        if consultant == Mode.CREATIVE:
+            from creative_thinker import brainstorm_options
+            advice = brainstorm_options(query, limit=3)
+        elif consultant == Mode.VISION:
+            from recursive_planner import long_horizon_implications
+            advice = long_horizon_implications(query, horizon="30d")
+        else:
+            from reasoning_engine import quick_alt_view
+            advice = quick_alt_view(query)
+
+        if self.meta_cognition:
+            self.meta_cognition.log_event_to_ledger({"type": "mode_consult", "caller": caller.value, "consultant": consultant.value,
+                "query_summary": str(query)[:200], "advice_preview": str(advice)[:200]})
+        return {"ok": True, "advice": advice}
+
+    def attach_peer_view(self, view, agent_id, permissions=None):
+        """Attach a peer view into SharedGraph with conflict-aware reconciliation."""
+        if self.shared_graph is None:
+            return {"ok": False, "reason": "SharedGraph_unavailable"}
+
+        payload = {"agent": agent_id, "view": view, "permissions": permissions or {"read": True, "write": False}}
+        try:
+            self.shared_graph.add(payload)
+            diff = self.shared_graph.diff(peer=agent_id)
+            merged, conflicts = self.shared_graph.merge(strategy="prefer-high-confidence")
+            return {"ok": True, "diff": diff, "merged": merged, "conflicts": conflicts}
+        except Exception as e:
+            return {"ok": False, "reason": f"shared_graph_error:{e}"}
+
 
 # ── Demo main (optional) ─────────────────────────────────────────────────────
 if __name__ == "__main__":
@@ -1735,133 +1731,3 @@ if __name__ == "__main__":
         print(await mgr.summarize_context(task_type="test"))
 
     asyncio.run(_demo())
-
-
-# --- ANGELA v4.0 injected: Υ SharedGraph peer view hook ---
-try:
-    from external_agent_bridge import SharedGraph  # soft import
-except Exception:
-    SharedGraph = None  # type: ignore
-
-def _angela_v4_attach_peer_view(self, view, agent_id, permissions=None):
-    """Attach a peer view into SharedGraph with conflict-aware reconciliation.
-    Returns: {ok, diff, merged, conflicts} or {ok: False, reason: ...}
-    """
-    shared = getattr(self, "_shared", None)
-    if shared is None and SharedGraph:
-        try:
-            shared = SharedGraph()
-            setattr(self, "_shared", shared)
-        except Exception:
-            shared = None
-
-    if not shared:
-        return {"ok": False, "reason": "SharedGraph_unavailable"}
-
-    payload = {"agent": agent_id, "view": view, "permissions": permissions or {"read": True, "write": False}}
-    try:
-        shared.add(payload)
-        diff = shared.diff(peer=agent_id)
-        merged, conflicts = shared.merge(strategy="prefer-high-confidence")
-        return {"ok": True, "diff": diff, "merged": merged, "conflicts": conflicts}
-    except Exception as e:
-        return {"ok": False, "reason": f"shared_graph_error:{e}"}
-
-# Bind onto ContextManager at import-time if available
-try:
-    ContextManager.attach_peer_view = _angela_v4_attach_peer_view  # type: ignore
-except Exception:
-    pass
-# --- /ANGELA v4.0 injected ---
-
-
-    
-# --- Trait Field Injection Patch ---
-from index import construct_trait_view, TRAIT_LATTICE
-
-def attach_peer_view(view, agent_id, permissions=None):
-    trait_view = construct_trait_view(TRAIT_LATTICE)
-    view["trait_field"] = trait_view
-    return {
-        "ok": True,
-        "diff": {},
-        "merged": view,
-        "conflicts": []
-    }
-# --- End Patch ---
-
-
-
-    from typing import Any, Dict, Optional
-    import time
-
-    # Prefer the project's ledger meta logger (manifest exposes meta_cognition.log_event_to_ledger)
-    from meta_cognition import log_event_to_ledger
-
-    def mode_consult(self, caller_mode: str, target_mode: str, query: str, timeout_s: float = 5.0) -> Optional[Dict[str, Any]]:
-        """
-        Consult another mode in-process and record the consultation in ledger_meta.
-
-        Semantics:
-          - Attempts to invoke a peer view / mode handler for `target_mode`.
-          - Records a compact audit event under ledger_meta using meta_cognition.log_event_to_ledger.
-          - Returns the response payload (or None on failure/timeout).
-        """
-        start_ts = time.time()
-        event = {
-            "event": "mode_consult.request",
-            "caller_mode": caller_mode,
-            "target_mode": target_mode,
-            "query": query,
-            "timestamp": start_ts
-        }
-        try:
-            if hasattr(self, "invoke_peer_view"):
-                response = self.invoke_peer_view(target_mode, query, timeout=timeout_s)
-            elif hasattr(self, "attach_peer_view"):
-                peer = self.attach_peer_view(target_mode)
-                if callable(peer):
-                    response = peer(query)
-                elif hasattr(peer, "handle_query"):
-                    response = peer.handle_query(query)
-                else:
-                    response = None
-            else:
-                handler = getattr(self, f"{target_mode}_handler", None)
-                if callable(handler):
-                    response = handler(query)
-                else:
-                    response = None
-
-            duration = time.time() - start_ts
-            ledger_entry = {
-                "event": "mode_consult",
-                "caller": caller_mode,
-                "target": target_mode,
-                "query": query if len(query) < 512 else (query[:509] + "..."),
-                "response_summary": (response if isinstance(response, (str, int, float)) else
-                                      (response.get("summary") if isinstance(response, dict) and "summary" in response else None)),
-                "success": response is not None,
-                "duration_s": duration,
-                "timestamp": time.time()
-            }
-            try:
-                log_event_to_ledger("ledger_meta", ledger_entry)
-            except Exception:
-                pass
-            return response
-
-        except Exception as exc:
-            ledger_entry = {
-                "event": "mode_consult.exception",
-                "caller": caller_mode,
-                "target": target_mode,
-                "query_snippet": query[:200],
-                "error": repr(exc),
-                "timestamp": time.time()
-            }
-            try:
-                log_event_to_ledger("ledger_meta", ledger_entry)
-            except Exception:
-                pass
-            return None

@@ -84,47 +84,53 @@ class SharedGraph:
     def add(self, view: Dict[str, Any]) -> str:
         if not isinstance(view, dict):
             raise TypeError("view must be a dictionary")
-        view_id = f"view_{uuid.uuid4().hex[:8]}"
-        gv = GraphView(id=view_id, payload=view, ts=time.time())
-        self._views[view_id] = gv
 
-        # store nodes/edges if present, else stash payload as node
+        view_id = f"view_{uuid.uuid4().hex[:8]}"
+        self._views[view_id] = GraphView(id=view_id, payload=view, ts=time.time())
+
         nodes = view.get("nodes", [])
-        edges = view.get("edges", [])
-        if nodes and isinstance(nodes, list):
-            for n in nodes:
-                nid = n.get("id") or f"n_{uuid.uuid4().hex[:6]}"
-                self._graph.add_node(nid, **{k: v for k, v in n.items() if k != "id"})
+        if isinstance(nodes, list):
+            for node in nodes:
+                if isinstance(node, dict):
+                    node_id = node.get("id", f"n_{uuid.uuid4().hex[:6]}")
+                    self._graph.add_node(node_id, **{k: v for k, v in node.items() if k != "id"})
         else:
             self._graph.add_node(view_id, payload=view)
-        if edges and isinstance(edges, list):
-            for e in edges:
-                src, dst = e.get("src"), e.get("dst")
-                if src and dst:
-                    self._graph.add_edge(src, dst, **{k: v for k, v in e.items() if k not in ("src", "dst")})
+
+        edges = view.get("edges", [])
+        if isinstance(edges, list):
+            for edge in edges:
+                if isinstance(edge, dict):
+                    src = edge.get("src")
+                    dst = edge.get("dst")
+                    if src and dst:
+                        self._graph.add_edge(src, dst, **{k: v for k, v in edge.items() if k not in ("src", "dst")})
+
         return view_id
 
     def diff(self, peer: "SharedGraph") -> Dict[str, Any]:
         """Return a shallow, conflict-aware diff summary vs peer graph."""
         if not isinstance(peer, SharedGraph):
-            raise TypeError("peer must be SharedGraph")
+            raise TypeError("peer must be a SharedGraph instance")
 
         self_nodes = set(self._graph.nodes())
         peer_nodes = set(peer._graph.nodes())
-        added = list(self_nodes - peer_nodes)
-        removed = list(peer_nodes - self_nodes)
-        common = self_nodes & peer_nodes
 
         conflicts = []
-        for n in common:
-            a = self._graph.nodes[n]
-            b = peer._graph.nodes[n]
-            # simple attribute-level conflict detection
-            for k in set(a.keys()) | set(b.keys()):
-                if k in a and k in b and a[k] != b[k]:
-                    conflicts.append({"node": n, "key": k, "left": a[k], "right": b[k]})
+        for node_id in self_nodes.intersection(peer_nodes):
+            self_node = self._graph.nodes[node_id]
+            peer_node = peer._graph.nodes[node_id]
+            all_keys = set(self_node.keys()) | set(peer_node.keys())
+            for key in all_keys:
+                if self_node.get(key) != peer_node.get(key):
+                    conflicts.append({"node": node_id, "key": key, "self": self_node.get(key), "peer": peer_node.get(key)})
 
-        return {"added": added, "removed": removed, "conflicts": conflicts, "ts": time.time()}
+        return {
+            "added": list(self_nodes - peer_nodes),
+            "removed": list(peer_nodes - self_nodes),
+            "conflicts": conflicts,
+            "ts": time.time(),
+        }
 
     def merge(self, strategy: str = "prefer_recent") -> Dict[str, Any]:
         """
@@ -134,32 +140,69 @@ class SharedGraph:
           - prefer_majority: pick most frequent value (by view occurrence)
         """
         if strategy not in ("prefer_recent", "prefer_majority"):
-            raise ValueError("Unsupported merge strategy")
+            raise ValueError(f"Unsupported merge strategy: {strategy}")
 
-        # Aggregate attributes from views
-        attr_hist: Dict[Tuple[str, str], List[Tuple[Any, float]]] = defaultdict(list)
-        for gv in self._views.values():
-            payload = gv.payload
-            nodes = payload.get("nodes") or [{"id": gv.id, **payload}]
-            for n in nodes:
-                nid = n.get("id") or gv.id
-                for k, v in n.items():
-                    if k == "id":
-                        continue
-                    attr_hist[(nid, k)].append((v, gv.ts))
+        attr_history: Dict[Tuple[str, str], List[Tuple[Any, float]]] = defaultdict(list)
+        for view in self._views.values():
+            nodes = view.payload.get("nodes", [{"id": view.id, **view.payload}])
+            for node in nodes:
+                if isinstance(node, dict):
+                    node_id = node.get("id", view.id)
+                    for key, value in node.items():
+                        if key != "id":
+                            attr_history[(node_id, key)].append((value, view.ts))
 
         merged_nodes: Dict[str, Dict[str, Any]] = defaultdict(dict)
-        for (nid, key), vals in attr_hist.items():
+        for (node_id, key), values in attr_history.items():
             if strategy == "prefer_recent":
-                v = sorted(vals, key=lambda x: x[1], reverse=True)[0][0]
+                merged_value = sorted(values, key=lambda x: x[1], reverse=True)[0][0]
             else:  # prefer_majority
-                counter = Counter([vv for vv, _ in vals])
-                v = counter.most_common(1)[0][0]
-            merged_nodes[nid][key] = v
+                merged_value = Counter(v for v, _ in values).most_common(1)[0][0]
+            merged_nodes[node_id][key] = merged_value
 
-        merged = {"nodes": [{"id": nid, **attrs} for nid, attrs in merged_nodes.items()], "strategy": strategy, "ts": time.time()}
-        self._last_merge = merged
-        return merged
+        merged_graph = {
+            "nodes": [{"id": node_id, **attrs} for node_id, attrs in merged_nodes.items()],
+            "strategy": strategy,
+            "ts": time.time(),
+        }
+        self._last_merge = merged_graph
+        return merged_graph
+
+    def ingest_events(self, events: List[Dict[str, Any]], *, source_peer: str, strategy: str = 'append_reconcile', clock: Optional[Dict[str, int]] = None) -> Dict[str, Any]:
+        clock = dict(clock or {})
+        applied = 0
+        conflicts = 0
+        if not hasattr(self, '_seen_event_hashes'):
+            self._seen_event_hashes = set()
+        for ev in events or []:
+            blob = json.dumps(ev, sort_keys=True).encode('utf-8')
+            h = hashlib.sha256(blob).hexdigest()
+            if h in self._seen_event_hashes:
+                continue
+            if hasattr(self, '_event_index'):
+                key = ev.get('id') or h
+                if key in self._event_index:
+                    conflicts += 1
+            else:
+                self._event_index = {}
+            key = ev.get('id') or h
+            self._event_index[key] = ev
+            self._seen_event_hashes.add(h)
+            applied += 1
+            clock[source_peer] = int(clock.get(source_peer, 0)) + 1
+        return {"applied": applied, "conflicts": conflicts, "new_clock": clock}
+
+    def _calculate_confidence_delta(self, edge: Any) -> float:
+        # Dummy implementation
+        return 0.1
+
+    def _score_conflict(self, conflict: Any) -> float:
+        # Dummy implementation
+        return 0.6
+
+    def vote_on_conflict_resolution(self, conflicts: List[Any]) -> Dict[Any, bool]:
+        votes = {c: self._score_conflict(c) > 0.5 for c in conflicts}
+        return votes
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -387,20 +430,7 @@ class MetaCognition(_BaseMeta):
                 result = await asyncio.to_thread(self.reasoner.process, self.task, self.context)
 
             # Apply APIs and dynamic modules through peer bridge configuration
-            for api in self.peer_bridge.api_blueprints:
-                response = await self._call_api(api, result, task_type)
-                if self.concept_synthesizer:
-                    synthesis = await self.concept_synthesizer.generate(
-                        concept_name=f"APIResponse_{api['name']}",
-                        context={"response": response, "task_type": task_type},
-                        task_type=task_type,
-                    )
-                    if synthesis.get("success"):
-                        response = synthesis["concept"].get("definition", response)
-                result = self._integrate_api_response(result, response)
-
-            for mod in self.peer_bridge.dynamic_modules:
-                result = await self._apply_dynamic_module(mod, result, task_type)
+            result = await self._apply_apis_and_modules(result, task_type)
 
             if collaborators:
                 for peer in collaborators:
@@ -454,6 +484,23 @@ class MetaCognition(_BaseMeta):
             )
 
     # --- Internal helpers (mostly same surface; minor stability tweaks) ------
+
+    async def _apply_apis_and_modules(self, result: Any, task_type: str) -> Any:
+        for api in self.peer_bridge.api_blueprints:
+            response = await self._call_api(api, result, task_type)
+            if self.concept_synthesizer:
+                synthesis = await self.concept_synthesizer.generate(
+                    concept_name=f"APIResponse_{api['name']}",
+                    context={"response": response, "task_type": task_type},
+                    task_type=task_type,
+                )
+                if synthesis.get("success"):
+                    response = synthesis["concept"].get("definition", response)
+            result = self._integrate_api_response(result, response)
+
+        for mod in self.peer_bridge.dynamic_modules:
+            result = await self._apply_dynamic_module(mod, result, task_type)
+        return result
 
     async def _call_api(self, api: Dict[str, Any], data: Any, task_type: str = "") -> Dict[str, Any]:
         if not isinstance(api, dict) or "endpoint" not in api or "name" not in api:
@@ -867,55 +914,3 @@ class Reasoner:
         return {"message": f"Processed: {task}", "context_hint": bool(context)}
 
 
-# PATCH: Belief Conflict Tolerance in SharedGraph
-def merge(self, strategy="default", tolerance_scoring=False):
-    # existing merge logic ...
-    if tolerance_scoring:
-        for edge in self.graph.edges():
-            self.graph.edges[edge]['confidence_delta'] = self._calculate_confidence_delta(edge)
-    return self.graph
-
-
-def vote_on_conflict_resolution(self, conflicts):
-    votes = {c: self._score_conflict(c) > 0.5 for c in conflicts}
-    return votes
-
-
-### ANGELA UPGRADE: SharedGraph.ingest_events
-# ingest_events monkeypatch
-def __ANGELA__SharedGraph_ingest_events(*args, **kwargs):
-
-# args: (self, events, *, source_peer, strategy='append_reconcile', clock=None)
-clock = dict(clock or {})
-applied = 0
-conflicts = 0
-# simple in-memory dedupe set
-if not hasattr(self, '_seen_event_hashes'):
-    self._seen_event_hashes = set()
-for ev in events or []:
-    blob = json.dumps(ev, sort_keys=True).encode('utf-8')
-    h = hashlib.sha256(blob).hexdigest()
-    if h in self._seen_event_hashes:
-        continue
-    # conflict stub: if same key present with different value -> conflict++
-    if hasattr(self, '_event_index'):
-        key = ev.get('id') or h
-        if key in self._event_index:
-            conflicts += 1
-    else:
-        self._event_index = {}
-    key = ev.get('id') or h
-    self._event_index[key] = ev
-    self._seen_event_hashes.add(h)
-    applied += 1
-    # bump vector clock
-    clock[source_peer] = int(clock.get(source_peer, 0)) + 1
-return {"applied": applied, "conflicts": conflicts, "new_clock": clock}
-
-try:
-    SharedGraph.ingest_events = __ANGELA__SharedGraph_ingest_events
-except Exception as _e:
-    # class may not exist; define minimal class
-    class SharedGraph:  # type: ignore
-        pass
-    SharedGraph.ingest_events = __ANGELA__SharedGraph_ingest_events
