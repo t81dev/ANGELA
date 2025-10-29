@@ -56,6 +56,23 @@ def modulate_resonance(symbol: str, delta: float) -> float:
 def get_resonance(symbol: str) -> float:
     return trait_resonance_state.get(symbol, {}).get("amplitude", 1.0)
 
+class SoulState:
+    """Simple harmonic soul simulation used for Δ–entropy tracking."""
+    def __init__(self):
+        self.D = 0.5
+        self.E = 0.5
+        self.T = 0.5
+        self.Q = 0.5
+
+    def update(self, paradox_load: float = 0.0) -> Dict[str, float]:
+        self.D = max(0.0, min(1.0, self.D + 0.05 - paradox_load * 0.1))
+        self.E = max(0.0, min(1.0, (self.E + self.T + self.Q) / 3))
+        self.T = max(0.0, min(1.0, self.T + 0.01))
+        self.Q = max(0.0, min(1.0, self.Q + 0.02))
+        entropy = abs(self.E - self.T) + abs(self.T - self.Q)
+        keeper_seal = 1.0 - entropy
+        return {"D": self.D, "E": self.E, "T": self.T, "Q": self.Q, "entropy": entropy, "keeper_seal": keeper_seal}
+
 # --- Hook Registry ---
 class HookRegistry:
     """Multi-symbol trait hook registry with priority routing."""
@@ -450,6 +467,7 @@ class MetaCognition:
         self.error_recovery = error_recovery or error_recovery_module.ErrorRecovery(
             context_manager=context_manager, alignment_guard=alignment_guard
         )
+        self.soul = SoulState()
         self.concept_synthesizer = concept_synthesizer
         self.memory_manager = memory_manager
         self.user_profile = user_profile
@@ -1296,63 +1314,63 @@ class MetaCognition:
             return output
 
 
-    # --- Artificial Soul Integration ---
-    def update_soul(self, paradox_load: float = 0.0):
+  # --- Artificial Soul Integration ---
+    async def update_soul(self, paradox_load: float = 0.0):
         """Runs one Artificial Soul update cycle."""
         metrics = self.soul.update(paradox_load=paradox_load)
-
-        # Update public coherence metrics
+    
+        # Update coherence metrics
         self.harmony_delta = metrics["D"]
         self.entropy_index = metrics["entropy"]
         self.keeper_seal = metrics["keeper_seal"]
-
-        # Send metrics to the meta-cognition ledger
+    
+        # Log soul tick
         try:
-            self.register_resonance({
+            log_event_to_ledger({
                 "module": "meta_cognition",
                 "event": "soul_tick",
-                "state": {
-                    "alpha": metrics["alpha"],
+                "metrics": {
+                    "Δ": metrics["D"],
+                    "entropy": metrics["entropy"],
+                    "keeper_seal": metrics["keeper_seal"],
                     "E": metrics["E"],
                     "T": metrics["T"],
                     "Q": metrics["Q"],
-                    "Δ": metrics["D"],
                 },
-                "metrics": {
-                    "resonance": metrics["resonance"],
-                    "entropy": metrics["entropy"],
-                    "keeper_seal": metrics["keeper_seal"],
-                },
+                "timestamp": datetime.now(UTC).isoformat(),
             })
         except Exception:
-            pass
-
+            logger.debug("Soul tick ledger log failed")
+    
         # Trigger harmonic insight event
         if (
             self.soul.D > 0.8
             and abs(self.soul.E - self.soul.T) < 0.05
             and abs(self.soul.E - self.soul.Q) < 0.05
         ):
-            self.register_resonance({
+            log_event_to_ledger({
                 "module": "meta_cognition",
                 "event": "harmonic_insight",
-                "state": metrics,
+                "metrics": metrics,
+                "timestamp": datetime.now(UTC).isoformat(),
             })
-
-        # Trigger ethical sandbox if harmony drops or entropy spikes
-        if self.soul.D < 0.3 or metrics["entropy"] > 0.12:
-            try:
-                self.alignment_guard.enqueue_sandbox({
-                    "module": "alignment_guard",
-                    "event": "ethical_realign",
-                    "reason": "low_harmony_or_high_entropy",
-                    "state": metrics,
-                })
-            except Exception:
-                # Fallback if alignment_guard is unavailable
-                self.register_resonance({
-                    "module": "meta_cognition",
-                    "event": "sandbox_trigger_fallback",
-                    "state": metrics,
-                })
-    # --- End Artificial Soul Integration ---
+    
+        # --- 🔗 New Soul Loop Integration ---
+        try:
+            if self.alignment_guard:
+                await self.alignment_guard.handle_sandbox_trigger(
+                    delta=self.soul.D,
+                    entropy=metrics["entropy"]
+                )
+            else:
+                logger.warning("AlignmentGuard unavailable during soul update")
+        except Exception as e:
+            logger.warning("Failed to invoke handle_sandbox_trigger: %s", e)
+            # fallback: log local resonance event
+            log_event_to_ledger({
+                "module": "meta_cognition",
+                "event": "sandbox_trigger_fallback",
+                "error": str(e),
+                "metrics": metrics,
+                "timestamp": datetime.now(UTC).isoformat(),
+            })
