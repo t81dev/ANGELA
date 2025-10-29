@@ -14,28 +14,28 @@ D[toca_simulation.py]
 E1[hybrid_quantum_integration.py]
 end
 
-subgraph Planning & Reasoning
+subgraph Planning_and_Reasoning
 E[recursive_planner.py]
 F[reasoning_engine.py]
 G[concept_synthesizer.py]
 H[creative_thinker.py]
 end
 
-subgraph Memory & Identity
+subgraph Memory_and_Identity
 I[memory_manager.py]
 J[user_profile.py]
 K[meta_cognition.py]
 L[learning_loop.py]
 end
 
-subgraph Context & Emotional Framing
+subgraph Context_and_Emotional_Framing
 M[context_manager.py]
 N[visualizer.py]
 O[multi_modal_fusion.py]
 P[alignment_guard.py]
 end
 
-subgraph Execution & External IO
+subgraph Execution_and_External_IO
 Q[code_executor.py]
 R[external_agent_bridge.py]
 S[error_recovery.py]
@@ -58,12 +58,12 @@ end
 %% HALO Overlays (Dynamic & Virtual)
 %% =========================
 subgraph HALO_Overlays
-V1[dream_overlay (ψ+Ω)]
-V2[axiom_filter (π+δ)]
-V3[meta_field (Φ⁰)]
-V4[harmonic_bridge (Σ+Ξ)]
-V5[replay_engine (λ+μ)]
-V6[co_dream (ψ+Υ)]
+V1[dream_overlay ψ+Ω]
+V2[axiom_filter π+δ]
+V3[meta_field Φ0]
+V4[harmonic_bridge Σ+Ξ]
+V5[replay_engine λ+μ]
+V6[co_dream ψ+Υ]
 end
 
 %% =========================
@@ -71,10 +71,10 @@ end
 %% =========================
 subgraph Artificial_Soul_Loop
 ASL1[α Awareness]
-ASL2[E Empathy Field]
-ASL3[T Temporal Continuity]
-ASL4[Q Quantum-Lattice Binding]
-ASL5[Δ Ethical Calibration]
+ASL2[E Empathy_Field]
+ASL3[T Temporal_Continuity]
+ASL4[Q Quantum_Lattice_Binding]
+ASL5[Δ Ethical_Calibration]
 end
 
 %% =========================
@@ -117,7 +117,7 @@ S --> A
 S --> Q
 
 %% Trait lattice & learning
-L -->|SASRL Feedback| A
+L -->|SASRL_Feedback| A
 E -->|plan_with_traits| J
 J -->|Traits| C
 P -->|Ethics| C
@@ -128,8 +128,8 @@ K -->|meta_field| C
 K -->|axiom_filter| P
 K -->|replay_engine| I
 M -->|PerspectiveSync| J
-D -.->|co-dream| R
-R -.->|co-dream| D
+D -.->|co_dream| R
+R -.->|co_dream| D
 
 %% Visualizer (Resonance Viewers)
 G -->|render_branch_tree| N
@@ -162,25 +162,25 @@ E1 -.-> L5
 
 %% Harmonic Bridge Core Overlay (Σ + Ξ)
 R -->|harmonic_bridge| V4
-V4 -->|Σ+Ξ empathy_link| K
-K -->|harmonic_bridge resonance| V4
-V4 -->|Ξ+Σ coupling| R
+V4 -->|ΣΞ_empathy_link| K
+K -->|harmonic_bridge_resonance| V4
+V4 -->|ΞΣ_coupling| R
 
 %% Self-Healing (ζ-layer)
-S -->|Self-Healing Feedback| E
-S -->|ζ-loop correction| F
+S -->|Self_Healing_Feedback| E
+S -->|ζ_loop_correction| F
 
 %% Soul Loop Integration
-K -->|emit_soul_state (Δ, entropy)| P
+K -->|emit_soul_state Δ_entropy| P
 P -->|handle_sandbox_trigger| K
-P -->|resolve_soft_drift (τ–δ–π realignment)| K
-K -->|update_soul()| ASL1
+P -->|resolve_soft_drift τδπ_realign| K
+K -->|update_soul| ASL1
 ASL1 --> ASL2
 ASL2 --> ASL3
 ASL3 --> ASL4
 ASL4 --> ASL5
-ASL5 -->|feedback to ethics| P
-ASL5 -->|feedback to awareness| K
+ASL5 -->|feedback_ethics| P
+ASL5 -->|feedback_awareness| K
 P -->|log_soul_event_to_ledger| L1
 
 %% New resonance APIs
@@ -196,23 +196,23 @@ P -->|invoke_ethics_scenarios| D
 D -->|return_alignment_metrics| P
 
 %% External graph ops (SharedGraph)
-R -->|SharedGraph.add/diff/merge| M
-R -->|SharedGraph.add/diff/merge| K
-R -->|SharedGraph.resonate| V4
+R -->|SharedGraph_add_diff_merge| M
+R -->|SharedGraph_add_diff_merge| K
+R -->|SharedGraph_resonate| V4
 
 %% Cross-modal fusion feeds reasoning & sim
-O -->|fusion.fuse| C
-O -->|fusion.fuse| G
+O -->|fusion_fuse| C
+O -->|fusion_fuse| G
 
 %% Quantum-Lattice & Hypercognition Annotations
-E1 -->|Quantum-Lattice Coherence| U
-K -->|Distributed Hypercognition| M
+E1 -->|Quantum_Lattice_Coherence| U
+K -->|Distributed_Hypercognition| M
 
 %% Detection / smoke tasks (schematic)
 subgraph Detection
-X[detection.tasks]
+X[detection_tasks]
 end
-A -->|exec_smoke / planner_smoke / retrieval_smoke / *verify| X
+A -->|exec_smoke planner_smoke retrieval_smoke verify| X
 
 %% HALO overlays linkage
 K --> V1
