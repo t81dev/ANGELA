@@ -1419,3 +1419,13 @@ def meta_ep_recall(query: dict, days:int=7) -> list[EpisodicMatch]:
     # 1) fetch segments; 2) align via DTW on Ξ; 3) rank by χ-intention similarity
     # Placeholder for meta-episodic recall
     return []
+# ledger.py
+
+class Ledger:
+    def rotate(self, day_str: str):
+        # Placeholder for rotating the ledger
+        pass
+
+    def root(self, day_str: str) -> str:
+        # Placeholder for getting the root of the ledger for a specific day
+        return ""

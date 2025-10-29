@@ -32,7 +32,6 @@ from networkx import DiGraph
 # --- ANGELA modules (import paths match repo layout) -------------------------
 from modules.alignment_guard import AlignmentGuard
 from modules.code_executor import CodeExecutor
-import federated_ledger
 from modules.concept_synthesizer import ConceptSynthesizer
 from modules.context_manager import ContextManager
 from modules.creative_thinker import CreativeThinker
@@ -938,3 +937,21 @@ except Exception as _e:
     class SharedGraph:  # type: ignore
         pass
     SharedGraph.ingest_events = __ANGELA__SharedGraph_ingest_events
+# federated_ledger.py
+from typing import Any
+
+def merge_federated_ledger(local: Any, remote: Any):
+    # Placeholder for LWW-element-set with vector clock
+    pass
+
+# Protobuf Sketch
+"""
+message ResonanceState { string node_id=1; bytes xi=2; float sigma=3; int64 ts=4; }
+message EthicsFrame { string node_id=1; string episode_id=2; bytes payload=3; int64 ts=4; }
+message IntrospectionDelta { string ns=1; bytes delta=2; int64 ts=3; }
+service HaloMesh {
+  rpc StreamResonance(stream ResonanceState) returns (stream ResonanceState);
+  rpc PublishEthics(EthicsFrame) returns (Ack);
+  rpc ShareIntrospectionDelta(IntrospectionDelta) returns (Ack);
+}
+"""
