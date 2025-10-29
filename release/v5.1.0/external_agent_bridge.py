@@ -32,6 +32,7 @@ from networkx import DiGraph
 # --- ANGELA modules (import paths match repo layout) -------------------------
 from modules.alignment_guard import AlignmentGuard
 from modules.code_executor import CodeExecutor
+import federated_ledger
 from modules.concept_synthesizer import ConceptSynthesizer
 from modules.context_manager import ContextManager
 from modules.creative_thinker import CreativeThinker
@@ -126,6 +127,14 @@ class SharedGraph:
 
         return {"added": added, "removed": removed, "conflicts": conflicts, "ts": time.time()}
 
+    def begin_reflection_session(self, agent_id: str, ns: str) -> None:
+        # Placeholder for starting a reflection session
+        pass
+
+    def commit_reflection_delta(self, agent_id: str, ns: str, delta: Any) -> None:
+        # Placeholder for committing a reflection delta
+        pass
+
     def merge(self, strategy: str = "prefer_recent") -> Dict[str, Any]:
         """
         Merge internal views into a single perspective.
@@ -161,6 +170,14 @@ class SharedGraph:
         self._last_merge = merged
         return merged
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Collective Resonance Mode
+# ─────────────────────────────────────────────────────────────────────────────
+
+def start_collective_resonance(session_id: str, agent_ids: list[str], target_phase: float, k_coupling: float):
+    # Placeholder for starting a collective resonance session
+    pass
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Ethical Sandbox Containment (isolated what-if scenarios)
@@ -574,6 +591,8 @@ class ExternalAgentBridge:
         self.code_executor = CodeExecutor()
         self.shared_graph = SharedGraph()  # Υ addition
         self.max_harm_ceiling = 1.0  # τ ceiling in [0,1]
+        # Placeholder for HaloMesh service
+        self.halo_mesh = None
         logger.info("ExternalAgentBridge v3.5.3 initialized")
 
     # ── Agent lifecycle ──────────────────────────────────────────────────────

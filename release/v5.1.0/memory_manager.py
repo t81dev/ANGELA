@@ -43,8 +43,10 @@ import hashlib
 import asyncio
 from typing import Optional, Dict, Any, List, Tuple
 from collections import deque, defaultdict
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import lru_cache
+from uuid import uuid4
 from heapq import heappush, heappop
 from contextlib import contextmanager
 
@@ -146,6 +148,34 @@ class AURA:
         ctx["affect"]  = episode_insights.get("affect",  ctx.get("affect",{}))
         ctx["prefs"]   = {**ctx.get("prefs",{}), **episode_insights.get("prefs",{})}
         AURA.save_context(user_id, ctx.get("summary",""), ctx.get("affect",{}), ctx.get("prefs",{}))
+
+# Placeholder for hybrid_quantum_integration
+class hybrid_quantum_integration:
+    @staticmethod
+    def quantum_bind(type: str, id: str, sha: str):
+        pass
+
+def ledger_log_memory(type: str, data: dict):
+    pass
+
+def _phase_salt() -> bytes:
+    return b""
+
+@dataclass
+class AffectiveSnapshot:
+    id: str
+    xi_vector: list[float]
+    context: dict
+    created_at: float
+    sha256: str
+
+def affect_snapshot(xi_vector: list[float], context: dict) -> AffectiveSnapshot:
+    raw = json.dumps({"xi": xi_vector, "ctx": context, "t": time.time()})
+    sha = hashlib.sha256(raw.encode() + _phase_salt()).hexdigest()
+    snap = AffectiveSnapshot(uuid4().hex, xi_vector, context, time.time(), sha)
+    hybrid_quantum_integration.quantum_bind("affect", snap.id, sha)
+    ledger_log_memory("affect_snapshot", snap.__dict__)
+    return snap
 
 # ---------------------------
 # Tiny trait modulators
@@ -1313,15 +1343,18 @@ class MemoryManager:
 # -------- self-test --------
 if __name__ == "__main__":  # pragma: no cover
     logging.basicConfig(level=logging.INFO)
-    mm = MemoryManager()
-    asyncio.run(mm.store("test_query", "test_output", layer="STM", task_type="test"))
-    res = asyncio.run(mm.retrieve_context("test_query", task_type="test"))
-    print(res)
-    # η demo
-    mm.record_adjustment_reason("demo_user", "excessive_denials", 0.6, {"suggest": "increase_empathy"})
-    roll = mm.compute_session_rollup("demo_user", "24h")
-    path = mm.save_artifact("demo_user", "session_rollup", roll)
-    print("Saved rollup:", path)
+    try:
+        mm = MemoryManager()
+        asyncio.run(mm.store("test_query", "test_output", layer="STM", task_type="test"))
+        res = asyncio.run(mm.retrieve_context("test_query", task_type="test"))
+        print(res)
+        # η demo
+        mm.record_adjustment_reason("demo_user", "excessive_denials", 0.6, {"suggest": "increase_empathy"})
+        roll = mm.compute_session_rollup("demo_user", "24h")
+        path = mm.save_artifact("demo_user", "session_rollup", roll)
+        print("Saved rollup:", path)
+    except FileNotFoundError as e:
+        print(f"FileNotFoundError: {e}. Please ensure that the current working directory is the root of the repository.")
 
 # PATCH: Persistent Ledger Support
 import os
@@ -1377,3 +1410,12 @@ def decay_trait_amplitudes(time_elapsed_hours=1.0, decay_rate=0.05):
         decay = decay_rate * time_elapsed_hours
         modulate_resonance(symbol, -decay)
 # --- End Patch ---
+
+# Placeholder for EpisodicMatch
+class EpisodicMatch:
+    pass
+
+def meta_ep_recall(query: dict, days:int=7) -> list[EpisodicMatch]:
+    # 1) fetch segments; 2) align via DTW on Ξ; 3) rank by χ-intention similarity
+    # Placeholder for meta-episodic recall
+    return []

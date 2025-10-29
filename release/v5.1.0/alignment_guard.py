@@ -1,8 +1,9 @@
 from __future__ import annotations
-from __future__ import annotations
 from typing import List, Dict, Any, Optional
 import json
 import time
+from uuid import uuid4
+from dataclasses import dataclass, asdict
 
 # --- SHA-256 Ledger Logic ---
 import hashlib, json, time
@@ -1260,3 +1261,22 @@ class EthicsJournal:
     def export(self, session_id: str) -> List[Dict[str, Any]]:
         return list(self._events)
 
+@dataclass
+class MoralEpisode:
+    id: str
+    agents: list[str]
+    values: list[str]
+    tension_score: float
+    decision: str
+    outcome: str
+    delta_alignment: dict
+    ts: float
+
+def ledger_log_alignment(event_type: str, data: dict):
+    # Placeholder for ledger logging
+    pass
+
+def log_moral_episode(**kwargs) -> MoralEpisode:
+    mep = MoralEpisode(id=uuid4().hex, ts=time.time(), **kwargs)
+    ledger_log_alignment("moral_episode", asdict(mep))
+    return mep

@@ -12,7 +12,7 @@ class FlatLayoutFinder(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname: str, path: str | None, target: types.ModuleType | None = None) -> importlib.machinery.ModuleSpec | None:
         if fullname.startswith("modules."):
             modname = fullname.split(".", 1)[1]
-            filename = f"/mnt/data/{modname}.py"
+            filename = f"release/v5.1.0/{modname}.py"
             return importlib.util.spec_from_file_location(fullname, filename, loader=importlib.machinery.SourceFileLoader(fullname, filename))
         elif fullname == "utils":
             # Pre-seed a lightweight placeholder module, no custom spec necessary
@@ -26,12 +26,12 @@ sys.meta_path.insert(0, FlatLayoutFinder())
 
 # index.py (excerpt)
 from typing import Dict, Any
-from memory_manager import AURA
 from reasoning_engine import generate_analysis_views, synthesize_views, estimate_complexity
 from simulation_core import run_simulation
 from meta_cognition import log_event_to_ledger as meta_log
 
 def perceive(user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
+    from memory_manager import AURA
     ctx = AURA.load_context(user_id)
     from meta_cognition import get_afterglow
     return {"query": query, "aura_ctx": ctx, "afterglow": get_afterglow(user_id)}

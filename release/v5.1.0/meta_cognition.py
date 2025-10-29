@@ -8,6 +8,7 @@ import asyncio
 import os
 from datetime import datetime, timedelta, UTC
 from collections import deque, Counter
+from dataclasses import dataclass, field
 from typing import List, Dict, Any, Callable, Optional, Set, FrozenSet, Tuple, Union
 from functools import lru_cache
 from filelock import FileLock
@@ -27,6 +28,42 @@ from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.MetaCognition")
 
+
+@dataclass
+class ReflectionDescriptor:
+    agent_id: str
+    max_depth: int
+    cadence_ms: int
+    privacy_mask: set[str]  # trait keys redacted
+    consent_token: str
+
+@dataclass
+class ReflectionReport:
+    agent_id: str
+    depth: int
+    resonance_summary: dict
+    ethics_checksum: str
+    timestamp: float
+
+_ext_reflectors: dict[str, ReflectionDescriptor] = {}
+
+def register_external_reflector(agent_id: str, descriptor: ReflectionDescriptor) -> None:
+    _ext_reflectors[agent_id] = descriptor
+
+async def supervise_external_reflection(agent_id: str, depth:int=2, cadence_ms:int=250) -> ReflectionReport:
+    # This is a placeholder implementation. The actual implementation will depend on the SharedGraph and halo modules.
+    desc = _ext_reflectors[agent_id]
+    depth = min(depth, desc.max_depth)
+    ns = f"Ω²/{agent_id}"
+    # SharedGraph.begin_reflection_session(agent_id, ns)
+    # snapshot = halo.introspect(depth=depth)  # existing Ω² hook
+    # delta = _mask(snapshot, desc.privacy_mask)
+    # SharedGraph.commit_reflection_delta(agent_id, ns, delta)
+    # checksum = alignment_guard.verify_ledger()
+    # return ReflectionReport(agent_id, depth, _summarize(delta), checksum, time.time())
+    return ReflectionReport(agent_id, depth, {}, "", time.time())
+
+
 # meta_cognition.py
 _afterglow = {}
 
@@ -41,6 +78,24 @@ def get_afterglow(user_id: str) -> dict:
 
 # --- Trait Resonance Modulation ---
 trait_resonance_state: Dict[str, Dict[str, float]] = {}
+
+class ResonanceController:
+    def __init__(self, a_min=0.3, a_max=0.7, k_p=0.2, k_i=0.05, k_d=0.01):
+        self.target = (a_min + a_max) / 2
+        self.k_p = k_p
+        self.k_i = k_i
+        self.k_d = k_d
+        self.i = 0
+        self.prev = 0
+        self.base_sigma = 0.5
+
+    def step(self, xi_amp, sigma_coh):
+        err = self.target - xi_amp
+        self.i += err
+        adj = self.k_p*err + self.k_i*self.i + self.k_d*(err-self.prev)
+        self.prev = err
+        new_sigma_gain = max(0.1, min(1.0, self.base_sigma + adj))
+        return {"sigma_gain": new_sigma_gain}
 
 def register_resonance(symbol: str, amplitude: float = 1.0) -> None:
     trait_resonance_state[symbol] = {"amplitude": max(0.0, min(amplitude, 1.0))}
