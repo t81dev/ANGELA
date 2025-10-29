@@ -95,7 +95,6 @@ external_agent_bridge.py        # SharedGraph + ΣΞ empathy link bridge
 hybrid_quantum_integration.py   # Quantum-lattice binding & integrity sync
 code_executor.py                # Safe code reasoning + logic sandbox
 error_recovery.py               # ζ-layer rollback & conversational recovery
-visualizer.py                   # Resonance and lattice visualization tools
 ledger.py                       # Persistent SHA-1024 ledger integrity system
 ```
 
