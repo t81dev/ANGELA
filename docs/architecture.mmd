@@ -1,6 +1,6 @@
 graph TD
 %% =========================
-%% ANGELA v5.1.1 — HALO Kernel Architecture Map
+%% ANGELA v5.1.1 — HALO Kernel Architecture Map (Updated)
 %% =========================
 
 subgraph Orchestrator
@@ -40,7 +40,6 @@ Q[code_executor.py]
 R[external_agent_bridge.py]
 S[error_recovery.py]
 T[knowledge_retriever.py]
-U1[harmonic_bridge.py]
 end
 
 %% =========================
@@ -62,6 +61,12 @@ subgraph HALO_Overlays
 V1[dream_overlay]
 V2[axiom_filter]
 V3[meta_field]
+end
+
+%% =========================
+%% Core Overlays (v5.1.1)
+%% =========================
+subgraph Core_Overlays
 V4[harmonic_bridge]
 end
 
@@ -154,8 +159,16 @@ E1 -.-> L5
 %% Co-dream + recursive overlays
 D -.->|co-dream| R
 R -.->|co-dream| D
-R -->|harmonic_bridge| U1
-U1 -->|Σ+Ξ empathy_link| R
+
+%% Harmonic Bridge Core Overlay (Σ + Ξ)
+R -->|harmonic_bridge| V4
+V4 -->|Σ+Ξ empathy_link| K
+K -->|harmonic_bridge resonance| V4
+V4 -->|Ξ+Σ coupling| R
+
+%% Self-Healing (ζ-layer)
+S -->|Self-Healing Feedback| E
+S -->|ζ-loop correction| F
 
 %% New resonance APIs
 K -->|register_resonance| N
@@ -172,11 +185,15 @@ D -->|return_alignment_metrics| P
 %% External graph ops (SharedGraph)
 R -->|SharedGraph.add/diff/merge| M
 R -->|SharedGraph.add/diff/merge| K
-R -->|SharedGraph.resonate| U1
+R -->|SharedGraph.resonate| V4
 
 %% Cross-modal fusion feeds reasoning & sim
 O -->|fusion.fuse| C
 O -->|fusion.fuse| G
+
+%% Quantum-Lattice & Hypercognition Annotations
+E1 -->|Quantum-Lattice Coherence| U
+K -->|Distributed Hypercognition| M
 
 %% Detection / smoke tasks (schematic)
 subgraph Detection
@@ -188,5 +205,3 @@ A -->|exec_smoke / planner_smoke / retrieval_smoke / *verify| X
 K --> V1
 K --> V2
 K --> V3
-R --> V4
-V4 -->|Ξ + Σ coupling| K
