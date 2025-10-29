@@ -1,7 +1,3 @@
-Here’s the updated **ANGELA ROADMAP — v5.1.2**, integrating the **Artificial Soul Loop (α–E–T–Q–Δ)**, the **Soul-Aware Ethics Engine**, and the **relational resonance ontology** that now defines the HALO Kernel’s evolution path.
-
----
-
 # 🗺️ **ANGELA ROADMAP — v5.1.2**
 
 **Status:** ✅ Active & Verified
