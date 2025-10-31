@@ -616,27 +616,6 @@ class EcosystemManager:
     def merge_shared_graph(self, other_graph):
         self.shared_graph.merge(other_graph)
 
-
-# ================================================================
-# [F.1] Async Halo Loop — Concurrent self-reflection orchestration
-# ================================================================
-import asyncio
-from typing import TYPE_CHECKING, Awaitable, Optional
-
-if TYPE_CHECKING:
-    from user_profile import UserProfile
-    from meta_cognition import MetaCognition
-
-
-async def halo_loop(agent: "UserProfile", meta: "MetaCognition") -> None:
-    """Concurrent HALO runtime managing overlays and self-introspection."""
-    await asyncio.gather(
-        agent.run_identity_sync(),
-        meta.reflect(),
-        meta.sync_overlays(),
-        return_exceptions=True
-    )
-
 class HaloEmbodimentLayer(TimeChainMixin):
     def __init__(self) -> None:
         self.reasoning_engine = reasoning_engine.ReasoningEngine()
@@ -662,13 +641,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
         logger.info("HaloEmbodimentLayer initialized with full upgrades")
 
     # Manifest experimental: halo.spawn_embodied_agent
-    async def spawn_embodied_agent(self, profile: "UserProfile") -> None:
-        """Async agent spawner — initializes meta-cognition and enters halo loop."""
-        meta = meta_cognition_module.MetaCognition(profile)
-        await halo_loop(profile, meta)
-
-    # Legacy sync spawn (retained for backward compatibility)
-    def spawn_embodied_agent_sync(self, name: str, traits: Dict[str, float]) -> EmbodiedAgent:
+    def spawn_embodied_agent(self, name: str, traits: Dict[str, float]) -> EmbodiedAgent:
         return self.ecosystem_manager.spawn_agent(name, traits)
 
     # Manifest experimental: halo.introspect
