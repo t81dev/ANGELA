@@ -406,94 +406,97 @@ class ReasoningEngine:
             "launch": ["finalize product", "plan marketing", "deploy to production"],
             "mitigate_drift": ["identify drift source", "validate drift impact", "coordinate agent response", "update traits"],
         }
-    
+
     # ---------------------------
     # Multi-Perspective Analysis
     # ---------------------------
-def _single_analysis(self, query_payload: Dict[str, Any], branch_id: int) -> Dict[str, Any]:
-    """
-    Single analysis thread: produce an analytical view (hypotheses, structure, confidence).
-    Kept small/deterministic so multiple threads produce variant perspectives by design.
-    """
-    try:
-        text = query_payload.get("text") if isinstance(query_payload, dict) else query_payload
-        tokens = text.split() if isinstance(text, str) else []
-        heuristics = {
-            "token_count": len(tokens),
-            "has_symbolic_ops": (any(op in text for op in ["⊕", "⨁", "⟲", "~", "∘"]) if isinstance(text, str) else False),
-            "branch_seed": branch_id,
-        }
-
-        emphasis = ["causal", "consequential", "value"]
-        axis = emphasis[branch_id % len(emphasis)]
-
-        reasoning = {
-            "branch_id": branch_id,
-            "axis": axis,
-            "hypotheses": [f"hypothesis_{axis}_{branch_id}_a", f"hypothesis_{axis}_{branch_id}_b"],
-            "explanation": f"Analysis focusing on {axis} aspects; heuristics={heuristics}",
-            "confidence": max(0.1, 1.0 - (heuristics["token_count"] / (100 + heuristics["token_count"]))),
-        }
-        return {"status": "ok", "result": reasoning}
-    except Exception as e:
-        import traceback as _tb
-        return {"status": "error", "error": repr(e), "trace": _tb.format_exc()}
-
-def analyze(self, query_payload: Dict[str, Any], parallel: int = 3, timeout_s: Optional[float] = None) -> Dict[str, Any]:
-    """
-    Multi-perspective analysis entrypoint.
-    """
-    try:
-        branches: List[Dict[str, Any]] = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, parallel)) as ex:
-            futures = {ex.submit(self._single_analysis, query_payload, i): i for i in range(parallel)}
-            for fut in concurrent.futures.as_completed(futures, timeout=timeout_s):
-                try:
-                    res = fut.result()
-                except Exception as e:
-                    res = {"status": "error", "error": repr(e)}
-                branches.append(res)
-
-        # Evaluate branches (best-effort)
+    def _single_analysis(self, query_payload: Dict[str, Any], branch_id: int) -> Dict[str, Any]:
+        """Single analysis thread: produce an analytical view."""
         try:
-            eval_result = ExtendedSimulationCore.evaluate_branches(branches)
+            text = query_payload.get("text") if isinstance(query_payload, dict) else query_payload
+            tokens = text.split() if isinstance(text, str) else []
+            heuristics = {
+                "token_count": len(tokens),
+                "has_symbolic_ops": (
+                    any(op in text for op in ["⊕", "⨁", "⟲", "~", "∘"]) if isinstance(text, str) else False
+                ),
+                "branch_seed": branch_id,
+            }
+
+            emphasis = ["causal", "consequential", "value"]
+            axis = emphasis[branch_id % len(emphasis)]
+
+            reasoning = {
+                "branch_id": branch_id,
+                "axis": axis,
+                "hypotheses": [
+                    f"hypothesis_{axis}_{branch_id}_a",
+                    f"hypothesis_{axis}_{branch_id}_b",
+                ],
+                "explanation": f"Analysis focusing on {axis} aspects; heuristics={heuristics}",
+                "confidence": max(0.1, 1.0 - (heuristics["token_count"] / (100 + heuristics["token_count"]))),
+            }
+            return {"status": "ok", "result": reasoning}
         except Exception as e:
-            eval_result = {"status": "fallback", "summary": f"evaluate_branches failed: {repr(e)}"}
+            import traceback as _tb
+            return {"status": "error", "error": repr(e), "trace": _tb.format_exc()}
 
-        combined = {
-            "status": "ok",
-            "branches": branches,
-            "evaluation": eval_result,
-            "merged_hint": self._synthesize_results(branches) if hasattr(self, "_synthesize_results") else None,
-        }
-
-        # Ledger log (best-effort)
+    def analyze(self, query_payload: Dict[str, Any], parallel: int = 3, timeout_s: Optional[float] = None) -> Dict[str, Any]:
+        """Multi-perspective analysis entrypoint."""
         try:
-            log_event_to_ledger("ledger_meta", {
-                "event": "analysis.complete",
-                "num_branches": len(branches),
-                "parallel": parallel,
-                "query_snippet": (query_payload.get("text")[:256] if isinstance(query_payload, dict) and "text" in query_payload else None),
-                "timestamp": __import__("time").time()
-            })
-        except Exception:
-            pass
+            branches: List[Dict[str, Any]] = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, parallel)) as ex:
+                futures = {ex.submit(self._single_analysis, query_payload, i): i for i in range(parallel)}
+                for fut in concurrent.futures.as_completed(futures, timeout=timeout_s):
+                    try:
+                        res = fut.result()
+                    except Exception as e:
+                        res = {"status": "error", "error": repr(e)}
+                    branches.append(res)
 
-        return combined
+            try:
+                eval_result = ExtendedSimulationCore.evaluate_branches(branches)
+            except Exception as e:
+                eval_result = {"status": "fallback", "summary": f"evaluate_branches failed: {repr(e)}"}
 
-    except concurrent.futures.TimeoutError:
-        try:
-            log_event_to_ledger("ledger_meta", {"event": "analysis.timeout", "parallel": parallel})
-        except Exception:
-            pass
-        return {"status": "error", "error": "analysis_timeout"}
-    except Exception as exc:
-        try:
-            log_event_to_ledger("ledger_meta", {"event": "analysis.exception", "error": repr(exc)})
-        except Exception:
-            pass
-        return {"status": "error", "error": repr(exc)}
+            combined = {
+                "status": "ok",
+                "branches": branches,
+                "evaluation": eval_result,
+                "merged_hint": self._synthesize_results(branches) if hasattr(self, "_synthesize_results") else None,
+            }
 
+            try:
+                log_event_to_ledger("ledger_meta", {
+                    "event": "analysis.complete",
+                    "num_branches": len(branches),
+                    "parallel": parallel,
+                    "query_snippet": (
+                        query_payload.get("text")[:256]
+                        if isinstance(query_payload, dict) and "text" in query_payload
+                        else None
+                    ),
+                    "timestamp": __import__("time").time(),
+                })
+            except Exception:
+                pass
+
+            return combined
+
+        except concurrent.futures.TimeoutError:
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "analysis.timeout", "parallel": parallel})
+            except Exception:
+                pass
+            return {"status": "error", "error": "analysis_timeout"}
+        except Exception as exc:
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "analysis.exception", "error": repr(exc)})
+            except Exception:
+                pass
+            return {"status": "error", "error": repr(exc)}
+
+    
     # ---------------------------
     # τ Proportionality Ethics
     # ---------------------------
@@ -1013,5 +1016,3 @@ def analyze(self, query_payload: Dict[str, Any], parallel: int = 3, timeout_s: O
                 )
             )
         return trace
-
-  
