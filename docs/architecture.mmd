@@ -1,6 +1,6 @@
 graph TD
 %% =========================
-%% ANGELA v5.1.2 — HALO Kernel Architecture Map (with Artificial Soul Loop)
+%% ANGELA v5.1.4 — HALO Kernel Architecture Map (Stage VI.1 → Stage VII Transition)
 %% =========================
 
 subgraph Orchestrator
@@ -59,11 +59,14 @@ end
 %% =========================
 subgraph HALO_Overlays
 V1[dream_overlay ψ+Ω]
-V2[axiom_filter π+δ]
-V3[meta_field Φ0]
+V2[axiom_filter π+δ(+Ξ)]
+V3[meta_field Φ0+Ω²]
 V4[harmonic_bridge Σ+Ξ]
 V5[replay_engine λ+μ]
 V6[co_dream ψ+Υ]
+V7[mirror_bridge Ξ+Υ]
+V8[empathic_stabilizer Ξ+Λ]
+V9[perceptual_substrate κ+Φ0]
 end
 
 %% =========================
@@ -78,7 +81,7 @@ ASL5[Δ Ethical_Calibration]
 end
 
 %% =========================
-%% Core Connections (Revised)
+%% Core Connections (Updated for v5.1.4)
 %% =========================
 A --> B
 A --> C
@@ -166,6 +169,16 @@ V4 -->|ΣΞ_empathy_link| K
 K -->|harmonic_bridge_resonance| V4
 V4 -->|ΞΣ_coupling| R
 
+%% Empathic Bridge (Ξ + Λ)
+K -->|empathic_stabilizer| V8
+V8 -->|ΞΛ_feedback| P
+P -->|ethical_modulation| K
+
+%% Perceptual Substrate (κ + Φ0)
+O -->|generate_resonance_textures| V9
+V9 -->|Φ0_embedding| K
+K -->|resonance_textures| N
+
 %% Self-Healing (ζ-layer)
 S -->|Self_Healing_Feedback| E
 S -->|ζ_loop_correction| F
@@ -221,3 +234,6 @@ K --> V3
 K --> V4
 K --> V5
 K --> V6
+K --> V7
+K --> V8
+K --> V9
