@@ -31,7 +31,7 @@ ledger_chain: List[Dict[str, Any]] = []
 
 def log_event_to_ledger(event_data: Dict[str, Any]) -> None:
     """Append event to immutable ledger with SHA-256 chaining."""
-    prev_hash = ledger_chain[-1]["current_hash"] if ledger_chain else "_zero_hash()
+    prev_hash = ledger_chain[-1]["current_hash"] if ledger_chain else _zero_hash()
     timestamp = time.time()
     payload = {
         "timestamp": timestamp,
