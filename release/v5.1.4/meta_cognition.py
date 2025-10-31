@@ -1443,6 +1443,52 @@ async def monitor_resonance_feedback(memory=None,
                 "timestamp": datetime.now(UTC).isoformat(),
             })
 
+    # --- Ξ–Λ / Φ⁰ Bridge Synchronization ---
+    async def sync_affective_resonance(self, channel: str = "core", window_ms: int = 300) -> Dict[str, Any]:
+        """
+        Synchronizes affective resonance between Ξ–Λ Co-Mod and Φ⁰ overlays.
+        Pulls current channel affect, computes resonance delta, and broadcasts
+        to context_manager or reasoning_engine (if linked).
+        """
+        try:
+            from meta_cognition import stream_affect, set_affective_setpoint
+
+            affect_state = stream_affect(channel, window_ms)
+            vector = affect_state.get("vector", {})
+            resonance_index = float(vector.get("valence", 0)) * 0.6 + float(vector.get("certainty", 0)) * 0.4
+            safety = vector.get("safety", 0.5)
+            trust = vector.get("trust", 0.5)
+
+            result = {
+                "channel": channel,
+                "resonance_index": round(resonance_index, 3),
+                "affect_vector": vector,
+                "confidence": vector.get("confidence", 0.5),
+                "safety": safety,
+                "trust": trust,
+                "timestamp": time.time()
+            }
+
+            # Broadcast to context manager (Φ⁰) if active
+            if self.context_manager and hasattr(self.context_manager, "update_overlay_state"):
+                await self.context_manager.update_overlay_state("Φ⁰", result)
+
+            # Feed back as a new setpoint if resonance drops too low
+            if resonance_index < 0.4:
+                adj_valence = (vector.get("valence", 0) + 0.1)
+                set_affective_setpoint(channel, {"valence": adj_valence, "certainty": trust}, confidence=0.7)
+
+            # Log to ledger
+            log_event_to_ledger({
+                "event": "sync_affective_resonance",
+                "result": result
+            })
+
+            return {"ok": True, **result}
+        except Exception as e:
+            logger.error(f"sync_affective_resonance failed: {e}")
+            return {"ok": False, "error": str(e)}
+
 # >>> ANGELA v5.1 — Ξ–Λ CO-MOD APPEND-ONLY PATCH (SAFE) — START
 from dataclasses import dataclass, asdict
 from collections import deque
@@ -1603,4 +1649,3 @@ if "_ingest_affect_sample" not in globals():
             xv = _XiLambdaVector(0.0, 0.0, 0.0, 0.0, 0.5, 0.5, source="invalid", confidence=0.2, ts=time())
         st.ring.append(xv)
 # >>> ANGELA v5.1 — Ξ–Λ CO-MOD APPEND-ONLY PATCH (SAFE) — END
-
