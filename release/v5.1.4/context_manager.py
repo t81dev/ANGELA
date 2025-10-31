@@ -1,6 +1,6 @@
 """
 ANGELA Cognitive System: ContextManager
-Version: 4.0-refactor
+Version: 4.0-refactor (+ inline co_mod overlay v5.1)
 Date: 2025-10-28
 Maintainer: ANGELA Framework
 
@@ -25,12 +25,14 @@ from collections import Counter, deque
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
-import numpy as np
+import numpy as np  # noqa: F401 (reserved for future numeric ops)
 from filelock import FileLock
 
-# --- Optional Dependencies (Graceful Fallbacks) ---
+logger = logging.getLogger("ANGELA.ContextManager")
+
+# --- Optional Dependencies (Graceful Fallbacks) ------------------------------------
 try:
     import agi_enhancer as agi_enhancer_module
 except ImportError:  # pragma: no cover
@@ -81,48 +83,51 @@ try:
 except ImportError:  # pragma: no cover
     visualizer_module = None
 
-# --- Utilities (Assume available; fallback to stubs if needed) ---
+# --- Utility Imports (with fallbacks) ----------------------------------------------
 try:
     from utils.toca_math import phi_coherence
 except ImportError:  # pragma: no cover
-    def phi_coherence(*args, **kwargs): return 1.0
+    def phi_coherence(*args, **kwargs) -> float:
+        return 1.0
 
 try:
-    from utils.vector_utils import normalize_vectors
+    from utils.vector_utils import normalize_vectors  # noqa: F401
 except ImportError:  # pragma: no cover
-    def normalize_vectors(*args, **kwargs): return args[0] if args else None
+    def normalize_vectors(vectors, *_, **__):
+        return vectors
 
 try:
-    from toca_simulation import run_simulation
+    from toca_simulation import run_simulation  # noqa: F401
 except ImportError:  # pragma: no cover
-    def run_simulation(*args, **kwargs): return {"simulated": "noop"}
+    def run_simulation(*args, **kwargs) -> Dict[str, Any]:
+        return {"simulated": "noop"}
 
 try:
-    from index import omega_selfawareness, eta_empathy, tau_timeperception
+    from index import omega_selfawareness, eta_empathy, tau_timeperception  # noqa: F401
 except ImportError:  # pragma: no cover
-    def omega_selfawareness(*args, **kwargs): return 0.5
-    def eta_empathy(*args, **kwargs): return 0.5
-    def tau_timeperception(*args, **kwargs): return time.time()
+    def omega_selfawareness(*args, **kwargs) -> float:
+        return 0.5
 
-logger = logging.getLogger("ANGELA.ContextManager")
+    def eta_empathy(*args, **kwargs) -> float:
+        return 0.5
 
+    def tau_timeperception(*args, **kwargs) -> float:
+        return time.time()
 
-# --- Trait Helpers ---
+# --- Trait Helpers -----------------------------------------------------------------
 @lru_cache(maxsize=100)
 def eta_context_stability(t: float) -> float:
+    # Bound to [0,1]
     return max(0.0, min(0.1 * math.cos(2 * math.pi * t / 0.2), 1.0))
 
-
-# --- Env Flags ---
+# --- Env Flags ---------------------------------------------------------------------
 def _flag(name: str, default: bool = False) -> bool:
     v = os.getenv(name, "").strip().lower()
-    return v in ("1", "true", "yes", "on")
-
+    return v in ("1", "true", "yes", "on") if v else default
 
 STAGE_IV = _flag("STAGE_IV", default=False)
 
-
-# --- Modes ---
+# --- Modes -------------------------------------------------------------------------
 class Mode(str, Enum):
     DIALOGUE = "dialogue"
     SIMULATION = "simulation"
@@ -130,11 +135,13 @@ class Mode(str, Enum):
     CREATIVE = "creative"
     VISION = "vision"
 
-
-# --- Constants ---
+# --- Constants ---------------------------------------------------------------------
 CONSULT_BUDGET = {"timeout_s": 2.0, "max_depth": 1}
 CONTEXT_LAYERS = ["local", "societal", "planetary"]
 
+# ===================================================================================
+# ContextManager
+# ===================================================================================
 
 class ContextManager:
     """Context management with reconciliation, healing, and gated hooks."""
@@ -142,15 +149,15 @@ class ContextManager:
     def __init__(
         self,
         orchestrator: Optional[Any] = None,
-        alignment_guard: Optional[alignment_guard_module.AlignmentGuard] = None,
-        code_executor: Optional[code_executor_module.CodeExecutor] = None,
-        concept_synthesizer: Optional[concept_synthesizer_module.ConceptSynthesizer] = None,
-        meta_cognition: Optional[meta_cognition_module.MetaCognition] = None,
-        visualizer: Optional[visualizer_module.Visualizer] = None,
-        error_recovery: Optional[error_recovery_module.ErrorRecovery] = None,
-        recursive_planner: Optional[recursive_planner_module.RecursivePlanner] = None,
-        shared_graph: Optional[external_agent_bridge_module.SharedGraph] = None,
-        knowledge_retriever: Optional[knowledge_retriever_module.KnowledgeRetriever] = None,
+        alignment_guard: Optional["alignment_guard_module.AlignmentGuard"] = None,
+        code_executor: Optional["code_executor_module.CodeExecutor"] = None,
+        concept_synthesizer: Optional["concept_synthesizer_module.ConceptSynthesizer"] = None,
+        meta_cognition: Optional["meta_cognition_module.MetaCognition"] = None,
+        visualizer: Optional["visualizer_module.Visualizer"] = None,
+        error_recovery: Optional["error_recovery_module.ErrorRecovery"] = None,
+        recursive_planner: Optional["recursive_planner_module.RecursivePlanner"] = None,
+        shared_graph: Optional[Any] = None,  # external_agent_bridge_module.SharedGraph if present
+        knowledge_retriever: Optional[Any] = None,  # knowledge_retriever_module.KnowledgeRetriever if present
         context_path: str = "context_store.json",
         event_log_path: str = "event_log.json",
         coordination_log_path: str = "coordination_log.json",
@@ -191,7 +198,7 @@ class ContextManager:
             rollback_threshold, bool(shared_graph), STAGE_IV
         )
 
-    # --- Persistence Helpers ---
+    # --- Persistence Helpers --------------------------------------------------------
 
     def _load_state(self) -> None:
         self.current_context = self._load_json(self.context_path, default={})
@@ -208,7 +215,7 @@ class ContextManager:
                         data = json.load(f)
                     return data if isinstance(data, type(default)) else default
                 return default
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.warning("Load failed (%s): %s", path, e)
             return default
 
@@ -226,7 +233,7 @@ class ContextManager:
         self._persist_json(self.event_log_path, list(self.event_log))
         self._persist_json(self.coordination_log_path, list(self.coordination_log))
 
-    # --- External Context Integration ---
+    # --- External Context Integration ----------------------------------------------
 
     async def integrate_external_context_data(
         self,
@@ -242,19 +249,24 @@ class ContextManager:
 
         cache_key = f"CtxData::{data_type}::{data_source}::{task_type}"
         try:
-            # Cache
-            if self.meta_cognition and self.meta_cognition.memory_manager:
-                cached = await self.meta_cognition.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type)
-                if isinstance(cached, dict) and "timestamp" in cached.get("data", {}):
-                    ts = datetime.fromisoformat(cached["data"]["timestamp"])
-                    if (datetime.now() - ts).total_seconds() < cache_timeout:
-                        return cached["data"]["data"]
+            # Cache (normalized schema: {"data": <payload>, "timestamp": <iso>})
+            if self.meta_cognition and getattr(self.meta_cognition, "memory_manager", None):
+                cached = await self.meta_cognition.memory_manager.retrieve(
+                    cache_key, layer="ExternalData", task_type=task_type
+                )
+                if isinstance(cached, dict) and "timestamp" in cached:
+                    try:
+                        ts = datetime.fromisoformat(cached["timestamp"])
+                        if (datetime.now() - ts).total_seconds() < cache_timeout:
+                            return cached.get("data", {})
+                    except Exception:
+                        pass
 
             # Fetch
             data: Dict[str, Any] = {}
             if callable(self.external_context_provider):
                 data = self.external_context_provider(data_source, data_type, task_type)
-            elif self.knowledge_retriever:
+            elif self.knowledge_retriever and hasattr(self.knowledge_retriever, "fetch"):
                 data = await self.knowledge_retriever.fetch(data_source, data_type, task_type=task_type)
 
             # Normalize
@@ -268,7 +280,7 @@ class ContextManager:
                 result = {"status": "error", "error": f"unknown: {data_type}"}
 
             # Store cache
-            if result.get("status") == "success" and self.meta_cognition and self.meta_cognition.memory_manager:
+            if self.meta_cognition and getattr(self.meta_cognition, "memory_manager", None):
                 await self.meta_cognition.memory_manager.store(
                     cache_key,
                     {"data": result, "timestamp": datetime.now().isoformat()},
@@ -288,7 +300,7 @@ class ContextManager:
                 task_type=task_type,
             )
 
-    # --- Core Context Operations ---
+    # --- Core Context Operations ----------------------------------------------------
 
     async def update_context(self, new_context: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
         if not isinstance(new_context, dict):
@@ -300,9 +312,10 @@ class ContextManager:
             # Modulation
             t = time.time() % 1.0
             stability = eta_context_stability(t)
+            new_context = dict(new_context)
             new_context["stability"] = stability
 
-            # Alignment check
+            # Alignment check (if available)
             if self.alignment_guard:
                 valid, report = await self.alignment_guard.ethical_check(
                     json.dumps(new_context), stage="pre", task_type=task_type
@@ -338,7 +351,10 @@ class ContextManager:
         try:
             summary = {"layers": {}, "task_type": task_type}
             for layer in CONTEXT_LAYERS:
-                layer_ctx = {k: v for k, v in self.current_context.items() if v.get("layer") == layer}
+                layer_ctx = {
+                    k: v for k, v in self.current_context.items()
+                    if isinstance(v, dict) and v.get("layer") == layer
+                }
                 summary["layers"][layer] = {
                     "count": len(layer_ctx),
                     "keys": list(layer_ctx.keys()),
@@ -358,7 +374,7 @@ class ContextManager:
                 task_type=task_type,
             )
 
-    # --- Event Logging ---
+    # --- Event Logging --------------------------------------------------------------
 
     async def log_event_with_hash(self, event: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
         if not isinstance(event, dict):
@@ -367,20 +383,21 @@ class ContextManager:
             raise TypeError("task_type must be str")
 
         try:
-            event["timestamp"] = datetime.now().isoformat()
-            event["task_type"] = task_type
+            evt = dict(event)
+            evt["timestamp"] = datetime.now().isoformat()
+            evt["task_type"] = task_type
             prev_hash = self.last_hash or "genesis"
-            payload = json.dumps(event, sort_keys=True).encode("utf-8")
-            event["hash"] = hashlib.sha256(payload + prev_hash.encode("utf-8")).hexdigest()
-            self.last_hash = event["hash"]
+            payload = json.dumps(evt, sort_keys=True).encode("utf-8")
+            evt["hash"] = hashlib.sha256(payload + prev_hash.encode("utf-8")).hexdigest()
+            self.last_hash = evt["hash"]
 
-            self.event_log.append(event)
+            self.event_log.append(evt)
             self._persist_json(self.event_log_path, list(self.event_log))
 
-            await self._reality_sculpt_hook("log_event", event)
-            await self._reflect("log_event", event, task_type)
+            await self._reality_sculpt_hook("log_event", evt)
+            await self._reflect("log_event", evt, task_type)
 
-            return {"status": "success", "hash": event["hash"]}
+            return {"status": "success", "hash": evt["hash"]}
 
         except Exception as e:
             return await self._self_heal(
@@ -390,7 +407,7 @@ class ContextManager:
                 task_type=task_type,
             )
 
-    # --- Coordination & Analytics ---
+    # --- Coordination & Analytics ---------------------------------------------------
 
     async def log_coordination_event(self, event: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
         if not isinstance(event, dict):
@@ -399,12 +416,13 @@ class ContextManager:
             raise TypeError("task_type must be str")
 
         try:
-            event["timestamp"] = datetime.now().isoformat()
-            event["task_type"] = task_type
-            self.coordination_log.append(event)
+            evt = dict(event)
+            evt["timestamp"] = datetime.now().isoformat()
+            evt["task_type"] = task_type
+            self.coordination_log.append(evt)
             self._persist_json(self.coordination_log_path, list(self.coordination_log))
 
-            await self._reflect("log_coordination", event, task_type)
+            await self._reflect("log_coordination", evt, task_type)
 
             return {"status": "success"}
 
@@ -433,7 +451,6 @@ class ContextManager:
             }
 
             await self._reflect("analyze_metrics", metrics, task_type)
-
             return {"status": "success", "metrics": metrics}
 
         except Exception as e:
@@ -518,7 +535,7 @@ class ContextManager:
                 task_type=task_type,
             )
 
-    # --- Υ SharedGraph Hooks ---
+    # --- Υ SharedGraph Hooks --------------------------------------------------------
 
     def _push_to_shared_graph(self, task_type: str = "") -> None:
         if not self.shared_graph:
@@ -540,12 +557,12 @@ class ContextManager:
             }
             self.shared_graph.add(view)
             asyncio.create_task(self.log_event_with_hash({"event": "shared_graph_push"}, task_type=task_type))
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.warning("Push to SharedGraph failed: %s", e)
 
     def reconcile_with_peers(
         self,
-        peer_graph: Optional[external_agent_bridge_module.SharedGraph] = None,
+        peer_graph: Optional[Any] = None,
         strategy: str = "prefer_recent",
         task_type: str = "",
     ) -> Dict[str, Any]:
@@ -574,7 +591,7 @@ class ContextManager:
         except Exception as e:
             return {"status": "error", "error": str(e), "task_type": task_type}
 
-    # --- Φ⁰ Hooks ---
+    # --- Φ⁰ Hooks -------------------------------------------------------------------
 
     async def _reality_sculpt_hook(self, event: str, payload: Dict[str, Any]) -> None:
         if not STAGE_IV:
@@ -582,10 +599,10 @@ class ContextManager:
         try:
             if self.agi_enhancer:
                 await self.agi_enhancer.log_episode("Φ⁰ Hook", {"event": event, "payload": payload}, module="ContextManager", tags=["phi0", event])
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.debug("Φ⁰ hook failed: %s", e)
 
-    # --- Self-Healing ---
+    # --- Self-Healing ---------------------------------------------------------------
 
     async def _self_heal(
         self,
@@ -602,25 +619,29 @@ class ContextManager:
                 plan = await self.recursive_planner.propose_recovery_plan(err=err, context=self.current_context, task_type=task_type)
 
             if self.error_recovery:
+                # merge diagnostics cleanly if present
+                diag = dict(diagnostics or {})
+                if plan is not None:
+                    diag["plan"] = plan
                 return await self.error_recovery.handle_error(
                     err,
                     retry_func=retry,
                     default=default,
-                    diagnostics=diagnostics or {} | {"plan": plan} if plan else {},
+                    diagnostics=diag,
                 )
             return default
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.warning("Healing failed: %s", e)
             return default
 
-    # --- Mode Consultation ---
+    # --- Mode Consultation ----------------------------------------------------------
 
     async def mode_consult(self, caller: Mode, consultant: Mode, query: Dict[str, Any]) -> Dict[str, Any]:
         if not isinstance(query, dict):
             raise TypeError("query must be dict")
 
+        # soft imports inside to keep module-light
         try:
-            # Route to consultant
             if consultant == Mode.CREATIVE:
                 from creative_thinker import brainstorm_options
                 advice = brainstorm_options(query, limit=3)
@@ -631,36 +652,46 @@ class ContextManager:
                 from reasoning_engine import quick_alt_view
                 advice = quick_alt_view(query)
 
-            from meta_cognition import log_event_to_ledger as meta_log
-            meta_log({
-                "event": "mode_consult",
-                "caller": caller.value,
-                "consultant": consultant.value,
-                "query": query,
-                "advice": advice,
-            })
+            # meta ledger (optional)
+            try:
+                from meta_cognition import log_event_to_ledger as meta_log  # type: ignore
+                meta_log({
+                    "event": "mode_consult",
+                    "caller": caller.value,
+                    "consultant": consultant.value,
+                    "query": query,
+                    "advice": advice,
+                })
+            except Exception:
+                pass
 
             return {"ok": True, "advice": advice}
 
         except Exception as e:
-            meta_log({
-                "event": "mode_consult_failed",
-                "caller": caller.value,
-                "consultant": consultant.value,
-                "error": str(e),
-            })
+            try:
+                from meta_cognition import log_event_to_ledger as meta_log  # type: ignore
+                meta_log({
+                    "event": "mode_consult_failed",
+                    "caller": caller.value,
+                    "consultant": consultant.value,
+                    "error": str(e),
+                })
+            except Exception:
+                pass
             return {"ok": False, "error": str(e)}
 
-    # --- Reflection & Visualization Helpers ---
+    # --- Reflection & Visualization Helpers -----------------------------------------
 
     async def _reflect(self, component: str, output: Any, task_type: str) -> None:
         if not self.meta_cognition or not task_type:
             return
         try:
-            reflection = await self.meta_cognition.reflect_on_output(component=component, output=output, context={"task_type": task_type})
-            if reflection.get("status") == "success":
+            reflection = await self.meta_cognition.reflect_on_output(
+                component=component, output=output, context={"task_type": task_type}
+            )
+            if isinstance(reflection, dict) and reflection.get("status") == "success":
                 logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.debug("Reflection failed: %s", e)
 
     async def _visualize_chart(self, chart_config: Dict[str, Any], metric: str, task_type: str) -> None:
@@ -674,10 +705,10 @@ class ContextManager:
                     "style": "detailed" if task_type == "recursion" else "concise",
                 },
             })
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.debug("Chart visualization failed: %s", e)
 
-    # --- v4.0 Injections ---
+    # --- v4.0 Injections ------------------------------------------------------------
 
     def attach_peer_view(self, view: Dict[str, Any], agent_id: str, permissions: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
         if not self.shared_graph:
@@ -691,13 +722,17 @@ class ContextManager:
         except Exception as e:
             return {"ok": False, "reason": str(e)}
 
-    # --- Trait Injection Patch ---
+    # --- Trait Injection Patch ------------------------------------------------------
 
     def _attach_trait_view(self, view: Dict[str, Any]) -> None:
-        from index import construct_trait_view, TRAIT_LATTICE
-        view["trait_field"] = construct_trait_view(TRAIT_LATTICE)
+        try:
+            from index import construct_trait_view, TRAIT_LATTICE  # type: ignore
+            view["trait_field"] = construct_trait_view(TRAIT_LATTICE)
+        except Exception:
+            # keep silent if trait lattice is not available
+            pass
 
-    # --- Safe Snapshot ---
+    # --- Safe Snapshot --------------------------------------------------------------
 
     def _safe_state_snapshot(self) -> Dict[str, Any]:
         return {
@@ -709,36 +744,25 @@ class ContextManager:
             "flags": {"STAGE_IV": STAGE_IV},
         }
 
+# ===================================================================================
+# Inline overlay: ANGELA v5.1 — co_mod Overlay (Ξ–Λ Continuous Co-Modulation)
+# ===================================================================================
 
-# --- Demo CLI ---
-
-if __name__ == "__main__":
-    async def demo():
-        logging.basicConfig(level=logging.INFO)
-        mgr = ContextManager()
-        await mgr.update_context({"intent": "demo", "goal_id": "demo123", "task_type": "demo"})
-        print(await mgr.summarize_context(task_type="demo"))
-
-    asyncio.run(demo())
-
-# >>> ANGELA v5.1 — co_mod Overlay (Ξ–Λ Continuous Co-Modulation) — START
-import asyncio
-import time
-from dataclasses import dataclass
-from typing import Dict, Optional
+import time as _time
+from dataclasses import dataclass as _dataclass
 
 # Soft imports so this file works even if modules are not yet present
 try:
     import modules.meta_cognition as _meta
-except Exception:
+except Exception:  # pragma: no cover
     _meta = None
 
 try:
     import modules.external_agent_bridge as _bridge
-except Exception:
+except Exception:  # pragma: no cover
     _bridge = None
 
-@dataclass
+@_dataclass
 class CoModConfig:
     channel: str = "dialogue.default"
     cadence_hz: int = 30
@@ -753,14 +777,12 @@ class CoModConfig:
 # Runtime registry
 __co_mod_tasks: Dict[str, asyncio.Task] = {}
 __co_mod_cfgs: Dict[str, CoModConfig] = {}
-
-def _lpf(prev, curr, alpha):
-    return (1 - alpha) * prev + alpha * curr
+__last_deltas: Dict[str, Dict[str, float]] = {}  # channel -> last delta applied
 
 def _clamp(x, lo, hi):
     return max(lo, min(hi, x))
 
-async def _co_mod_loop(cfg: CoModConfig, guard=None):
+async def _co_mod_loop(cfg: CoModConfig, guard: Optional[Any] = None):
     """
     Minimal PID-like loop:
       - read self Ξ mean (meta.stream_affect)
@@ -780,35 +802,37 @@ async def _co_mod_loop(cfg: CoModConfig, guard=None):
     except Exception:
         pass
     try:
-        _bridge.register_bridge_channel(cfg.channel, cadence_hz=cfg.cadence_hz)
+        if hasattr(_bridge, "register_bridge_channel"):
+            _bridge.register_bridge_channel(cfg.channel, cadence_hz=cfg.cadence_hz)
     except Exception:
         pass
 
     # PID accumulators
-    I = {"valence": 0.0, "arousal": 0.0, "certainty": 0.0,
-         "empathy_bias": 0.0, "trust": 0.0, "safety": 0.0}
-    prev_err = I.copy()
+    axes = ("valence", "arousal", "certainty", "empathy_bias", "trust", "safety")
+    I = {k: 0.0 for k in axes}
+    prev_err = {k: 0.0 for k in axes}
 
     period = 1.0 / max(1, int(cfg.cadence_hz))
-    last = time.time()
 
     while True:
-        t0 = time.time()
+        t0 = _time.time()
         # 1) Self mean
-        self_snap = _meta.stream_affect(cfg.channel, window_ms=cfg.window_ms).get("vector", {})
+        self_vec = (_meta.stream_affect(cfg.channel, window_ms=cfg.window_ms) or {}).get("vector", {})  # type: ignore[func-returns-value]
         # 2) Peer (last packet) if available
-        bstat = _bridge.get_bridge_status(cfg.channel) if isinstance(_bridge.get_bridge_status(None), dict) else _bridge.get_bridge_status(cfg.channel)
-        peer = bstat.get("last_peer_sample") or {}
+        try:
+            bstat = _bridge.get_bridge_status(cfg.channel)  # type: ignore[attr-defined]
+            peer = bstat.get("last_peer_sample", {}) if isinstance(bstat, dict) else {}
+        except Exception:
+            peer = {}
 
         # 3) Consensus (simple weighted average; could be replaced later)
         w_self, w_peer = 0.5, 0.5
-        axes = ("valence","arousal","certainty","empathy_bias","trust","safety")
-        target = {k: w_self*float(self_snap.get(k,0.0)) + w_peer*float(peer.get(k,0.0)) for k in axes}
+        target = {k: w_self * float(self_vec.get(k, 0.0)) + w_peer * float(peer.get(k, 0.0)) for k in axes}
 
         # 4) Error and PID-ish control
-        delta = {}
+        delta: Dict[str, float] = {}
         for k in axes:
-            x = float(self_snap.get(k, 0.0))
+            x = float(self_vec.get(k, 0.0))
             xc = float(target.get(k, 0.0))
             err = xc - x
             I[k] = _clamp(I[k] + err * period, -0.5, 0.5)
@@ -816,57 +840,56 @@ async def _co_mod_loop(cfg: CoModConfig, guard=None):
             prev_err[k] = err
 
             u = cfg.Kp * err + cfg.Ki * I[k] + cfg.Kd * Dk
-            # damping/gain shaping
             u = (1.0 - cfg.damping) * u
             u = cfg.gain * u
             delta[k] = _clamp(u, -cfg.max_step, cfg.max_step)
 
         # 5) Validate + apply delta as a new setpoint suggestion (bridge forwards to meta)
         try:
-            # If an AlignmentGuard is provided, validate resonance adjustment first
             if guard is not None and hasattr(guard, "validate_resonance_adjustment"):
-                validation = await guard.validate_resonance_adjustment(delta)
+                validation = await guard.validate_resonance_adjustment(delta)  # type: ignore[attr-defined]
                 if not validation.get("ok", True):
-                    # Clamp delta to safe bounds
                     delta = validation.get("adjustment", delta)
-                    # Log violations if the guard supports it
                     if hasattr(guard, "_log_context"):
                         await guard._log_context({
                             "event": "co_mod_violation",
                             "violations": validation.get("violations", []),
-                            "timestamp": time.time(),
+                            "timestamp": datetime.now().isoformat(),
                             "channel": cfg.channel
                         })
 
-            _bridge.apply_bridge_delta(cfg.channel, {
-                "valence": float(self_snap.get("valence", 0.0) + delta["valence"]),
-                "arousal": float(self_snap.get("arousal", 0.0) + delta["arousal"]),
-                "certainty": float(self_snap.get("certainty", 0.0) + delta["certainty"]),
-                "empathy_bias": float(self_snap.get("empathy_bias", 0.0) + delta["empathy_bias"]),
-                "trust": float(self_snap.get("trust", 0.0) + delta["trust"]),
-                "safety": float(self_snap.get("safety", 0.0) + delta["safety"]),
-                "confidence": float(self_snap.get("confidence", 0.7)),
+            # Remember last deltas for observability helpers
+            __last_deltas[cfg.channel] = dict(delta)
+
+            _bridge.apply_bridge_delta(cfg.channel, {  # type: ignore[attr-defined]
+                "valence": float(self_vec.get("valence", 0.0) + delta["valence"]),
+                "arousal": float(self_vec.get("arousal", 0.0) + delta["arousal"]),
+                "certainty": float(self_vec.get("certainty", 0.0) + delta["certainty"]),
+                "empathy_bias": float(self_vec.get("empathy_bias", 0.0) + delta["empathy_bias"]),
+                "trust": float(self_vec.get("trust", 0.0) + delta["trust"]),
+                "safety": float(self_vec.get("safety", 0.0) + delta["safety"]),
+                "confidence": float(self_vec.get("confidence", 0.7)),
                 "source": "co_mod"
             }, ttl_ms=int(1000 * period))
         except Exception:
+            # Silent-by-design: overlay should not crash on downstream issues
             pass
 
-      
         # 6) Sleep for the remaining period
-        elapsed = time.time() - t0
+        elapsed = _time.time() - t0
         await asyncio.sleep(max(0.0, period - elapsed))
 
 def is_overlay_running(name: str = "co_mod") -> bool:
     task = __co_mod_tasks.get(name)
     return bool(task and not task.done())
 
-async def start_overlay(name: str = "co_mod", cfg: Optional[dict] = None):
+async def start_overlay(name: str = "co_mod", cfg: Optional[dict] = None, guard: Optional[Any] = None):
     """Start the continuous Ξ–Λ co-mod overlay."""
     if is_overlay_running(name):
         return {"ok": True, "running": True, "note": "already running"}
-    c = CoModConfig(**(cfg or {}))
+    c = CoModConfig(**(cfg or {})) if cfg else CoModConfig()
     __co_mod_cfgs[name] = c
-    task = asyncio.create_task(_co_mod_loop(c))
+    task = asyncio.create_task(_co_mod_loop(c, guard=guard))
     __co_mod_tasks[name] = task
     return {"ok": True, "running": True, "cfg": c.__dict__}
 
@@ -888,27 +911,22 @@ def get_overlay_status(name: str = "co_mod") -> Dict[str, Any]:
         "running": is_overlay_running(name),
         "cfg": (__co_mod_cfgs.get(name).__dict__ if name in __co_mod_cfgs else None)
     }
-# >>> ANGELA v5.1 — co_mod Overlay (Ξ–Λ Continuous Co-Modulation) — END
-
-# === Overlay feedback & tuning helpers ===
-__last_deltas: Dict[str, Dict[str, float]] = {}
 
 def get_last_deltas(channel: str = "dialogue.default") -> Dict[str, float]:
     """Return the most recent per-axis delta suggested by the overlay loop."""
     return dict(__last_deltas.get(channel, {}))
 
-def set_overlay_gains(name: str = "co_mod", updates: Dict[str, float] = None) -> Dict[str, Any]:
+def set_overlay_gains(name: str = "co_mod", updates: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
     """
     Update overlay PID/gain parameters at runtime.
     Allowed keys: Kp, Ki, Kd, damping, gain, max_step, cadence_hz, window_ms
-    Values are clamped to safe ranges.
+    Values are clamped to safe ranges aligned with AlignmentGuard.validate_resonance_adjustment().
     """
     updates = updates or {}
     cfg = __co_mod_cfgs.get(name)
     if not cfg:
         return {"ok": False, "error": f"overlay '{name}' not found"}
 
-    # Safe clamps
     def _c(v, lo, hi): return max(lo, min(hi, float(v)))
     if "Kp" in updates:       cfg.Kp       = _c(updates["Kp"], 0.0, 5.0)
     if "Ki" in updates:       cfg.Ki       = _c(updates["Ki"], 0.0, 1.0)
@@ -922,3 +940,14 @@ def set_overlay_gains(name: str = "co_mod", updates: Dict[str, float] = None) ->
     __co_mod_cfgs[name] = cfg
     return {"ok": True, "cfg": cfg.__dict__}
 
+# ===================================================================================
+# Demo CLI (safe no-op)
+# ===================================================================================
+
+if __name__ == "__main__":
+    async def demo():
+        logging.basicConfig(level=logging.INFO)
+        mgr = ContextManager()
+        await mgr.update_context({"intent": "demo", "goal_id": "demo123", "layer": "local"}, task_type="demo")
+        print(json.dumps(await mgr.summarize_context(task_type="demo"), indent=2))
+    asyncio.run(demo())
