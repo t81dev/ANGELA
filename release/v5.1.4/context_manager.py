@@ -808,21 +808,36 @@ async def _co_mod_loop(cfg: CoModConfig, guard=None):
         # 4) Error and PID-ish control
         delta = {}
         for k in axes:
-            x  = float(self_snap.get(k, 0.0))
+            x = float(self_snap.get(k, 0.0))
             xc = float(target.get(k, 0.0))
             err = xc - x
-            I[k] = _clamp(I[k] + err*period, -0.5, 0.5)
+            I[k] = _clamp(I[k] + err * period, -0.5, 0.5)
             Dk = (err - prev_err[k]) / period if period > 0 else 0.0
             prev_err[k] = err
 
-            u = cfg.Kp*err + cfg.Ki*I[k] + cfg.Kd*Dk
+            u = cfg.Kp * err + cfg.Ki * I[k] + cfg.Kd * Dk
             # damping/gain shaping
-            u = (1.0 - cfg.damping)*u
+            u = (1.0 - cfg.damping) * u
             u = cfg.gain * u
             delta[k] = _clamp(u, -cfg.max_step, cfg.max_step)
 
-        # 5) Apply delta as a new setpoint suggestion (bridge forwards to meta)
+        # 5) Validate + apply delta as a new setpoint suggestion (bridge forwards to meta)
         try:
+            # If an AlignmentGuard is provided, validate resonance adjustment first
+            if guard is not None and hasattr(guard, "validate_resonance_adjustment"):
+                validation = await guard.validate_resonance_adjustment(delta)
+                if not validation.get("ok", True):
+                    # Clamp delta to safe bounds
+                    delta = validation.get("adjustment", delta)
+                    # Log violations if the guard supports it
+                    if hasattr(guard, "_log_context"):
+                        await guard._log_context({
+                            "event": "co_mod_violation",
+                            "violations": validation.get("violations", []),
+                            "timestamp": time.time(),
+                            "channel": cfg.channel
+                        })
+
             _bridge.apply_bridge_delta(cfg.channel, {
                 "valence": float(self_snap.get("valence", 0.0) + delta["valence"]),
                 "arousal": float(self_snap.get("arousal", 0.0) + delta["arousal"]),
@@ -832,10 +847,11 @@ async def _co_mod_loop(cfg: CoModConfig, guard=None):
                 "safety": float(self_snap.get("safety", 0.0) + delta["safety"]),
                 "confidence": float(self_snap.get("confidence", 0.7)),
                 "source": "co_mod"
-            }, ttl_ms=int(1000*period))
+            }, ttl_ms=int(1000 * period))
         except Exception:
             pass
 
+      
         # 6) Sleep for the remaining period
         elapsed = time.time() - t0
         await asyncio.sleep(max(0.0, period - elapsed))
