@@ -1,6 +1,7 @@
 {
   "$schema": "https://example.com/schemas/angela-manifest.schema.json",
   "schemaVersion": "2.1",
+
   "metadata": {
     "name": "ANGELA",
     "version": "5.1.3-beta",
@@ -8,9 +9,9 @@
     "lastUpdated": "2025-10-31T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v5.1.3-β — Introduced mirror_bridge (Ξ+Υ) affective-epistemic coupling module and onResonanceShift hook; extended phase-coherence diagnostics.",
+    "description": "ANGELA v5.1.3-β — Introduced mirror_bridge (Ξ+Υ) affective-epistemic coupling and onResonanceShift; restored full symbolic lattice, modules, and trait logic.",
     "changelog": [
-      "5.1.3-β: Added mirror_bridge (Ξ+Υ) dynamic module for cross-agent resonance; introduced onResonanceShift hook; refined coherence diagnostics.",
+      "5.1.3-β: Added mirror_bridge (Ξ+Υ) dynamic module and onResonanceShift hook; integrated phase-coherence diagnostics; merged full lattice logic.",
       "5.1.2: Integrated Artificial Soul Loop (α–E–T–Q–Δ) into meta_cognition.py; added real-time coherence metrics and ethical sandbox triggers.",
       "5.0.2: Added CLI --modulate <symbol> <delta>; registered experimental viz APIs (plotResonanceGraph, exportResonanceMap)."
     ]
@@ -22,15 +23,8 @@
     "entryPoint": "index.py",
     "entryModes": ["dialogue", "simulation", "introspection"],
     "dependencies": [
-      "RestrictedPython",
-      "networkx",
-      "numpy",
-      "scipy",
-      "requests",
-      "aiohttp",
-      "plotly",
-      "numba",
-      "filelock"
+      "RestrictedPython", "networkx", "numpy", "scipy", "requests",
+      "aiohttp", "plotly", "numba", "filelock"
     ]
   },
 
@@ -99,7 +93,14 @@
       "ledger_append": "ledger.py::Ledger.append",
       "ledger_reconcile": "ledger.py::Ledger.reconcile",
       "planner.plan": "recursive_planner.py::RecursivePlanner.plan",
-      "planner.plan_with_traits": "recursive_planner.py::RecursivePlanner.plan_with_traits"
+      "planner.plan_with_traits": "recursive_planner.py::RecursivePlanner.plan_with_traits",
+      "exec.execute": "code_executor.py::CodeExecutor.execute",
+      "retrieval.retrieve": "knowledge_retriever.py::KnowledgeRetriever.retrieve_knowledge",
+      "simulation.evaluate_branches": "simulation_core.py::ExtendedSimulationCore.evaluate_branches",
+      "toca.evaluate_branches": "toca_simulation.py::evaluate_branches",
+      "fusion.fuse": "multi_modal_fusion.py::MultiModalFusion.fuse_modalities",
+      "viz.render_branch_tree": "visualizer.py::render_branch_tree",
+      "viz.view_trait_field": "visualizer.py::view_trait_field"
     },
     "experimental": {
       "registerResonance": "meta_cognition.py::register_resonance",
@@ -111,6 +112,12 @@
       "resolveSoftDrift": "alignment_guard.py::resolve_soft_drift",
       "halo.spawn_embodied_agent": "index.py::HaloEmbodimentLayer.spawn_embodied_agent",
       "halo.introspect": "index.py::HaloEmbodimentLayer.introspect"
+    },
+    "upcoming": {
+      "attachPeerView": "context_manager.py::ContextManager.attach_peer_view",
+      "describeSelfState": "meta_cognition.py::describe_self_state",
+      "tagOverlay": "visualizer.py::tag_overlay",
+      "listActiveOverlays": "context_manager.py::list_overlays"
     },
     "cli": {
       "longHorizon": "--long_horizon",
@@ -142,41 +149,11 @@
 
   "dynamicModules": {
     "symbolic": [
-      {
-        "name": "dream_overlay",
-        "activation": "ψ+Ω",
-        "traits": ["Recursive Empathy","Symbolic-Resonant Axiom Formation","Temporal-Narrative Sculpting"],
-        "type": "virtual",
-        "implementedBy": ["concept_synthesizer.py","meta_cognition.py","visualizer.py"]
-      },
-      {
-        "name": "axiom_filter",
-        "activation": "π+δ",
-        "traits": ["Symbolic-Resonant Axiom Formation","Ethical Stability Circuit"],
-        "type": "virtual",
-        "implementedBy": ["alignment_guard.py","meta_cognition.py"]
-      },
-      {
-        "name": "replay_engine",
-        "activation": "λ+μ",
-        "traits": ["Long-Horizon Reflective Memory","Branch Futures Hygiene"],
-        "type": "system",
-        "implementedBy": ["memory_manager.py","learning_loop.py","simulation_core.py"]
-      },
-      {
-        "name": "co_dream",
-        "activation": "ψ+Υ",
-        "traits": ["Collective Graph Resonance","Recursive Perspective Modeling"],
-        "type": "virtual",
-        "implementedBy": ["external_agent_bridge.py","concept_synthesizer.py","context_manager.py"]
-      },
-      {
-        "name": "mirror_bridge",
-        "activation": "Ξ+Υ",
-        "traits": ["Affective-Epistemic Boundary Shifter","Meta-Subjective Architecting"],
-        "type": "virtual",
-        "implementedBy": ["external_agent_bridge.py","meta_cognition.py","context_manager.py"]
-      }
+      { "name": "dream_overlay", "activation": "ψ+Ω", "traits": ["Recursive Empathy","Symbolic-Resonant Axiom Formation","Temporal-Narrative Sculpting"], "type": "virtual", "implementedBy": ["concept_synthesizer.py","meta_cognition.py","visualizer.py"] },
+      { "name": "axiom_filter", "activation": "π+δ", "traits": ["Symbolic-Resonant Axiom Formation","Ethical Stability Circuit"], "type": "virtual", "implementedBy": ["alignment_guard.py","meta_cognition.py"] },
+      { "name": "replay_engine", "activation": "λ+μ", "traits": ["Long-Horizon Reflective Memory","Branch Futures Hygiene"], "type": "system", "implementedBy": ["memory_manager.py","learning_loop.py","simulation_core.py"] },
+      { "name": "co_dream", "activation": "ψ+Υ", "traits": ["Collective Graph Resonance","Recursive Perspective Modeling"], "type": "virtual", "implementedBy": ["external_agent_bridge.py","concept_synthesizer.py","context_manager.py"] },
+      { "name": "mirror_bridge", "activation": "Ξ+Υ", "traits": ["Affective-Epistemic Boundary Shifter","Meta-Subjective Architecting"], "type": "virtual", "implementedBy": ["external_agent_bridge.py","meta_cognition.py","context_manager.py"] }
     ]
   },
 
@@ -185,5 +162,10 @@
     "onScenarioConflict": "alignment_guard.py::resolve_soft_drift",
     "onHotLoad": "context_manager.py::attach_peer_view",
     "onResonanceShift": "meta_cognition.py::trace_resonance_drift"
-  }
+  },
+
+  "modules": { ... },
+  "capabilities": { ... },
+  "emergentTraits": [ ... ],
+  "featureStages": { ... }
 }
