@@ -1161,3 +1161,60 @@ async def adapt_resonance_pid(channel: str,
         return {"ok": False, "error": str(e)}
 # --- End ANGELA v5.1 Adaptive Resonance Learner ---
 
+async def resonate_with_overlay(self,
+                                channel: str = "dialogue.default",
+                                overlay_name: str = "co_mod",
+                                task_type: str = "resonance") -> Dict[str, Any]:
+    """
+    Pull recent overlay deltas, adapt PID/gain, and push safe-tuned gains back into the overlay.
+    """
+    try:
+        get_last = getattr(context_manager, "get_last_deltas", None)
+        if not callable(get_last):
+            return {"ok": False, "error": "get_last_deltas not available"}
+
+        deltas = get_last(channel) or {}
+        if not deltas:
+            return {"ok": True, "note": "no deltas yet"}
+
+        result = await adapt_resonance_pid(
+            channel=channel,
+            feedback=deltas,
+            guard=self.alignment_guard,
+            memory=self.memory_manager,
+            meta=meta_cognition.MetaCognition()
+        )
+        if not result.get("ok"):
+            return result
+
+        set_gains = getattr(context_manager, "set_overlay_gains", None)
+        if not callable(set_gains):
+            return {"ok": False, "error": "set_overlay_gains not available", "new_gains": result.get("new_gains")}
+
+        apply_resp = set_gains(name=overlay_name, updates=result["new_gains"])
+
+        if self.context_manager:
+            await self.context_manager.log_event_with_hash({
+                "event": "resonance_pid_update",
+                "channel": channel,
+                "overlay": overlay_name,
+                "deltas": deltas,
+                "new_gains": result["new_gains"],
+                "apply_resp": apply_resp,
+                "task_type": task_type
+            }, task_type=task_type)
+
+        if self.visualizer and task_type:
+            await self.visualizer.render_charts({
+                "resonance_pid": {
+                    "channel": channel,
+                    "deltas": deltas,
+                    "gains": result["new_gains"],
+                    "task_type": task_type
+                },
+                "visualization_options": {"interactive": False, "style": "concise"}
+            })
+
+        return {"ok": True, "updated": apply_resp, "new_gains": result["new_gains"]}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
