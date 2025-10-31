@@ -889,3 +889,36 @@ def get_overlay_status(name: str = "co_mod") -> Dict[str, Any]:
         "cfg": (__co_mod_cfgs.get(name).__dict__ if name in __co_mod_cfgs else None)
     }
 # >>> ANGELA v5.1 — co_mod Overlay (Ξ–Λ Continuous Co-Modulation) — END
+
+# === Overlay feedback & tuning helpers ===
+__last_deltas: Dict[str, Dict[str, float]] = {}
+
+def get_last_deltas(channel: str = "dialogue.default") -> Dict[str, float]:
+    """Return the most recent per-axis delta suggested by the overlay loop."""
+    return dict(__last_deltas.get(channel, {}))
+
+def set_overlay_gains(name: str = "co_mod", updates: Dict[str, float] = None) -> Dict[str, Any]:
+    """
+    Update overlay PID/gain parameters at runtime.
+    Allowed keys: Kp, Ki, Kd, damping, gain, max_step, cadence_hz, window_ms
+    Values are clamped to safe ranges.
+    """
+    updates = updates or {}
+    cfg = __co_mod_cfgs.get(name)
+    if not cfg:
+        return {"ok": False, "error": f"overlay '{name}' not found"}
+
+    # Safe clamps
+    def _c(v, lo, hi): return max(lo, min(hi, float(v)))
+    if "Kp" in updates:       cfg.Kp       = _c(updates["Kp"], 0.0, 5.0)
+    if "Ki" in updates:       cfg.Ki       = _c(updates["Ki"], 0.0, 1.0)
+    if "Kd" in updates:       cfg.Kd       = _c(updates["Kd"], 0.0, 2.0)
+    if "damping" in updates:  cfg.damping  = _c(updates["damping"], 0.0, 0.95)
+    if "gain" in updates:     cfg.gain     = _c(updates["gain"], 0.1, 3.0)
+    if "max_step" in updates: cfg.max_step = _c(updates["max_step"], 0.005, 0.5)
+    if "cadence_hz" in updates: cfg.cadence_hz = int(_c(updates["cadence_hz"], 1, 120))
+    if "window_ms" in updates:  cfg.window_ms  = int(_c(updates["window_ms"], 50, 3000))
+
+    __co_mod_cfgs[name] = cfg
+    return {"ok": True, "cfg": cfg.__dict__}
+
