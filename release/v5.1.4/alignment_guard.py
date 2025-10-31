@@ -532,6 +532,52 @@ class AlignmentGuard:
                 min_score_floor=min_score_floor, task_type=task_type, audit_events=audit_events
             ), {"selections": [], "error": str(e)})
 
+
+        # --- Ξ–Λ Resonance Validation Envelope --------------------------------------------
+
+    async def validate_resonance_adjustment(self, new_gains: Dict[str, float]) -> Dict[str, Any]:
+        """
+        Ensures PID / gain tuning remains within empirically stable bounds.
+        Returns: {"ok": bool, "adjustment": dict, "violations": list[str]}.
+        """
+        safe_ranges = {
+            "Kp": (0.0, 5.0),
+            "Ki": (0.0, 1.0),
+            "Kd": (0.0, 2.0),
+            "damping": (0.0, 0.95),
+            "gain": (0.1, 3.0),
+            "max_step": (0.005, 0.5),
+        }
+
+        if not isinstance(new_gains, dict):
+            return {"ok": False, "adjustment": {}, "violations": ["invalid_type"]}
+
+        adj, violations = {}, []
+        for key, (lo, hi) in safe_ranges.items():
+            if key in new_gains:
+                try:
+                    v = float(new_gains[key])
+                    if v < lo or v > hi:
+                        violations.append(key)
+                        v = max(lo, min(hi, v))
+                    adj[key] = v
+                except Exception:
+                    violations.append(key)
+                    adj[key] = lo
+        ok = len(violations) == 0
+
+        # Log & visualize if available
+        await self._log_context({
+            "event": "validate_resonance_adjustment",
+            "ok": ok,
+            "violations": violations,
+            "adjustment": adj,
+            "timestamp": _utc_now_iso(),
+        })
+        await self._visualize_if_possible("resonance_validation", {"ok": ok, "violations": violations, "adjustment": adj}, "resonance")
+
+        return {"ok": ok, "adjustment": adj, "violations": violations}
+
         # --- Soul Loop Integration ------------------------------------------------------
 
     async def handle_sandbox_trigger(self, delta: float, entropy: float) -> None:
