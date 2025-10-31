@@ -496,7 +496,6 @@ class ReasoningEngine:
                 pass
             return {"status": "error", "error": repr(exc)}
 
-    
     # ---------------------------
     # τ Proportionality Ethics
     # ---------------------------
