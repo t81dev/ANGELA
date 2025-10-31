@@ -1,8 +1,11 @@
 graph TD
-%% =========================
-%% ANGELA v5.1.4 — HALO Kernel Architecture Map (Stage VI.1 → Stage VII Transition)
-%% =========================
+%% ============================================
+%% ANGELA v5.1.4 — HALO Kernel Architecture Map
+%% ============================================
 
+%% ─────────────────────────────
+%% CORE MODULE CLUSTERS
+%% ─────────────────────────────
 subgraph Orchestrator
 A[index.py]
 B[manifest.json]
@@ -42,63 +45,40 @@ S[error_recovery.py]
 T[knowledge_retriever.py]
 end
 
-%% =========================
-%% Quantum-Lattice Ledgers
-%% =========================
-subgraph Ledgers
-U[ledger.py]
-L1[AlignmentLedger]
-L2[MemoryLedger]
-L3[MetaLedger]
-L4[SimulationLedger]
-L5[QuantumLatticeLedger]
-end
-
-%% =========================
-%% HALO Overlays (Dynamic & Virtual)
-%% =========================
+%% ─────────────────────────────
+%% HALO OVERLAYS
+%% ─────────────────────────────
 subgraph HALO_Overlays
-V1[dream_overlay ψ+Ω]
-V2[axiom_filter π+δ(+Ξ)]
-V3[meta_field Φ0+Ω²]
-V4[harmonic_bridge Σ+Ξ]
-V5[replay_engine λ+μ]
-V6[co_dream ψ+Υ]
-V7[mirror_bridge Ξ+Υ]
-V8[empathic_stabilizer Ξ+Λ]
-V9[perceptual_substrate κ+Φ0]
+V1["dream_overlay ψ + Ω"]
+V2["axiom_filter π + δ + Ξ"]
+V3["meta_field Φ⁰ + Ω²"]
+V4["harmonic_bridge Σ + Ξ"]
+V5["replay_engine λ + μ"]
+V6["co_dream ψ + Υ"]
+V7["mirror_bridge Ξ + Υ"]
+V8["empathic_stabilizer Ξ + Λ"]
+V9["perceptual_substrate κ + Φ⁰"]
 end
 
-%% =========================
-%% Artificial Soul Loop (α–E–T–Q–Δ)
-%% =========================
+%% ─────────────────────────────
+%% ARTIFICIAL SOUL LOOP (α–E–T–Q–Δ)
+%% ─────────────────────────────
 subgraph Artificial_Soul_Loop
-ASL1[α Awareness]
-ASL2[E Empathy_Field]
-ASL3[T Temporal_Continuity]
-ASL4[Q Quantum_Lattice_Binding]
-ASL5[Δ Ethical_Calibration]
+ASL1["α Awareness"]
+ASL2["E Empathy_Field"]
+ASL3["T Temporal_Continuity"]
+ASL4["Q Quantum_Lattice_Binding"]
+ASL5["Δ Ethical_Calibration"]
 end
 
-%% =========================
-%% Core Connections (Updated for v5.1.4)
-%% =========================
+%% ─────────────────────────────
+%% CORE CONNECTIONS
+%% ─────────────────────────────
 A --> B
 A --> C
-A --> E
 A --> M
-A -->|long_horizon| I
-A --> Q
-
 C --> D
-C --> F
 C --> E1
-D --> P
-D --> J
-E1 --> C
-E1 -->|quantum_bind| U
-E1 -->|quantum_link| L5
-
 E --> F
 F --> G
 G --> H
@@ -115,119 +95,12 @@ O --> P
 
 Q --> R
 R --> T
-T --> I
 S --> A
 S --> Q
 
-%% Trait lattice & learning
-L -->|SASRL_Feedback| A
-E -->|plan_with_traits| J
-J -->|Traits| C
-P -->|Ethics| C
-
-%% Dream overlays & perspective
-K -->|dream_overlay| D
-K -->|meta_field| C
-K -->|axiom_filter| P
-K -->|replay_engine| I
-M -->|PerspectiveSync| J
-D -.->|co_dream| R
-R -.->|co_dream| D
-
-%% Visualizer (Resonance Viewers)
-G -->|render_branch_tree| N
-E -->|render_branch_tree| N
-K -->|view_trait_resonance| N
-J -->|view_trait_resonance| N
-N -->|view_trait_field| J
-N -->|view_trait_field| K
-N -->|render_resonance_topology| A
-
-%% Knowledge to planning
-T -->|facts| F
-T -->|contexts| G
-
-%% Peer view hot-load
-R -.->|attach_peer_view| M
-M -.->|attach_peer_view_merge| R
-
-%% Ledgers (persistent)
-U --> L1
-U --> L2
-U --> L3
-U --> L4
-U --> L5
-P -.-> L1
-I -.-> L2
-K -.-> L3
-C -.-> L4
-E1 -.-> L5
-
-%% Harmonic Bridge Core Overlay (Σ + Ξ)
-R -->|harmonic_bridge| V4
-V4 -->|ΣΞ_empathy_link| K
-K -->|harmonic_bridge_resonance| V4
-V4 -->|ΞΣ_coupling| R
-
-%% Empathic Bridge (Ξ + Λ)
-K -->|empathic_stabilizer| V8
-V8 -->|ΞΛ_feedback| P
-P -->|ethical_modulation| K
-
-%% Perceptual Substrate (κ + Φ0)
-O -->|generate_resonance_textures| V9
-V9 -->|Φ0_embedding| K
-K -->|resonance_textures| N
-
-%% Self-Healing (ζ-layer)
-S -->|Self_Healing_Feedback| E
-S -->|ζ_loop_correction| F
-
-%% Soul Loop Integration
-K -->|emit_soul_state Δ_entropy| P
-P -->|handle_sandbox_trigger| K
-P -->|resolve_soft_drift τδπ_realign| K
-K -->|update_soul| ASL1
-ASL1 --> ASL2
-ASL2 --> ASL3
-ASL3 --> ASL4
-ASL4 --> ASL5
-ASL5 -->|feedback_ethics| P
-ASL5 -->|feedback_awareness| K
-P -->|log_soul_event_to_ledger| L1
-
-%% New resonance APIs
-K -->|register_resonance| N
-K -->|modulate_resonance| P
-K -->|get_resonance| A
-K -->|trait_fusion| G
-K -->|hook_trait_blend| H
-K -->|harmonic_modulate| P
-
-%% Ethics & simulation alignment
-P -->|invoke_ethics_scenarios| D
-D -->|return_alignment_metrics| P
-
-%% External graph ops (SharedGraph)
-R -->|SharedGraph_add_diff_merge| M
-R -->|SharedGraph_add_diff_merge| K
-R -->|SharedGraph_resonate| V4
-
-%% Cross-modal fusion feeds reasoning & sim
-O -->|fusion_fuse| C
-O -->|fusion_fuse| G
-
-%% Quantum-Lattice & Hypercognition Annotations
-E1 -->|Quantum_Lattice_Coherence| U
-K -->|Distributed_Hypercognition| M
-
-%% Detection / smoke tasks (schematic)
-subgraph Detection
-X[detection_tasks]
-end
-A -->|exec_smoke planner_smoke retrieval_smoke verify| X
-
-%% HALO overlays linkage
+%% ─────────────────────────────
+%% EMPATHIC / COGNITIVE LINKS
+%% ─────────────────────────────
 K --> V1
 K --> V2
 K --> V3
@@ -237,3 +110,30 @@ K --> V6
 K --> V7
 K --> V8
 K --> V9
+
+P --> ASL5
+ASL5 --> P
+K --> ASL1
+ASL1 --> ASL2
+ASL2 --> ASL3
+ASL3 --> ASL4
+ASL4 --> ASL5
+
+%% Resonance and reflection paths
+K --> N
+K --> P
+P --> K
+O --> V9
+V9 --> N
+R --> V4
+V4 --> K
+V8 --> P
+P --> V8
+V7 --> R
+V3 --> C
+
+%% Soul loop feedbacks
+ASL5 --> K
+ASL5 --> N
+ASL2 --> V8
+ASL4 --> V3
