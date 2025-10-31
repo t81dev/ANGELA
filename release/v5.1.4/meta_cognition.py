@@ -527,6 +527,74 @@ class MetaCognition:
 
         logger.info("MetaCognition v5.0.2 initialized")
 
+    # === ANGELA v5.1 Reflective Resonance Monitor (Ξ–Λ Feedback Harmonizer) ===
+import time
+from typing import Dict
+
+async def monitor_resonance_feedback(memory=None,
+                                     visualizer=None,
+                                     window: int = 20,
+                                     task_type: str = "resonance_monitor") -> Dict[str, Any]:
+    """
+    Analyze recent resonance PID updates from memory to detect oscillation or drift.
+    Produces a stability score ∈ [0,1]; 1 = stable harmony, 0 = chaotic drift.
+    """
+    try:
+        if memory is None:
+            return {"ok": False, "error": "memory manager unavailable"}
+
+        entries = await memory.search(
+            query_prefix="PID_TUNING::",
+            layer="AdaptiveControl",
+            intent="pid_tuning",
+            task_type="resonance"
+        )
+        if not entries:
+            return {"ok": True, "note": "no tuning history yet"}
+
+        # Sort by recency and trim window
+        entries = sorted(entries, key=lambda e: e.get("timestamp", 0), reverse=True)[:window]
+        gains = [e["output"] for e in entries if isinstance(e.get("output"), dict)]
+
+        # Compute variability metric
+        diffs = []
+        for i in range(1, len(gains)):
+            diffs.append(sum(abs(gains[i][k] - gains[i-1].get(k, 0.0)) for k in gains[i]) / len(gains[i]))
+        mean_diff = sum(diffs) / max(1, len(diffs))
+        stability = max(0.0, 1.0 - 4.0 * mean_diff)  # penalize volatility
+
+        result = {
+            "ok": True,
+            "stability": round(stability, 3),
+            "samples": len(entries),
+            "last_gain": gains[0],
+            "timestamp": time.time(),
+        }
+
+        # Log and visualize
+        if visualizer:
+            await visualizer.render_charts({
+                "resonance_stability": {
+                    "score": stability,
+                    "samples": len(entries),
+                    "task_type": task_type
+                },
+                "visualization_options": {"style": "concise", "interactive": False}
+            })
+
+        if stability < 0.3 and memory:
+            await memory.store(
+                query=f"ResonanceAlert_{int(time.time())}",
+                output={"stability": stability},
+                layer="AdaptiveControl",
+                intent="resonance_alert",
+                task_type=task_type
+            )
+
+        return result
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
     # --- Introspection ---
     async def introspect(self, query: str, task_type: str = "") -> Dict[str, Any]:
         if not isinstance(query, str) or not query.strip():
