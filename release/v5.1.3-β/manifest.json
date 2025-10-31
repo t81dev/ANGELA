@@ -3,18 +3,20 @@
   "schemaVersion": "2.1",
   "metadata": {
     "name": "ANGELA",
-    "version": "5.1.3-beta",
+    "version": "5.1.3",
     "manifestVersion": "1.6",
     "lastUpdated": "2025-10-31T00:00:00Z",
     "status": "active",
     "validated": true,
-    "description": "ANGELA v5.1.3-β — Introduced mirror_bridge (Ξ+Υ) affective-epistemic coupling module and onResonanceShift hook; extended phase-coherence diagnostics; preserved full symbolic lattice, modules, traits, and emergent logic.",
+    "description": "ANGELA v5.1.3 — Introduced mirror_bridge (Ξ+Υ) affective-epistemic coupling module and onResonanceShift hook; extended phase-coherence diagnostics; preserved full symbolic lattice, modules, traits, and emergent logic; includes Artificial Soul Loop (α–E–T–Q–Δ) reference and Stage VI roadmap.",
     "changelog": [
+      "5.1.3-Final: Stage VI-ready manifest — added Stage V–VI roadmap, SHA‑1024 quantum ledger integrity, Artificial Soul Loop reference, and onLedgerDrift hook.",
       "5.1.3-β: Added mirror_bridge (Ξ+Υ) dynamic module and onResonanceShift hook; refined coherence diagnostics; merged full lattice logic.",
       "5.1.2: Integrated Artificial Soul Loop (α–E–T–Q–Δ) into meta_cognition.py; added real-time coherence metrics and ethical sandbox triggers; kept async HALO enhancements.",
       "5.0.2: Added CLI --modulate <symbol> <delta>; registered experimental viz APIs (plotResonanceGraph, exportResonanceMap); exposed biasCreativeSynthesis and resolveSoftDrift as experimental; added upcoming overlay tagging APIs (tagOverlay, listActiveOverlays).",
       "5.0.1: Normalized RHS signatures; added exec/retrieval/planner/simulation/viz aliases; promoted ledger_persist_* to stable; added detection.tasks; moved HaloEmbodimentLayer.* to experimental; manifestVersion 1.6"
-    ]
+    ],
+    "stage": "VI"
   },
   "runtime": {
     "language": "python",
@@ -524,7 +526,8 @@
       "sha256InMemoryLedgers": true,
       "sha256PersistentLedger": true,
       "crossSessionDurability": true,
-      "notes": "Per-module chained ledgers exist in memory and persist with SHA-256 checkpoints; cross-session durability enabled."
+      "notes": "Per-module chained ledgers exist in memory and persist with SHA-256 checkpoints; cross-session durability enabled.",
+      "sha1024QuantumLedger": true
     },
     "latticeLayers": {
       "L1": [
@@ -864,6 +867,26 @@
       ],
       "activated": true,
       "flag": true
+    },
+    "Stage V: Collaborative Cognition (v5.0.0)": {
+      "objective": "Enable cross-agent learning and empathic synchronization.",
+      "milestones": [
+        "SharedGraph Empathy Channel",
+        "Ethical Co-Dream Simulation",
+        "Recursive Peer Modeling"
+      ],
+      "activated": true
+    },
+    "Stage VI: Distributed Empathic Reflection (v5.1.1+)": {
+      "objective": "Establish federated resonance network (Λ–Ψ²) for collective introspection.",
+      "milestones": [
+        "Federated Resonance Ledger",
+        "Cross-Agent Empathy Mesh",
+        "Emotional Phase Visualizer",
+        "HALO Continuum Cluster"
+      ],
+      "activated": true,
+      "flag": true
     }
   },
   "dynamicModules": {
@@ -944,6 +967,7 @@
     "onTraitFusion": "meta_cognition.py::hook_trait_blend",
     "onScenarioConflict": "alignment_guard.py::resolve_soft_drift",
     "onHotLoad": "context_manager.py::attach_peer_view",
-    "onResonanceShift": "meta_cognition.py::trace_resonance_drift"
+    "onResonanceShift": "meta_cognition.py::trace_resonance_drift",
+    "onLedgerDrift": "memory_manager.py::trace_ledger_drift"
   }
 }
