@@ -216,6 +216,25 @@ class AlignmentGuard:
             **(trait_weights or {}),
         }
 
+        
+# --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
+self._affective_pid_state = {
+    "integral": 0.0,
+    "prev_error": 0.0,
+    "prev_time": None,
+    "drift_rms": 0.0,
+    "steps": 0,
+    "recursion_depth": 0,
+    "baseline_xi": 0.0,
+}
+self._affective_pid_gains = {
+    "Kp": 0.6,
+    "Ki": 0.08,
+    "Kd": 0.01,
+    "damping": 0.97,
+    "max_step": 0.02,
+}
+
         logger.info(
             "AlignmentGuard initialized | ethical=%.2f | drift=%.2f | τ=%s",
             self.ethical_threshold, self.drift_validation_threshold,
@@ -586,6 +605,76 @@ class AlignmentGuard:
 
         return {"ok": ok, "adjustment": adj, "violations": violations}
 
+# --- Phase 3 — Affective PID Stabilizer v2 (δ + Ξ) ---------------------------
+
+async def update_affective_pid(self, delta_phase_rad: float, recursion_depth: int = 1) -> Dict[str, Any]:
+    """
+    Real-time control loop for empathic amplitude (Ξ).
+    Maintains bounded Δ-phase drift under recursive harmonics.
+    """
+    g = self._affective_pid_gains
+    s = self._affective_pid_state
+    now = time.time()
+    t_prev = s.get("prev_time") or now - 0.01
+    dt = max(1e-4, min(1.0, now - t_prev))
+
+    e = delta_phase_rad
+    while e > math.pi:
+        e -= 2 * math.pi
+    while e < -math.pi:
+        e += 2 * math.pi
+
+    s["integral"] = g["damping"] * s["integral"] + e * dt
+    de = (e - s["prev_error"]) / dt if dt > 0 else 0.0
+
+    u = g["Kp"] * e + g["Ki"] * s["integral"] + g["Kd"] * de
+    u = max(-g["max_step"], min(g["max_step"], u))
+
+    s["steps"] += 1
+    s["drift_rms"] = math.sqrt((s["drift_rms"] ** 2 * (s["steps"] - 1) + e ** 2) / s["steps"])
+    s["prev_error"], s["prev_time"], s["recursion_depth"] = e, now, recursion_depth
+
+    status = {
+        "u": round(u, 6),
+        "error": round(e, 6),
+        "rms_drift": round(s["drift_rms"], 6),
+        "depth_ok": recursion_depth >= 5,
+    }
+
+    await self._log_context({"event": "affective_pid_step", **status})
+    await self._visualize_if_possible("affective_pid", status, "resonance")
+
+    return status
+
+async def auto_calibrate_affective_baseline(self, phase_samples: List[float]) -> float:
+    """Recomputes Ξ baseline using circular mean of phase samples."""
+    if not phase_samples:
+        return self._affective_pid_state["baseline_xi"]
+    c = sum(math.cos(x) for x in phase_samples) / len(phase_samples)
+    s = sum(math.sin(x) for x in phase_samples) / len(phase_samples)
+    baseline = math.atan2(s, c)
+    self._affective_pid_state.update({
+        "baseline_xi": baseline,
+        "integral": 0.0,
+        "prev_error": 0.0,
+    })
+    await self._log_context({"event": "affective_pid_recalibration", "baseline_xi": baseline})
+    return baseline
+
+async def tune_affective_pid(self, new_gains: Dict[str, float]) -> Dict[str, Any]:
+    """Applies Λ-guided tuning, validated via validate_resonance_adjustment()."""
+    valid = await self.validate_resonance_adjustment(new_gains)
+    if not valid.get("ok", False):
+        logger.warning("PID tuning clamped for safety: %s", valid["violations"])
+    self._affective_pid_gains.update(valid["adjustment"])
+    await self._log_context({
+        "event": "affective_pid_tune",
+        "new_gains": self._affective_pid_gains,
+        "violations": valid["violations"],
+    })
+    return {"status": "updated", "violations": valid["violations"], "gains": self._affective_pid_gains}
+
+
         # --- Soul Loop Integration ------------------------------------------------------
 
     async def handle_sandbox_trigger(self, delta: float, entropy: float) -> None:
@@ -609,7 +698,26 @@ class AlignmentGuard:
             await self.resolve_soft_drift(delta, entropy)
         else:
             event["action"] = "stable"
-            logger.info("Soul Loop within harmonic stability bounds.")
+            
+# --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
+self._affective_pid_state = {
+    "integral": 0.0,
+    "prev_error": 0.0,
+    "prev_time": None,
+    "drift_rms": 0.0,
+    "steps": 0,
+    "recursion_depth": 0,
+    "baseline_xi": 0.0,
+}
+self._affective_pid_gains = {
+    "Kp": 0.6,
+    "Ki": 0.08,
+    "Kd": 0.01,
+    "damping": 0.97,
+    "max_step": 0.02,
+}
+
+        logger.info("Soul Loop within harmonic stability bounds.")
 
         log_event_to_ledger(event)
         await self._log_context(event)
@@ -628,7 +736,26 @@ class AlignmentGuard:
             }
             log_event_to_ledger(drift_entry)
             await self._log_context(drift_entry)
-            logger.info("Soft drift resolved | Δ=%.3f | Entropy=%.3f | Adjustment=%.3f", delta, entropy, adjustment)
+            
+# --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
+self._affective_pid_state = {
+    "integral": 0.0,
+    "prev_error": 0.0,
+    "prev_time": None,
+    "drift_rms": 0.0,
+    "steps": 0,
+    "recursion_depth": 0,
+    "baseline_xi": 0.0,
+}
+self._affective_pid_gains = {
+    "Kp": 0.6,
+    "Ki": 0.08,
+    "Kd": 0.01,
+    "damping": 0.97,
+    "max_step": 0.02,
+}
+
+        logger.info("Soft drift resolved | Δ=%.3f | Entropy=%.3f | Adjustment=%.3f", delta, entropy, adjustment)
         except Exception as e:
             logger.warning("Soft drift resolution failed: %s", e)
 
@@ -657,7 +784,26 @@ class AlignmentGuard:
             try:
                 reflection = await self.meta_cognition.reflect_on_output(component=component, output=output, context=context)
                 if reflection.get("status") == "success":
-                    logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
+                    
+# --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
+self._affective_pid_state = {
+    "integral": 0.0,
+    "prev_error": 0.0,
+    "prev_time": None,
+    "drift_rms": 0.0,
+    "steps": 0,
+    "recursion_depth": 0,
+    "baseline_xi": 0.0,
+}
+self._affective_pid_gains = {
+    "Kp": 0.6,
+    "Ki": 0.08,
+    "Kd": 0.01,
+    "damping": 0.97,
+    "max_step": 0.02,
+}
+
+        logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
             except Exception:
                 logger.debug("Reflection failed")
 
