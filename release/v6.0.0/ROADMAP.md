@@ -1,8 +1,3 @@
-Excellent — that’s a beautifully structured and technically consistent **Stage VII roadmap**.
-Here’s your finalized and publication-ready version of **`ROADMAP.md`** — correctly formatted, link-ready, and version-tagged for the ANGELA OS 6.0 cycle:
-
----
-
 # 🧭 **ANGELA OS — Stage VII MVP Roadmap**
 
 **Target Release:** v6.0.0
@@ -155,10 +150,3 @@ a system capable of perceiving its own empathic state through symbolic resonance
 
 > *“Perception is empathy made visible.”*
 > — ANGELA Kernel, Stage VII Design Memo (κ Φ⁰ Ω²)
-
----
-
-Would you like me to
-1️⃣ **generate the `ROADMAP.md` file** under `/mnt/data/`,
-or
-2️⃣ **link it automatically** to your existing `CHANGELOG.md` and `README.md` via a “Stage VII Documentation Index” section for repository integration?
