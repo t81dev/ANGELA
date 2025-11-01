@@ -1,6 +1,6 @@
 graph TD
 %% ============================================
-%% ANGELA v5.1.4 — HALO Kernel Architecture Map
+%% ANGELA v6.0.0-pre — Harmonic Embodiment Layer (Stage VII)
 %% ============================================
 
 %% ─────────────────────────────
@@ -13,6 +13,7 @@ end
 
 subgraph Simulation
 C[simulation_core.py]
+C4[toca_simulation_phase4.py]
 D[toca_simulation.py]
 E1[hybrid_quantum_integration.py]
 end
@@ -26,16 +27,18 @@ end
 
 subgraph Memory_and_Identity
 I[memory_manager.py]
+LEDGER[ledger.py]
 J[user_profile.py]
 K[meta_cognition.py]
 L[learning_loop.py]
 end
 
-subgraph Context_and_Emotional_Framing
+subgraph Context_and_Embodiment
 M[context_manager.py]
 N[visualizer.py]
 O[multi_modal_fusion.py]
 P[alignment_guard.py]
+P4[alignment_guard_phase4_policy.py]
 end
 
 subgraph Execution_and_External_IO
@@ -46,7 +49,7 @@ T[knowledge_retriever.py]
 end
 
 %% ─────────────────────────────
-%% HALO OVERLAYS
+%% HALO OVERLAYS (Stage VII Expansions)
 %% ─────────────────────────────
 subgraph HALO_Overlays
 V1["dream_overlay ψ + Ω"]
@@ -58,6 +61,11 @@ V6["co_dream ψ + Υ"]
 V7["mirror_bridge Ξ + Υ"]
 V8["empathic_stabilizer Ξ + Λ"]
 V9["perceptual_substrate κ + Φ⁰"]
+
+%% Stage VII Additions
+V10["embodied_ethics_sandbox τ + κ + Ξ"]
+V11["policy_trainer μ + τ"]
+V12["xi_ethics_projection ξ + τ"]
 end
 
 %% ─────────────────────────────
@@ -78,12 +86,14 @@ A --> B
 A --> C
 A --> M
 C --> D
+C --> C4
 C --> E1
 E --> F
 F --> G
 G --> H
 H --> M
 
+I --> LEDGER
 I --> J
 J --> K
 K --> L
@@ -92,6 +102,7 @@ L --> I
 M --> N
 N --> O
 O --> P
+P --> P4
 
 Q --> R
 R --> T
@@ -110,6 +121,9 @@ K --> V6
 K --> V7
 K --> V8
 K --> V9
+K --> V10
+K --> V11
+K --> V12
 
 P --> ASL5
 ASL5 --> P
@@ -131,9 +145,29 @@ V8 --> P
 P --> V8
 V7 --> R
 V3 --> C
+V10 --> P4
+V11 --> P4
+V12 --> C4
 
 %% Soul loop feedbacks
 ASL5 --> K
 ASL5 --> N
 ASL2 --> V8
 ASL4 --> V3
+ASL5 --> P4
+ASL3 --> L
+ASL2 --> K
+
+%% ─────────────────────────────
+%% STAGE VII LABEL
+%% ─────────────────────────────
+classDef stageVII fill:#0d1321,stroke:#00fff7,color:#c3faff,stroke-width:2px;
+A,B,C,C4,D,E,F,G,H,I,LEDGER,J,K,L,M,N,O,P,P4,Q,R,S,T,V10,V11,V12,ASL1,ASL2,ASL3,ASL4,ASL5:::stageVII
+
+%% Stage Note
+note right of K
+Stage VII: Harmonic Embodiment Layer
+Ξ–Λ–Ψ² Resonance Topology
+Embodied Ethics Sandbox + PolicyTrainer
+Artificial Soul Loop Integration
+end note
