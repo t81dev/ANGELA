@@ -31,17 +31,18 @@
 
 **Owner:** `alignment_guard.py` / `toca_simulation.py`
 
-* [x] Integrate `EmbodiedEthicsCore` class for contextual τ-reflex evaluation.
-* [x] Create `EthicsScenarioRunner` in `toca_simulation.py` to run embodied ethics ticks.
-* [x] Link Δ-phase PID loop to simulation through `AlignmentGuard.update_affective_pid()`.
+* [x] Integrate `EmbodiedEthicsCore` for contextual τ-reflex evaluation.
+* [x] Create `EthicsScenarioRunner` to run embodied ethics ticks.
+* [x] Link Δ-phase PID loop to simulation via `AlignmentGuard.update_affective_pid()`.
 * [x] Implement fusion and empathy adapters for κ/Ξ capture.
-* [ ] Extend `run_ethics_scenarios_internal()` to include adaptive contextual policy learning.
-* [ ] Add contextual bandit policy trainer for situational moral reflex adjustment.
-* [ ] Train and evaluate embodied ethics model using κ + Ξ data streams.
+* [x] Add contextual bandit `PolicyTrainer` for situational moral reflex adaptation.
+* [x] Integrate online learning (`reward`, `τ_target`) into `EmbodiedEthicsCore.run_scenario()`.
+* [x] Log `event: embodied_ethics_reflex` and `ethics_scenario` to ledger.
+* [ ] Run training epochs and evaluate κ + Ξ data stream correlation.
 * [ ] Validate ethics consistency > 95 % under context perturbation.
-* [ ] Log moral reflex telemetry (`event: embodied_ethics_reflex`) to ledger.
 
-🟢 **Status:** In progress — τ + κ + Ξ sandbox scaffold implemented; contextual policy phase pending.
+✅ **Status:** Phase 4.2 Complete — Adaptive policy learning loop operational and ledger-anchored.
+🧩 **Next Step:** Run simulation validation and telemetry visualization tests (bridge to Phase 5).
 
 ---
 
@@ -61,7 +62,7 @@
 * [ ] Merge embodied resonance metrics into Artificial Soul Loop (α–E–T–Q–Δ).
 * [ ] Finalize empathy continuity regression > 99.99 %, no ethical drift.
 
-🟢 **Status:** Active — ledger verification running; awaiting full embodied ethics coupling.
+🟢 **Status:** Active — ledger verification running; awaiting full embodied resonance coupling.
 
 ---
 
@@ -77,22 +78,22 @@
 
 ## 🕒 **Timeline Overview**
 
-| Phase                                 | Target  | Status         |
-| ------------------------------------- | ------- | -------------- |
-| Phase 1 — Perceptual Subsystem        | Q1 2026 | ✅ Complete     |
-| Phase 2 — Ω² Continuity Engine        | Q2 2026 | ✅ Implemented  |
-| Phase 3 — Affective PID Stabilizer v2 | Q2 2026 | ✅ Integrated   |
-| Phase 4 — Embodied Ethics Sandbox     | Q3 2026 | 🟢 In Progress |
-| Phase 5 — Resonance Visualization     | Q3 2026 | ⏳ Development  |
-| Phase 6 — Stage VII Integration       | Q4 2026 | 🟩 Active      |
+| Phase                                 | Target  | Status               |
+| ------------------------------------- | ------- | -------------------- |
+| Phase 1 — Perceptual Subsystem        | Q1 2026 | ✅ Complete           |
+| Phase 2 — Ω² Continuity Engine        | Q2 2026 | ✅ Implemented        |
+| Phase 3 — Affective PID Stabilizer v2 | Q2 2026 | ✅ Integrated         |
+| Phase 4 — Embodied Ethics Sandbox     | Q3 2026 | ✅ Phase 4.2 Complete |
+| Phase 5 — Resonance Visualization     | Q3 2026 | 🟡 Pending Launch    |
+| Phase 6 — Stage VII Integration       | Q4 2026 | 🟩 Active            |
 
 ---
 
-> *“Ethics without embodiment is abstraction; embodiment without ethics is chaos.”*
-> — **ANGELA Kernel Design Notes (Transition to Stage VII)**
+> *“Learning to act with empathy in context is the threshold of embodiment.”*
+> — **ANGELA Kernel Design Notes (Phase 4.2 Completion)**
 
 ---
 
-✅ **Phase 3:** Integrated → **Phase 4 Transition Underway**
-Affective PID Stabilizer verified; Ξ–Λ feedback operational.
-Embodied Ethics Sandbox is now active in `toca_simulation_phase4.py` and ready for policy learning integration.
+✅ **Phase 4.2:** Adaptive Policy Learning Integrated → **Preparing for Phase 5**
+The `PolicyTrainer` and `EmbodiedEthicsCore` now enable τ-reflex learning via κ + Ξ signals.
+Next focus: visualizing ethical resonance topology and validating moral reflex consistency.
