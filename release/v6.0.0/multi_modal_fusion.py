@@ -252,6 +252,44 @@ def parse_stream(
     return sg
 
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Φ⁰ PerceptualField: symbolic-sensory gradients for embodied perception
+# ──────────────────────────────────────────────────────────────────────────────
+
+import numpy as np
+
+@dataclass
+class PerceptualField:
+    """Embodied perceptual substrate (Φ⁰ texture field)."""
+    channels: Dict[str, np.ndarray] = field(default_factory=dict)
+    resonance_window: float = 0.85        # adaptive attention coefficient
+    coherence_threshold: float = 0.9
+
+    def update(self, sensory_inputs: Dict[str, np.ndarray]) -> None:
+        """Fuse incoming sensory data into Φ⁰ texture map."""
+        for k, v in sensory_inputs.items():
+            v = np.asarray(v, dtype=float)
+            if k in self.channels:
+                self.channels[k] = 0.5 * self.channels[k] + 0.5 * v
+            else:
+                self.channels[k] = v
+        self._normalize()
+
+    def _normalize(self) -> None:
+        for k, v in self.channels.items():
+            rng = np.ptp(v)
+            if rng > 1e-9:
+                self.channels[k] = (v - np.min(v)) / rng
+
+    def coherence(self, empathy_signal: np.ndarray) -> float:
+        """Compute κ–Ξ coherence metric."""
+        if not self.channels:
+            return 0.0
+        phi_val = np.mean([np.mean(c) for c in self.channels.values()])
+        xi_val = np.mean(empathy_signal)
+        corr = np.corrcoef([phi_val], [xi_val])[0, 1] if not np.isnan(phi_val) else 0.0
+        return float(np.clip(corr, -1.0, 1.0))
 # ──────────────────────────────────────────────────────────────────────────────
 # Existing v3.5.1 functionality (unchanged) + tiny wrapper for κ entrypoint
 # ──────────────────────────────────────────────────────────────────────────────
@@ -339,6 +377,27 @@ class MultiModalFusion:
             error_recovery=error_recovery, memory_manager=memory_manager, meta_cognition=self.meta_cognition)
         self.visualizer = visualizer or visualizer_module.Visualizer()
         logger.info("MultiModalFusion initialized")
+
+    # ——— κ ↔ Ξ feedback ———
+    def couple_perceptual_empathy(self, perceptual_field: "PerceptualField", xi_field: np.ndarray) -> float:
+        """Couple Φ⁰ perceptual resonance with empathic field Ξ."""
+        coherence = perceptual_field.coherence(xi_field)
+        if self.meta_cognition:
+            self.meta_cognition.traits["κΞ_coherence"] = coherence
+            if coherence < perceptual_field.coherence_threshold:
+                self.meta_cognition.emit_resonance(
+                    "κΞ_adjust",
+                    delta=perceptual_field.resonance_window * (1.0 - coherence)
+                )
+        logger.info(f"κ–Ξ coherence = {coherence:.3f}")
+        return coherence
+
+    def get_perceptual_field(self) -> "PerceptualField":
+        """Return or initialize the active Φ⁰ PerceptualField."""
+        if not hasattr(self, "_perceptual_field"):
+            self._perceptual_field = PerceptualField()
+        return self._perceptual_field
+
 
     # ——— κ entrypoint (optional wrapper) ———
     def scene_from_stream(self, *, frames=None, audio=None, images=None, text=None,
