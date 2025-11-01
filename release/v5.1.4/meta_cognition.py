@@ -1720,4 +1720,12 @@ if "_ingest_affect_sample" not in globals():
         except Exception:
             xv = _XiLambdaVector(0.0, 0.0, 0.0, 0.0, 0.5, 0.5, source="invalid", confidence=0.2, ts=time())
         st.ring.append(xv)
+
+if __name__ == "__main__":
+    mc = MetaCognition()
+    t1 = thread_create(ctx={"mood": "reflective"})
+    t2 = thread_create(ctx={"focus": "ethical"})
+    merged = thread_merge(t1, t2)
+    print("Merged Thread:", merged.thread_id, merged.ctx)
+
 # >>> ANGELA v5.1 — Ξ–Λ CO-MOD APPEND-ONLY PATCH (SAFE) — END
