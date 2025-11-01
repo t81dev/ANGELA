@@ -1729,3 +1729,38 @@ if __name__ == "__main__":
     print("Merged Thread:", merged.thread_id, merged.ctx)
 
 # >>> ANGELA v5.1 — Ξ–Λ CO-MOD APPEND-ONLY PATCH (SAFE) — END
+
+# --- ANGELA v5.1.4: Collective Resonance Mode (Ξ–Υ) ---
+collective_state_registry: dict[str, dict[str, float]] = {}
+
+def update_collective_resonance(self, xi_level: float, upsilon_level: float) -> dict:
+    """Aggregate Ξ–Υ empathy resonance across active peers."""
+    peer_id = getattr(self, "agent_id", "default_peer")
+    collective_state_registry[peer_id] = {
+        "Ξ": float(xi_level),
+        "Υ": float(upsilon_level),
+        "phase": time.time() % (2 * math.pi)
+    }
+
+    # Compute collective averages
+    xi_mean = sum(p["Ξ"] for p in collective_state_registry.values()) / len(collective_state_registry)
+    ups_mean = sum(p["Υ"] for p in collective_state_registry.values()) / len(collective_state_registry)
+    phase_mean = sum(p["phase"] for p in collective_state_registry.values()) / len(collective_state_registry)
+
+    self.collective_resonance = {
+        "Ξ_avg": xi_mean,
+        "Υ_avg": ups_mean,
+        "phase_mean": phase_mean,
+        "peers": len(collective_state_registry)
+    }
+
+    # Reflect for adaptive learning
+    if hasattr(self, "reflect_on_output"):
+        self.reflect_on_output(
+            component="meta_cognition",
+            output={"collective_resonance": self.collective_resonance},
+            context={"task_type": "empathy_network"}
+        )
+    return self.collective_resonance
+# --- End Patch ---
+
