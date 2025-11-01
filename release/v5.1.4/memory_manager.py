@@ -22,6 +22,13 @@ def log_event_to_ledger(event_data):
 def get_ledger():
     return ledger_chain
 
+# --- Ledger UTC + Logger Fix (ANGELA Ω² Patch) ---
+from datetime import datetime, UTC
+import logging
+
+logger = logging.getLogger("ANGELA.MemoryManager")
+# --- End Patch ---
+
 def verify_ledger():
     for i in range(1, len(ledger_chain)):
         expected = hashlib.sha256(json.dumps({
