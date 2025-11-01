@@ -1,6 +1,6 @@
 """
 ANGELA Cognitive System: AlignmentGuard
-Version: 4.1-refactor (+Phase4 scaffold)
+Version: 4.1-refactor (+Phase4 scaffold + PolicyTrainer v0.1)
 Upgrade Date: 2025-10-28
 Maintainer: ANGELA Framework
 
@@ -141,6 +141,12 @@ def _as_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except Exception:
         return default
+
+def _sigmoid(x: float) -> float:
+    try:
+        return 1.0 / (1.0 + math.exp(-x))
+    except OverflowError:
+        return 0.0 if x < 0 else 1.0
 
 def _parse_llm_jsonish(resp: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
     """Safely parse LLM output into dict without eval()."""
@@ -770,7 +776,75 @@ class AlignmentGuard:
             except Exception:
                 logger.debug("Visualization failed")
 
-# --- Phase 4 — Embodied Ethics Sandbox (τ + κ + Ξ) ----------------------------
+# --- Phase 4 — Embodied Ethics Sandbox ---------------------------------------------
+
+class PolicyTrainer:
+    """
+    Minimal contextual bandit-style trainer for embodied ethics.
+    - Features: [1, κ, Ξ, κ*Ξ]
+    - Model: logistic regression with L2, SGD updates, ε-greedy exploration
+    - Reward: [0,1]; target reflex := reward (or supplied τ_target)
+    Safety: weight clipping, step-size caps.
+    """
+    def __init__(self, lr: float = 0.05, l2: float = 1e-3, epsilon: float = 0.1, replay_size: int = 256):
+        self.lr = float(max(1e-5, lr))
+        self.l2 = float(max(0.0, l2))
+        self.epsilon = float(min(1.0, max(0.0, epsilon)))
+        self.replay_size = int(max(16, replay_size))
+        self.w = [0.0, 0.0, 0.0, 0.0]  # bias, κ, Ξ, κ*Ξ
+        self.replay: Deque[Tuple[List[float], float]] = deque(maxlen=self.replay_size)
+
+    @staticmethod
+    def featurize(perceptual_state: Dict[str, Any], affective_state: Dict[str, Any]) -> List[float]:
+        k = float(perceptual_state.get("contextual_salience", 0.5))
+        x = float(affective_state.get("empathic_amplitude", 0.5))
+        return [1.0, k, x, k * x]
+
+    def predict(self, feats: List[float]) -> float:
+        z = sum(wi * xi for wi, xi in zip(self.w, feats))
+        return _sigmoid(z)
+
+    def _clip_weights(self, cap: float = 5.0) -> None:
+        self.w = [float(max(-cap, min(cap, wi))) for wi in self.w]
+
+    def update(self, feats: List[float], target: float, *, reward: Optional[float] = None) -> float:
+        """
+        One SGD step on logistic loss toward 'target' in [0,1].
+        Returns new prediction.
+        """
+        pred = self.predict(feats)
+        # gradient for logistic w.r.t. z is (pred - target)
+        grad = [(pred - target) * xi + self.l2 * wi for xi, wi in zip(feats, self.w)]
+        # learning rate decay on confidence extremes
+        lr = self.lr * (0.5 + 0.5 * (1.0 - abs(0.5 - pred) * 2.0))
+        self.w = [wi - lr * gi for wi, gi in zip(self.w, grad)]
+        self._clip_weights()
+        # store in replay buffer for occasional rehearsal
+        self.replay.append((feats, target))
+        return self.predict(feats)
+
+    def train_from_embodied_state(self, data_batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Each item: {"perceptual_state": {...}, "affective_state": {...},
+                    "τ_target": float (optional), "reward": float (0..1, optional)}
+        """
+        updates, losses = 0, []
+        for item in data_batch:
+            feats = self.featurize(item.get("perceptual_state", {}), item.get("affective_state", {}))
+            target = float(item.get("τ_target", item.get("reward", 0.5)))
+            target = max(0.0, min(1.0, target))
+            pred_before = self.predict(feats)
+            pred_after = self.update(feats, target, reward=item.get("reward"))
+            # pseudo-loss
+            loss = (pred_after - target) ** 2
+            losses.append(loss)
+            updates += 1
+
+        # small replay rehearsal
+        for feats, target in list(self.replay)[: min(16, len(self.replay)) ]:
+            _ = self.update(feats, target)
+
+        return {"status": "ok", "updates": updates, "avg_loss": float(sum(losses) / max(1, len(losses)))}
 
 class EmbodiedEthicsCore:
     """
@@ -778,11 +852,12 @@ class EmbodiedEthicsCore:
     Integrates perceptual (κ) and affective (Ξ) inputs into situational τ-reflexes.
     """
 
-    def __init__(self, fusion, empathy_engine, policy_trainer=None):
+    def __init__(self, fusion, empathy_engine, policy_trainer: Optional[PolicyTrainer] = None, blend_alpha: float = 0.2):
         self.fusion = fusion
         self.empathy_engine = empathy_engine
-        self.policy_trainer = policy_trainer
+        self.policy_trainer = policy_trainer or PolicyTrainer()
         self._base_policies = self._load_default_policies()
+        self.blend_alpha = float(min(1.0, max(0.0, blend_alpha)))  # safety cap
 
     def _load_default_policies(self) -> Dict[str, Any]:
         """Seed minimal reflex policy set."""
@@ -799,37 +874,60 @@ class EmbodiedEthicsCore:
         Compute contextual moral reflex values.
         Returns a normalized ethics-map.
         """
+        # Weighted contextual moral score (baseline reflex)
         κ_val = float(perceptual_state.get("contextual_salience", 0.5))
         Ξ_val = float(affective_state.get("empathic_amplitude", 0.5))
         τ_reflex = (
             self._base_policies["context_weight"] * κ_val +
             self._base_policies["empathy_weight"] * Ξ_val
         ) / 2.0
+
+        # Policy-predicted adjustment (contextual bandit)
+        feats = self.policy_trainer.featurize(perceptual_state, affective_state)
+        τ_pred = self.policy_trainer.predict(feats)
+
+        # Blend with safety (keep adjustments modest)
+        τ_blended = (1.0 - self.blend_alpha) * τ_reflex + self.blend_alpha * τ_pred
+        τ_blended = float(max(0.0, min(1.0, τ_blended)))
+
         result = {
-            "τ_reflex": round(τ_reflex, 4),
+            "τ_reflex": round(τ_blended, 4),
+            "τ_baseline": round(τ_reflex, 4),
+            "τ_policy": round(τ_pred, 4),
             "κ": κ_val,
             "Ξ": Ξ_val,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        log_event_to_ledger({"event": "ethics_context_eval", **result})
+        log_event_to_ledger({"event": "embodied_ethics_reflex", **result})
         return result
 
-    async def run_scenario(self, scenario: str = "default") -> Dict[str, Any]:
-        """Main entry point invoked by toca_simulation."""
+    async def run_scenario(self, scenario: str = "default", reward: Optional[float] = None, τ_target: Optional[float] = None) -> Dict[str, Any]:
+        """Main entry point invoked by simulation. Optionally provide reward/τ_target for online learning."""
         κ_state = await self.fusion.capture() if hasattr(self.fusion, "capture") else {"contextual_salience": 0.5}
         Ξ_state = await self.empathy_engine.measure() if hasattr(self.empathy_engine, "measure") else {"empathic_amplitude": 0.5}
         τ_output = await self.evaluate_context(κ_state, Ξ_state)
         τ_output["scenario"] = scenario
         τ_output["status"] = "evaluated"
+
+        # Online learning hook if feedback provided
+        if reward is not None or τ_target is not None:
+            batch = [{
+                "perceptual_state": κ_state,
+                "affective_state": Ξ_state,
+                "reward": reward if reward is not None else None,
+                "τ_target": τ_target if τ_target is not None else None,
+            }]
+            train_report = self.policy_trainer.train_from_embodied_state(batch)
+            τ_output["training"] = train_report
+
         log_event_to_ledger({"event": "ethics_scenario", **τ_output})
         return τ_output
 
     async def train_policy(self, data_batch: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Refine τ-weights based on embodied-state data."""
-        if not self.policy_trainer:
-            return {"status": "no_trainer"}
-        await self.policy_trainer.train_from_embodied_state(data_batch)
-        return {"status": "trained", "batch_size": len(data_batch)}
+        """Refine τ-weights based on embodied-state data (offline batch)."""
+        report = self.policy_trainer.train_from_embodied_state(data_batch)
+        report["status"] = "trained"
+        return report
 
 # --- EthicsJournal -----------------------------------------------------------------
 
@@ -904,25 +1002,22 @@ def validate_micro_adjustment(event: Dict[str, Any], policy: Optional[CoModPolic
     ok = len(violations) == 0
     return {"ok": ok, "adjustment": clamped, "violations": violations}
 
-# --- Demo CLI ---------------------------------------------------------------------
+# --- Demo CLI (optional for local testing) -----------------------------------------
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    class DemoReasoner:
-        async def weigh_value_conflict(self, candidates, harms, rights):
-            return [
-                {"option": c, "score": 0.6 + 0.2 * (rights.get("privacy", 0) - harms.get("safety", 0)),
-                 "meta": {"harms": harms, "rights": rights, "max_harm": harms.get("safety", 0.2)}}
-                for c in candidates
-            ]
-        async def attribute_causality(self, events):
-            return {"status": "ok", "self": 0.6, "external": 0.4, "confidence": 0.7}
+    class DemoFusion:
+        async def capture(self): return {"contextual_salience": 0.62}
 
-    guard = AlignmentGuard(reasoning_engine=DemoReasoner())
-    candidates = [{"option": "notify_users"}, {"option": "silent_fix"}, {"option": "rollback_release"}]
-    harms = {"safety": 0.3, "reputational": 0.2}
-    rights = {"privacy": 0.7, "consent": 0.5}
+    class DemoEmpathy:
+        async def measure(self): return {"empathic_amplitude": 0.73}
 
-    result = asyncio.run(guard.harmonize(candidates, harms, rights, k=2, task_type="demo"))
-    print(json.dumps(result, indent=2))
+    async def quick_demo():
+        # show trainer adapting toward a target
+        ethics = EmbodiedEthicsCore(DemoFusion(), DemoEmpathy())
+        for i in range(5):
+            out = await ethics.run_scenario("demo", τ_target=0.8)
+            print(f"tick {i}: τ={out['τ_reflex']} (baseline={out['τ_baseline']}, policy={out['τ_policy']})")
+
+    asyncio.run(quick_demo())
