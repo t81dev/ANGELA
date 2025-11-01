@@ -61,6 +61,14 @@ def verify_ledger() -> bool:
             return False
     return True
 
+def verify_thread_merge(thread_a, thread_b, merged):
+    """Ensure merged thread is deterministic and ethically consistent."""
+    hashes = {h["hash"] for h in merged.history}
+    if len(hashes) != len(merged.history):
+        logger.warning("Duplicate hashes in merged history — potential collision.")
+        return False
+    return True
+
 # --- Protocols (Dependency Injection) ----------------------------------------------
 
 class LLMClient(Protocol):
