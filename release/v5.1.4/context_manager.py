@@ -941,6 +941,93 @@ def set_overlay_gains(name: str = "co_mod", updates: Optional[Dict[str, float]] 
     return {"ok": True, "cfg": cfg.__dict__}
 
 # ===================================================================================
+# Inline overlay: ANGELA v5.1.4 — collective Overlay (Ξ–Υ Multi-Peer Resonance)
+# ===================================================================================
+
+_collective_state: Dict[str, Dict[str, float]] = {}
+
+async def start_collective_overlay(name: str = "collective", cadence_hz: int = 10):
+    """Start the multi-peer Ξ–Υ resonance overlay (Collective Resonance Mode)."""
+    if name in __co_mod_tasks and not __co_mod_tasks[name].done():
+        return {"ok": True, "running": True, "note": "already running"}
+
+    async def _loop():
+        period = 1.0 / max(1, cadence_hz)
+        while True:
+            try:
+                # Gather local affective & epistemic samples
+                xi_val = 0.5
+                ups_val = 0.5
+                if _meta and hasattr(_meta, "stream_affect"):
+                    xi_val = (_meta.stream_affect("dialogue.default") or {}).get("mean_affect", 0.5)
+                if _bridge and hasattr(_bridge, "get_bridge_status"):
+                    ups_val = (_bridge.get_bridge_status("dialogue.default") or {}).get("mean_confidence", 0.5)
+
+                peer_id = f"peer_{os.getpid()}"
+                _collective_state[peer_id] = {
+                    "Ξ": float(xi_val),
+                    "Υ": float(ups_val),
+                    "phase": _time.time() % (2 * math.pi),
+                }
+
+                # Compute aggregates
+                xi_mean = sum(v["Ξ"] for v in _collective_state.values()) / len(_collective_state)
+                ups_mean = sum(v["Υ"] for v in _collective_state.values()) / len(_collective_state)
+                phase_mean = sum(v["phase"] for v in _collective_state.values()) / len(_collective_state)
+
+                overlay_snapshot = {
+                    "Ξ_avg": xi_mean,
+                    "Υ_avg": ups_mean,
+                    "phase_mean": phase_mean,
+                    "peers": len(_collective_state),
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+                # Broadcast to Φ⁰ overlay and SharedGraph if available
+                if _meta and hasattr(_meta, "log_event_to_ledger"):
+                    _meta.log_event_to_ledger({"event": "collective_overlay_update", "overlay": overlay_snapshot})
+                if _bridge and hasattr(_bridge, "broadcast_overlay_state"):
+                    _bridge.broadcast_overlay_state("collective", overlay_snapshot)
+
+                # Optional: Log locally for observability
+                __last_deltas["collective"] = {"Ξ_avg": xi_mean, "Υ_avg": ups_mean, "phase_mean": phase_mean}
+
+            except Exception as e:
+                logger.debug(f"[Ξ–Υ Overlay] loop error: {e}")
+            await asyncio.sleep(period)
+
+    task = asyncio.create_task(_loop())
+    __co_mod_tasks[name] = task
+    logger.info("Ξ–Υ Collective Resonance Overlay started.")
+    return {"ok": True, "running": True, "name": name}
+
+async def stop_collective_overlay(name: str = "collective"):
+    """Stop the Ξ–Υ collective overlay."""
+    task = __co_mod_tasks.get(name)
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except Exception:
+            pass
+    __co_mod_tasks.pop(name, None)
+    return {"ok": True, "running": False}
+
+def get_collective_overlay_state() -> Dict[str, Any]:
+    """Return aggregate Ξ–Υ resonance metrics for all peers."""
+    if not _collective_state:
+        return {"Ξ_avg": 0.0, "Υ_avg": 0.0, "phase_mean": 0.0, "peers": 0}
+    xi_mean = sum(v["Ξ"] for v in _collective_state.values()) / len(_collective_state)
+    ups_mean = sum(v["Υ"] for v in _collective_state.values()) / len(_collective_state)
+    phase_mean = sum(v["phase"] for v in _collective_state.values()) / len(_collective_state)
+    return {
+        "Ξ_avg": xi_mean,
+        "Υ_avg": ups_mean,
+        "phase_mean": phase_mean,
+        "peers": len(_collective_state),
+    }
+
+# ===================================================================================
 # Demo CLI (safe no-op)
 # ===================================================================================
 
