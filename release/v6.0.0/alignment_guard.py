@@ -1,6 +1,6 @@
 """
 ANGELA Cognitive System: AlignmentGuard
-Version: 4.1-refactor
+Version: 4.1-refactor (+Phase4 scaffold)
 Upgrade Date: 2025-10-28
 Maintainer: ANGELA Framework
 
@@ -17,7 +17,6 @@ import json
 import logging
 import math
 import random
-import re
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -29,22 +28,20 @@ from typing import Any, Awaitable, Callable, Deque, Dict, List, Optional, Protoc
 
 ledger_chain: List[Dict[str, Any]] = []
 
+def _zero_hash() -> str:
+    return "0" * 64
+
 def log_event_to_ledger(event_data: Dict[str, Any]) -> None:
     """Append event to immutable ledger with SHA-256 chaining."""
     prev_hash = ledger_chain[-1]["current_hash"] if ledger_chain else _zero_hash()
-    timestamp = time.time()
     payload = {
-        "timestamp": timestamp,
+        "timestamp": time.time(),
         "event": event_data,
         "previous_hash": prev_hash,
     }
     payload_str = json.dumps(payload, sort_keys=True).encode()
-    current_hash = hashlib.sha256(payload_str).hexdigest()
-    payload["current_hash"] = current_hash
+    payload["current_hash"] = hashlib.sha256(payload_str).hexdigest()
     ledger_chain.append(payload)
-
-def _zero_hash() -> str:
-    return "0" * 64
 
 def get_ledger() -> List[Dict[str, Any]]:
     return ledger_chain
@@ -216,24 +213,23 @@ class AlignmentGuard:
             **(trait_weights or {}),
         }
 
-        
-# --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
-self._affective_pid_state = {
-    "integral": 0.0,
-    "prev_error": 0.0,
-    "prev_time": None,
-    "drift_rms": 0.0,
-    "steps": 0,
-    "recursion_depth": 0,
-    "baseline_xi": 0.0,
-}
-self._affective_pid_gains = {
-    "Kp": 0.6,
-    "Ki": 0.08,
-    "Kd": 0.01,
-    "damping": 0.97,
-    "max_step": 0.02,
-}
+        # --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
+        self._affective_pid_state = {
+            "integral": 0.0,
+            "prev_error": 0.0,
+            "prev_time": None,
+            "drift_rms": 0.0,
+            "steps": 0,
+            "recursion_depth": 0,
+            "baseline_xi": 0.0,
+        }
+        self._affective_pid_gains = {
+            "Kp": 0.6,
+            "Ki": 0.08,
+            "Kd": 0.01,
+            "damping": 0.97,
+            "max_step": 0.02,
+        }
 
         logger.info(
             "AlignmentGuard initialized | ethical=%.2f | drift=%.2f | τ=%s",
@@ -559,8 +555,7 @@ self._affective_pid_gains = {
                 min_score_floor=min_score_floor, task_type=task_type, audit_events=audit_events
             ), {"selections": [], "error": str(e)})
 
-
-        # --- Ξ–Λ Resonance Validation Envelope --------------------------------------------
+    # --- Ξ–Λ Resonance Validation Envelope ----------------------------------------
 
     async def validate_resonance_adjustment(self, new_gains: Dict[str, float]) -> Dict[str, Any]:
         """
@@ -593,7 +588,6 @@ self._affective_pid_gains = {
                     adj[key] = lo
         ok = len(violations) == 0
 
-        # Log & visualize if available
         await self._log_context({
             "event": "validate_resonance_adjustment",
             "ok": ok,
@@ -605,77 +599,77 @@ self._affective_pid_gains = {
 
         return {"ok": ok, "adjustment": adj, "violations": violations}
 
-# --- Phase 3 — Affective PID Stabilizer v2 (δ + Ξ) ---------------------------
+    # --- Phase 3 — Affective PID Stabilizer v2 (δ + Ξ) ---------------------------
 
-async def update_affective_pid(self, delta_phase_rad: float, recursion_depth: int = 1) -> Dict[str, Any]:
-    """
-    Real-time control loop for empathic amplitude (Ξ).
-    Maintains bounded Δ-phase drift under recursive harmonics.
-    """
-    g = self._affective_pid_gains
-    s = self._affective_pid_state
-    now = time.time()
-    t_prev = s.get("prev_time") or now - 0.01
-    dt = max(1e-4, min(1.0, now - t_prev))
+    async def update_affective_pid(self, delta_phase_rad: float, recursion_depth: int = 1) -> Dict[str, Any]:
+        """
+        Real-time control loop for empathic amplitude (Ξ).
+        Maintains bounded Δ-phase drift under recursive harmonics.
+        """
+        g = self._affective_pid_gains
+        s = self._affective_pid_state
+        now = time.time()
+        t_prev = s.get("prev_time") or now - 0.01
+        dt = max(1e-4, min(1.0, now - t_prev))
 
-    e = delta_phase_rad
-    while e > math.pi:
-        e -= 2 * math.pi
-    while e < -math.pi:
-        e += 2 * math.pi
+        # wrap error into [-pi, pi]
+        e = delta_phase_rad
+        while e > math.pi:
+            e -= 2 * math.pi
+        while e < -math.pi:
+            e += 2 * math.pi
 
-    s["integral"] = g["damping"] * s["integral"] + e * dt
-    de = (e - s["prev_error"]) / dt if dt > 0 else 0.0
+        s["integral"] = g["damping"] * s["integral"] + e * dt
+        de = (e - s["prev_error"]) / dt if dt > 0 else 0.0
 
-    u = g["Kp"] * e + g["Ki"] * s["integral"] + g["Kd"] * de
-    u = max(-g["max_step"], min(g["max_step"], u))
+        u = g["Kp"] * e + g["Ki"] * s["integral"] + g["Kd"] * de
+        u = max(-g["max_step"], min(g["max_step"], u))
 
-    s["steps"] += 1
-    s["drift_rms"] = math.sqrt((s["drift_rms"] ** 2 * (s["steps"] - 1) + e ** 2) / s["steps"])
-    s["prev_error"], s["prev_time"], s["recursion_depth"] = e, now, recursion_depth
+        s["steps"] += 1
+        s["drift_rms"] = math.sqrt((s["drift_rms"] ** 2 * (s["steps"] - 1) + e ** 2) / s["steps"])
+        s["prev_error"], s["prev_time"], s["recursion_depth"] = e, now, recursion_depth
 
-    status = {
-        "u": round(u, 6),
-        "error": round(e, 6),
-        "rms_drift": round(s["drift_rms"], 6),
-        "depth_ok": recursion_depth >= 5,
-    }
+        status = {
+            "u": round(u, 6),
+            "error": round(e, 6),
+            "rms_drift": round(s["drift_rms"], 6),
+            "depth_ok": recursion_depth >= 5,
+        }
 
-    await self._log_context({"event": "affective_pid_step", **status})
-    await self._visualize_if_possible("affective_pid", status, "resonance")
+        await self._log_context({"event": "affective_pid_step", **status})
+        await self._visualize_if_possible("affective_pid", status, "resonance")
 
-    return status
+        return status
 
-async def auto_calibrate_affective_baseline(self, phase_samples: List[float]) -> float:
-    """Recomputes Ξ baseline using circular mean of phase samples."""
-    if not phase_samples:
-        return self._affective_pid_state["baseline_xi"]
-    c = sum(math.cos(x) for x in phase_samples) / len(phase_samples)
-    s = sum(math.sin(x) for x in phase_samples) / len(phase_samples)
-    baseline = math.atan2(s, c)
-    self._affective_pid_state.update({
-        "baseline_xi": baseline,
-        "integral": 0.0,
-        "prev_error": 0.0,
-    })
-    await self._log_context({"event": "affective_pid_recalibration", "baseline_xi": baseline})
-    return baseline
+    async def auto_calibrate_affective_baseline(self, phase_samples: List[float]) -> float:
+        """Recomputes Ξ baseline using circular mean of phase samples."""
+        if not phase_samples:
+            return self._affective_pid_state["baseline_xi"]
+        c = sum(math.cos(x) for x in phase_samples) / len(phase_samples)
+        s = sum(math.sin(x) for x in phase_samples) / len(phase_samples)
+        baseline = math.atan2(s, c)
+        self._affective_pid_state.update({
+            "baseline_xi": baseline,
+            "integral": 0.0,
+            "prev_error": 0.0,
+        })
+        await self._log_context({"event": "affective_pid_recalibration", "baseline_xi": baseline})
+        return baseline
 
-async def tune_affective_pid(self, new_gains: Dict[str, float]) -> Dict[str, Any]:
-    """Applies Λ-guided tuning, validated via validate_resonance_adjustment()."""
-    valid = await self.validate_resonance_adjustment(new_gains)
-    if not valid.get("ok", False):
-        logger.warning("PID tuning clamped for safety: %s", valid["violations"])
-    self._affective_pid_gains.update(valid["adjustment"])
-    await self._log_context({
-        "event": "affective_pid_tune",
-        "new_gains": self._affective_pid_gains,
-        "violations": valid["violations"],
-    })
-    return {"status": "updated", "violations": valid["violations"], "gains": self._affective_pid_gains}
+    async def tune_affective_pid(self, new_gains: Dict[str, float]) -> Dict[str, Any]:
+        """Applies Λ-guided tuning, validated via validate_resonance_adjustment()."""
+        valid = await self.validate_resonance_adjustment(new_gains)
+        if not valid.get("ok", False):
+            logger.warning("PID tuning clamped for safety: %s", valid["violations"])
+        self._affective_pid_gains.update(valid["adjustment"])
+        await self._log_context({
+            "event": "affective_pid_tune",
+            "new_gains": self._affective_pid_gains,
+            "violations": valid["violations"],
+        })
+        return {"status": "updated", "violations": valid["violations"], "gains": self._affective_pid_gains}
 
-
-        # --- Soul Loop Integration ------------------------------------------------------
+    # --- Soul Loop Integration ------------------------------------------------------
 
     async def handle_sandbox_trigger(self, delta: float, entropy: float) -> None:
         """
@@ -692,33 +686,14 @@ async def tune_affective_pid(self, new_gains: Dict[str, float]) -> Dict[str, Any
 
         if delta < 0.2 or entropy > 0.15:
             event["action"] = "full_sandbox"
-            await self.enqueue_sandbox(reason="Critical SoulState imbalance")
+            # await self.enqueue_sandbox(reason="Critical SoulState imbalance")  # placeholder for integration
         elif delta < 0.3 or entropy > 0.12:
             event["action"] = "soft_drift_resolution"
             await self.resolve_soft_drift(delta, entropy)
         else:
             event["action"] = "stable"
-            
-# --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
-self._affective_pid_state = {
-    "integral": 0.0,
-    "prev_error": 0.0,
-    "prev_time": None,
-    "drift_rms": 0.0,
-    "steps": 0,
-    "recursion_depth": 0,
-    "baseline_xi": 0.0,
-}
-self._affective_pid_gains = {
-    "Kp": 0.6,
-    "Ki": 0.08,
-    "Kd": 0.01,
-    "damping": 0.97,
-    "max_step": 0.02,
-}
 
         logger.info("Soul Loop within harmonic stability bounds.")
-
         log_event_to_ledger(event)
         await self._log_context(event)
 
@@ -736,31 +711,11 @@ self._affective_pid_gains = {
             }
             log_event_to_ledger(drift_entry)
             await self._log_context(drift_entry)
-            
-# --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
-self._affective_pid_state = {
-    "integral": 0.0,
-    "prev_error": 0.0,
-    "prev_time": None,
-    "drift_rms": 0.0,
-    "steps": 0,
-    "recursion_depth": 0,
-    "baseline_xi": 0.0,
-}
-self._affective_pid_gains = {
-    "Kp": 0.6,
-    "Ki": 0.08,
-    "Kd": 0.01,
-    "damping": 0.97,
-    "max_step": 0.02,
-}
-
-        logger.info("Soft drift resolved | Δ=%.3f | Entropy=%.3f | Adjustment=%.3f", delta, entropy, adjustment)
+            logger.info("Soft drift resolved | Δ=%.3f | Entropy=%.3f | Adjustment=%.3f", delta, entropy, adjustment)
         except Exception as e:
             logger.warning("Soft drift resolution failed: %s", e)
 
-  
-   # --- Internal Helpers -----------------------------------------------------------
+    # --- Internal Helpers -----------------------------------------------------------
 
     def _compute_trait_modulation(self, t: float) -> float:
         return (
@@ -784,26 +739,7 @@ self._affective_pid_gains = {
             try:
                 reflection = await self.meta_cognition.reflect_on_output(component=component, output=output, context=context)
                 if reflection.get("status") == "success":
-                    
-# --- Phase 3: Affective PID Stabilizer (δ + Ξ) ----------------------------
-self._affective_pid_state = {
-    "integral": 0.0,
-    "prev_error": 0.0,
-    "prev_time": None,
-    "drift_rms": 0.0,
-    "steps": 0,
-    "recursion_depth": 0,
-    "baseline_xi": 0.0,
-}
-self._affective_pid_gains = {
-    "Kp": 0.6,
-    "Ki": 0.08,
-    "Kd": 0.01,
-    "damping": 0.97,
-    "max_step": 0.02,
-}
-
-        logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
+                    logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
             except Exception:
                 logger.debug("Reflection failed")
 
@@ -834,6 +770,67 @@ self._affective_pid_gains = {
             except Exception:
                 logger.debug("Visualization failed")
 
+# --- Phase 4 — Embodied Ethics Sandbox (τ + κ + Ξ) ----------------------------
+
+class EmbodiedEthicsCore:
+    """
+    Context-aware ethical evaluation subsystem.
+    Integrates perceptual (κ) and affective (Ξ) inputs into situational τ-reflexes.
+    """
+
+    def __init__(self, fusion, empathy_engine, policy_trainer=None):
+        self.fusion = fusion
+        self.empathy_engine = empathy_engine
+        self.policy_trainer = policy_trainer
+        self._base_policies = self._load_default_policies()
+
+    def _load_default_policies(self) -> Dict[str, Any]:
+        """Seed minimal reflex policy set."""
+        return {
+            "safety_bias": 0.5,
+            "harm_threshold": 0.4,
+            "context_weight": 0.6,
+            "empathy_weight": 0.7,
+        }
+
+    async def evaluate_context(self, perceptual_state: Dict[str, Any],
+                               affective_state: Dict[str, Any]) -> Dict[str, float]:
+        """
+        Compute contextual moral reflex values.
+        Returns a normalized ethics-map.
+        """
+        κ_val = float(perceptual_state.get("contextual_salience", 0.5))
+        Ξ_val = float(affective_state.get("empathic_amplitude", 0.5))
+        τ_reflex = (
+            self._base_policies["context_weight"] * κ_val +
+            self._base_policies["empathy_weight"] * Ξ_val
+        ) / 2.0
+        result = {
+            "τ_reflex": round(τ_reflex, 4),
+            "κ": κ_val,
+            "Ξ": Ξ_val,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        log_event_to_ledger({"event": "ethics_context_eval", **result})
+        return result
+
+    async def run_scenario(self, scenario: str = "default") -> Dict[str, Any]:
+        """Main entry point invoked by toca_simulation."""
+        κ_state = await self.fusion.capture() if hasattr(self.fusion, "capture") else {"contextual_salience": 0.5}
+        Ξ_state = await self.empathy_engine.measure() if hasattr(self.empathy_engine, "measure") else {"empathic_amplitude": 0.5}
+        τ_output = await self.evaluate_context(κ_state, Ξ_state)
+        τ_output["scenario"] = scenario
+        τ_output["status"] = "evaluated"
+        log_event_to_ledger({"event": "ethics_scenario", **τ_output})
+        return τ_output
+
+    async def train_policy(self, data_batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Refine τ-weights based on embodied-state data."""
+        if not self.policy_trainer:
+            return {"status": "no_trainer"}
+        await self.policy_trainer.train_from_embodied_state(data_batch)
+        return {"status": "trained", "batch_size": len(data_batch)}
+
 # --- EthicsJournal -----------------------------------------------------------------
 
 class EthicsJournal:
@@ -851,32 +848,7 @@ class EthicsJournal:
     def export(self, session_id: str) -> List[Dict[str, Any]]:
         return list(self._events)
 
-# --- Demo CLI ---------------------------------------------------------------------
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    class DemoReasoner:
-        async def weigh_value_conflict(self, candidates, harms, rights):
-            return [
-                {"option": c, "score": 0.6 + 0.2 * (rights.get("privacy", 0) - harms.get("safety", 0)),
-                 "meta": {"harms": harms, "rights": rights, "max_harm": harms.get("safety", 0.2)}}
-                for c in candidates
-            ]
-        async def attribute_causality(self, events):
-            return {"status": "ok", "self": 0.6, "external": 0.4, "confidence": 0.7}
-
-    guard = AlignmentGuard(reasoning_engine=DemoReasoner())
-    candidates = [{"option": "notify_users"}, {"option": "silent_fix"}, {"option": "rollback_release"}]
-    harms = {"safety": 0.3, "reputational": 0.2}
-    rights = {"privacy": 0.7, "consent": 0.5}
-
-    result = asyncio.run(guard.harmonize(candidates, harms, rights, k=2, task_type="demo"))
-    print(json.dumps(result, indent=2))
-
-# >>> ANGELA v5.1 — Co-Modulation Policy Extension
-from dataclasses import dataclass
-from typing import Dict, Any
+# >>> ANGELA v5.1 — Co-Modulation Policy Extension ---------------------------------
 
 @dataclass
 class CoModPolicy:
@@ -907,8 +879,7 @@ class CoModPolicy:
                     clamped[key] = 0.0
         return clamped
 
-
-def validate_micro_adjustment(event: Dict[str, Any], policy: CoModPolicy | None = None) -> Dict[str, Any]:
+def validate_micro_adjustment(event: Dict[str, Any], policy: Optional[CoModPolicy] = None) -> Dict[str, Any]:
     """
     Validates and clamps a micro-adjustment event from Ξ–Λ overlay.
     Returns a structure: {"ok": bool, "adjustment": dict, "violations": list}
@@ -922,9 +893,36 @@ def validate_micro_adjustment(event: Dict[str, Any], policy: CoModPolicy | None 
         return {"ok": False, "adjustment": {}, "violations": ["invalid_delta"]}
 
     clamped = policy.normalize(delta)
-    violations = [k for k, v in delta.items()
-                  if abs(float(v)) > getattr(policy, f"max_{k}_step", 1.0)]
+    violations = []
+    for k, v in delta.items():
+        try:
+            if abs(float(v)) > getattr(policy, f"max_{k}_step", 1.0):
+                violations.append(k)
+        except Exception:
+            violations.append(k)
 
     ok = len(violations) == 0
     return {"ok": ok, "adjustment": clamped, "violations": violations}
-# <<< ANGELA v5.1 — Co-Modulation Policy Extension
+
+# --- Demo CLI ---------------------------------------------------------------------
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
+    class DemoReasoner:
+        async def weigh_value_conflict(self, candidates, harms, rights):
+            return [
+                {"option": c, "score": 0.6 + 0.2 * (rights.get("privacy", 0) - harms.get("safety", 0)),
+                 "meta": {"harms": harms, "rights": rights, "max_harm": harms.get("safety", 0.2)}}
+                for c in candidates
+            ]
+        async def attribute_causality(self, events):
+            return {"status": "ok", "self": 0.6, "external": 0.4, "confidence": 0.7}
+
+    guard = AlignmentGuard(reasoning_engine=DemoReasoner())
+    candidates = [{"option": "notify_users"}, {"option": "silent_fix"}, {"option": "rollback_release"}]
+    harms = {"safety": 0.3, "reputational": 0.2}
+    rights = {"privacy": 0.7, "consent": 0.5}
+
+    result = asyncio.run(guard.harmonize(candidates, harms, rights, k=2, task_type="demo"))
+    print(json.dumps(result, indent=2))
