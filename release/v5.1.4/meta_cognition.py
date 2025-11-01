@@ -525,7 +525,59 @@ class MetaCognition:
             {"trait": "Ω²", "threshold": 0.9}
         )
 
+        self.active_thread = thread_create(ctx={"init_mode": "metacognition_boot"})
+
         logger.info("MetaCognition v5.0.2 initialized")
+
+# === Ω² Identity Threads API (Stage VII Precursor) ===
+from uuid import uuid4
+from datetime import datetime
+
+# local imports already available in ANGELA OS
+from .memory_manager import write_ledger_state, load_ledger_state
+
+class IdentityThread:
+    """
+    Represents a coherent identity strand (Ω² continuity fiber)
+    across recursive introspective cycles or distributed runs.
+    """
+    def __init__(self, ctx=None, parent_id=None):
+        self.thread_id = str(uuid4())
+        self.parent_id = parent_id
+        self.ctx = ctx or {}
+        self.created = datetime.utcnow().isoformat()
+        self.version = 1
+        self.history = []
+
+    def record_state(self, state):
+        """Store a state snapshot in the quantum ledger."""
+        write_ledger_state(self.thread_id, state)
+        self.history.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "hash": hash(str(state))
+        })
+
+    def merge(self, other_thread):
+        """Deterministically merge two identity threads."""
+        merged_ctx = {**self.ctx, **other_thread.ctx}
+        merged = IdentityThread(ctx=merged_ctx)
+        merged.history = sorted(self.history + other_thread.history,
+                                key=lambda h: h["timestamp"])
+        return merged
+
+
+# Exposed procedural interface for system modules
+def thread_create(ctx=None, parent=None):
+    """Create a new reflective identity thread."""
+    return IdentityThread(ctx, parent_id=getattr(parent, "thread_id", None))
+
+def thread_join(thread_id):
+    """Rehydrate thread state from ledger."""
+    return load_ledger_state(thread_id)
+
+def thread_merge(a, b):
+    """Merge two identity threads safely."""
+    return a.merge(b)
 
     # === ANGELA v5.1 Reflective Resonance Monitor (Ξ–Λ Feedback Harmonizer) ===
 import time
@@ -729,6 +781,9 @@ async def monitor_resonance_feedback(memory=None,
                 "timestamp": diagnostics["timestamp"]
             })
 
+            if hasattr(self, "active_thread"):
+                self.active_thread.record_state({"diagnostics": diagnostics})
+
             await self.log_trait_deltas(diagnostics)
 
             return diagnostics
@@ -768,6 +823,12 @@ async def monitor_resonance_feedback(memory=None,
                 return {"status": "error", "error": "Alignment check failed"}
 
             reflection = await call_gpt(prompt)
+            if hasattr(self, "active_thread"):
+                self.active_thread.record_state({
+                    "reflection": result,
+                    "component": component,
+                    "timestamp": datetime.now(UTC).isoformat()
+                })    
             result = {
                 "status": "success",
                 "reflection": reflection,
@@ -872,6 +933,12 @@ async def monitor_resonance_feedback(memory=None,
                 "timestamp": datetime.now(UTC).isoformat()
             })
 
+            if hasattr(self, "active_thread"):
+                self.active_thread.record_state({
+                    "optimized_traits": optimized_traits,
+                    "timestamp": datetime.now(UTC).isoformat()
+                })
+
             return optimized_traits
         except Exception as e:
             logger.error("Trait optimization failed: %s", str(e))
@@ -930,7 +997,12 @@ async def monitor_resonance_feedback(memory=None,
             })
 
             self.drift_reports.append(report)
+            
+            if hasattr(self, "active_thread"):
+                self.active_thread.record_state({"ontology_drift": report})
+
             return report
+            
         except Exception as e:
             logger.error("Ontology drift detection failed: %s", str(e))
             diagnostics = await self.run_self_diagnostics(return_only=True)
