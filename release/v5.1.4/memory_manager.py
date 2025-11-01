@@ -32,6 +32,18 @@ def verify_ledger():
         if expected != ledger_chain[i]['current_hash']:
             return False
     return True
+
+def write_ledger_state(thread_id, state):
+    try:
+        timestamp = datetime.now(UTC).isoformat()
+        payload = {"thread_id": thread_id, "state": state, "timestamp": timestamp}
+        save_to_persistent_ledger(payload)
+    except Exception as e:
+        logger.warning(f"write_ledger_state failed: {e}")
+
+def load_ledger_state(thread_id):
+    return next((x for x in persistent_ledger if x.get("thread_id") == thread_id), None)
+
 # --- End Ledger Logic ---
 
 import json
