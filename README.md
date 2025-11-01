@@ -109,7 +109,7 @@ ledger.py                      # SHA-1024 quantum-ledger system
 
 1. Open [GPT Creation Portal](https://chat.openai.com/gpts).
 2. Upload all `*.py` modules and `manifest.json`.
-3. Paste `/docs/prompt.json` into GPT **Instructions**.
+3. Paste `/docs/prompt.yaml` into GPT **Instructions**.
 4. Enable **Memory** → *Settings → Memory → Enable*.
 5. Save as **ANGELA (v5.1.3 — HALO Kernel)**.
 
