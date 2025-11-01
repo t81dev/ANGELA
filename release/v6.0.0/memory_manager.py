@@ -22,13 +22,6 @@ def log_event_to_ledger(event_data):
 def get_ledger():
     return ledger_chain
 
-# --- Ledger UTC + Logger Fix (ANGELA Ω² Patch) ---
-from datetime import datetime, UTC
-import logging
-
-logger = logging.getLogger("ANGELA.MemoryManager")
-# --- End Patch ---
-
 def verify_ledger():
     for i in range(1, len(ledger_chain)):
         expected = hashlib.sha256(json.dumps({
@@ -44,13 +37,11 @@ def write_ledger_state(thread_id, state):
     try:
         timestamp = datetime.now(UTC).isoformat()
         payload = {"thread_id": thread_id, "state": state, "timestamp": timestamp}
-        save_to_persistent_ledger(payload)
-    except Exception as e:
+        save_to_    except Exception as e:
         logger.warning(f"write_ledger_state failed: {e}")
 
 def load_ledger_state(thread_id):
-    return next((x for x in persistent_ledger if x.get("thread_id") == thread_id), None)
-
+    return next((x for x in 
 # --- End Ledger Logic ---
 
 import json
@@ -1453,3 +1444,5 @@ def decay_trait_amplitudes(time_elapsed_hours=1.0, decay_rate=0.05):
         decay = decay_rate * time_elapsed_hours
         modulate_resonance(symbol, -decay)
 # --- End Patch ---
+
+# --- ANGELA OS v6.0.0-pre MemoryManager (finalized) ---
