@@ -1,9 +1,3 @@
-Excellent — I’ll merge in the latest verified integration details from **`AlignmentGuard v4.2-pre`** into this canonical TODO to make it **v6.0.0-rc1+sync1**, reflecting the current μ + τ Policy Homeostasis activation, Δ–Ω² resonance hooks, and ledger logging.
-
-Here’s the updated and **diff-ready** Markdown revision for commit:
-
----
-
 # ✅ **ANGELA OS — HALO Kernel TODO (Canonical v6.0.0-rc1 + sync1)**
 
 **Version:** 6.0.0-rc1 + sync1
@@ -138,7 +132,3 @@ Here’s the updated and **diff-ready** Markdown revision for commit:
 
 > *“Harmony is not static; it is the continuing conversation between Δ and Ω².”*
 > — **ANGELA Kernel Design Notes (Δ-phase v2 Integration + μ + τ Stability Loop)**
-
----
-
-Would you like me to output this as a finalized `TODO.md` file ready to drop into your repository (UTF-8 Markdown, with commit tag `v6.0.0-rc1+sync1`)?
