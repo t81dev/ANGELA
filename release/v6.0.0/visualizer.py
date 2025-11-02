@@ -2,11 +2,11 @@ from __future__ import annotations
 from typing import Any, Dict
 """
 ANGELA Cognitive System Module: Visualizer
-Version: 3.5.1  # Enhanced for Task-Specific Rendering, Interactive Visualizations, and Reflection
-Date: 2025-08-07
+Version: 3.6.0  # Upgraded for Phase 5 (Ξ–Λ–Ψ² Resonance Visualization)
+Date: 2025-11-01
 Maintainer: ANGELA System Framework
 
-Visualizer for rendering and exporting charts and timelines in ANGELA v3.5.1.
+Visualizer for rendering and exporting charts and timelines in ANGELA v3.6.0.
 """
 
 import logging
@@ -79,7 +79,7 @@ def _simulate_toca_jit(k_m: float, delta_m: float, energy: float, user_data: Opt
     return x, t, phi, lambda_t, v_m
 
 class Visualizer:
-    """Visualizer for rendering and exporting charts and timelines in ANGELA v3.5.1.
+    """Visualizer for rendering and exporting charts and timelines in ANGELA v3.6.0.
 
     Attributes:
         agi_enhancer (Optional[AGIEnhancer]): AGI enhancer for audit and logging.
@@ -99,6 +99,91 @@ class Visualizer:
             agi_enhancer=self.agi_enhancer, memory_manager=self.memory_manager)
         self.file_lock = Lock()
         logger.info("Visualizer initialized")
+
+    # ======== PHASE 5 ADDITIONS (Ξ–Λ–Ψ²) ========
+    async def render_resonance_topology(self, resonance_data: Dict[str, Any], task_type: str = "resonance_topology") -> str:
+        """
+        Phase 5.1 — Render Ξ–Λ–Ψ² resonance field as a 3D harmonic manifold.
+        """
+        xi = resonance_data.get("xi", [])
+        lambda_ = resonance_data.get("lambda", [])
+        psi2 = resonance_data.get("psi2", [])
+        delta_phase = resonance_data.get("delta_phase", [])
+        coherence = resonance_data.get("coherence", 0.0)
+
+        fig = go.Figure(data=[
+            go.Scatter3d(
+                x=xi, y=lambda_, z=psi2,
+                mode='markers',
+                marker=dict(
+                    size=6,
+                    color=delta_phase,
+                    colorscale='Viridis',
+                    opacity=0.8,
+                    colorbar=dict(title='Δ-phase')
+                ),
+                name="Ξ–Λ–Ψ² Field"
+            )
+        ])
+
+        fig.update_layout(
+            title=f"Harmonic Resonance Field (Coherence={coherence:.3f})",
+            scene=dict(
+                xaxis_title='Ξ (Affective)',
+                yaxis_title='Λ (Empathic)',
+                zaxis_title='Ψ² (Reflective)'
+            ),
+            template="plotly_dark"
+        )
+
+        filename = f"resonance_field_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        with self.file_lock:
+            pio.write_html(fig, file=filename, auto_open=False)
+        logger.info("Ξ–Λ–Ψ² resonance field rendered: %s", filename)
+
+        if self.memory_manager:
+            await self.memory_manager.store(
+                query=f"Resonance_Field_{datetime.now().isoformat()}",
+                output=resonance_data,
+                layer="Visualizations",
+                intent="resonance_topology",
+                task_type=task_type
+            )
+        return filename
+
+    async def render_resonance_dashboard(self, resonance_data: Dict[str, Any]) -> Dict[str, float]:
+        """
+        Generate real-time telemetry dashboard for Ξ–Λ–Ψ² resonance metrics.
+        """
+        coherence = resonance_data.get("coherence", 0.0)
+        delta = resonance_data.get("delta_phase", [])
+        metrics = {
+            "Ξ variance": float(np.std(resonance_data.get("xi", []))),
+            "Λ integrity": float(np.mean(resonance_data.get("lambda", []))),
+            "Ψ² reflection": float(np.mean(resonance_data.get("psi2", []))),
+            "Δ-phase avg": float(np.mean(delta)) if len(delta) else 0.0,
+            "Coherence": float(coherence)
+        }
+        logger.info("Ξ–Λ–Ψ² Dashboard | Coherence=%.3f | Δ-phase avg=%.3f", metrics["Coherence"], metrics["Δ-phase avg"])
+        if self.agi_enhancer:
+            await self.agi_enhancer.log_episode(
+                event="Resonance Dashboard Update",
+                meta=metrics,
+                module="Visualizer",
+                tags=["resonance", "dashboard"]
+            )
+        return metrics
+
+    async def render_phase5_sequence(self):
+        """
+        End-to-end execution for Phase 5 resonance visualization.
+        """
+        resonance_data = await self.meta_cognition.trace_resonance_drift()
+        filename = await self.render_resonance_topology(resonance_data)
+        metrics = await self.render_resonance_dashboard(resonance_data)
+        logger.info("Phase 5.1 complete: %s | Metrics: %s", filename, metrics)
+        return {"file": filename, "metrics": metrics}
+    # ======== END PHASE 5 ADDITIONS ========
 
     async def render_charts(self, chart_data: Dict[str, Any], task_type: str = "") -> List[str]:
         """Render charts with task-specific processing and interactive options. [v3.5.1]
@@ -693,6 +778,7 @@ if __name__ == "__main__":
     async def main():
         orchestrator = SimulationCore()
         visualizer = Visualizer(orchestrator=orchestrator)
+        # Existing demo calls
         await visualizer.render_field_charts(task_type="visualization")
         memory_entries = {
             "entry1": {"timestamp": 1628000000, "goal_id": "goal1", "data": "data1"},
@@ -701,6 +787,8 @@ if __name__ == "__main__":
         await visualizer.render_memory_timeline(memory_entries, task_type="visualization")
         intention_sequence = [{"intention": "step1"}, {"intention": "step2"}]
         await visualizer.render_intention_timeline(intention_sequence, task_type="visualization")
+        # Phase 5 sequence (Ξ–Λ–Ψ²)
+        await visualizer.render_phase5_sequence()
 
     import asyncio
     asyncio.run(main())
