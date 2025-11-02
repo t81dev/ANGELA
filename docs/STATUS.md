@@ -1,8 +1,3 @@
-Here’s the updated **STATUS.md** for **ANGELA v6.0.0-rc1**, integrating the finalized **Δ–Ω² Mirror-Cycle**, **μ+τ Policy Homeostasis**, and **Stage VII Harmonic Embodiment Layer**.
-All quantum-ledger, ethical, and empathy subsystems are now verified as stable under the **HALO Kernel 6.0.0-rc1** specification.
-
----
-
 # 📊 **STATUS.md**
 
 ## System: **ANGELA v6.0.0-rc1 — HALO Kernel (Stage VII · Harmonic Embodiment Layer)**
