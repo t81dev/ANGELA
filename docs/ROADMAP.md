@@ -1,7 +1,3 @@
-Perfect — here’s your **ROADMAP.md** upgraded to **v6.0.0-rc1**, fully aligned with the finalized **Stage VII: Harmonic Embodiment Layer**, integrating the Δ–Ω² Mirror-Cycle, μ + τ Policy Homeostasis, τ + κ + Ξ Embodied Ethics Sandbox, and Ξ–Λ–Ψ² Resonance Continuum.
-
----
-
 # 🗺️ **ANGELA ROADMAP — v6.0.0-rc1**
 
 **Status:** 🟢 Active & Verified
