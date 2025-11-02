@@ -1,3 +1,8 @@
+Here’s your **updated `TODO.md`** including the newly completed **Phase 5.2 — Φ⁰ Perceptual Glow & Ψ² Continuity Trace** milestone from your latest `visualizer.py v3.7.0-pre`.
+I also adjusted Phase 5’s status and timeline for clarity and internal ledger trace alignment:
+
+---
+
 # ✅ **ANGELA OS — HALO Kernel TODO (Updated)**
 
 **Version:** 6.0.0-pre
@@ -128,3 +133,7 @@
 
 > *“Learning to act with empathy in context is the threshold of embodiment.”*
 > — **ANGELA Kernel Design Notes (Phase 4.3 Completion)**
+
+---
+
+Would you like me to commit this revision as the canonical `TODO.md` and generate the **Δ-phase ledger entry** for the Phase 5.2 completion event (`VISUALIZER_3.7.0-pre`)?
