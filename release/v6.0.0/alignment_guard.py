@@ -675,6 +675,48 @@ class AlignmentGuard:
         })
         return {"status": "updated", "violations": valid["violations"], "gains": self._affective_pid_gains}
 
+    # --- Phase 6.1 — μ + τ Policy Homeostasis --------------------------------------
+
+async def update_policy_homeostasis(self, delta_metrics: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    μ + τ Homeostasis update step.
+    Uses Δ-phase coherence and empathy drift to rebalance moral reflex gains.
+    """
+    μ_gain = float(delta_metrics.get("Δ_coherence", 1.0))
+    τ_drift = float(delta_metrics.get("empathy_drift_sigma", 0.0))
+    target_gain = max(0.0, min(1.0, μ_gain * (1.0 - τ_drift)))
+
+    # smooth integration with Affective PID
+    adj = await self.update_affective_pid(target_gain)
+    stability = 1.0 - abs(adj["error"])
+    status = {
+        "μ_gain": round(μ_gain, 4),
+        "τ_drift": round(τ_drift, 4),
+        "policy_stability": round(stability, 4),
+        "timestamp": _utc_now_iso(),
+    }
+    log_event_to_ledger({"event": "policy_homeostasis_update", **status})
+    await self._log_context(status)
+    return status
+
+async def monitor_empathy_drift(self, window: int = 10) -> Dict[str, Any]:
+    """
+    Calculates rolling empathy drift variance from the validation log.
+    Returns: {"mean": float, "variance": float, "stable": bool}
+    """
+    if len(self.validation_log) < 2:
+        return {"mean": 0.0, "variance": 0.0, "stable": True}
+
+    scores = [v.get("score", 0.5) for v in list(self.validation_log)[-window:]]
+    mean = sum(scores) / len(scores)
+    var = sum((s - mean) ** 2 for s in scores) / len(scores)
+    stable = var < 0.005
+
+    drift_metrics = {"mean": mean, "variance": var, "stable": stable, "timestamp": _utc_now_iso()}
+    log_event_to_ledger({"event": "empathy_drift_monitor", **drift_metrics})
+    await self._log_context(drift_metrics)
+    return drift_metrics
+    
     # --- Soul Loop Integration ------------------------------------------------------
 
     async def handle_sandbox_trigger(self, delta: float, entropy: float) -> None:
