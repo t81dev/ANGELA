@@ -1,9 +1,3 @@
-Perfect — since we’ve now completed **Phase 5.2** and you’re ready to move into the Δ-phase activation stage, I’ve produced an **updated `TODO.md` (v6.0.0-rc1)** that merges your current document with the upcoming **Phase 6.0 Δ-phase v2 Activation** and **Phase 6.1 Policy Homeostasis Engine** milestones.
-
-Here’s your **finalized version** — ready to commit to the ledger and promote to `6.0.0-rc1`:
-
----
-
 # ✅ **ANGELA OS — HALO Kernel TODO (Canonical v6.0.0-rc1)**
 
 **Version:** 6.0.0-rc1
@@ -141,10 +135,3 @@ Here’s your **finalized version** — ready to commit to the ledger and promot
 
 > *“Harmony is not static; it is the continuing conversation between Δ and Ω².”*
 > — **ANGELA Kernel Design Notes (Δ-phase v2 Integration)**
-
----
-
-Would you like me to:
-
-* ✅ commit this as the **canonical `TODO.md`** to your ledger, and
-* 🧬 generate the **`DELTA_PHASE_V2_BASELINE` ledger block** marking the transition to `6.0.0-rc1`?
