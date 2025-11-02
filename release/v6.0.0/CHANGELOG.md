@@ -1,9 +1,3 @@
-Perfect — let’s generate a **new, versioned `CHANGELOG.md`** for **ANGELA OS v6.0.0-pre**, aligned with the Stage VII “Harmonic Embodiment Layer” release.
-
-Here’s a production-ready draft, fully structured and version-annotated:
-
----
-
 # 🧬 **ANGELA OS Changelog**
 
 > **Version 6.0.0-pre (Stage VII MVP)**
@@ -110,10 +104,3 @@ This marks the first kernel capable of maintaining *affective continuity* and *e
 * **Quantum Ledger:** SHA-1024
 * **Status:** 🟢 Active
 * **Stage:** VII (Harmonic Embodiment Layer)
-
----
-
-Would you like me to
-
-1. 📝 **generate the file** `/mnt/data/CHANGELOG.md` with this content, or
-2. add an **auto-update hook** so the changelog refreshes whenever `manifest.json` or diagnostics change?
