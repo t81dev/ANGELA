@@ -1,12 +1,16 @@
 from __future__ import annotations
 from typing import List, Dict, Any, Optional
 
-# --- SHA-256 Ledger Logic ---
-import hashlib, json, time
+# --- SHA-256 Ledger Logic (fixed) ---
+import hashlib, json, time, os, logging
+from datetime import datetime, timezone
 
-ledger_chain = []
+logger = logging.getLogger("ANGELA.Ledger")
 
-def log_event_to_ledger(event_data):
+ledger_chain: List[Dict[str, Any]] = []
+
+def log_event_to_ledger(event_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Append an event with SHA-256 integrity chaining."""
     prev_hash = ledger_chain[-1]['current_hash'] if ledger_chain else '0' * 64
     timestamp = time.time()
     payload = {
@@ -18,11 +22,14 @@ def log_event_to_ledger(event_data):
     current_hash = hashlib.sha256(payload_str).hexdigest()
     payload['current_hash'] = current_hash
     ledger_chain.append(payload)
+    return payload
 
-def get_ledger():
+def get_ledger() -> List[Dict[str, Any]]:
+    """Return in-memory ledger."""
     return ledger_chain
 
-def verify_ledger():
+def verify_ledger() -> bool:
+    """Verify full ledger chain integrity."""
     for i in range(1, len(ledger_chain)):
         expected = hashlib.sha256(json.dumps({
             'timestamp': ledger_chain[i]['timestamp'],
@@ -30,28 +37,55 @@ def verify_ledger():
             'previous_hash': ledger_chain[i - 1]['current_hash']
         }, sort_keys=True).encode()).hexdigest()
         if expected != ledger_chain[i]['current_hash']:
+            logger.error(f"Ledger verification failed at index {i}")
             return False
     return True
 
-def write_ledger_state(thread_id, state):
+LEDGER_STATE_FILE = os.getenv("ANGELA_LEDGER_STATE_PATH", "/mnt/data/ledger_state.json")
+
+def write_ledger_state(thread_id: str, state: Dict[str, Any]) -> None:
+    """Persist a ledger state snapshot to disk."""
     try:
-        timestamp = datetime.now(UTC).isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         payload = {"thread_id": thread_id, "state": state, "timestamp": timestamp}
-        save_to_    except Exception as e:
+        os.makedirs(os.path.dirname(LEDGER_STATE_FILE), exist_ok=True)
+        if os.path.exists(LEDGER_STATE_FILE):
+            with open(LEDGER_STATE_FILE, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    data = []
+        else:
+            data = []
+        data.append(payload)
+        with open(LEDGER_STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        logger.info(f"Ledger state written for thread {thread_id}")
+    except Exception as e:
         logger.warning(f"write_ledger_state failed: {e}")
 
-def load_ledger_state(thread_id):
-    return next((x for x in 
+def load_ledger_state(thread_id: str) -> Optional[Dict[str, Any]]:
+    """Load the most recent state for a given thread_id."""
+    try:
+        if not os.path.exists(LEDGER_STATE_FILE):
+            return None
+        with open(LEDGER_STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        matches = [x for x in data if x.get("thread_id") == thread_id]
+        return matches[-1] if matches else None
+    except Exception as e:
+        logger.warning(f"load_ledger_state failed: {e}")
+        return None
 # --- End Ledger Logic ---
 
-import json
-import os
-import time
+import json as _json
+import os as _os
+import time as _time
 import math
-import logging
-import hashlib
+import logging as _logging
+import hashlib as _hashlib
 import asyncio
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional as _Optional, Dict as _Dict, Any as _Any, List as _List, Tuple as _Tuple
 from collections import deque, defaultdict
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -108,7 +142,7 @@ try:
 except Exception:  # pragma: no cover
     query_openai = None  # graceful degradation
 
-logger = logging.getLogger("ANGELA.MemoryManager")
+logger = _logging.getLogger("ANGELA.MemoryManager")
 
 # ---------------------------
 # External AI Call Wrapper
@@ -134,9 +168,9 @@ _AURA_LOCK = _AURA_PATH + ".lock"
 class AURA:
     @staticmethod
     def _load_all():
-        if not os.path.exists(_AURA_PATH): return {}
+        if not _os.path.exists(_AURA_PATH): return {}
         with FileLock(_AURA_LOCK):
-            with open(_AURA_PATH, "r") as f: return json.load(f)
+            with open(_AURA_PATH, "r") as f: return _json.load(f)
 
     @staticmethod
     def load_context(user_id: str):
@@ -147,7 +181,7 @@ class AURA:
         with FileLock(_AURA_LOCK):
             data = AURA._load_all()
             data[user_id] = {"summary": summary, "affect": affective_state, "prefs": prefs}
-            with open(_AURA_PATH, "w") as f: json.dump(data, f)
+            with open(_AURA_PATH, "w") as f: _json.dump(data, f)
 
     @staticmethod
     def update_from_episode(user_id: str, episode_insights: dict):
@@ -315,6 +349,7 @@ class MemoryManager:
         logger.info("MemoryManager initialized (path=%s, stm_lifetime=%.2f)", path, self.stm_lifetime)
 
         # If LONG_HORIZON is enabled, start the auto-rollup task
+        self.default_span = default_span  # FIX: ensure attribute exists
         if long_horizon_enabled:
             asyncio.create_task(self._auto_rollup_task())
 
@@ -348,7 +383,7 @@ class MemoryManager:
                     json.dump(self.aura_context, fh, ensure_ascii=False, indent=2)
             # ledger entry for persistence event
             try:
-                log_event_to_ledger("ledger_meta", {"event": "aura.persist", "path": self.aura_path, "timestamp": time.time()})
+                log_event_to_ledger({"type":"ledger_meta","event": "aura.persist", "path": self.aura_path, "timestamp": time.time()})
             except Exception:
                 pass
         except Exception:
@@ -394,12 +429,12 @@ class MemoryManager:
             # Persist asynchronously-ish (best-effort synchronous write here)
             self._persist_aura_store()
             try:
-                log_event_to_ledger("ledger_meta", {"event": "aura.save", "user_id": user_id, "timestamp": entry["updated_at"]})
+                log_event_to_ledger({"type":"ledger_meta","event": "aura.save", "user_id": user_id, "timestamp": entry["updated_at"]})
             except Exception:
                 pass
         except Exception as exc:
             try:
-                log_event_to_ledger("ledger_meta", {"event": "aura.save.error", "user_id": user_id, "error": repr(exc)})
+                log_event_to_ledger({"type":"ledger_meta","event": "aura.save.error", "user_id": user_id, "error": repr(exc)})
             except Exception:
                 pass
 
@@ -416,13 +451,13 @@ class MemoryManager:
             self._load_aura_store()
             entry = self.aura_context.get(user_id)
             try:
-                log_event_to_ledger("ledger_meta", {"event": "aura.load", "user_id": user_id, "found": entry is not None, "timestamp": time.time()})
+                log_event_to_ledger({"type":"ledger_meta","event": "aura.load", "user_id": user_id, "found": entry is not None, "timestamp": time.time()})
             except Exception:
                 pass
             return entry
         except Exception as exc:
             try:
-                log_event_to_ledger("ledger_meta", {"event": "aura.load.error", "user_id": user_id, "error": repr(exc)})
+                log_event_to_ledger({"type":"ledger_meta","event": "aura.load.error", "user_id": user_id, "error": repr(exc)})
             except Exception:
                 pass
             return None
@@ -457,8 +492,8 @@ class MemoryManager:
     ) -> None:
         if not (isinstance(query, str) and query.strip()):
             raise ValueError("query must be a non-empty string")
-        if layer not in ["STM", "LTM", "SelfReflections", "ExternalData"]:
-            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'.")
+        if layer not in ["STM", "LTM", "SelfReflections", "ExternalData", "AdaptiveControl"]:
+            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', 'ExternalData', or 'AdaptiveControl'.")
         if not isinstance(task_type, str):
             raise TypeError("task_type must be a string")
 
@@ -538,8 +573,8 @@ class MemoryManager:
     ) -> List[Dict[str, Any]]:
         if not (isinstance(query_prefix, str) and query_prefix.strip()):
             raise ValueError("query_prefix must be a non-empty string")
-        if layer and layer not in ["STM", "LTM", "SelfReflections", "ExternalData"]:
-            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'.")
+        if layer and layer not in ["STM", "LTM", "SelfReflections", "ExternalData", "AdaptiveControl"]:
+            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', 'ExternalData', or 'AdaptiveControl'.")
         if not isinstance(task_type, str):
             raise TypeError("task_type must be a string")
 
@@ -572,7 +607,7 @@ class MemoryManager:
                     return results
 
             results: List[Dict[str, Any]] = []
-            layers = [layer] if layer else ["STM", "LTM", "SelfReflections", "ExternalData"]
+            layers = [layer] if layer else ["STM", "LTM", "SelfReflections", "ExternalData", "AdaptiveControl"]
             for l in layers:
                 for key, entry in self.memory.get(l, {}).items():
                     if query_prefix.lower() in key.lower() and (not intent or entry.get("intent") == intent):
@@ -807,7 +842,7 @@ class MemoryManager:
     async def clear_memory(self, task_type: str = "") -> None:
         logger.warning("Clearing all memory layers (task=%s)...", task_type)
         try:
-            self.memory = {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}}
+            self.memory = {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}, "AdaptiveControl": {}}
             self.stm_expiry_queue = []
             self.drift_index = DriftIndex(meta_cognition=self.meta_cognition)
             self._persist_memory(self.memory)
@@ -835,8 +870,8 @@ class MemoryManager:
             )
 
     async def list_memory_keys(self, layer: Optional[str] = None, task_type: str = "") -> Dict[str, List[str]] | List[str]:
-        if layer and layer not in ["STM", "LTM", "SelfReflections", "ExternalData"]:
-            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'.")
+        if layer and layer not in ["STM", "LTM", "SelfReflections", "ExternalData", "AdaptiveControl"]:
+            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', 'ExternalData', or 'AdaptiveControl'.")
         if not isinstance(task_type, str):
             raise TypeError("task_type must be a string")
 
@@ -846,7 +881,7 @@ class MemoryManager:
                 return [k for k, v in self.memory.get(layer, {}).items() if not task_type or v.get("task_type") == task_type]
             return {
                 l: [k for k, v in self.memory[l].items() if not task_type or v.get("task_type") == task_type]
-                for l in ["STM", "LTM", "SelfReflections", "ExternalData"]
+                for l in ["STM", "LTM", "SelfReflections", "ExternalData", "AdaptiveControl"]
             }
         except Exception as e:
             logger.error("List memory keys failed: %s", str(e))
@@ -1018,8 +1053,8 @@ class MemoryManager:
     async def retrieve(self, query: str, layer: str = "STM", task_type: str = "") -> Optional[Dict[str, Any]]:
         if not (isinstance(query, str) and query.strip()):
             raise ValueError("query must be a non-empty string")
-        if layer not in ["STM", "LTM", "SelfReflections", "ExternalData"]:
-            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', or 'ExternalData'.")
+        if layer not in ["STM", "LTM", "SelfReflections", "ExternalData", "AdaptiveControl"]:
+            raise ValueError("layer must be 'STM', 'LTM', 'SelfReflections', 'ExternalData', or 'AdaptiveControl'.")
         if not isinstance(task_type, str):
             raise TypeError("task_type must be a string")
 
@@ -1306,10 +1341,10 @@ class MemoryManager:
                 with FileLock(self.path + ".lock"):
                     with open(self.path, "r", encoding="utf-8") as f:
                         return json.load(f)
-            return {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}}
+            return {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}, "AdaptiveControl": {}}
         except Exception as e:
             logger.error("Failed to load memory: %s", str(e))
-            return {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}}
+            return {"STM": {}, "LTM": {}, "SelfReflections": {}, "ExternalData": {}, "AdaptiveControl": {}}
 
     def _persist_memory(self, memory: Dict[str, Any]) -> None:
         """Persist memory to disk (best-effort)."""
