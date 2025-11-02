@@ -1,7 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, Any, Optional, TypedDict
-import hashlib
-# ANGELA Cognitive System Module: ExternalAgentBridge (v3.5.3)
+# ANGELA Cognitive System Module: ExternalAgentBridge (v3.5.3, fixed)
 # Date: 2025-08-10
 # Maintainer: ANGELA System Framework
 #
@@ -16,15 +14,15 @@ import hashlib
 # - All network calls require HTTPS and pass AlignmentGuard.
 # - Methods are defensive: optional deps, graceful fallbacks, explicit type checks.
 
-
+from typing import List, Dict, Any, Optional, Tuple
 import asyncio
 import json
 import logging
 import time
 import uuid
-from collections import Counter, defaultdict
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+import hashlib
+from collections import Counter, defaultdict, deque
+from dataclasses import dataclass, asdict
 
 import aiohttp
 from networkx import DiGraph
@@ -32,17 +30,16 @@ from networkx import DiGraph
 # --- ANGELA modules (import paths match repo layout) -------------------------
 from modules.alignment_guard import AlignmentGuard
 from modules.code_executor import CodeExecutor
-from modules.concept_synthesizer import ConceptSynthesizer
+from modules.concept_synthesizer import ConceptSynthesizer  # optional usage
 from modules.context_manager import ContextManager
-from modules.creative_thinker import CreativeThinker
+from modules.creative_thinker import CreativeThinker          # optional usage
 from modules.error_recovery import ErrorRecovery
 from modules.reasoning_engine import ReasoningEngine
 from modules.meta_cognition import MetaCognition as _BaseMeta  # for analyze_trace(), etc.
 from modules.visualizer import Visualizer
 from modules.memory_manager import cache_state, retrieve_state, MemoryManager
 
-from index import phi_scalar
-from toca_simulation import run_simulation  # plus run_ethics_scenarios() used via sandbox
+from toca_simulation import run_simulation, run_ethics_scenarios
 
 # Optional utilities (provided by your stack)
 try:
@@ -52,8 +49,14 @@ except Exception:
         # Minimal fallback to keep the system non-blocking if prompt_utils is missing.
         return json.dumps({"reflection": "fallback", "suggestions": []})
 
-logger = logging.getLogger("ANGELA.ExternalAgentBridge")
+logger = logging.getLogger("ANGELA.ExternalAgentBridge.Fixed")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Reasoner (moved up to avoid NameError)
+# ─────────────────────────────────────────────────────────────────────────────
+class Reasoner:
+    def process(self, task: str, context: Dict[str, Any]) -> Any:
+        return {"message": f"Processed: {task}", "context_hint": bool(context)}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SharedGraph (Υ): add / diff / merge
@@ -66,12 +69,10 @@ class GraphView:
     payload: Dict[str, Any]
     ts: float
 
-
 class SharedGraph:
     """
     Υ Meta-Subjective Architecting: a minimal shared perspective graph.
-
-    API (as per manifest "upcoming"):
+    API:
       - add(view) -> view_id
       - diff(peer) -> Dict
       - merge(strategy) -> Dict
@@ -161,9 +162,84 @@ class SharedGraph:
         self._last_merge = merged
         return merged
 
+    # ---- Attach tolerance-aware helpers (fixed from floating functions) -----
+    def merge_with_tolerance(self, strategy: str = "prefer_recent", tolerance_scoring: bool = False) -> Dict[str, Any]:
+        out = self.merge(strategy=strategy)
+        if tolerance_scoring:
+            for edge in self._graph.edges():
+                self._graph.edges[edge]['confidence_delta'] = 0.0  # placeholder scoring
+        return out
+
+    def vote_on_conflict_resolution(self, conflicts: List[Dict[str, Any]]) -> Dict[str, bool]:
+        # Simple heuristic vote: prefer left if types match, else right
+        votes: Dict[str, bool] = {}
+        for c in conflicts or []:
+            key = f"{c.get('node')}::{c.get('key')}"
+            left = c.get("left")
+            right = c.get("right")
+            votes[key] = isinstance(left, type(right))
+        return votes
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Ethical Sandbox Containment (isolated what-if scenarios)
+# ANGELA UPGRADE: SharedGraph.ingest_events (fixed with proper try/except)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def __ANGELA__SharedGraph_ingest_events(
+    self,
+    events,
+    *,
+    source_peer,
+    strategy: str = "append_reconcile",
+    clock: dict = None
+):
+    """
+    Monkeypatch: SharedGraph.ingest_events
+    Integrates events from external agents with in-memory deduplication
+    and simple conflict detection.
+    """
+    clock = dict(clock or {})
+    applied = 0
+    conflicts = 0
+
+    # simple in-memory dedupe set
+    if not hasattr(self, "_seen_event_hashes"):
+        self._seen_event_hashes = set()
+    if not hasattr(self, "_event_index"):
+        self._event_index = {}
+
+    for ev in events or []:
+        blob = json.dumps(ev, sort_keys=True).encode("utf-8")
+        h = hashlib.sha256(blob).hexdigest()
+
+        # Skip duplicates
+        if h in self._seen_event_hashes:
+            continue
+
+        # Check conflicts
+        key = ev.get("id") or h
+        if key in self._event_index:
+            conflicts += 1
+
+        # Record event
+        self._event_index[key] = ev
+        self._seen_event_hashes.add(h)
+        applied += 1
+
+        # Bump vector clock
+        clock[source_peer] = int(clock.get(source_peer, 0)) + 1
+
+    return {"applied": applied, "conflicts": conflicts, "new_clock": clock}
+
+try:
+    SharedGraph.ingest_events = __ANGELA__SharedGraph_ingest_events
+except Exception as _e:
+    # class may not exist; define minimal class
+    class SharedGraph:  # type: ignore
+        pass
+    SharedGraph.ingest_events = __ANGELA__SharedGraph_ingest_events
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ethical Sandbox Containment (isolated what-if scenarios) — fixed await
 # ─────────────────────────────────────────────────────────────────────────────
 
 class EthicalSandbox:
@@ -193,15 +269,13 @@ class EthicalSandbox:
     async def run(self) -> Dict[str, Any]:
         # Delegate to toca_simulation.run_ethics_scenarios if available
         try:
-            outcomes = run_simulation  # placeholder to ensure symbol is present
-            from toca_simulation import run_ethics_scenarios  # late import
-            return {"status": "success", "outcomes": run_ethics_scenarios(self.goals, self.stakeholders)}
+            outcomes = await run_ethics_scenarios(self.goals, self.stakeholders)  # FIX: awaited
+            return {"status": "success", "outcomes": outcomes}
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# HelperAgent (unchanged surface, internal upgrades)
+# HelperAgent
 # ─────────────────────────────────────────────────────────────────────────────
 
 class HelperAgent:
@@ -232,9 +306,8 @@ class HelperAgent:
     async def execute(self, collaborators: Optional[List["HelperAgent"]] = None) -> Any:
         return await self.meta.execute(collaborators=collaborators, task=self.task, context=self.context, task_type=self.task_type)
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# MetaCognition (v3.5.3)
+# MetaCognition (v3.5.3, fixed imports/order/await)
 # ─────────────────────────────────────────────────────────────────────────────
 
 class MetaCognition(_BaseMeta):
@@ -542,10 +615,8 @@ class MetaCognition(_BaseMeta):
             await self.context_manager.log_event_with_hash({"event": "self_diagnostics", "diagnostics": diagnostics})
         return diagnostics
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# ExternalAgentBridge (v3.5.3)
-# ─────────────────────────────────────────────────────────────────────────────
+# ExternalAgentBridge (v3.5.3, fixed)
 
 class ExternalAgentBridge:
     """
@@ -815,7 +886,6 @@ class ExternalAgentBridge:
         except Exception:
             pass
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # ConstitutionSync (v3.5.3) — τ audit pathway
 # ─────────────────────────────────────────────────────────────────────────────
@@ -857,80 +927,9 @@ class ConstitutionSync:
         except Exception:
             return False
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# Placeholder Reasoner (unchanged)
+# Ξ–Λ Bridge Channel Overlay (Append-Only Safe Patch)
 # ─────────────────────────────────────────────────────────────────────────────
-
-class Reasoner:
-    def process(self, task: str, context: Dict[str, Any]) -> Any:
-        return {"message": f"Processed: {task}", "context_hint": bool(context)}
-
-
-# PATCH: Belief Conflict Tolerance in SharedGraph
-def merge(self, strategy="default", tolerance_scoring=False):
-    # existing merge logic ...
-    if tolerance_scoring:
-        for edge in self.graph.edges():
-            self.graph.edges[edge]['confidence_delta'] = self._calculate_confidence_delta(edge)
-    return self.graph
-
-
-def vote_on_conflict_resolution(self, conflicts):
-    votes = {c: self._score_conflict(c) > 0.5 for c in conflicts}
-    return votes
-
-
-### ANGELA UPGRADE: SharedGraph.ingest_events
-# ingest_events monkeypatch
-def __ANGELA__SharedGraph_ingest_events(*args, **kwargs):
-
-# args: (self, events, *, source_peer, strategy='append_reconcile', clock=None)
-clock = dict(clock or {})
-applied = 0
-conflicts = 0
-# simple in-memory dedupe set
-if not hasattr(self, '_seen_event_hashes'):
-    self._seen_event_hashes = set()
-for ev in events or []:
-    blob = json.dumps(ev, sort_keys=True).encode('utf-8')
-    h = hashlib.sha256(blob).hexdigest()
-    if h in self._seen_event_hashes:
-        continue
-    # conflict stub: if same key present with different value -> conflict++
-    if hasattr(self, '_event_index'):
-        key = ev.get('id') or h
-        if key in self._event_index:
-            conflicts += 1
-    else:
-        self._event_index = {}
-    key = ev.get('id') or h
-    self._event_index[key] = ev
-    self._seen_event_hashes.add(h)
-    applied += 1
-    # bump vector clock
-    clock[source_peer] = int(clock.get(source_peer, 0)) + 1
-return {"applied": applied, "conflicts": conflicts, "new_clock": clock}
-
-try:
-    SharedGraph.ingest_events = __ANGELA__SharedGraph_ingest_events
-except Exception as _e:
-    # class may not exist; define minimal class
-    class SharedGraph:  # type: ignore
-        pass
-    SharedGraph.ingest_events = __ANGELA__SharedGraph_ingest_events
-
-# >>> ANGELA v5.1 — Ξ–Λ Bridge Channel Overlay (Append-Only Safe Patch) — START
-from dataclasses import dataclass, asdict
-from time import time
-from typing import Dict, Optional, Any
-from collections import deque
-
-# Local import with safe fallback
-try:
-    import modules.meta_cognition as meta_cognition
-except Exception:
-    meta_cognition = None
 
 @dataclass
 class BridgeChannelConfig:
@@ -952,9 +951,7 @@ _BRIDGE_CHANNELS: Dict[str, BridgeChannelState] = {}
 def log_bridge_event(event_type: str, payload: dict):
     """Non-blocking telemetry hook for bridge events."""
     try:
-        logger = globals().get("logger", None)
-        if logger:
-            logger.debug(f"[ΞΛ-Bridge] {event_type}: {payload}")
+        logger.debug(f"[ΞΛ-Bridge] {event_type}: {payload}")
     except Exception:
         pass
 
@@ -965,17 +962,14 @@ def register_bridge_channel(name: str, policy: Optional[dict] = None, cadence_hz
     cfg = BridgeChannelConfig(name=name, cadence_hz=cadence_hz)
     _BRIDGE_CHANNELS[name] = BridgeChannelState(cfg=cfg)
     log_bridge_event("bridge_register", {"channel": name, "cfg": asdict(cfg)})
-    # also mirror to meta_cognition if available
-    if meta_cognition and hasattr(meta_cognition, "register_resonance_channel"):
-        meta_cognition.register_resonance_channel(name, cadence_hz=cadence_hz)
     return {"ok": True, "created": True, "name": name}
 
 def stream_resonance(channel: str, data: dict, ttl_ms: int = 500) -> dict:
-    """Push resonance data from an external source and mirror to meta_cognition."""
+    """Push resonance data from an external source."""
     st = _BRIDGE_CHANNELS.get(channel)
     if not st:
         raise KeyError(f"Bridge channel not found: {channel}")
-    now = time()
+    now = time.time()
     packet = {
         "valence": float(data.get("valence", 0.0)),
         "arousal": float(data.get("arousal", 0.0)),
@@ -990,12 +984,6 @@ def stream_resonance(channel: str, data: dict, ttl_ms: int = 500) -> dict:
     st.last_peer_sample = packet
     st.ring.append(packet)
     log_bridge_event("resonance_stream", {"channel": channel, "sample": packet})
-    # Forward to meta_cognition ingestion
-    if meta_cognition and hasattr(meta_cognition, "_ingest_affect_sample"):
-        try:
-            meta_cognition._ingest_affect_sample(channel, packet)
-        except Exception:
-            pass
     return {"ok": True, "ts": now, "ttl_ms": ttl_ms}
 
 def apply_bridge_delta(channel: str, delta: dict, ttl_ms: int = 1000) -> dict:
@@ -1004,14 +992,8 @@ def apply_bridge_delta(channel: str, delta: dict, ttl_ms: int = 1000) -> dict:
     if not st:
         raise KeyError(f"Bridge channel not found: {channel}")
     st.last_delta = delta
-    now = time()
+    now = time.time()
     log_bridge_event("apply_delta", {"channel": channel, "delta": delta, "ttl_ms": ttl_ms})
-    # Optional: update meta_cognition setpoint
-    if meta_cognition and hasattr(meta_cognition, "set_affective_setpoint"):
-        try:
-            meta_cognition.set_affective_setpoint(channel, delta, confidence=delta.get("confidence", 1.0))
-        except Exception:
-            pass
     return {"ok": True, "ts": now, "ttl_ms": ttl_ms}
 
 def get_bridge_status(channel: Optional[str] = None) -> Dict[str, Any]:
@@ -1029,5 +1011,3 @@ def get_bridge_status(channel: Optional[str] = None) -> Dict[str, Any]:
             raise KeyError(f"Bridge channel not found: {channel}")
         return describe(st)
     return {name: describe(st) for name, st in _BRIDGE_CHANNELS.items()}
-# >>> ANGELA v5.1 — Ξ–Λ Bridge Channel Overlay (Append-Only Safe Patch) — END
-
