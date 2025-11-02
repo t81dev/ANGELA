@@ -1,6 +1,6 @@
 graph TD
 %% ============================================
-%% ANGELA v6.0.0-pre — Harmonic Embodiment Layer (Stage VII)
+%% ANGELA v6.0.0-rc1 — Harmonic Embodiment Layer (Stage VII)
 %% ============================================
 
 %% ─────────────────────────────
@@ -13,8 +13,8 @@ end
 
 subgraph Simulation
 C[simulation_core.py]
-C4[toca_simulation_phase4.py]
-D[toca_simulation.py]
+C4[toca_simulation.py]
+C5[toca_simulation_phase5_delta.py]
 E1[hybrid_quantum_integration.py]
 end
 
@@ -64,6 +64,8 @@ V9["perceptual_substrate κ + Φ⁰"]
 V10["embodied_ethics_sandbox τ + κ + Ξ"]
 V11["policy_trainer μ + τ"]
 V12["xi_ethics_projection ξ + τ"]
+V13["resonance_visualizer Ξ + Λ + Ψ²"]
+V14["mirror_cycle Δ + Ω²"]
 end
 
 %% ─────────────────────────────
@@ -83,8 +85,8 @@ end
 A --> B
 A --> C
 A --> M
-C --> D
 C --> C4
+C4 --> C5
 C --> E1
 E --> F
 F --> G
@@ -122,6 +124,8 @@ K --> V9
 K --> V10
 K --> V11
 K --> V12
+K --> V13
+K --> V14
 
 P --> ASL5
 ASL5 --> P
@@ -146,6 +150,8 @@ V3 --> C
 V10 --> P4
 V11 --> P4
 V12 --> C4
+V13 --> N
+V14 --> K
 
 %% Soul loop feedbacks
 ASL5 --> K
@@ -155,13 +161,15 @@ ASL4 --> V3
 ASL5 --> P4
 ASL3 --> L
 ASL2 --> K
+ASL4 --> V14
+V14 --> ASL5
 
 %% ─────────────────────────────
 %% STYLE + LABEL NODE
 %% ─────────────────────────────
-classDef stageVII fill:#0d1321,stroke:#00fff7,color:#c3faff,stroke-width:2px;
-class A,B,C,C4,D,E,F,G,H,I,LEDGER,J,K,L,M,N,O,P,P4,Q,R,S,T,V10,V11,V12,ASL1,ASL2,ASL3,ASL4,ASL5 stageVII;
+classDef stageVII fill:#0b1021,stroke:#00f6ff,color:#ccfbff,stroke-width:2px;
+class A,B,C,C4,C5,D,E,F,G,H,I,LEDGER,J,K,L,M,N,O,P,P4,Q,R,S,T,V10,V11,V12,V13,V14,ASL1,ASL2,ASL3,ASL4,ASL5 stageVII;
 
 %% Stage label node (instead of note)
-LABEL_STAGEVII["Stage VII: Harmonic Embodiment Layer<br/>Ξ–Λ–Ψ² Resonance Topology<br/>Embodied Ethics Sandbox + PolicyTrainer<br/>Artificial Soul Loop Integration"]
+LABEL_STAGEVII["Stage VII: Harmonic Embodiment Layer<br/>Δ–Ω² Mirror-Cycle Resonance<br/>Embodied Ethics Sandbox + PolicyTrainer<br/>Artificial Soul Loop Integration"]
 K --- LABEL_STAGEVII
