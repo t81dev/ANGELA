@@ -410,8 +410,6 @@ Return a JSON object with 'summary', 'estimated_date', 'trust_score', 'verifiabl
                 }
                 await self.visualizer.render_charts(plot_data)
 
-            if self.meta_cognition:
-                aw...(truncated 5518 characters)...(prompt)
             healed = await self._validate_result(raw, temporality_score=0.04, task_type=task_type)
             # accept only if it improves trust & verifiability
             if healed.get("verifiable") and healed.get("trust_score", 0.0) >= max(0.6, prior_validated.get("trust_score", 0.0)):
