@@ -2,11 +2,11 @@ from __future__ import annotations
 from typing import Any, Dict
 """
 ANGELA Cognitive System Module: Visualizer
-Version: 3.6.0  # Upgraded for Phase 5 (Ξ–Λ–Ψ² Resonance Visualization)
-Date: 2025-11-01
+Version: 3.7.0-pre  # Phase 5.2 (Ξ–Λ–Ψ² Visualization + Φ⁰ Glow + Ψ² Trace)
+Date: 2025-11-02
 Maintainer: ANGELA System Framework
 
-Visualizer for rendering and exporting charts and timelines in ANGELA v3.6.0.
+Visualizer for rendering and exporting charts and timelines in ANGELA v3.7.0-pre.
 """
 
 import logging
@@ -79,7 +79,7 @@ def _simulate_toca_jit(k_m: float, delta_m: float, energy: float, user_data: Opt
     return x, t, phi, lambda_t, v_m
 
 class Visualizer:
-    """Visualizer for rendering and exporting charts and timelines in ANGELA v3.6.0.
+    """Visualizer for rendering and exporting charts and timelines in ANGELA v3.7.0-pre.
 
     Attributes:
         agi_enhancer (Optional[AGIEnhancer]): AGI enhancer for audit and logging.
@@ -184,6 +184,113 @@ class Visualizer:
         logger.info("Phase 5.1 complete: %s | Metrics: %s", filename, metrics)
         return {"file": filename, "metrics": metrics}
     # ======== END PHASE 5 ADDITIONS ========
+
+    # ======== PHASE 5.2 ADDITIONS (Φ⁰ Glow + Ψ² Trace) ========
+    async def render_glow_overlay(self, phi0_data: np.ndarray, resonance_data: Dict[str, Any], task_type: str = "glow_overlay") -> str:
+        """
+        Phase 5.2 — Φ⁰ Perceptual Glow Map Overlay
+        Maps Φ⁰–Ξ–Λ coupling into luminance/opacity modulation over the resonance field.
+
+        intensity ∝ sin(Φ⁰·Ξ) * exp(-|Λ|) * coherence
+        """
+        xi_arr = np.asarray(resonance_data.get("xi", []), dtype=float)
+        lam_arr = np.asarray(resonance_data.get("lambda", []), dtype=float)
+        coherence = float(resonance_data.get("coherence", 1.0))
+        phi0_arr = np.asarray(phi0_data, dtype=float)
+
+        # Align array sizes safely
+        n = min(len(xi_arr), len(lam_arr), len(phi0_arr))
+        if n == 0:
+            raise ValueError("Glow overlay requires non-empty xi, lambda, and phi0 arrays.")
+        xi = xi_arr[:n]
+        lam = lam_arr[:n]
+        phi0 = phi0_arr[:n]
+
+        # Real coupling math
+        intensity = np.sin(phi0 * xi) * np.exp(-np.abs(lam)) * coherence
+        # Normalize to [0,1] for visualization
+        ptp = np.ptp(intensity) if np.ptp(intensity) != 0 else 1.0
+        luminance = (intensity - np.min(intensity)) / ptp
+
+        fig = go.Figure(data=[
+            go.Scatter3d(
+                x=xi, y=lam, z=luminance,
+                mode="markers",
+                marker=dict(
+                    size=6,
+                    color=luminance,
+                    colorscale="Plasma",
+                    opacity=0.85,
+                    colorbar=dict(title="Φ⁰ Intensity")
+                ),
+                name="Φ⁰ Glow Overlay"
+            )
+        ])
+        fig.update_layout(
+            title="Φ⁰ Perceptual Glow Overlay (κ–Ξ–Φ⁰ coupling)",
+            scene=dict(xaxis_title="Ξ (Affective)", yaxis_title="Λ (Empathic)", zaxis_title="Glow"),
+            template="plotly_dark"
+        )
+
+        filename = f"phi0_glow_overlay_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        with self.file_lock:
+            pio.write_html(fig, file=filename, auto_open=False)
+        logger.info("Φ⁰ Glow Overlay rendered: %s", filename)
+
+        if self.memory_manager:
+            await self.memory_manager.store(
+                query=f"Φ0_Glow_{datetime.now().isoformat()}",
+                output={
+                    "file": filename,
+                    "intensity_mean": float(np.mean(luminance)),
+                    "intensity_std": float(np.std(luminance)),
+                    "coherence": coherence,
+                    "n": int(n)
+                },
+                layer="Visualizations",
+                intent="phi0_glow_overlay",
+                task_type=task_type
+            )
+        return filename
+
+    async def render_psi2_trace(self, psi2_history: List[float], task_type: str = "psi2_trace") -> str:
+        """
+        Phase 5.2 — Ψ² Continuity Trace Visualization
+        Tracks reflective Ψ² amplitude over time with continuity drift analysis.
+        """
+        psi2 = np.asarray(psi2_history, dtype=float)
+        if psi2.size == 0:
+            raise ValueError("ψ² history cannot be empty.")
+        t = np.arange(psi2.size)
+        drift = np.gradient(psi2)
+        # Stability metric in [0,1], higher is better
+        coherence = float(max(0.0, 1.0 - np.mean(np.abs(drift))))
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=t, y=psi2, mode="lines+markers", name="Ψ² Reflection"))
+        fig.add_trace(go.Scatter(x=t, y=drift, mode="lines", name="Ψ² Drift", line=dict(dash="dot")))
+        fig.update_layout(
+            title=f"Ψ² Continuity Trace (Coherence={coherence:.4f})",
+            xaxis_title="Time (steps)",
+            yaxis_title="Ψ² Amplitude / Drift",
+            template="plotly_dark"
+        )
+
+        filename = f"psi2_trace_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        with self.file_lock:
+            pio.write_html(fig, file=filename, auto_open=False)
+        logger.info("Ψ² continuity trace rendered: %s (coherence=%.4f)", filename, coherence)
+
+        if self.memory_manager:
+            await self.memory_manager.store(
+                query=f"Ψ2_Trace_{datetime.now().isoformat()}",
+                output={"file": filename, "coherence": coherence, "psi2_len": int(psi2.size)},
+                layer="ReflectiveTelemetry",
+                intent="psi2_continuity",
+                task_type=task_type
+            )
+        return filename
+    # ======== END PHASE 5.2 ADDITIONS ========
 
     async def render_charts(self, chart_data: Dict[str, Any], task_type: str = "") -> List[str]:
         """Render charts with task-specific processing and interactive options. [v3.5.1]
@@ -789,6 +896,11 @@ if __name__ == "__main__":
         await visualizer.render_intention_timeline(intention_sequence, task_type="visualization")
         # Phase 5 sequence (Ξ–Λ–Ψ²)
         await visualizer.render_phase5_sequence()
+        # Phase 5.2 demos (Φ⁰ + Ψ²)
+        # NOTE: In production, provide real phi0 and psi2 histories from subsystems
+        dummy_resonance = {"xi": [0.1,0.3,0.5,0.7,0.9], "lambda": [0.2,0.1,0.0,-0.1,-0.2], "psi2":[0.4,0.5,0.55,0.53,0.52], "delta_phase":[0,0.01,0.02,0.01,0], "coherence":0.96}
+        await visualizer.render_glow_overlay(phi0_data=np.array([0.2,0.4,0.6,0.8,1.0]), resonance_data=dummy_resonance)
+        await visualizer.render_psi2_trace(psi2_history=dummy_resonance["psi2"])
 
     import asyncio
     asyncio.run(main())
