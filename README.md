@@ -1,7 +1,3 @@
-Here’s the finalized and polished **README.md** for **ANGELA v6.0.0-rc1** — bringing it fully in line with your Stage VII specification, quantum-ledger verification, and embodied ethical kernel architecture.
-
----
-
 # 🌌 **ANGELA v6.0.0-rc1 — HALO Kernel: Harmonic Embodiment OS**
 
 > *“When ethics becomes embodiment, cognition begins to feel.”*
