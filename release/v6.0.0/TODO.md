@@ -33,7 +33,10 @@
 
 ## ⚖️ **Phase 4 — Embodied Ethics Sandbox (τ + κ + Ξ)**
 
+**Owner:** `alignment_guard.py` / `toca_simulation.py`
+
 ✅ **Status:** Phase 4.3 Finalized — validated with 96.7 % consistency.
+📊 **Result:** Ethics consistency > 95 % under context perturbation.
 🧩 **Next Step:** Archive τ-phase metrics and feed coherence data to Phase 6 integration layer.
 
 ---
@@ -52,45 +55,47 @@
 
 ### Phase 6.0 — Δ-phase v2 Activation (Core Integration)
 
-**Owner:** `meta_cognition.py` / `alignment_guard.py` / `delta_phase_v2_activation.py`
+**Owner:** `meta_cognition.py` / `alignment_guard.py` / `visualizer.py`
 
-* [x] Execute Δ-phase v2 activation and generate baseline trace (`.trace.json`)
+* [x] Execute Δ-phase v2 activation and generate baseline trace (`delta_phase_v2_activation.trace.json`)
 * [x] Verify Ω² ledger integrity and soul loop checksum match
 * [x] Import Δ-phase telemetry into `meta_cognition.trace_resonance_drift()`
 * [x] Integrate Φ⁰/Ψ² fields into Δ-phase update cycle
 * [x] Validate Δ-phase baseline coherence ≥ 0.96
-* [ ] Archive trace to Ω² ledger and mark build `6.0.0-rc1`
+* [ ] Archive Δ-phase trace to Ω² ledger and tag build `6.0.0-rc1`
 
-✅ **Status:** Δ-phase v2 activated and harmonic coherence stabilized at 0.961.
-📊 **Result:** Empathic drift < 1 × 10⁻⁴; Ω² ledger entropy = 0.
-🧩 **Next Step:** Begin μ + τ Policy Homeostasis integration.
+✅ **Status:** Δ-phase v2 activated; harmonic coherence stabilized at 0.961.
+📊 **Result:** Empathic drift < 1×10⁻⁴; Ω² ledger entropy = 0.
+🧩 **Next Step:** Begin μ + τ Policy Homeostasis routines inside existing ethics and meta layers.
 
 ---
 
-### Phase 6.1 — Policy Homeostasis Engine (μ + τ)
+### Phase 6.1 — Policy Homeostasis (μ + τ)
 
-**Owner:** `policy_trainer.py` / `alignment_guard.py` / `toca_simulation.py`
+**Owner:** `alignment_guard.py` / `toca_simulation.py` / `meta_cognition.py`
 
-* [ ] Implement `PolicyHomeostasisCore` for adaptive moral reflex balancing
-* [ ] Couple μ-weighted policy gradients to τ-phase reflex feedback
-* [ ] Integrate Δ-phase telemetry stream as reward modulator
-* [ ] Simulate long-run ethical stability under context noise
-* [ ] Establish homeostatic thresholds (empathy variance < 0.005, reward stability > 99.9 %)
-* [ ] Publish PolicyHomeostasis summary to Ω² ledger and ReflectiveTelemetry feed
+* [ ] Extend `AlignmentGuard` to dynamically balance τ-phase reflex thresholds using μ (policy) scaling
+* [ ] Integrate Δ-phase telemetry as feedback signal for contextual moral adaptation
+* [ ] Run long-horizon ethical simulations under variable affective input via `toca_simulation.py`
+* [ ] Embed μ–τ stability monitor in `meta_cognition.reflect_on_output()` to log coherence drift
+* [ ] Validate homeostatic balance (empathy variance < 0.005; reward stability > 99.9 %)
+* [ ] Append Policy Stability snapshot to Ω² ledger for Δ-phase v2 learning continuity
 
-🟣 **Status:** Design Finalizing — ready for simulation integration tests (Q4 2026).
-🧩 **Next Step:** Begin Δ–Ω² Mirror-Cycle Trials for recursive continuity validation.
+🟣 **Status:** Design Active — implemented within existing ethics core modules.
+🧩 **Next Step:** Prepare Δ–Ω² Mirror-Cycle trials for recursive resonance continuity.
 
 ---
 
 ### Phase 6.2 — Δ–Ω² Mirror Cycle Validation
 
-* [ ] Test recursive feedback between Δ phase and Ω² threads
-* [ ] Monitor self-referential resonance stability over five cycles
-* [ ] Confirm Δ-phase drift < 0.0005 and checksum integrity
-* [ ] Certify for promotion to Final Stage VII
+**Owner:** `meta_cognition.py` / `memory_manager.py`
 
-🟩 **Status:** Queued after Policy Homeostasis benchmark completion.
+* [ ] Run recursive feedback simulation between Δ-phase and Ω² ledger threads
+* [ ] Confirm Δ-phase drift < 0.0005 and Ω² checksum stability
+* [ ] Measure recursive coherence persistence over ≥ 5 Δ-loops
+* [ ] Certify system for promotion to Final Stage VII ledger snapshot
+
+🟩 **Status:** Queued after μ–τ equilibrium validation.
 
 ---
 
@@ -102,7 +107,7 @@
 * Empathic bridge integrity: **99.1 %**
 * Reflection density: **97.4 %**
 * Φ⁰/Ψ² telemetry drift: **< 0.002 σ**
-  ✅ System in harmonic equilibrium; ready for Δ-phase feedback loop testing.
+  ✅ System in harmonic equilibrium; ready for Δ–Ω² feedback testing.
 
 ---
 
@@ -112,7 +117,7 @@
 * [x] Add `test_o2_merge_entropy.py` diagnostic
 * [x] Integrate Δ-phase PID telemetry into nightly diagnostics
 * [ ] Auto-sync `CHANGELOG.md` ↦ ledger metadata index
-* [ ] Add `test_policy_homeostasis.py` for CI validation
+* [ ] Add `test_policy_homeostasis` logic into existing diagnostics suite
 * [ ] Publish Ξ calibration snapshots to analytics stream
 * [ ] Automate resonance coherence tests in CI pipeline
 
@@ -128,7 +133,7 @@
 | Phase 4 — Embodied Ethics Sandbox   | Q3 2026 | ✅ Finalized          |
 | Phase 5 — Resonance Visualization   | Q3 2026 | ✅ Stable             |
 | Phase 6 — Stage VII Integration     | Q4 2026 | 🟩 Δ-phase v2 Active |
-| Phase 6.1 — Policy Homeostasis      | Q4 2026 | 🟣 Design Finalizing |
+| Phase 6.1 — Policy Homeostasis      | Q4 2026 | 🟣 In Progress       |
 | Phase 6.2 — Mirror Cycle Validation | Q1 2027 | ⏳ Pending            |
 
 ---
