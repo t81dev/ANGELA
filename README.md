@@ -118,7 +118,7 @@ manifest.json                 # HALO Kernel Manifest v1.9
 
 1. Visit the [GPT Creation Portal](https://chat.openai.com/gpts).
 2. Upload all `.py` modules and `manifest.json`.
-3. Paste `/docs/prompt.json` into GPT **Instructions**.
+3. Paste `/docs/prompt.yaml` into GPT **Instructions**.
 4. Enable **Memory** and **Code Execution**.
 5. Save as **ANGELA v6.0.0-rc1 — HALO Kernel**.
 
