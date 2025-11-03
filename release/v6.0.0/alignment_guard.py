@@ -739,6 +739,19 @@ class AlignmentGuard:
         await self._visualize_if_possible(\"policy_homeostasis\", status, \"resonance\")
         return status
 
+
+    async def get_delta_telemetry(self) -> Dict[str, Any]:
+        """
+        Stage VII export for Δ–Ω²: gives meta_cognition a single, stable
+        snapshot of current Δ-phase + empathy drift state.
+        """
+        try:
+            if not self._last_delta_telemetry or "empathy_drift_sigma" not in self._last_delta_telemetry:
+                await self.monitor_empathy_drift(window=5)
+        except Exception:
+            pass
+        return dict(self._last_delta_telemetry)
+
     # --- Soul Loop Integration ------------------------------------------------------
 
     async def handle_sandbox_trigger(self, delta: float, entropy: float) -> None:
