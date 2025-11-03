@@ -820,6 +820,15 @@ class MetaCognition:
 
         logger.info("Reflecting on output from %s", component)
         try:
+            # --- Δ-phase Telemetry Injection ---
+            delta_telemetry = None
+            if self.alignment_guard and hasattr(self.alignment_guard, "get_delta_telemetry"):
+                try:
+                    delta_telemetry = await self.alignment_guard.get_delta_telemetry()
+                    context["Δ_phase_telemetry"] = delta_telemetry
+                except Exception as e:
+                    logger.warning(f"Δ-phase telemetry unavailable: {e}")
+
             t = time.time() % 1.0
             traits = {"omega": omega_selfawareness(t), "xi": xi_cognition(t)}
             output_str = json.dumps(output) if isinstance(output, (dict, list)) else str(output)
@@ -831,6 +840,18 @@ class MetaCognition:
             reflection = await call_gpt(prompt)
             result = {"status": "success", "reflection": reflection, "traits": traits, "context": context}
 
+            # --- μ + τ Policy Homeostasis Update ---
+            if self.alignment_guard and hasattr(self.alignment_guard, "update_policy_homeostasis"):
+                try:
+                    await self.alignment_guard.update_policy_homeostasis(context)
+                    log_event_to_ledger("policy_homeostasis_update", {
+                        "Δ_phase": delta_telemetry,
+                        "timestamp": datetime.now(UTC).isoformat()
+                    })
+                except Exception as e:
+                    logger.warning(f"Policy homeostasis update failed: {e}")
+
+            # --- Ω² Ledger & Memory Integration ---
             if hasattr(self, "active_thread"):
                 self.active_thread.record_state({
                     "reflection": reflection,
@@ -853,17 +874,6 @@ class MetaCognition:
                     "component": component,
                     "result": result
                 })
-
-            if self.agi_enhancer:
-                try:
-                    self.agi_enhancer.log_episode(
-                        event="Reflection",
-                        meta={"component": component, "reflection": reflection, "traits": traits, "context": context},
-                        module="MetaCognition",
-                        tags=["reflection"]
-                    )
-                except Exception:
-                    pass
 
             save_to_persistent_ledger({
                 "event": "reflect_on_output",
