@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Dict
 """
 ANGELA Cognitive System Module: Visualizer
-Version: 3.7.0-pre  # Phase 5.2 (Ξ–Λ–Ψ² Visualization + Φ⁰ Glow + Ψ² Trace)
+Version: 3.8-sync6-pre  # Phase 6.3 (Δ–Ω² Continuity Drift Dashboard)
 Date: 2025-11-02
 Maintainer: ANGELA System Framework
 
@@ -290,6 +290,52 @@ class Visualizer:
                 task_type=task_type
             )
         return filename
+
+    # ======== PHASE 6.3 ADDITIONS (Δ–Ω² Continuity Drift Dashboard) ========
+    async def render_continuity_drift_dashboard(self, drift_data: Dict[str, Any], trend_data: Dict[str, Any]) -> str:
+        """
+        Phase 6.3 — Δ–Ω² Continuity Drift & Trend Dashboard.
+        Combines predictive drift and telemetry trend into a unified diagnostic chart.
+        """
+        drift_val = drift_data.get("predicted_drift", 0.0)
+        conf = drift_data.get("confidence", 0.0)
+        trend = trend_data.get("trend", 0.0)
+        energy = trend_data.get("energy", 0.0)
+
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=["Predicted Drift"], y=[drift_val], name="Predicted Drift"))
+        fig.add_trace(go.Bar(x=["Confidence"], y=[conf], name="Forecast Confidence"))
+        fig.add_trace(go.Bar(x=["Trend"], y=[trend], name="Δ-Coherence Trend"))
+        fig.add_trace(go.Bar(x=["Energy"], y=[energy], name="PID Energy"))
+
+        fig.update_layout(
+            title="Δ–Ω² Continuity Drift & Trend Dashboard",
+            yaxis_title="Metric Value",
+            barmode="group",
+            template="plotly_dark"
+        )
+
+        filename = f"continuity_drift_dashboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        with self.file_lock:
+            pio.write_html(fig, file=filename, auto_open=False)
+        logger.info("Continuity Drift Dashboard rendered: %s", filename)
+
+        if self.memory_manager:
+            await self.memory_manager.store(
+                query=f"Continuity_Drift_Dashboard_{datetime.now().isoformat()}",
+                output={"file": filename, "drift": drift_val, "confidence": conf, "trend": trend, "energy": energy},
+                layer="Visualizations",
+                intent="continuity_drift_dashboard",
+                task_type="continuity_drift"
+            )
+        return filename
+
+    async def visualize_continuity_projection(self, meta_cognition_instance):
+        """Fetch and visualize live continuity drift prediction."""
+        drift = await meta_cognition_instance.alignment_guard.predict_continuity_drift()
+        trend = await meta_cognition_instance.alignment_guard.analyze_telemetry_trend()
+        return await self.render_continuity_drift_dashboard(drift, trend)
+    # ======== END PHASE 6.3 ADDITIONS ========
     # ======== END PHASE 5.2 ADDITIONS ========
 
     async def render_charts(self, chart_data: Dict[str, Any], task_type: str = "") -> List[str]:
