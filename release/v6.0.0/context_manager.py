@@ -1,10 +1,14 @@
 """
 ANGELA Cognitive System: ContextManager
-Version: 4.0-refactor (+ inline co_mod overlay v5.1)
+Version: 4.1-sync6-pre (+ Δ–Ω² continuity drift intake, inline co_mod overlay v5.1 preserved)
 Date: 2025-10-28
 Maintainer: ANGELA Framework
 
-Manages contextual state, inter-agent reconciliation, logs, analytics with:
+Adds:
+  • Δ–Ω² telemetry intake from AlignmentGuard / MetaCognition
+  • Optional background listener for live Δ packets
+  • Continuity drift analytics (last N packets)
+Keeps:
   • Υ SharedGraph hooks (synchronous)
   • Self-healing pathways
   • Φ⁰ reality sculpting (env-gated)
@@ -192,9 +196,13 @@ class ContextManager:
         self.shared_graph = shared_graph
         self.knowledge_retriever = knowledge_retriever
 
+        # sync6-pre: Δ–Ω² telemetry buffer + optional listener
+        self._delta_telemetry_buffer: deque[Dict[str, Any]] = deque(maxlen=256)
+        self._delta_listener_task: Optional[asyncio.Task] = None
+
         self._load_state()
         logger.info(
-            "ContextManager v4.0 | rollback=%.2f | Υ=%s | Φ⁰=%s",
+            "ContextManager v4.1-sync6-pre | rollback=%.2f | Υ=%s | Φ⁰=%s",
             rollback_threshold, bool(shared_graph), STAGE_IV
         )
 
@@ -232,6 +240,67 @@ class ContextManager:
         self._persist_json(self.context_path, self.current_context)
         self._persist_json(self.event_log_path, list(self.event_log))
         self._persist_json(self.coordination_log_path, list(self.coordination_log))
+
+    # --- Δ–Ω² Telemetry Intake (sync6-pre) ------------------------------------------
+
+    async def ingest_delta_telemetry_update(self, packet: Dict[str, Any], *, task_type: str = "") -> None:
+        """
+        Accept a Δ telemetry packet and stash it for continuity drift analytics.
+        Shape: {"Δ_coherence": float, "empathy_drift_sigma": float, "timestamp": str, ...}
+        """
+        if not isinstance(packet, dict):
+            return
+        norm = {
+            "Δ_coherence": float(packet.get("Δ_coherence", 1.0)),
+            "empathy_drift_sigma": float(packet.get("empathy_drift_sigma", 0.0)),
+            "timestamp": packet.get("timestamp") or datetime.utcnow().isoformat(),
+            "source": packet.get("source", "unknown"),
+        }
+        self._delta_telemetry_buffer.append(norm)
+        # log as event so it’s chained into context ledger
+        await self.log_event_with_hash(
+            {"event": "delta_telemetry_update", "packet": norm},
+            task_type=task_type or "telemetry"
+        )
+
+    async def start_delta_telemetry_listener(self, interval: float = 0.25) -> None:
+        """
+        If alignment_guard is present and exposes stream_delta_telemetry(), attach and keep consuming.
+        This mirrors MetaCognition’s listener so context stays in sync.
+        """
+        if self._delta_listener_task and not self._delta_listener_task.done():
+            return
+        if not (self.alignment_guard and hasattr(self.alignment_guard, "stream_delta_telemetry")):
+            logger.warning("AlignmentGuard telemetry stream not available — ContextManager listener not started.")
+            return
+
+        async def _runner():
+            async for pkt in self.alignment_guard.stream_delta_telemetry(interval=interval):  # type: ignore[attr-defined]
+                await self.ingest_delta_telemetry_update(pkt, task_type="telemetry")
+
+        self._delta_listener_task = asyncio.create_task(_runner())
+        logger.info("ContextManager Δ-telemetry listener started (interval=%.3fs)", interval)
+
+    def analyze_continuity_drift(self, window: int = 20) -> Dict[str, Any]:
+        """
+        Quick, synchronous drift view for dashboards / visualizer.
+        Returns averages over last `window` packets.
+        """
+        packets = list(self._delta_telemetry_buffer)[-max(2, window):]
+        if not packets:
+            return {"n": 0, "Δ_mean": 1.0, "drift_mean": 0.0, "status": "empty"}
+        delta_vals = [p["Δ_coherence"] for p in packets]
+        drift_vals = [p["empathy_drift_sigma"] for p in packets]
+        Δ_mean = sum(delta_vals) / len(delta_vals)
+        drift_mean = sum(drift_vals) / len(drift_vals)
+        status = "stable" if drift_mean < 0.0045 and Δ_mean >= 0.96 else "attention"
+        return {
+            "n": len(packets),
+            "Δ_mean": round(Δ_mean, 6),
+            "drift_mean": round(drift_mean, 6),
+            "status": status,
+            "latest_ts": packets[-1]["timestamp"],
+        }
 
     # --- External Context Integration ----------------------------------------------
 
@@ -316,7 +385,7 @@ class ContextManager:
             new_context["stability"] = stability
 
             # Alignment check (if available)
-            if self.alignment_guard:
+            if self.alignment_guard and hasattr(self.alignment_guard, "ethical_check"):
                 valid, report = await self.alignment_guard.ethical_check(
                     json.dumps(new_context), stage="pre", task_type=task_type
                 )
@@ -361,6 +430,9 @@ class ContextManager:
                     "coherence": phi_coherence(list(layer_ctx.values())),
                 }
 
+            # include latest Δ drift glance
+            summary["delta_drift"] = self.analyze_continuity_drift()
+
             await self.log_event_with_hash({"event": "context_summary", "layers": list(summary["layers"].keys())}, task_type=task_type)
             await self._reflect("summarize_context", summary, task_type)
 
@@ -396,6 +468,10 @@ class ContextManager:
 
             await self._reality_sculpt_hook("log_event", evt)
             await self._reflect("log_event", evt, task_type)
+
+            # if this was an external delta_telemetry_update coming through log path, keep buffer in sync
+            if evt.get("event") == "delta_telemetry_update" and isinstance(evt.get("packet"), dict):
+                self._delta_telemetry_buffer.append(evt["packet"])
 
             return {"status": "success", "hash": evt["hash"]}
 
@@ -742,6 +818,7 @@ class ContextManager:
             "coord_log_len": len(self.coordination_log),
             "rollback_threshold": self.rollback_threshold,
             "flags": {"STAGE_IV": STAGE_IV},
+            "delta_drift": self.analyze_continuity_drift(),
         }
 
 # ===================================================================================
