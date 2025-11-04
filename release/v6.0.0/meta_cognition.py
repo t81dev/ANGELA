@@ -207,7 +207,7 @@ def save_to_persistent_ledger(event_data: Dict[str, Any]) -> None:
 
 """
 ANGELA Cognitive System Module: MetaCognition
-Version: 5.1-sync5 (Δ-telemetry listener, Stage VII bridge)
+Version: 5.2-sync6-pre (Δ–Ω² Continuity Projection)
 Date: 2025-11-04
 Maintainer: ANGELA System Framework
 """
@@ -751,6 +751,35 @@ class MetaCognition:
 
         self._delta_listener_task = asyncio.create_task(_runner())
         logger.info("MetaCognition Δ-telemetry listener started (interval=%.3fs)", interval)
+
+    # --------------------------- Continuity Projection (sync6-pre) ---------------------------
+    async def update_continuity_projection(self) -> None:
+        """Continuity drift + trend prediction feedback loop."""
+        if not self.alignment_guard:
+            return
+        try:
+            drift_forecast = await self.alignment_guard.predict_continuity_drift()
+            trend_metrics = await self.alignment_guard.analyze_telemetry_trend()
+            log_event_to_ledger("continuity_projection_update", {
+                "forecast": drift_forecast,
+                "trend": trend_metrics,
+                "timestamp": datetime.now(UTC).isoformat(),
+            })
+            save_to_persistent_ledger({
+                "event": "continuity_projection_update",
+                "forecast": drift_forecast,
+                "trend": trend_metrics,
+                "timestamp": datetime.now(UTC).isoformat(),
+            })
+            if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
+                await self.context_manager.log_event_with_hash({
+                    "event": "continuity_projection_update",
+                    "forecast": drift_forecast,
+                    "trend": trend_metrics,
+                })
+        except Exception as e:
+            logger.warning(f"Continuity projection update failed: {e}")
+
 
     # --------------------------- Introspection ---------------------------
     async def introspect(self, query: str, task_type: str = "") -> Dict[str, Any]:
