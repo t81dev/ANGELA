@@ -190,6 +190,26 @@ class ExtendedSimulationCore(BaseCore):
         self._context_salience: float = 0.5
         self._last_delta_phase: float = 0.0
 
+    async def integrate_continuity_drift(self) -> None:
+        """Stage VII.1 (sync6-pre): pull predictive Δ–Ω² continuity metrics from alignment_guard and log them."""
+        if not self.alignment_guard:
+            return
+        try:
+            drift_forecast = await self.alignment_guard.predict_continuity_drift()
+            trend_metrics = await self.alignment_guard.analyze_telemetry_trend()
+            event = {
+                "event": "ToCA_ContinuityDriftUpdate",
+                "forecast": drift_forecast,
+                "trend": trend_metrics,
+                "timestamp": time.time(),
+            }
+            log_event_to_ledger(event)
+            # keep local state for downstream ethics runs
+            self._last_continuity_forecast = drift_forecast
+            self._last_continuity_trend = trend_metrics
+        except Exception as e:
+            logger.warning(f"Continuity drift integration failed: {e}")
+
     async def modulate_simulation_with_traits(self, trait_weights: Dict[str, float], task_type: str = "") -> None:
         phi = trait_weights.get('phi', 0.5)
         if task_type in ["rte", "wnli"]: phi = min(phi * 0.8, 0.7)
@@ -268,6 +288,8 @@ class ExtendedSimulationCore(BaseCore):
         self._empathic_amplitude = float(np.clip(empathy_metrics["task_adjusted"], 0, 1))
         logger.info(f"Empathy metrics: {empathy_metrics}")
         
+        # sync6-pre: integrate Δ–Ω² continuity prediction for diagnostics
+        await self.integrate_continuity_drift()
         phi_mean = np.mean(fields[6])  # phi_field
         v_sim *= (1 + 0.1 * phi_mean)
         if getattr(self, 'memory_manager', None):
