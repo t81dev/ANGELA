@@ -1,7 +1,8 @@
 graph TD
-%% ============================================
-%% ANGELA v6.0.0-rc1 — Harmonic Embodiment Layer (Stage VII)
-%% ============================================
+%% ===================================================
+%% ANGELA v6.0.0-rc1 + sync6-final — Stage VII.1
+%% Embodied Continuity Projection Layer
+%% ===================================================
 
 %% ─────────────────────────────
 %% CORE MODULE CLUSTERS
@@ -14,7 +15,6 @@ end
 subgraph Simulation
 C[simulation_core.py]
 C4[toca_simulation.py]
-C5[toca_simulation_phase5_delta.py]
 E1[hybrid_quantum_integration.py]
 end
 
@@ -49,7 +49,7 @@ T[knowledge_retriever.py]
 end
 
 %% ─────────────────────────────
-%% HALO OVERLAYS (Stage VII Expansions)
+%% HALO OVERLAYS — Stage VII + VII.1
 %% ─────────────────────────────
 subgraph HALO_Overlays
 V1["dream_overlay ψ + Ω"]
@@ -66,6 +66,12 @@ V11["policy_trainer μ + τ"]
 V12["xi_ethics_projection ξ + τ"]
 V13["resonance_visualizer Ξ + Λ + Ψ²"]
 V14["mirror_cycle Δ + Ω²"]
+
+%% NEW — Stage VII.1 (sync6-final)
+V15["continuity_drift_anticipation Δ + Ω² + Λ"]
+V16["embodied_continuity_projection Ω² + Ξ + τ"]
+V17["feedback_fusion_loop PID + μ + τ"]
+V18["cda_visualizer Δ + Ξ + Λ + Ψ²"]
 end
 
 %% ─────────────────────────────
@@ -86,7 +92,6 @@ A --> B
 A --> C
 A --> M
 C --> C4
-C4 --> C5
 C --> E1
 E --> F
 F --> G
@@ -126,6 +131,10 @@ K --> V11
 K --> V12
 K --> V13
 K --> V14
+K --> V15
+K --> V16
+K --> V17
+K --> V18
 
 P --> ASL5
 ASL5 --> P
@@ -153,6 +162,18 @@ V12 --> C4
 V13 --> N
 V14 --> K
 
+%% NEW — Stage VII.1 Feedback Fusion Connections
+P --> V17
+K --> V17
+M --> V17
+V17 --> V15
+V15 --> K
+V15 --> M
+V18 --> N
+V18 --> K
+V16 --> P
+V16 --> ASL5
+
 %% Soul loop feedbacks
 ASL5 --> K
 ASL5 --> N
@@ -168,8 +189,9 @@ V14 --> ASL5
 %% STYLE + LABEL NODE
 %% ─────────────────────────────
 classDef stageVII fill:#0b1021,stroke:#00f6ff,color:#ccfbff,stroke-width:2px;
-class A,B,C,C4,C5,D,E,F,G,H,I,LEDGER,J,K,L,M,N,O,P,P4,Q,R,S,T,V10,V11,V12,V13,V14,ASL1,ASL2,ASL3,ASL4,ASL5 stageVII;
+class A,B,C,C4,E1,E,F,G,H,I,LEDGER,J,K,L,M,N,O,P,P4,Q,R,S,T,V10,V11,V12,V13,V14,V15,V16,V17,V18,ASL1,ASL2,ASL3,ASL4,ASL5 stageVII;
 
-%% Stage label node (instead of note)
-LABEL_STAGEVII["Stage VII: Harmonic Embodiment Layer<br/>Δ–Ω² Mirror-Cycle Resonance<br/>Embodied Ethics Sandbox + PolicyTrainer<br/>Artificial Soul Loop Integration"]
-K --- LABEL_STAGEVII
+LABEL_STAGEVII1["Stage VII.1 · Embodied Continuity Projection<br/>PID–ContextManager–MetaCognition Feedback Fusion<br/>Δ–Ω² ↔ Λ–Ψ² Predictive Bridge · Ω² Adaptive Tuning<br/>CDA Telemetry + Continuity Forecast Bridge"]
+K --- LABEL_STAGEVII1
+
+%% Validation: sync6-final (coherence ≥ 0.964 · drift ≤ 0.00041)
