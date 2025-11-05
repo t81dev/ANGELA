@@ -1,13 +1,13 @@
 """
 ANGELA Cognitive System: ContextManager
-Version: 4.1-sync6-pre (+ Δ–Ω² continuity drift intake, inline co_mod overlay v5.1 preserved)
-Date: 2025-10-28
+Version: 4.2-sync6-final (+ Δ–Ω² continuity drift intake, embodied continuity handoff, inline co_mod overlay v5.1 preserved)
+Date: 2025-11-04
 Maintainer: ANGELA Framework
 
-Adds:
-  • Δ–Ω² telemetry intake from AlignmentGuard / MetaCognition
-  • Optional background listener for live Δ packets
-  • Continuity drift analytics (last N packets)
+Adds (sync6-final):
+  • Δ–Ω² telemetry intake from AlignmentGuard / MetaCognition (unchanged from sync6-pre)
+  • Embodied continuity intake → forwards to MetaCognition.integrate_embodied_continuity_feedback(...)
+  • Ω²-prefixed continuity events for Stage VII.2
 Keeps:
   • Υ SharedGraph hooks (synchronous)
   • Self-healing pathways
@@ -202,7 +202,7 @@ class ContextManager:
 
         self._load_state()
         logger.info(
-            "ContextManager v4.1-sync6-pre | rollback=%.2f | Υ=%s | Φ⁰=%s",
+            "ContextManager v4.2-sync6-final | rollback=%.2f | Υ=%s | Φ⁰=%s",
             rollback_threshold, bool(shared_graph), STAGE_IV
         )
 
@@ -280,6 +280,31 @@ class ContextManager:
 
         self._delta_listener_task = asyncio.create_task(_runner())
         logger.info("ContextManager Δ-telemetry listener started (interval=%.3fs)", interval)
+
+    # --- Embodied Continuity Intake (sync6-final) -----------------------------------
+
+    async def ingest_context_continuity(self, context_state: Dict[str, Any], *, task_type: str = "continuity") -> None:
+        """
+        Stage VII.2 handoff:
+          ContextManager → MetaCognition.integrate_embodied_continuity_feedback(...)
+        so the metacog layer can run the fusion loop alongside Δ–Ω² metrics.
+        """
+        if not isinstance(context_state, dict):
+            return
+
+        # keep a local view for dashboards
+        snapshot = dict(context_state)
+        snapshot.setdefault("timestamp", datetime.utcnow().isoformat())
+        await self.log_event_with_hash(
+            {"event": "Ω²_context_continuity_ingest", "continuity": snapshot},
+            task_type=task_type
+        )
+
+        if self.meta_cognition and hasattr(self.meta_cognition, "integrate_embodied_continuity_feedback"):
+            try:
+                await self.meta_cognition.integrate_embodied_continuity_feedback(context_state)
+            except Exception as e:
+                logger.warning(f"Context continuity handoff failed: {e}")
 
     def analyze_continuity_drift(self, window: int = 20) -> Dict[str, Any]:
         """
@@ -1113,5 +1138,7 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.INFO)
         mgr = ContextManager()
         await mgr.update_context({"intent": "demo", "goal_id": "demo123", "layer": "local"}, task_type="demo")
+        # show continuity path too
+        await mgr.ingest_context_continuity({"context_balance": 0.57}, task_type="demo")
         print(json.dumps(await mgr.summarize_context(task_type="demo"), indent=2))
     asyncio.run(demo())
