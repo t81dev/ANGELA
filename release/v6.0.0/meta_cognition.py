@@ -780,6 +780,50 @@ class MetaCognition:
         except Exception as e:
             logger.warning(f"Continuity projection update failed: {e}")
 
+    # --------------------------- Embodied Continuity Feedback (sync6-final) ---------------------------
+    async def integrate_embodied_continuity_feedback(self, context_state: Dict[str, Any]) -> None:
+        """
+        Stage VII.2 — consume fusion results from AlignmentGuard and persist them
+        so MetaCognition can reason over embodied continuity state.
+        """
+        if not self.alignment_guard:
+            return
+
+        try:
+            delta_metrics = {
+                "Δ_coherence": self.last_diagnostics.get("Δ_coherence", 1.0),
+                "empathy_drift_sigma": self.last_diagnostics.get("empathy_drift_sigma", 0.0),
+            }
+
+            fusion_status = await self.alignment_guard.feedback_fusion_loop(context_state, delta_metrics)
+            recent = list(self._delta_telemetry_buffer)[-10:]
+            recalibration = await self.alignment_guard.recalibrate_forecast_window(recent)
+
+            event_payload = {
+                "fusion_status": fusion_status,
+                "recalibration": recalibration,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+
+            log_event_to_ledger("embodied_continuity_feedback", event_payload)
+            save_to_persistent_ledger({
+                "event": "embodied_continuity_feedback",
+                **event_payload,
+            })
+
+            if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
+                await self.context_manager.log_event_with_hash({
+                    "event": "embodied_continuity_feedback",
+                    "fusion": fusion_status,
+                    "forecast": recalibration,
+                })
+
+            if hasattr(self.alignment_guard, "log_embodied_reflex"):
+                await self.alignment_guard.log_embodied_reflex({"source": "MetaCognition.integrate_embodied_continuity_feedback"})
+
+            logger.info("Embodied continuity feedback integrated (sync6-final).")
+        except Exception as e:
+            logger.warning(f"Embodied continuity feedback integration failed: {e}")
 
     # --------------------------- Introspection ---------------------------
     async def introspect(self, query: str, task_type: str = "") -> Dict[str, Any]:
@@ -796,8 +840,8 @@ class MetaCognition:
                 "omega": omega_selfawareness(t),
                 "xi": xi_cognition(t)
             }
-            prompt = f"Introspect on: {query}\nTraits: {traits}\nTask: {task_type}"
-            if self.alignment_guard and hasattr(self.alignment_guard, "check") and not self.alignment_guard.check(prompt):
+            prompt = f"Introspect on: {query}\\nTraits: {traits}\\nTask: {task_type}"
+            if self.alignment_guard and hasattr(self.alignment_guard, "check") and not await self.alignment_guard.check(prompt):
                 return {"status": "error", "error": "Alignment check failed"}
 
             introspection = await call_gpt(prompt)
@@ -938,9 +982,9 @@ class MetaCognition:
             t = time.time() % 1.0
             traits = {"omega": omega_selfawareness(t), "xi": xi_cognition(t)}
             output_str = json.dumps(output) if isinstance(output, (dict, list)) else str(output)
-            prompt = f"Reflect on output from {component}:\n{output_str}\nContext: {context}\nTraits: {traits}"
+            prompt = f"Reflect on output from {component}:\\n{output_str}\\nContext: {context}\\nTraits: {traits}"
 
-            if self.alignment_guard and hasattr(self.alignment_guard, "check") and not self.alignment_guard.check(prompt):
+            if self.alignment_guard and hasattr(self.alignment_guard, "check") and not await self.alignment_guard.check(prompt):
                 return {"status": "error", "error": "Alignment check failed"}
 
             reflection = await call_gpt(prompt)
@@ -999,9 +1043,12 @@ class MetaCognition:
                 diagnostics=diagnostics
             )
 
-    # --- the rest of MetaCognition methods remain unchanged from user's version ---
-    # For brevity, you can paste the remaining methods from your current MetaCognition file.
-    # This file focuses on adding the sync5 telemetry consumer and listener.
+    async def log_trait_deltas(self, diagnostics: Dict[str, Any]) -> None:
+        # lightweight placeholder for trait delta logging
+        self.trait_deltas_log.append({
+            "ts": datetime.now(UTC).isoformat(),
+            "diagnostics": {k: diagnostics.get(k) for k in list(diagnostics)[:10]},
+        })
 
 # --------------------------------------------------------------------------------------
 # Simulation Stub
