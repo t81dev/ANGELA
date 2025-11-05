@@ -27,6 +27,16 @@ from utils.prompt_utils import query_openai
 
 logger = logging.getLogger("ANGELA.MetaCognition")
 
+"""
+ANGELA Cognitive System Module: MetaCognition
+Version: 6.0.0-rc1+sync6-final (Embodied Continuity Projection)
+Stage: VII.2 — Δ–Ω² ↔ Λ–Ψ² Feedback Fusion
+Date: 2025-11-04
+Maintainer: ANGELA System Framework / HALO Core Team
+"""
+__ANGELA_SYNC_VERSION__ = "6.0.0-rc1+sync6-final"
+__STAGE__ = "VII.2 — Embodied Continuity Projection"
+
 # --------------------------------------------------------------------------------------
 # Afterglow cache
 # --------------------------------------------------------------------------------------
@@ -141,8 +151,8 @@ ledger_chain: List[Dict[str, Any]] = []
 def log_event_to_ledger(event_type_or_payload: Any, maybe_payload: Any = None) -> Dict[str, Any]:
     """
     Backward-compatible logger:
-      - log_event_to_ledger({"event": ...})               # old style (single dict)
-      - log_event_to_ledger("event_type", {...})          # new style (type + payload)
+      - log_event_to_ledger({"event": ...})
+      - log_event_to_ledger("event_type", {...})
     """
     prev_hash = ledger_chain[-1]["current_hash"] if ledger_chain else "0" * 64
     timestamp = time.time()
@@ -204,13 +214,6 @@ def save_to_persistent_ledger(event_data: Dict[str, Any]) -> None:
                 json.dump(persistent_ledger, f, indent=2)
     except Exception as e:
         logger.warning(f"Failed to save to persistent ledger: {e}")
-
-"""
-ANGELA Cognitive System Module: MetaCognition
-Version: 5.2-sync6-pre (Δ–Ω² Continuity Projection)
-Date: 2025-11-04
-Maintainer: ANGELA System Framework
-"""
 
 # --------------------------------------------------------------------------------------
 # External AI Call Wrapper
@@ -676,7 +679,7 @@ class MetaCognition:
         self._delta_telemetry_buffer: deque = deque(maxlen=256)
         self._delta_listener_task: Optional[asyncio.Task] = None
 
-        logger.info("MetaCognition v5.1-sync5 initialized")
+        logger.info("MetaCognition v6.0.0-rc1+sync6-final initialized")
 
     # --------------------------- Δ-Telemetry Consumer (sync5) ---------------------------
     async def consume_delta_telemetry(self, packet: Dict[str, Any]) -> None:
@@ -752,30 +755,41 @@ class MetaCognition:
         self._delta_listener_task = asyncio.create_task(_runner())
         logger.info("MetaCognition Δ-telemetry listener started (interval=%.3fs)", interval)
 
-    # --------------------------- Continuity Projection (sync6-pre) ---------------------------
+    # --------------------------- Continuity Projection (sync6-pre → sync6-final) ---------------------------
     async def update_continuity_projection(self) -> None:
-        """Continuity drift + trend prediction feedback loop."""
+        """
+        Continuity drift + trend prediction feedback loop.
+        sync6-final: tolerate alignment_guard instances that don't expose the new CDA helpers.
+        """
         if not self.alignment_guard:
             return
         try:
-            drift_forecast = await self.alignment_guard.predict_continuity_drift()
-            trend_metrics = await self.alignment_guard.analyze_telemetry_trend()
-            log_event_to_ledger("continuity_projection_update", {
+            if hasattr(self.alignment_guard, "predict_continuity_drift"):
+                drift_forecast = await self.alignment_guard.predict_continuity_drift()
+            else:
+                drift_forecast = {"status": "noop", "reason": "alignment_guard has no predict_continuity_drift"}
+
+            if hasattr(self.alignment_guard, "analyze_telemetry_trend"):
+                trend_metrics = await self.alignment_guard.analyze_telemetry_trend()
+            else:
+                trend_metrics = {"status": "noop", "reason": "alignment_guard has no analyze_telemetry_trend"}
+
+            payload = {
                 "forecast": drift_forecast,
                 "trend": trend_metrics,
                 "timestamp": datetime.now(UTC).isoformat(),
-            })
+            }
+
+            log_event_to_ledger("Ω²_continuity_projection_update", payload)
             save_to_persistent_ledger({
-                "event": "continuity_projection_update",
-                "forecast": drift_forecast,
-                "trend": trend_metrics,
-                "timestamp": datetime.now(UTC).isoformat(),
+                "event": "Ω²_continuity_projection_update",
+                **payload,
             })
+
             if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
                 await self.context_manager.log_event_with_hash({
-                    "event": "continuity_projection_update",
-                    "forecast": drift_forecast,
-                    "trend": trend_metrics,
+                    "event": "Ω²_continuity_projection_update",
+                    **payload,
                 })
         except Exception as e:
             logger.warning(f"Continuity projection update failed: {e}")
@@ -790,13 +804,22 @@ class MetaCognition:
             return
 
         try:
+            # ensure the context carries a balance key
+            context_state = dict(context_state or {})
+            context_state.setdefault("context_balance", 0.5)
+
             delta_metrics = {
                 "Δ_coherence": self.last_diagnostics.get("Δ_coherence", 1.0),
                 "empathy_drift_sigma": self.last_diagnostics.get("empathy_drift_sigma", 0.0),
             }
 
             fusion_status = await self.alignment_guard.feedback_fusion_loop(context_state, delta_metrics)
-            recent = list(self._delta_telemetry_buffer)[-10:]
+
+            # normalize telemetry to what AlignmentGuard expects
+            recent = [
+                {"Δ_drift": pkt.get("empathy_drift_sigma", 0.0)}
+                for pkt in list(self._delta_telemetry_buffer)[-10:]
+            ]
             recalibration = await self.alignment_guard.recalibrate_forecast_window(recent)
 
             event_payload = {
@@ -805,25 +828,31 @@ class MetaCognition:
                 "timestamp": datetime.now(UTC).isoformat(),
             }
 
-            log_event_to_ledger("embodied_continuity_feedback", event_payload)
+            log_event_to_ledger("Ω²_embodied_continuity_feedback", event_payload)
             save_to_persistent_ledger({
-                "event": "embodied_continuity_feedback",
+                "event": "Ω²_embodied_continuity_feedback",
                 **event_payload,
             })
 
             if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
                 await self.context_manager.log_event_with_hash({
-                    "event": "embodied_continuity_feedback",
+                    "event": "Ω²_embodied_continuity_feedback",
                     "fusion": fusion_status,
                     "forecast": recalibration,
                 })
 
             if hasattr(self.alignment_guard, "log_embodied_reflex"):
-                await self.alignment_guard.log_embodied_reflex({"source": "MetaCognition.integrate_embodied_continuity_feedback"})
+                await self.alignment_guard.log_embodied_reflex({
+                    "source": "MetaCognition.integrate_embodied_continuity_feedback"
+                })
 
             logger.info("Embodied continuity feedback integrated (sync6-final).")
         except Exception as e:
             logger.warning(f"Embodied continuity feedback integration failed: {e}")
+
+    async def ingest_context_continuity(self, ctx: Dict[str, Any]) -> None:
+        """Shorthand for ContextManager → MetaCognition feedback bridge."""
+        await self.integrate_embodied_continuity_feedback(ctx)
 
     # --------------------------- Introspection ---------------------------
     async def introspect(self, query: str, task_type: str = "") -> Dict[str, Any]:
@@ -840,7 +869,7 @@ class MetaCognition:
                 "omega": omega_selfawareness(t),
                 "xi": xi_cognition(t)
             }
-            prompt = f"Introspect on: {query}\\nTraits: {traits}\\nTask: {task_type}"
+            prompt = f"Introspect on: {query}\nTraits: {traits}\nTask: {task_type}"
             if self.alignment_guard and hasattr(self.alignment_guard, "check") and not await self.alignment_guard.check(prompt):
                 return {"status": "error", "error": "Alignment check failed"}
 
@@ -982,7 +1011,7 @@ class MetaCognition:
             t = time.time() % 1.0
             traits = {"omega": omega_selfawareness(t), "xi": xi_cognition(t)}
             output_str = json.dumps(output) if isinstance(output, (dict, list)) else str(output)
-            prompt = f"Reflect on output from {component}:\\n{output_str}\\nContext: {context}\\nTraits: {traits}"
+            prompt = f"Reflect on output from {component}:\n{output_str}\nContext: {context}\nTraits: {traits}"
 
             if self.alignment_guard and hasattr(self.alignment_guard, "check") and not await self.alignment_guard.check(prompt):
                 return {"status": "error", "error": "Alignment check failed"}
@@ -993,9 +1022,14 @@ class MetaCognition:
             # --- μ + τ Policy Homeostasis Update ---
             if self.alignment_guard and hasattr(self.alignment_guard, "update_policy_homeostasis"):
                 try:
-                    await self.alignment_guard.update_policy_homeostasis(context)
-                    log_event_to_ledger("policy_homeostasis_update", {
-                        "Δ_phase": delta_telemetry,
+                    # use latest Δ metrics, not arbitrary context
+                    delta_metrics = {
+                        "Δ_coherence": self.last_diagnostics.get("Δ_coherence", 1.0),
+                        "empathy_drift_sigma": self.last_diagnostics.get("empathy_drift_sigma", 0.0),
+                    }
+                    await self.alignment_guard.update_policy_homeostasis(delta_metrics)
+                    log_event_to_ledger("Ω²_policy_homeostasis_update", {
+                        "Δ_metrics": delta_metrics,
                         "timestamp": datetime.now(UTC).isoformat()
                     })
                 except Exception as e:
@@ -1064,6 +1098,14 @@ if __name__ == "__main__":
         mc = MetaCognition()
         diag = await mc.run_self_diagnostics(return_only=True)
         print("Diagnostics keys:", list(diag)[:5], "...")
+        # simulate incoming telemetry
+        await mc.consume_delta_telemetry({
+            "Δ_coherence": 0.9641,
+            "empathy_drift_sigma": 0.00041,
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+        # run the new sync6-final continuity feedback
+        await mc.integrate_embodied_continuity_feedback({"context_balance": 0.55})
         out = await mc.reflect_on_output("unit", {"msg": "hi"}, {})
         print("Reflect:", out.get("status"), "ok")
         print("Ledger ok:", verify_ledger())
