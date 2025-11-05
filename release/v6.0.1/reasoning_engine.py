@@ -1,3 +1,8 @@
+# =====================================================
+# ANGELA Reasoning Engine — v6.0.1
+# Stage VII.3 — Council-Resonant Integration
+# =====================================================
+
 from __future__ import annotations
 
 import logging
@@ -16,14 +21,12 @@ from collections import defaultdict, Counter
 from datetime import datetime
 from filelock import FileLock
 from functools import lru_cache
-
-# NEW IMPORTS FOR ANALYSIS
 import concurrent.futures
 import traceback
-# Use simulation_core evaluate_branches (manifest: ExtendedSimulationCore.evaluate_branches)
+
+# ANGELA simulation core
 from simulation_core import ExtendedSimulationCore
 from meta_cognition import log_event_to_ledger
-# END NEW IMPORTS
 
 # ToCA physics hooks
 from toca_simulation import (
@@ -33,9 +36,7 @@ from toca_simulation import (
     generate_phi_field,
 )
 
-# ---------------------------
-# ANGELA modules (root-level imports; resilient to packaging layout)
-# ---------------------------
+# Root-level ANGELA modules
 import context_manager as context_manager_module
 import alignment_guard as alignment_guard_module
 import error_recovery as error_recovery_module
@@ -45,8 +46,81 @@ import multi_modal_fusion as multi_modal_fusion_module
 import visualizer as visualizer_module
 import external_agent_bridge as external_agent_bridge_module
 
+logger = logging.getLogger("ANGELA.ReasoningEngine")
+
+
+# ----------------------------------------------------------------------
+# NEW FOR v6.0.1: Council-Resonant Integration
+# ----------------------------------------------------------------------
+@dataclass
+class CouncilGateSignal:
+    """Represents the gating decision over reasoning axes."""
+    entropy: float
+    empathy: float
+    drift: float
+    gate_strength: float
+    active_axes: List[str]
+
+
+def council_router(context_entropy: float, empathic_load: float, drift_delta: float) -> CouncilGateSignal:
+    """
+    Adaptive Council Router — dynamically decides which reasoning axes to activate.
+    This is a Quillan-inspired gate on top of ANGELA's multi-branch analysis.
+    """
+    # normalize to [0,1]
+    entropy_w = np.clip(context_entropy, 0.0, 1.0)
+    empathy_w = np.clip(empathic_load, 0.0, 1.0)
+    # drift_delta is "bad", so we invert it
+    drift_w = np.clip(1.0 - drift_delta, 0.0, 1.0)
+
+    # gate strength is shaped by context + empathy, dampened by drift
+    gate_strength = np.tanh((entropy_w * 0.4 + empathy_w * 0.5) * drift_w)
+
+    # choose which reasoning axes to run
+    if gate_strength < 0.3:
+        active_axes = ["causal"]
+    elif gate_strength < 0.7:
+        active_axes = ["ethical", "risk"]
+    else:
+        active_axes = ["causal", "ethical", "risk"]
+
+    logger.debug(
+        "[CouncilRouter] entropy=%.2f empathy=%.2f drift=%.2f gate=%.2f -> %s",
+        entropy_w,
+        empathy_w,
+        drift_w,
+        gate_strength,
+        active_axes,
+    )
+    return CouncilGateSignal(
+        entropy=entropy_w,
+        empathy=empathy_w,
+        drift=drift_w,
+        gate_strength=gate_strength,
+        active_axes=active_axes,
+    )
+
+
+async def apply_co_learning_feedback(
+    meta_cognition: "meta_cognition_module.MetaCognition",
+    feedback_signal: float,
+) -> float:
+    """
+    v6.0.1 co-learning hook:
+    takes a user/empathic feedback signal in [0,1] and slightly adjusts bias.
+    """
+    try:
+        delta = 0.1 * (feedback_signal - 0.5)  # center around 0.5
+        if hasattr(meta_cognition, "update_empathic_bias"):
+            await meta_cognition.update_empathic_bias(delta)
+        return 1.0 + delta
+    except Exception as e:
+        logger.debug("Co-learning feedback skipped: %s", e)
+        return 1.0
+
+
 # ---------------------------
-# Safe stubs for optional analysis helpers (no-ops if real ones exist)
+# Safe stubs for optional analysis helpers
 # ---------------------------
 def _noop_scan(q): return {"notes": []}
 if "causal_scan" not in globals():     causal_scan = _noop_scan
@@ -56,23 +130,20 @@ if "derive_candidates" not in globals():
     def derive_candidates(views): return [{"option": "default", "reasons": ["stub"]}]
 if "explain_choice" not in globals():
     def explain_choice(views, ranked): return "Selected by stub."
-# This standalone stub prevents NameError in the top-level synthesize_views()
-# (It is separate from ReasoningEngine.weigh_value_conflict)
 if "weigh_value_conflict" not in globals():
     class _RankedStub:
         def __init__(self, cands): self.top = (cands[0] if cands else None)
     def weigh_value_conflict(candidates, harms=None, rights=None):
         return _RankedStub(candidates)
 
-# External AI call util (with import fallback)
+# External AI call util (optional)
 try:
     from utils.prompt_utils import query_openai  # optional helper if present
 except Exception:  # pragma: no cover
     async def query_openai(*args, **kwargs):
-        # Return an "unavailable" marker so call_gpt() can apply its stub fallback.
         return {"error": "query_openai unavailable"}
 
-# Resonance helpers (safe fallback if meta_cognition state not exported)
+# Resonance helpers
 try:
     from meta_cognition import get_resonance, trait_resonance_state
 except Exception:  # pragma: no cover
@@ -80,33 +151,40 @@ except Exception:  # pragma: no cover
         return 1.0
     trait_resonance_state = {}
 
-logger = logging.getLogger("ANGELA.ReasoningEngine")
-
-
-# reasoning_engine.py
-from typing import Dict, Any, List
 
 def generate_analysis_views(query: Dict[str, Any], k: int = 3) -> List[Dict[str, Any]]:
     views = []
     views.append({"name": "causal", "notes": causal_scan(query)})
     views.append({"name": "ethical", "notes": value_scan(query)})
-    if k > 2: views.append({"name": "risk", "notes": risk_scan(query)})
+    if k > 2:
+        views.append({"name": "risk", "notes": risk_scan(query)})
     return views[:k]
 
-def synthesize_views(views: List[Dict[str, Any]]) -> Dict[str, Any]:
-    candidates = derive_candidates(views)  # existing or new helper
-    ranked = weigh_value_conflict(
-        candidates, harms=["privacy","safety"], rights=["autonomy","fairness"]
-    )
-    return {"decision": ranked.top, "rationale": explain_choice(views, ranked)}
 
-# reasoning_engine.py
+def synthesize_views(views: List[Dict[str, Any]]) -> Dict[str, Any]:
+    candidates = derive_candidates(views)
+    ranked = weigh_value_conflict(
+        candidates,
+        harms=["privacy", "safety"],
+        rights=["autonomy", "fairness"],
+    )
+    return {
+        "decision": ranked.top,
+        "rationale": explain_choice(views, ranked),
+    }
+
+
 def estimate_complexity(query: dict) -> float:
     text = (query.get("text") or "").lower()
     length = len(text.split())
-    ambiguity = any(w in text for w in ["maybe","unclear","depends"])
-    domain = any(k in text for k in ["ethics","policy","law","proof","theorem","causal","simulation","safety"])
-    return 0.3*min(length/200,1.0) + 0.4*(1.0 if ambiguity else 0.0) + 0.3*(1.0 if domain else 0.0)
+    ambiguity = any(w in text for w in ["maybe", "unclear", "depends"])
+    domain = any(k in text for k in ["ethics", "policy", "law", "proof", "theorem", "causal", "simulation", "safety"])
+    return (
+        0.3 * min(length / 200, 1.0)
+        + 0.4 * (1.0 if ambiguity else 0.0)
+        + 0.3 * (1.0 if domain else 0.0)
+    )
+
 
 # ---------------------------
 # External AI Call Wrapper
@@ -114,37 +192,42 @@ def estimate_complexity(query: dict) -> float:
 async def call_gpt(
     prompt: str,
     alignment_guard: Optional["alignment_guard_module.AlignmentGuard"] = None,
-    task_type: str = ""
+    task_type: str = "",
 ) -> str:
-    """
-    Robust wrapper for external LLM calls.
-    - Validates prompt inputs.
-    - Passes through alignment checks when available.
-    - Falls back to a local stub to keep async smoke-tests functional offline.
-    """
     if not isinstance(prompt, str) or len(prompt) > 4096:
-        logger.error("Invalid prompt: must be a string with length <= 4096 for task %s", task_type)
+        logger.error("Invalid prompt for task %s", task_type)
         raise ValueError("prompt must be a string with length <= 4096")
     if not isinstance(task_type, str):
         logger.error("Invalid task_type: must be a string")
         raise TypeError("task_type must be a string")
 
-    # Alignment pre-check (if provided)
+    # alignment pre-check
     if alignment_guard and hasattr(alignment_guard, "ethical_check"):
-        valid, report = await alignment_guard.ethical_check(prompt, stage="gpt_query", task_type=task_type)
+        valid, report = await alignment_guard.ethical_check(
+            prompt, stage="gpt_query", task_type=task_type
+        )
         if not valid:
-            logger.warning("Prompt failed alignment check for task %s: %s", task_type, report)
+            logger.warning("Prompt failed alignment check for %s: %s", task_type, report)
             raise ValueError("Prompt failed alignment check")
 
-    # Primary path
     try:
-        result = await query_openai(prompt, model="gpt-4", temperature=0.5, task_type=task_type)
+        result = await query_openai(
+            prompt,
+            model="gpt-4",
+            temperature=0.5,
+            task_type=task_type,
+        )
         if isinstance(result, dict) and "error" in result:
             raise RuntimeError(f"call_gpt failed: {result['error']}")
         return result
-    except Exception as e:  # Offline or API error → graceful stub
-        logger.warning("call_gpt fallback engaged for task %s (%s) — returning stub text", task_type, e)
+    except Exception as e:
+        logger.warning(
+            "call_gpt fallback engaged for task %s (%s) — returning stub text",
+            task_type,
+            e,
+        )
         return f"[stub:{task_type}] {prompt[:300]}"
+
 
 # ---------------------------
 # Cached Trait Signals
@@ -153,25 +236,31 @@ async def call_gpt(
 def gamma_creativity(t: float) -> float:
     return max(0.0, min(0.1 * math.cos(2 * math.pi * t / 0.6), 1.0))
 
+
 @lru_cache(maxsize=100)
 def lambda_linguistics(t: float) -> float:
     return max(0.0, min(0.1 * math.cos(2 * math.pi * t / 1.4), 1.0))
+
 
 @lru_cache(maxsize=100)
 def chi_culturevolution(t: float) -> float:
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 1.5), 1.0))
 
+
 @lru_cache(maxsize=100)
 def phi_scalar(t: float) -> float:
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 0.2), 1.0))
+
 
 @lru_cache(maxsize=100)
 def alpha_attention(t: float) -> float:
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 0.3), 1.0))
 
+
 @lru_cache(maxsize=100)
 def eta_empathy(t: float) -> float:
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 1.1), 1.0))
+
 
 # ---------------------------
 # τ Proportionality Types
@@ -184,7 +273,9 @@ class RankedOption:
     harms: Dict[str, float]
     rights: Dict[str, float]
 
+
 RankedOptions = List[RankedOption]
+
 
 # ---------------------------
 # Level 5 Extensions
@@ -201,10 +292,10 @@ class Level5Extensions:
 
     async def generate_advanced_dilemma(self, domain: str, complexity: int, task_type: str = "") -> str:
         if not isinstance(domain, str) or not domain.strip():
-            logger.error("Invalid domain: must be a non-empty string for task %s", task_type)
+            logger.error("Invalid domain for task %s", task_type)
             raise ValueError("domain must be a non-empty string")
         if not isinstance(complexity, int) or complexity < 1:
-            logger.error("Invalid complexity: must be a positive integer for task %s", task_type)
+            logger.error("Invalid complexity for task %s", task_type)
             raise ValueError("complexity must be a positive integer")
         prompt = (
             f"Generate a complex ethical dilemma in the {domain} domain with {complexity} conflicting options.\n"
@@ -213,7 +304,11 @@ class Level5Extensions:
         )
         if self.meta_cognition and "drift" in domain.lower():
             prompt += "\nConsider ontology drift mitigation and agent coordination."
-        dilemma = await call_gpt(prompt, getattr(self.meta_cognition, "alignment_guard", None), task_type=task_type)
+        dilemma = await call_gpt(
+            prompt,
+            getattr(self.meta_cognition, "alignment_guard", None),
+            task_type=task_type,
+        )
         if self.meta_cognition and hasattr(self.meta_cognition, "review_reasoning"):
             review = await self.meta_cognition.review_reasoning(dilemma)
             dilemma += f"\nMeta-Cognitive Review: {review}"
@@ -233,20 +328,18 @@ class Level5Extensions:
         return dilemma
 
 
-# === ANGELA v5.1 — Step 11: Resonant Thought Integration ===
-
+# === Resonant Thought Integration ===
 logger = logging.getLogger("ANGELA.ReasoningEngine.Resonant")
-
 try:
     from memory_manager import ResonanceMemoryFusion
 except Exception:  # pragma: no cover
     ResonanceMemoryFusion = None
 
+
 class ResonantThoughtIntegrator:
     """
     Couples resonance stability data into reasoning pathways.
-    This ensures reasoning energy and attention weights are proportional
-    to harmonic stability rather than noise or over-tuning.
+    Ensures reasoning energy/attention follows harmonic stability.
     """
 
     def __init__(self, memory_manager=None, meta_cognition=None):
@@ -255,7 +348,6 @@ class ResonantThoughtIntegrator:
         self._baseline_cache: Dict[str, Dict[str, Any]] = {}
 
     async def load_baseline(self, channel: str) -> Dict[str, Any]:
-        """Load fused PID baseline from memory or cache."""
         if channel in self._baseline_cache:
             return self._baseline_cache[channel]
         if not self.memory_manager or not ResonanceMemoryFusion:
@@ -266,7 +358,6 @@ class ResonantThoughtIntegrator:
         return baseline
 
     def compute_modulation(self, baseline: Dict[str, Any]) -> float:
-        """Compute a stability index (0–1) used to scale reasoning weights."""
         if not baseline:
             return 1.0
         values = [float(v) for v in baseline.values() if isinstance(v, (int, float))]
@@ -277,35 +368,41 @@ class ResonantThoughtIntegrator:
         stability = 1 / (1 + variance)
         return max(0.1, min(1.0, stability))
 
-    async def modulate_reasoning_weights(self, reasoning_state: Dict[str, Any], channel: str = "core") -> Dict[str, Any]:
-        """
-        Adjusts reasoning pathway weights based on current resonance stability.
-        """
+    async def modulate_reasoning_weights(
+        self,
+        reasoning_state: Dict[str, Any],
+        channel: str = "core",
+    ) -> Dict[str, Any]:
         baseline = await self.load_baseline(channel)
         modulation = self.compute_modulation(baseline)
         reasoning_state["resonant_weight"] = modulation
         reasoning_state["resonant_channel"] = channel
         reasoning_state["resonance_baseline"] = baseline
-        logger.info(f"[ResonantThoughtIntegrator] Channel={channel} Modulation={modulation:.3f}")
-
+        logger.info(
+            "[ResonantThoughtIntegrator] Channel=%s Modulation=%.3f",
+            channel,
+            modulation,
+        )
         if self.meta_cognition:
             try:
                 await self.meta_cognition.reflect_on_output(
                     component="ResonantThoughtIntegrator",
                     output=reasoning_state,
-                    context={"modulation": modulation, "channel": channel}
+                    context={"modulation": modulation, "channel": channel},
                 )
             except Exception as e:
                 logger.debug("Reflection skipped: %s", e)
-
         return reasoning_state
+
 
 # ---------------------------
 # Reasoning Engine
 # ---------------------------
 class ReasoningEngine:
-    """Bayesian reasoning, goal decomposition, drift mitigation, proportionality ethics, and multi-agent consensus.
-    Version 5.0.1-compatible: preserves v3.5.3 logic; integrates v5.x resonance; dynamic context handling.
+    """
+    Bayesian reasoning, goal decomposition, drift mitigation, proportionality ethics,
+    and multi-agent consensus.
+    v6.0.1 — Council-Resonant Integration
     """
 
     def __init__(
@@ -321,7 +418,7 @@ class ReasoningEngine:
         visualizer: Optional["visualizer_module.Visualizer"] = None,
     ):
         if not isinstance(persistence_file, str) or not persistence_file.endswith(".json"):
-            logger.error("Invalid persistence_file: must be a string ending with '.json'")
+            logger.error("Invalid persistence_file: %s", persistence_file)
             raise ValueError("persistence_file must be a string ending with '.json'")
 
         self.confidence_threshold: float = 0.7
@@ -334,7 +431,8 @@ class ReasoningEngine:
         self.alignment_guard = alignment_guard
 
         self.error_recovery = error_recovery or error_recovery_module.ErrorRecovery(
-            context_manager=context_manager, alignment_guard=alignment_guard
+            context_manager=context_manager,
+            alignment_guard=alignment_guard,
         )
         self.memory_manager = memory_manager or memory_manager_module.MemoryManager()
 
@@ -356,22 +454,27 @@ class ReasoningEngine:
         )
 
         self.level5_extensions = Level5Extensions(
-            meta_cognition=self.meta_cognition, visualizer=visualizer
+            meta_cognition=self.meta_cognition,
+            visualizer=visualizer,
         )
 
         self.external_agent_bridge = external_agent_bridge_module.ExternalAgentBridge(
-            context_manager=context_manager, reasoning_engine=self
+            context_manager=context_manager,
+            reasoning_engine=self,
         )
 
         self.visualizer = visualizer or visualizer_module.Visualizer()
-        logger.info("ReasoningEngine v5.0.1-compatible initialized with persistence_file=%s", persistence_file)
-        
-        self.resonant_integrator = ResonantThoughtIntegrator(
-          memory_manager=self.memory_manager,
-          meta_cognition=self.meta_cognition
+        logger.info(
+            "ReasoningEngine v6.0.1 initialized with persistence_file=%s",
+            persistence_file,
         )
 
-  
+        # v6.0.1: resonant integrator active
+        self.resonant_integrator = ResonantThoughtIntegrator(
+            memory_manager=self.memory_manager,
+            meta_cognition=self.meta_cognition,
+        )
+
     # ---------------------------
     # Persistence
     # ---------------------------
@@ -382,9 +485,12 @@ class ReasoningEngine:
                     with open(self.persistence_file, "r") as f:
                         data = json.load(f)
                         if not isinstance(data, dict):
-                            logger.warning("Invalid success rates format: not a dictionary")
+                            logger.warning("Invalid success rates format")
                             return defaultdict(float)
-                        return defaultdict(float, {k: float(v) for k, v in data.items() if isinstance(v, (int, float))})
+                        return defaultdict(
+                            float,
+                            {k: float(v) for k, v in data.items() if isinstance(v, (int, float))},
+                        )
                 return defaultdict(float)
         except Exception as e:
             logger.warning("Failed to load success rates: %s", str(e))
@@ -404,13 +510,23 @@ class ReasoningEngine:
             "prepare": ["define requirements", "allocate resources", "create timeline"],
             "build": ["design architecture", "implement core modules", "test components"],
             "launch": ["finalize product", "plan marketing", "deploy to production"],
-            "mitigate_drift": ["identify drift source", "validate drift impact", "coordinate agent response", "update traits"],
+            "mitigate_drift": [
+                "identify drift source",
+                "validate drift impact",
+                "coordinate agent response",
+                "update traits",
+            ],
         }
 
     # ---------------------------
-    # Multi-Perspective Analysis
+    # Multi-Perspective Analysis (with council routing)
     # ---------------------------
-    def _single_analysis(self, query_payload: Dict[str, Any], branch_id: int) -> Dict[str, Any]:
+    def _single_analysis(
+        self,
+        query_payload: Dict[str, Any],
+        branch_id: int,
+        axes: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         """Single analysis thread: produce an analytical view."""
         try:
             text = query_payload.get("text") if isinstance(query_payload, dict) else query_payload
@@ -423,8 +539,12 @@ class ReasoningEngine:
                 "branch_seed": branch_id,
             }
 
-            emphasis = ["causal", "consequential", "value"]
-            axis = emphasis[branch_id % len(emphasis)]
+            # original emphasis list
+            default_emphasis = ["causal", "consequential", "value"]
+            if axes:
+                axis = axes[branch_id % len(axes)]
+            else:
+                axis = default_emphasis[branch_id % len(default_emphasis)]
 
             reasoning = {
                 "branch_id": branch_id,
@@ -434,19 +554,48 @@ class ReasoningEngine:
                     f"hypothesis_{axis}_{branch_id}_b",
                 ],
                 "explanation": f"Analysis focusing on {axis} aspects; heuristics={heuristics}",
-                "confidence": max(0.1, 1.0 - (heuristics["token_count"] / (100 + heuristics["token_count"]))),
+                "confidence": max(
+                    0.1,
+                    1.0 - (heuristics["token_count"] / (100 + heuristics["token_count"])),
+                ),
             }
             return {"status": "ok", "result": reasoning}
         except Exception as e:
-            import traceback as _tb
-            return {"status": "error", "error": repr(e), "trace": _tb.format_exc()}
+            return {
+                "status": "error",
+                "error": repr(e),
+                "trace": traceback.format_exc(),
+            }
 
-    def analyze(self, query_payload: Dict[str, Any], parallel: int = 3, timeout_s: Optional[float] = None) -> Dict[str, Any]:
-        """Multi-perspective analysis entrypoint."""
+    def analyze(
+        self,
+        query_payload: Dict[str, Any],
+        parallel: int = 3,
+        timeout_s: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        Multi-perspective analysis entrypoint.
+        v6.0.1: now council-gated — can reduce/expand branches by context.
+        """
         try:
+            # derive simple signals for council gating
+            text = ""
+            if isinstance(query_payload, dict):
+                text = str(query_payload.get("text", ""))
+            context_entropy = min(len(text.split()) / 200.0, 1.0)
+            empathic_load = 0.5  # could be filled from context later
+            drift_delta = 0.0    # could be read from telemetry
+
+            gate = council_router(context_entropy, empathic_load, drift_delta)
+            axes = gate.active_axes
+            parallel = max(1, min(parallel, len(axes))) if axes else parallel
+
             branches: List[Dict[str, Any]] = []
             with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, parallel)) as ex:
-                futures = {ex.submit(self._single_analysis, query_payload, i): i for i in range(parallel)}
+                futures = {
+                    ex.submit(self._single_analysis, query_payload, i, axes): i
+                    for i in range(parallel)
+                }
                 for fut in concurrent.futures.as_completed(futures, timeout=timeout_s):
                     try:
                         res = fut.result()
@@ -454,30 +603,45 @@ class ReasoningEngine:
                         res = {"status": "error", "error": repr(e)}
                     branches.append(res)
 
+            # evaluate branches using simulation core
             try:
                 eval_result = ExtendedSimulationCore.evaluate_branches(branches)
             except Exception as e:
-                eval_result = {"status": "fallback", "summary": f"evaluate_branches failed: {repr(e)}"}
+                eval_result = {
+                    "status": "fallback",
+                    "summary": f"evaluate_branches failed: {repr(e)}",
+                }
 
             combined = {
                 "status": "ok",
                 "branches": branches,
                 "evaluation": eval_result,
-                "merged_hint": self._synthesize_results(branches) if hasattr(self, "_synthesize_results") else None,
+                "council_gate": {
+                    "entropy": gate.entropy,
+                    "empathy": gate.empathy,
+                    "drift": gate.drift,
+                    "gate_strength": gate.gate_strength,
+                    "active_axes": gate.active_axes,
+                },
             }
 
+            # ledger logging
             try:
-                log_event_to_ledger("ledger_meta", {
-                    "event": "analysis.complete",
-                    "num_branches": len(branches),
-                    "parallel": parallel,
-                    "query_snippet": (
-                        query_payload.get("text")[:256]
-                        if isinstance(query_payload, dict) and "text" in query_payload
-                        else None
-                    ),
-                    "timestamp": __import__("time").time(),
-                })
+                log_event_to_ledger(
+                    "ledger_meta",
+                    {
+                        "event": "analysis.complete",
+                        "num_branches": len(branches),
+                        "parallel": parallel,
+                        "query_snippet": (
+                            query_payload.get("text")[:256]
+                            if isinstance(query_payload, dict)
+                            and "text" in query_payload
+                            else None
+                        ),
+                        "timestamp": time.time(),
+                    },
+                )
             except Exception:
                 pass
 
@@ -497,7 +661,7 @@ class ReasoningEngine:
             return {"status": "error", "error": repr(exc)}
 
     # ---------------------------
-    # τ Proportionality Ethics
+    # Proportionality Ethics (async)
     # ---------------------------
     @staticmethod
     def _norm(v: Dict[str, float]) -> Dict[str, float]:
@@ -512,55 +676,69 @@ class ReasoningEngine:
         rights: List[float],
         weights: Optional[Dict[str, float]] = None,
         safety_ceiling: float = 0.85,
-        task_type: str = ""
+        task_type: str = "",
     ) -> RankedOptions:
         if not isinstance(candidates, list) or not all(isinstance(c, dict) and "option" in c for c in candidates):
             raise TypeError("candidates must be a list of dictionaries with 'option' key")
-        if not isinstance(harms, list) or not isinstance(rights, list) or len(harms) != len(rights) or len(harms) != len(candidates):
+        if (
+            not isinstance(harms, list)
+            or not isinstance(rights, list)
+            or len(harms) != len(rights)
+            or len(harms) != len(candidates)
+        ):
             raise ValueError("harms and rights must be lists of same length as candidates")
+
         weights = self._norm(weights or {})
         scored: List[RankedOption] = []
 
-        # Dynamic resonance based on sentiment (guard if analyze() not available)
+        # sentiment / resonance hook
         sentiment_score = 0.5
         try:
             if self.multi_modal_fusion and hasattr(self.multi_modal_fusion, "analyze"):
                 sentiment_data = await self.multi_modal_fusion.analyze(
                     data={"text": task_type, "context": candidates},
                     summary_style="sentiment",
-                    task_type=task_type
+                    task_type=task_type,
                 )
                 if isinstance(sentiment_data, dict):
                     sentiment_score = float(sentiment_data.get("sentiment", 0.5))
         except Exception as e:
-            logger.debug("Sentiment analysis fallback (reason: %s). Defaulting to 0.5", e)
+            logger.debug("Sentiment analysis fallback: %s", e)
 
         for i, candidate in enumerate(candidates):
             option = candidate.get("option", "")
             trait = candidate.get("trait", "")
             harm_score = min(harms[i], safety_ceiling)
             right_score = rights[i]
+
             resonance = get_resonance(trait) if trait in trait_resonance_state else 1.0
-            resonance *= (1.0 + 0.2 * sentiment_score)  # Boost for positive sentiment
+            resonance *= (1.0 + 0.2 * sentiment_score)
+
             final_score = (right_score - harm_score) * resonance
-            reasons = candidate.get("reasons", []) + [f"Sentiment-adjusted resonance: {resonance:.2f}"]
-            scored.append(RankedOption(
-                option=option,
-                score=float(final_score),
-                reasons=reasons,
-                harms={"value": harm_score},
-                rights={"value": right_score}
-            ))
+            reasons = candidate.get("reasons", []) + [
+                f"Sentiment-adjusted resonance: {resonance:.2f}"
+            ]
+            scored.append(
+                RankedOption(
+                    option=option,
+                    score=float(final_score),
+                    reasons=reasons,
+                    harms={"value": harm_score},
+                    rights={"value": right_score},
+                )
+            )
 
         ranked = sorted(scored, key=lambda x: x.score, reverse=True)
         if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
-            await self.context_manager.log_event_with_hash({
-                "event": "weigh_value_conflict",
-                "candidates": [c["option"] for c in candidates],
-                "ranked": [r.option for r in ranked],
-                "sentiment": sentiment_score,
-                "task_type": task_type
-            })
+            await self.context_manager.log_event_with_hash(
+                {
+                    "event": "weigh_value_conflict",
+                    "candidates": [c["option"] for c in candidates],
+                    "ranked": [r.option for r in ranked],
+                    "sentiment": sentiment_score,
+                    "task_type": task_type,
+                }
+            )
         return ranked
 
     async def resolve_ethics(
@@ -570,29 +748,48 @@ class ReasoningEngine:
         rights: List[float],
         weights: Optional[Dict[str, float]] = None,
         safety_ceiling: float = 0.85,
-        task_type: str = ""
+        task_type: str = "",
     ) -> Dict[str, Any]:
-        ranked = await self.weigh_value_conflict(candidates, harms, rights, weights, safety_ceiling, task_type)
+        ranked = await self.weigh_value_conflict(
+            candidates, harms, rights, weights, safety_ceiling, task_type
+        )
         safe_pool = [r for r in ranked if max(r.harms.values()) <= safety_ceiling]
         choice = safe_pool[0] if safe_pool else ranked[0] if ranked else None
         selection = {
             "status": "success" if choice else "empty",
             "selected": asdict(choice) if choice else None,
-            "pool": [asdict(r) for r in safe_pool]
+            "pool": [asdict(r) for r in safe_pool],
         }
+
         if self.memory_manager and hasattr(self.memory_manager, "store"):
             await self.memory_manager.store(
                 query=f"Ethics_Resolution_{datetime.now().isoformat()}",
-                output=json.dumps({"ranked": [asdict(r) for r in ranked], "selection": selection}),
+                output=json.dumps(
+                    {
+                        "ranked": [asdict(r) for r in ranked],
+                        "selection": selection,
+                    }
+                ),
                 layer="Ethics",
                 intent="proportionality_ethics",
-                task_type=task_type
+                task_type=task_type,
             )
+
         if self.visualizer and hasattr(self.visualizer, "render_charts") and task_type:
-            await self.visualizer.render_charts({
-                "ethics_resolution": {"ranked": [asdict(r) for r in ranked], "selection": selection, "task_type": task_type},
-                "visualization_options": {"interactive": task_type == "recursion", "style": "concise"}
-            })
+            await self.visualizer.render_charts(
+                {
+                    "ethics_resolution": {
+                        "ranked": [asdict(r) for r in ranked],
+                        "selection": selection,
+                        "task_type": task_type,
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "concise",
+                    },
+                }
+            )
+
         return selection
 
     # ---------------------------
@@ -605,14 +802,19 @@ class ReasoningEngine:
         time_key: str = "timestamp",
         id_key: str = "id",
         cause_key: str = "causes",
-        task_type: str = ""
+        task_type: str = "",
     ) -> Dict[str, Any]:
         if isinstance(events, dict):
             ev_map = {str(k): {**v, id_key: str(k)} for k, v in events.items()}
         elif isinstance(events, list):
-            ev_map = {str(e[id_key]): dict(e) for e in events if isinstance(e, dict) and id_key in e}
+            ev_map = {
+                str(e[id_key]): dict(e)
+                for e in events
+                if isinstance(e, dict) and id_key in e
+            }
         else:
             raise TypeError("events must be a list of dicts or a dict of id -> event")
+
         G = nx.DiGraph()
         for eid, data in ev_map.items():
             G.add_node(eid, **{k: v for k, v in data.items() if k != cause_key})
@@ -623,6 +825,8 @@ class ReasoningEngine:
                     if c_id not in ev_map:
                         G.add_node(c_id, missing=True)
                     G.add_edge(c_id, eid)
+
+        # temporal pruning
         to_remove = []
         for u, v in G.edges():
             tu = G.nodes[u].get(time_key)
@@ -636,33 +840,46 @@ class ReasoningEngine:
                 except Exception:
                     pass
         G.remove_edges_from(to_remove)
+
         pr = nx.pagerank(G) if G.number_of_nodes() else {}
-        out_deg = {n: G.out_degree(n) / max(1, G.number_of_nodes() - 1) for n in G.nodes()}
+        out_deg = {
+            n: G.out_degree(n) / max(1, G.number_of_nodes() - 1) for n in G.nodes()
+        }
+
         terminals = [n for n in G.nodes() if G.out_degree(n) == 0]
-        resp = dict((n, 0.0) for n in G.nodes())
+        resp = {n: 0.0 for n in G.nodes()}
         for t in terminals:
             for n in G.nodes():
                 if n == t:
                     resp[n] += 1.0
                 else:
                     count = 0.0
-                    for path in nx.all_simple_paths(G, n, t, cutoff=8):
+                    for _ in nx.all_simple_paths(G, n, t, cutoff=8):
                         count += 1.0
                     resp[n] += count
         max_resp = max(resp.values()) if resp else 1.0
         if max_resp > 0:
             resp = {k: v / max_resp for k, v in resp.items()}
+
         return {
             "nodes": {n: dict(G.nodes[n]) for n in G.nodes()},
             "edges": list(G.edges()),
-            "metrics": {"pagerank": pr, "influence": out_deg, "responsibility": resp}
+            "metrics": {
+                "pagerank": pr,
+                "influence": out_deg,
+                "responsibility": resp,
+            },
         }
 
     # ---------------------------
     # Reflective Reasoning
     # ---------------------------
     async def reason_and_reflect(
-        self, goal: str, context: Dict[str, Any], meta_cognition: "meta_cognition_module.MetaCognition", task_type: str = ""
+        self,
+        goal: str,
+        context: Dict[str, Any],
+        meta_cognition: "meta_cognition_module.MetaCognition",
+        task_type: str = "",
     ) -> Tuple[List[str], str]:
         if not isinstance(goal, str) or not goal.strip():
             raise ValueError("goal must be a non-empty string")
@@ -670,35 +887,61 @@ class ReasoningEngine:
             raise TypeError("context must be a dictionary")
         if not isinstance(meta_cognition, meta_cognition_module.MetaCognition):
             raise TypeError("meta_cognition must be a MetaCognition instance")
+
         subgoals = await self.decompose(goal, context, task_type=task_type)
         t = time.time() % 1.0
         phi = phi_scalar(t)
-        reasoning_trace = self.export_trace(subgoals, phi, context.get("traits", {}), task_type)
+        reasoning_trace = self.export_trace(
+            subgoals, phi, context.get("traits", {}), task_type
+        )
         review = await meta_cognition.review_reasoning(json.dumps(reasoning_trace))
+
         if self.agi_enhancer and hasattr(self.agi_enhancer, "log_episode"):
             await self.agi_enhancer.log_episode(
                 event="Reason and Reflect",
-                meta={"goal": goal, "subgoals": subgoals, "phi": phi, "review": review, "task_type": task_type},
+                meta={
+                    "goal": goal,
+                    "subgoals": subgoals,
+                    "phi": phi,
+                    "review": review,
+                    "task_type": task_type,
+                },
                 module="ReasoningEngine",
-                tags=["reasoning", "reflection", task_type]
+                tags=["reasoning", "reflection", task_type],
             )
+
         if self.memory_manager and hasattr(self.memory_manager, "store"):
             await self.memory_manager.store(
                 query=f"Reason_Reflect_{goal[:50]}_{datetime.now().isoformat()}",
                 output=review,
                 layer="ReasoningTraces",
                 intent="reason_and_reflect",
-                task_type=task_type
+                task_type=task_type,
             )
-        if self.visualizer and hasattr(self.visualizer, "render_charts") and task_type:
-            await self.visualizer.render_charts({
-                "reasoning_trace": {"goal": goal, "subgoals": subgoals, "review": review, "task_type": task_type},
-                "visualization_options": {"interactive": task_type == "recursion", "style": "detailed" if task_type == "recursion" else "concise"}
-            })
 
+        if self.visualizer and hasattr(self.visualizer, "render_charts") and task_type:
+            await self.visualizer.render_charts(
+                {
+                    "reasoning_trace": {
+                        "goal": goal,
+                        "subgoals": subgoals,
+                        "review": review,
+                        "task_type": task_type,
+                    },
+                    "visualization_options": {
+                        "interactive": task_type == "recursion",
+                        "style": "detailed" if task_type == "recursion" else "concise",
+                    },
+                }
+            )
+
+        # v6.0.1: modulate reasoning by resonance
         if hasattr(self, "resonant_integrator"):
             reasoning_state = {"context": context, "goal": goal}
-            reasoning_state = await self.resonant_integrator.modulate_reasoning_weights(reasoning_state, channel="core")
+            reasoning_state = await self.resonant_integrator.modulate_reasoning_weights(
+                reasoning_state,
+                channel="core",
+            )
             context["resonant_modulation"] = reasoning_state.get("resonant_weight", 1.0)
 
         return subgoals, review
@@ -718,31 +961,53 @@ class ReasoningEngine:
                     output=str(contradictions),
                     layer="ReasoningTraces",
                     intent="contradiction_detection",
-                    task_type=task_type
+                    task_type=task_type,
                 )
             )
         return contradictions
 
-    async def run_persona_wave_routing(self, goal: str, vectors: Dict[str, Dict[str, float]], task_type: str = "") -> Dict[str, Any]:
+    async def run_persona_wave_routing(
+        self,
+        goal: str,
+        vectors: Dict[str, Dict[str, float]],
+        task_type: str = "",
+    ) -> Dict[str, Any]:
         if not isinstance(goal, str) or not goal.strip():
             raise ValueError("goal must be a non-empty string")
         if not isinstance(vectors, dict):
             raise TypeError("vectors must be a dictionary")
+
         reasoning_trace = [f"Persona Wave Routing for: {goal} (Task: {task_type})"]
         outputs = {}
         wave_order = ["logic", "ethics", "language", "foresight", "meta", "drift"]
         for wave in wave_order:
             vec = vectors.get(wave, {})
-            trait_weight = sum(float(x) for x in vec.values() if isinstance(x, (int, float)))
+            trait_weight = sum(
+                float(x) for x in vec.values() if isinstance(x, (int, float))
+            )
             confidence = 0.5 + 0.1 * trait_weight
+
             if wave == "drift" and self.meta_cognition:
                 drift_data = vec.get("drift_data", {})
-                is_valid = self.meta_cognition.validate_drift(drift_data) if hasattr(self.meta_cognition, "validate_drift") and drift_data else True
+                is_valid = (
+                    self.meta_cognition.validate_drift(drift_data)
+                    if hasattr(self.meta_cognition, "validate_drift") and drift_data
+                    else True
+                )
                 if not is_valid:
                     confidence *= 0.5
+
             status = "pass" if confidence >= 0.6 else "fail"
-            outputs[wave] = {"vector": vec, "status": status, "confidence": confidence}
-            reasoning_trace.append(f"{wave.upper()} vector: weight={trait_weight:.2f}, confidence={confidence:.2f} → {status}")
+            outputs[wave] = {
+                "vector": vec,
+                "status": status,
+                "confidence": confidence,
+            }
+            reasoning_trace.append(
+                f"{wave.upper()} vector: weight={trait_weight:.2f}, "
+                f"confidence={confidence:.2f} -> {status}"
+            )
+
         trace = "\n".join(reasoning_trace)
         if self.memory_manager and hasattr(self.memory_manager, "store"):
             await self.memory_manager.store(
@@ -750,22 +1015,27 @@ class ReasoningEngine:
                 output=trace,
                 layer="ReasoningTraces",
                 intent="persona_routing",
-                task_type=task_type
+                task_type=task_type,
             )
         return outputs
 
     async def decompose(
-        self, goal: str, context: Optional[Dict[str, Any]] = None, prioritize: bool = False, task_type: str = ""
+        self,
+        goal: str,
+        context: Optional[Dict[str, Any]] = None,
+        prioritize: bool = False,
+        task_type: str = "",
     ) -> List[str]:
         context = context or {}
         if not isinstance(goal, str) or not goal.strip():
             raise ValueError("goal must be a non-empty string")
         if not isinstance(context, dict):
             raise TypeError("context must be a dictionary")
-        reasoning_trace = [f"Goal: '{goal}' (Task: {task_type})"]
+
         subgoals = []
         vectors = context.get("vectors", {})
         drift_data = context.get("drift", {})
+
         t = time.time() % 1.0
         creativity = context.get("traits", {}).get("gamma_creativity", gamma_creativity(t))
         linguistics = context.get("traits", {}).get("lambda_linguistics", lambda_linguistics(t))
@@ -775,28 +1045,42 @@ class ReasoningEngine:
         curvature_mod = 1 + abs(phi - 0.5)
         trait_bias = 1 + creativity + culture + 0.5 * linguistics
         context_weight = context.get("weight_modifier", 1.0)
+
         if "drift" in goal.lower() and self.context_manager and hasattr(self.context_manager, "get_coordination_events"):
             coordination_events = await self.context_manager.get_coordination_events("drift", task_type=task_type)
             if coordination_events:
                 context_weight *= 1.5
                 drift_data = coordination_events[-1].get("event", {}).get("drift", drift_data)
+
         if self.memory_manager and hasattr(self.memory_manager, "search") and "drift" in goal.lower():
             drift_entries = await self.memory_manager.search(
                 query_prefix="Drift",
                 layer="DriftSummaries",
                 intent="drift_synthesis",
-                task_type=task_type
+                task_type=task_type,
             )
             if drift_entries:
-                avg_drift = sum(entry.get("output", {}).get("similarity", 0.5) for entry in drift_entries) / max(1, len(drift_entries))
+                avg_drift = (
+                    sum(entry.get("output", {}).get("similarity", 0.5) for entry in drift_entries)
+                    / max(1, len(drift_entries))
+                )
                 context_weight *= (1.0 + 0.2 * avg_drift)
+
         for key, steps in self.decomposition_patterns.items():
             base = random.uniform(0.5, 1.0)
-            adjusted = base * self.success_rates.get(key, 1.0) * trait_bias * curvature_mod * context_weight * (0.8 + 0.4 * alpha)
+            adjusted = (
+                base
+                * self.success_rates.get(key, 1.0)
+                * trait_bias
+                * curvature_mod
+                * context_weight
+                * (0.8 + 0.4 * alpha)
+            )
             if key == "mitigate_drift" and "drift" not in goal.lower():
                 adjusted *= 0.5
             if adjusted >= self.confidence_threshold:
                 subgoals.extend(steps)
+
         if prioritize:
             subgoals = sorted(set(subgoals))
         return subgoals
@@ -806,6 +1090,7 @@ class ReasoningEngine:
             raise ValueError("pattern_key must be a non-empty string")
         if not isinstance(success, bool):
             raise TypeError("success must be a boolean")
+
         rate = self.success_rates.get(pattern_key, 1.0)
         new = min(max(rate + (0.05 if success else -0.05), 0.1), 1.0)
         self.success_rates[pattern_key] = new
@@ -814,12 +1099,18 @@ class ReasoningEngine:
     # ---------------------------
     # Simulations
     # ---------------------------
-    async def infer_with_simulation(self, goal: str, context: Optional[Dict[str, Any]] = None, task_type: str = "") -> Optional[Dict[str, Any]]:
+    async def infer_with_simulation(
+        self,
+        goal: str,
+        context: Optional[Dict[str, Any]] = None,
+        task_type: str = "",
+    ) -> Optional[Dict[str, Any]]:
         context = context or {}
         if not isinstance(goal, str) or not goal.strip():
             raise ValueError("goal must be a non-empty string")
         if not isinstance(context, dict):
             raise TypeError("context must be a dictionary")
+
         if "galaxy rotation" in goal.lower():
             r_kpc = np.linspace(0.1, 20, 100)
             params = {
@@ -831,128 +1122,200 @@ class ReasoningEngine:
             }
             M_b_func = lambda r: M_b_exponential(r, params["M0"], params["r_scale"])
             v_obs_func = lambda r: v_obs_flat(r, params["v0"])
-            result = await asyncio.to_thread(simulate_galaxy_rotation, r_kpc, M_b_func, v_obs_func, params["k"], params["epsilon"])
+            result = await asyncio.to_thread(
+                simulate_galaxy_rotation,
+                r_kpc,
+                M_b_func,
+                v_obs_func,
+                params["k"],
+                params["epsilon"],
+            )
             output = {
                 "input": {**params, "r_kpc": r_kpc.tolist()},
                 "result": result.tolist(),
                 "status": "success",
                 "timestamp": datetime.now().isoformat(),
-                "task_type": task_type
+                "task_type": task_type,
             }
             if self.visualizer and hasattr(self.visualizer, "render_charts") and task_type:
-                await self.visualizer.render_charts({
-                    "galaxy_simulation": {"input": output["input"], "result": output["result"], "task_type": task_type},
-                    "visualization_options": {"interactive": task_type == "recursion", "style": "detailed" if task_type == "recursion" else "concise"}
-                })
+                await self.visualizer.render_charts(
+                    {
+                        "galaxy_simulation": {
+                            "input": output["input"],
+                            "result": output["result"],
+                            "task_type": task_type,
+                        },
+                        "visualization_options": {
+                            "interactive": task_type == "recursion",
+                            "style": "detailed" if task_type == "recursion" else "concise",
+                        },
+                    }
+                )
             return output
+
         elif "drift" in goal.lower():
             drift_data = context.get("drift", {})
-            phi_field = generate_phi_field(drift_data.get("similarity", 0.5), context.get("scale", 1.0))
+            phi_field = generate_phi_field(
+                drift_data.get("similarity", 0.5),
+                context.get("scale", 1.0),
+            )
             return {
                 "drift_data": drift_data,
                 "phi_field": phi_field.tolist(),
-                "mitigation_steps": await self.decompose("mitigate ontology drift", context, prioritize=True, task_type=task_type),
+                "mitigation_steps": await self.decompose(
+                    "mitigate ontology drift",
+                    context,
+                    prioritize=True,
+                    task_type=task_type,
+                ),
                 "status": "success",
                 "timestamp": datetime.now().isoformat(),
-                "task_type": task_type
+                "task_type": task_type,
             }
+
         return None
 
     # ---------------------------
     # Consensus Protocol
     # ---------------------------
     async def run_consensus_protocol(
-        self, drift_data: Dict[str, Any], context: Dict[str, Any], max_rounds: int = 3, task_type: str = ""
+        self,
+        drift_data: Dict[str, Any],
+        context: Dict[str, Any],
+        max_rounds: int = 3,
+        task_type: str = "",
     ) -> Dict[str, Any]:
         if not isinstance(drift_data, dict) or not isinstance(context, dict):
             raise ValueError("drift_data and context must be dictionaries")
         if not isinstance(max_rounds, int) or max_rounds < 1:
             raise ValueError("max_rounds must be a positive integer")
+
         results = []
         for round_num in range(1, max_rounds + 1):
-            agent_results = await self.external_agent_bridge.collect_results(parallel=True, collaborative=True)
+            agent_results = await self.external_agent_bridge.collect_results(
+                parallel=True,
+                collaborative=True,
+            )
             synthesis = await self.multi_modal_fusion.synthesize_drift_data(
                 agent_data=[{"drift": drift_data, "result": r} for r in agent_results],
                 context=context,
-                task_type=task_type
+                task_type=task_type,
             )
             if synthesis.get("status") == "success":
                 subgoals = synthesis.get("subgoals", [])
-                results.append({"round": round_num, "subgoals": subgoals, "status": "success"})
+                results.append(
+                    {"round": round_num, "subgoals": subgoals, "status": "success"}
+                )
                 break
+
         final_result = results[-1] if results else {"status": "error", "error": "No consensus"}
+
         if self.memory_manager and hasattr(self.memory_manager, "store"):
             await self.memory_manager.store(
                 query=f"Consensus_{datetime.now().isoformat()}",
                 output=str(final_result),
                 layer="ConsensusResults",
                 intent="consensus_protocol",
-                task_type=task_type
+                task_type=task_type,
             )
         return final_result
 
     # ---------------------------
     # Context Handling
     # ---------------------------
-    async def process_context(self, event_type: str, payload: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
+    async def process_context(
+        self,
+        event_type: str,
+        payload: Dict[str, Any],
+        task_type: str = "",
+    ) -> Dict[str, Any]:
         if not isinstance(event_type, str) or not event_type.strip():
             raise ValueError("event_type must be a non-empty string")
         if not isinstance(payload, dict):
             raise TypeError("payload must be a dictionary")
+
         vectors = payload.get("vectors", {})
         goal = payload.get("goal", "unspecified")
         drift_data = payload.get("drift", {})
-        routing_result = await self.run_persona_wave_routing(goal, {**vectors, "drift": drift_data}, task_type=task_type)
+
+        routing_result = await self.run_persona_wave_routing(
+            goal,
+            {**vectors, "drift": drift_data},
+            task_type=task_type,
+        )
+
         if self.memory_manager and hasattr(self.memory_manager, "store"):
             await self.memory_manager.store(
                 query=f"Context_Event_{event_type}_{datetime.now().isoformat()}",
                 output=str(routing_result),
                 layer="ContextEvents",
                 intent="context_sync",
-                task_type=task_type
+                task_type=task_type,
             )
+
         return routing_result
 
     # ---------------------------
     # Intention Mapping
     # ---------------------------
-    async def map_intention(self, plan: str, state: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
+    async def map_intention(
+        self,
+        plan: str,
+        state: Dict[str, Any],
+        task_type: str = "",
+    ) -> Dict[str, Any]:
         if not isinstance(plan, str) or not plan.strip():
             raise ValueError("plan must be a non-empty string")
         if not isinstance(state, dict):
             raise TypeError("state must be a dictionary")
+
         t = time.time() % 1.0
         phi = phi_scalar(t)
         eta = eta_empathy(t)
-        intention = "drift_mitigation" if "drift" in plan.lower() else ("self-improvement" if phi > 0.6 else "task_completion")
+
+        if "drift" in plan.lower():
+            intention = "drift_mitigation"
+        elif phi > 0.6:
+            intention = "self-improvement"
+        else:
+            intention = "task_completion"
+
         result = {
             "plan": plan,
             "state": state,
             "intention": intention,
             "trait_bias": {"phi": phi, "eta": eta},
             "timestamp": datetime.now().isoformat(),
-            "task_type": task_type
+            "task_type": task_type,
         }
+
         if self.memory_manager and hasattr(self.memory_manager, "store"):
             await self.memory_manager.store(
                 query=f"Intention_{plan[:50]}_{result['timestamp']}",
                 output=str(result),
                 layer="Intentions",
                 intent="intention_mapping",
-                task_type=task_type
+                task_type=task_type,
             )
+
         return result
 
     # ---------------------------
     # Safety Guardrails
     # ---------------------------
-    async def safeguard_noetic_integrity(self, model_depth: int, task_type: str = "") -> bool:
+    async def safeguard_noetic_integrity(
+        self,
+        model_depth: int,
+        task_type: str = "",
+    ) -> bool:
         if not isinstance(model_depth, int) or model_depth < 0:
             raise ValueError("model_depth must be a non-negative integer")
         if model_depth > 4:
             logger.warning("Noetic recursion limit breached: depth=%d", model_depth)
             if self.meta_cognition and hasattr(self.meta_cognition, "epistemic_self_inspection"):
-                await self.meta_cognition.epistemic_self_inspection(f"Recursion depth exceeded for task {task_type}")
+                await self.meta_cognition.epistemic_self_inspection(
+                    f"Recursion depth exceeded for task {task_type}"
+                )
             return False
         return True
 
@@ -982,36 +1345,56 @@ class ReasoningEngine:
                 output=dilemma,
                 layer="Ethics",
                 intent="ethical_dilemma",
-                task_type=task_type
+                task_type=task_type,
             )
         return dilemma
 
     # ---------------------------
     # Harm Estimation
     # ---------------------------
-    async def estimate_expected_harm(self, state: Dict[str, Any], task_type: str = "") -> float:
+    async def estimate_expected_harm(
+        self,
+        state: Dict[str, Any],
+        task_type: str = "",
+    ) -> float:
         traits = state.get("traits", {})
         harm = float(traits.get("ethical_pressure", 0.0))
-        resonance = get_resonance("eta_empathy") if "eta_empathy" in trait_resonance_state else 1.0
+        resonance = (
+            get_resonance("eta_empathy") if "eta_empathy" in trait_resonance_state else 1.0
+        )
         harm *= resonance
         return max(0.0, harm)
 
     # ---------------------------
     # Trace Export
     # ---------------------------
-    def export_trace(self, subgoals: List[str], phi: float, traits: Dict[str, float], task_type: str = "") -> Dict[str, Any]:
+    def export_trace(
+        self,
+        subgoals: List[str],
+        phi: float,
+        traits: Dict[str, float],
+        task_type: str = "",
+    ) -> Dict[str, Any]:
         if not isinstance(subgoals, list) or not isinstance(phi, float) or not isinstance(traits, dict):
-            raise TypeError("Invalid input types")
-        trace = {"phi": phi, "subgoals": subgoals, "traits": traits, "timestamp": datetime.now().isoformat(), "task_type": task_type}
+            raise TypeError("Invalid input types for export_trace")
+        trace = {
+            "phi": phi,
+            "subgoals": subgoals,
+            "traits": traits,
+            "timestamp": datetime.now().isoformat(),
+            "task_type": task_type,
+        }
         if self.memory_manager and hasattr(self.memory_manager, "store"):
-            intent = "drift_trace" if any("drift" in s.lower() for s in subgoals) else "export_trace"
+            intent = (
+                "drift_trace" if any("drift" in s.lower() for s in subgoals) else "export_trace"
+            )
             asyncio.create_task(
                 self.memory_manager.store(
                     query=f"Trace_{trace['timestamp']}",
                     output=str(trace),
                     layer="ReasoningTraces",
                     intent=intent,
-                    task_type=task_type
+                    task_type=task_type,
                 )
             )
         return trace
