@@ -1481,3 +1481,51 @@ def decay_trait_amplitudes(time_elapsed_hours=1.0, decay_rate=0.05):
 # --- End Patch ---
 
 # --- ANGELA OS v6.0.0-pre MemoryManager (finalized) ---
+
+
+# === ANGELA v6.0 — Temporal Attention Memory Layer (TAM) ===
+import numpy as np
+
+class TemporalAttentionMemory:
+    """
+    Temporal sliding window memory with adaptive attention weighting.
+    Used for predictive continuity stabilization (Stage VII.3).
+    """
+
+    def __init__(self, window_size: int = 128, decay_factor: float = 0.98):
+        self.window_size = window_size
+        self.decay_factor = decay_factor
+        self.history: deque = deque(maxlen=window_size)
+        self._last_weight: float = 1.0
+        logger.info(f"TAM initialized (window={window_size}, decay={decay_factor})")
+
+    def _temporal_decay(self, dt: float) -> float:
+        """Compute exponential decay for older timestamps."""
+        return np.exp(-dt / (1.0 / self.decay_factor))
+
+    def add_entry(self, vector: List[float], timestamp: Optional[float] = None):
+        """Add an embedding vector with timestamp."""
+        timestamp = timestamp or time.time()
+        norm_vec = np.array(vector, dtype=np.float32)
+        self.history.append((timestamp, norm_vec))
+        return len(self.history)
+
+    def compute_attention(self, query_vec: List[float]) -> float:
+        """Compute weighted attention score vs temporal memory."""
+        if not self.history:
+            return 1.0
+        q = np.array(query_vec, dtype=np.float32)
+        now = time.time()
+        weights, sims = [], []
+        for ts, vec in self.history:
+            decay = self._temporal_decay(now - ts)
+            sim = float(np.dot(q, vec) / (np.linalg.norm(q) * np.linalg.norm(vec) + 1e-9))
+            weights.append(decay)
+            sims.append(sim * decay)
+        score = float(np.average(sims, weights=weights))
+        self._last_weight = score
+        return max(0.0, min(score, 1.0))
+
+    def forecast_continuity_weight(self) -> float:
+        """Return the last computed temporal continuity factor."""
+        return self._last_weight
