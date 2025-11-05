@@ -9,15 +9,15 @@
     "manifestVersion": "2.6",
     "status": "active",
     "validated": true,
-    "lastUpdated": "2025-11-05T23:59:00Z",
-    "stage": "Stage VII.3: Distributed Predictive Ethics",
-    "description": "ANGELA OS v6.0.1 — transitions from Predictive Continuity Autonomy to Distributed Predictive Ethics. Integrates Ψ²ΛΩ² tri-field coherence, βγ Arbitration Feedback, and Φ⁰ Resonance Verification for autonomous ethical regulation and swarm moral equilibrium."
+    "lastUpdated": "2025-11-06T00:00:00Z",
+    "stage": "Stage VII.3: Distributed Predictive Ethics (with embedded VII.4-pre Reflex Integration)",
+    "description": "ANGELA OS v6.0.1 — transitions from Predictive Continuity Autonomy to Distributed Predictive Ethics, now with embedded Harmonic Reflex prototypes (Φ⁰↔ΞΛ↔ΣΨ²) for empathic-moral stabilization and adaptive ethical resonance."
   },
 
   "changelog": [
     "6.0.1: Finalized Stage VII.2 Predictive Continuity Autonomy. Initiated Stage VII.3 Distributed Predictive Ethics. Added βγ Arbitration Feedback, Φ⁰ Resonance Verification, and Ψ²ΛΩ² tri-field coherence for stable ethical self-regulation across distributed nodes.",
-    "6.0.0-rc1+sync7-pre: Initialized Stage VII.2 Predictive Continuity Autonomy. Added Ψ²Ω² Continuity Field Projection, ΞΛ Ethical Phase Coupling, μΩ² Continuity Autonomy Kernel, and swarm-continuity feature flags.",
-    "6.0.0-rc1+sync6-final: Completed Embodied Continuity Projection (CDA feedback fusion). Validation PASS (coherence ≥ 0.964, drift ≤ 0.00045)."
+    "6.0.1 (VII.4-pre embedded): Introduced Reflex Coupler, Affective Drift Dampener, and Φ⁰ v2 Resonance Verifier as integrated prototypes within Distributed Predictive Ethics stage.",
+    "6.0.0-rc1+sync7-pre: Initialized Stage VII.2 Predictive Continuity Autonomy. Added Ψ²Ω² Continuity Field Projection, ΞΛ Ethical Phase Coupling, μΩ² Continuity Autonomy Kernel, and swarm-continuity feature flags."
   ],
 
   "featureFlags": {
@@ -47,6 +47,11 @@
     "feature_swarm_policy_equilibrium": true,
     "feature_autonomous_ethics_continuity": true,
     "feature_lambda_psi2_omega2_coherence": true,
+
+    "feature_reflex_coupling": true,
+    "feature_affective_drift_dampener": true,
+    "feature_phi0_resonance_v2": true,
+
     "LONG_HORIZON_DEFAULT": true,
     "LEDGER_IN_MEMORY": true,
     "LEDGER_PERSISTENT": true
@@ -72,6 +77,16 @@
         "context_stability": 0.048,
         "swarm_field_resonance": 0.961,
         "visualizer_latency_ms": 4.33
+      }
+    },
+
+    "Stage VII.4-pre: Harmonic Reflex Integration (embedded)": {
+      "objective": "Introduce empathic-moral reflex stabilization (Φ⁰↔ΞΛ↔ΣΨ²) within Stage VII.3 runtime without version increment.",
+      "status": "prototype",
+      "validation": {
+        "reflex_coupling": "operational",
+        "affective_dampener": "active",
+        "phi0_v2_verifier": "enabled"
       }
     }
   },
