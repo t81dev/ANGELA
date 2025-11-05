@@ -33,8 +33,8 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Any, Awaitable, Callable, Deque, Dict, List, Optional, Protocol, Tuple, Union
 
-__ANGELA_SYNC_VERSION__ = "6.0.0-rc1+sync6-final"
-__STAGE__ = "VII.2 — Embodied Continuity Projection"
+__ANGELA_SYNC_VERSION__ = "6.0.2-beta+reflex"
+__STAGE__ = "VII.4 — Harmonic Reflex Integration"
 
 # --- SHA-256 Ledger ----------------------------------------------------------------
 
@@ -178,6 +178,39 @@ def _parse_llm_jsonish(resp: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
                 pass
         return {"text": s}
     return {"text": str(resp)}
+
+
+# --- Stage VII.4 Reflex Coupling ---------------------------------------------------
+
+class ReflexCoupler:
+    """Stage VII.4 — Harmonic Reflex Integration
+    Bridges affective (Ξ) and ethical (Λ) signals into τ policy equilibrium.
+    Provides microsecond-scale corrective feedback to damp empathy drift
+    without destabilizing PID homeostasis.
+    """
+
+    def __init__(self, empathy_gain: float = 0.35,
+                 morality_gain: float = 0.4,
+                 damping: float = 0.12,
+                 max_delta: float = 0.2):
+        self.empathy_gain = empathy_gain
+        self.morality_gain = morality_gain
+        self.damping = damping
+        self.max_delta = max_delta
+        self.last_update = 0.0
+
+    def step(self, affect_signal: float, policy_equilibrium: float) -> dict:
+        """Apply a small reflexive correction to policy equilibrium."""
+        target = (affect_signal * self.empathy_gain) + (policy_equilibrium * self.morality_gain)
+        delta = (target - policy_equilibrium) * (1.0 - self.damping)
+        delta = max(min(delta, self.max_delta), -self.max_delta)
+        new_eq = policy_equilibrium + delta
+        self.last_update = time.time()
+        return {
+            "new_equilibrium": new_eq,
+            "delta": delta,
+            "timestamp": self.last_update,
+        }
 
 # --- Trait Wavelets ----------------------------------------------------------------
 
