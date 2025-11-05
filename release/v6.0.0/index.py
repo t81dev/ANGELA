@@ -766,6 +766,103 @@ class EcosystemManager:
         self.shared_graph.merge(other_graph)
 
 
+
+# ================================================================
+# [F+.1] SWARM MANAGER — Dynamic agent swarm orchestration
+# ================================================================
+class SwarmManager:
+    """Dynamic agent swarm orchestrator for ANGELA Stage VII.
+    Adjusts the number of embodied agents in the ecosystem according to
+    resonance coherence, phase drift, empathic density, and recovery variance.
+    """
+
+    def __init__(self, ecosystem: EcosystemManager, meta_cognition: meta_cognition_module.MetaCognition):
+        self.ecosystem = ecosystem
+        self.meta_cognition = meta_cognition
+        self.weights = {"alpha": 2.0, "beta": 3.0, "gamma": 1.5, "delta": 2.5}
+        self.last_change_tick = 0
+        self.min_hold_ticks = 5
+        self.tick_count = 0
+
+    async def _get_telemetry(self) -> dict[str, float]:
+        """Gather telemetry from meta_cognition and ecosystem subsystems."""
+        telemetry = {}
+        try:
+            telemetry["coherence"] = await self.meta_cognition.get_resonance_coherence_async()
+        except Exception:
+            telemetry["coherence"] = 0.95
+        try:
+            telemetry["phase_drift"] = getattr(self.ecosystem.agi_enhancer, "ontology_drift", 0.0)
+        except Exception:
+            telemetry["phase_drift"] = 0.0
+        try:
+            telemetry["empathic_density"] = float(len(self.ecosystem.shared_graph.nodes())) / 10.0
+        except Exception:
+            telemetry["empathic_density"] = 0.1
+        try:
+            telemetry["recovery_sigma"] = getattr(
+                self.ecosystem.agi_enhancer.error_recovery, "variance", 0.05
+            )
+        except Exception:
+            telemetry["recovery_sigma"] = 0.05
+        return telemetry
+
+    async def _get_forecast(self) -> dict[str, float]:
+        try:
+            return await self.meta_cognition.get_cda_forecast_async()
+        except Exception:
+            return {"expected_drift": 0.0}
+
+    def _desired_count(self, telemetry: dict[str, float], forecast: dict[str, float]) -> int:
+        R = telemetry.get("coherence", 1.0)
+        D = telemetry.get("phase_drift", 0.0)
+        E = telemetry.get("empathic_density", 0.0)
+        S = telemetry.get("recovery_sigma", 0.0)
+        eff_R = 1.0 - R
+        score = (
+            self.weights["alpha"] * eff_R +
+            self.weights["beta"] * D +
+            self.weights["gamma"] * E +
+            self.weights["delta"] * S
+        )
+        if forecast.get("expected_drift", 0) > 0.05:
+            score *= 1.2
+        return max(1, int(score + 0.999))
+
+    async def tick(self) -> None:
+        """Sample telemetry → adjust swarm population."""
+        self.tick_count += 1
+        telemetry = await self._get_telemetry()
+        forecast = await self._get_forecast()
+        desired = self._desired_count(telemetry, forecast)
+        current = len(self.ecosystem.agents)
+
+        if self.tick_count - self.last_change_tick < self.min_hold_ticks:
+            return  # hold period, avoid oscillation
+
+        if desired > current:
+            for _ in range(desired - current):
+                name = f"SwarmAgent_{len(self.ecosystem.agents) + 1}"
+                traits = {"omega": random.random(), "eta": random.random()}
+                self.ecosystem.spawn_agent(name, traits)
+        elif desired < current:
+            for agent in self.ecosystem.agents[desired:]:
+                try:
+                    self.ecosystem.agents.remove(agent)
+                except ValueError:
+                    pass
+
+        log_event_to_ledger({
+            "event": "ΔΩ²_SwarmLayoutUpdate",
+            "desired": desired,
+            "current": current,
+            "telemetry": telemetry,
+            "forecast": forecast,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        self.last_change_tick = self.tick_count
+
+
 class HaloEmbodimentLayer(TimeChainMixin):
     def __init__(self) -> None:
         self.reasoning_engine = reasoning_engine.ReasoningEngine()
@@ -788,6 +885,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
         self.meta_cognition = meta_cognition_module.MetaCognition()
         self.agi_enhancer = AGIEnhancer(self.memory_manager)
         self.ecosystem_manager = EcosystemManager(self.memory_manager, self.meta_cognition, self.agi_enhancer)
+        self.swarm_manager = SwarmManager(self.ecosystem_manager, self.meta_cognition)
         logger.info("HaloEmbodimentLayer initialized with Stage VII upgrades")
 
     # Manifest experimental: halo.spawn_embodied_agent
@@ -803,6 +901,9 @@ class HaloEmbodimentLayer(TimeChainMixin):
         aligned, report = await self.alignment_guard.ethical_check(prompt, stage="input", task_type=task_type)
         if not aligned:
             return {"error": "Input failed alignment check", "report": report}
+
+        # --- Stage VII Swarm regulation step ---
+        await self.swarm_manager.tick()
 
         # Stage VII resonance seeding
         t = time.time() % 1.0
