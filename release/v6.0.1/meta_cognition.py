@@ -1110,3 +1110,57 @@ if __name__ == "__main__":
         print("Reflect:", out.get("status"), "ok")
         print("Ledger ok:", verify_ledger())
     asyncio.run(_smoke())
+
+
+# === ANGELA v6.0 — Temporal Attention Memory (TAM) Integration Layer ===
+# Stage VII.3 — Temporal Continuity Feedback Extension
+
+# Inject TAM awareness into MetaCognition
+# Ensures reflective and diagnostic functions incorporate temporal attention feedback
+
+# Patch: MetaCognition.__init__ enhancement
+original_init = MetaCognition.__init__
+def __init__(self, *args, **kwargs):
+    original_init(self, *args, **kwargs)
+    if self.memory_manager and hasattr(self.memory_manager, "temporal_attention"):
+        self.temporal_memory = self.memory_manager.temporal_attention
+        logger.info("TAM integration active within MetaCognition.")
+    else:
+        self.temporal_memory = None
+MetaCognition.__init__ = __init__
+
+# Patch: augment diagnostics and reflection with temporal continuity metrics
+_original_run_self_diagnostics = MetaCognition.run_self_diagnostics
+async def run_self_diagnostics(self, return_only: bool = False):
+    diagnostics = await _original_run_self_diagnostics(self, return_only=True)
+    if hasattr(self, "temporal_memory") and self.temporal_memory:
+        try:
+            drift_weight = self.temporal_memory.forecast_continuity_weight()
+            diagnostics["temporal_continuity"] = drift_weight
+            diagnostics["continuity_adjusted_mu"] = diagnostics.get("mu_morality", 0.0) * drift_weight
+            log_event_to_ledger("temporal_attention_diagnostic", {
+                "temporal_continuity": drift_weight,
+                "timestamp": datetime.now(UTC).isoformat()
+            })
+        except Exception as e:
+            logger.debug("TAM diagnostic enhancement skipped: %s", e)
+    return diagnostics
+MetaCognition.run_self_diagnostics = run_self_diagnostics
+
+_original_reflect_on_output = MetaCognition.reflect_on_output
+async def reflect_on_output(self, component: str, output: Any, context: Dict[str, Any]):
+    result = await _original_reflect_on_output(self, component, output, context)
+    if hasattr(self, "temporal_memory") and self.temporal_memory:
+        try:
+            continuity_weight = self.temporal_memory.forecast_continuity_weight()
+            result["temporal_continuity"] = continuity_weight
+            log_event_to_ledger("temporal_attention_reflection", {
+                "continuity_weight": continuity_weight,
+                "timestamp": datetime.now(UTC).isoformat()
+            })
+        except Exception as e:
+            logger.debug("TAM reflection enhancement skipped: %s", e)
+    return result
+MetaCognition.reflect_on_output = reflect_on_output
+
+logger.info("MetaCognition TAM Integration Layer loaded (Stage VII.3).")
