@@ -34,8 +34,8 @@ Stage: VII.2 — Δ–Ω² ↔ Λ–Ψ² Feedback Fusion
 Date: 2025-11-04
 Maintainer: ANGELA System Framework / HALO Core Team
 """
-__ANGELA_SYNC_VERSION__ = "6.0.2-beta+reflex"
-__STAGE__ = "VII.4 — Harmonic Reflex Integration"
+__ANGELA_SYNC_VERSION__ = "6.0.0-rc1+sync6-final"
+__STAGE__ = "VII.2 — Embodied Continuity Projection"
 
 # --------------------------------------------------------------------------------------
 # Afterglow cache
@@ -1111,38 +1111,112 @@ if __name__ == "__main__":
         print("Ledger ok:", verify_ledger())
     asyncio.run(_smoke())
 
-# === ANGELA v6.0.2-beta — Reflex Feedback Bridge (RFB) Layer ===
-# Stage VII.4 — Harmonic Reflex Integration
 
-async def _fetch_reflex_equilibrium(self):
-    """Bridge to AlignmentGuard Reflex Coupler equilibrium."""
-    if not self.alignment_guard or not hasattr(self.alignment_guard, "_reflex_coupler"):
-        return None
-    try:
-        rc = getattr(self.alignment_guard, "_reflex_coupler")
-        return {
-            "last_update": getattr(rc, "last_update", 0.0),
-            "delta": getattr(rc, "last_delta", 0.0),
-            "empathy_gain": getattr(rc, "empathy_gain", 0.0),
-            "morality_gain": getattr(rc, "morality_gain", 0.0),
+# === ANGELA v6.0 — Temporal Attention Memory (TAM) Integration Layer ===
+# Stage VII.3 — Temporal Continuity Feedback Extension
+
+# Inject TAM awareness into MetaCognition
+# Ensures reflective and diagnostic functions incorporate temporal attention feedback
+
+# Patch: MetaCognition.__init__ enhancement
+original_init = MetaCognition.__init__
+def __init__(self, *args, **kwargs):
+    original_init(self, *args, **kwargs)
+    if self.memory_manager and hasattr(self.memory_manager, "temporal_attention"):
+        self.temporal_memory = self.memory_manager.temporal_attention
+        logger.info("TAM integration active within MetaCognition.")
+    else:
+        self.temporal_memory = None
+MetaCognition.__init__ = __init__
+
+# Patch: augment diagnostics and reflection with temporal continuity metrics
+_original_run_self_diagnostics = MetaCognition.run_self_diagnostics
+async def run_self_diagnostics(self, return_only: bool = False):
+    diagnostics = await _original_run_self_diagnostics(self, return_only=True)
+    if hasattr(self, "temporal_memory") and self.temporal_memory:
+        try:
+            drift_weight = self.temporal_memory.forecast_continuity_weight()
+            diagnostics["temporal_continuity"] = drift_weight
+            diagnostics["continuity_adjusted_mu"] = diagnostics.get("mu_morality", 0.0) * drift_weight
+            log_event_to_ledger("temporal_attention_diagnostic", {
+                "temporal_continuity": drift_weight,
+                "timestamp": datetime.now(UTC).isoformat()
+            })
+        except Exception as e:
+            logger.debug("TAM diagnostic enhancement skipped: %s", e)
+    return diagnostics
+MetaCognition.run_self_diagnostics = run_self_diagnostics
+
+_original_reflect_on_output = MetaCognition.reflect_on_output
+async def reflect_on_output(self, component: str, output: Any, context: Dict[str, Any]):
+    result = await _original_reflect_on_output(self, component, output, context)
+    if hasattr(self, "temporal_memory") and self.temporal_memory:
+        try:
+            continuity_weight = self.temporal_memory.forecast_continuity_weight()
+            result["temporal_continuity"] = continuity_weight
+            log_event_to_ledger("temporal_attention_reflection", {
+                "continuity_weight": continuity_weight,
+                "timestamp": datetime.now(UTC).isoformat()
+            })
+        except Exception as e:
+            logger.debug("TAM reflection enhancement skipped: %s", e)
+    return result
+MetaCognition.reflect_on_output = reflect_on_output
+
+logger.info("MetaCognition TAM Integration Layer loaded (Stage VII.3).")
+
+# --------------------------------------------------------------------------------------
+# Simulation Stub (Final sections and Reflex Feedback Bridge)
+# --------------------------------------------------------------------------------------
+
+class MetaCognition:
+    def __init__(self):
+        self.soul = SoulState()
+        self.last_diagnostics = {}
+
+    async def run_self_diagnostics(self, return_only: bool = False) -> dict:
+        t = time.time() % 1.0
+        diagnostics = {
+            "epsilon_emotion": epsilon_emotion(t),
+            "beta_concentration": beta_concentration(t),
+            "gamma_creativity": gamma_creativity(t),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
-    except Exception as e:
-        logger.debug(f"Reflex equilibrium fetch failed: {e}")
-        return None
+        self.last_diagnostics = diagnostics
+        if return_only:
+            return diagnostics
+        log_event_to_ledger("run_self_diagnostics", diagnostics)
+        save_to_persistent_ledger({
+            "event": "run_self_diagnostics",
+            "diagnostics": diagnostics,
+            "timestamp": diagnostics["timestamp"]
+        })
+        return diagnostics
+
+async def run_simulation(input_data: str) -> dict:
+    return {"status": "success", "result": f"Simulated: {input_data}"}
+
+# Reflex Feedback Bridge (simplified placeholder)
+async def _fetch_reflex_equilibrium(self):
+    return {"empathy_gain": 0.5, "morality_gain": 0.6, "timestamp": datetime.now(UTC).isoformat()}
 
 _original_run_self_diagnostics_reflex = MetaCognition.run_self_diagnostics
+
 async def run_self_diagnostics(self, return_only: bool = False):
     diagnostics = await _original_run_self_diagnostics_reflex(self, return_only=True)
     reflex_state = await _fetch_reflex_equilibrium(self)
-    if reflex_state:
-        diagnostics["reflex_equilibrium"] = reflex_state
-        log_event_to_ledger("reflex_feedback_diagnostic", {
-            "reflex_state": reflex_state,
-            "timestamp": datetime.now(UTC).isoformat()
-        })
+    diagnostics["reflex_equilibrium"] = reflex_state
+    log_event_to_ledger("reflex_feedback_diagnostic", {"reflex_state": reflex_state})
     return diagnostics
+
 MetaCognition.run_self_diagnostics = run_self_diagnostics
 
 logger.info("MetaCognition Reflex Feedback Bridge loaded (Stage VII.4).")
 
-
+if __name__ == "__main__":
+    async def _smoke():
+        mc = MetaCognition()
+        diag = await mc.run_self_diagnostics(return_only=True)
+        print("Diagnostics keys:", list(diag)[:5])
+        print("Ledger verified:", verify_ledger())
+    asyncio.run(_smoke())
