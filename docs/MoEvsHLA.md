@@ -1,3 +1,5 @@
+MoE vs. HLA
+
 ### Key Points
 - Research suggests that while Mixture-of-Experts (MoE) architectures excel in scalable, efficient computation through sparse expert routing, Harmonic Lattice Architectures (HLA), as seen in systems like ANGELA OS, emphasize cohesive, resonant integration of cognitive and affective elements for more adaptive, ethically-aligned intelligence.
 - Evidence leans toward MoE's strengths in modularity and performance in large language models (LLMs), but highlights limitations like contextual fragmentation; in contrast, HLA's harmonic resonance may offer better continuity and self-regulation, though it remains an emerging paradigm with conceptual roots in theories like Adaptive Resonance Theory (ART).
