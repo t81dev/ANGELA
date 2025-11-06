@@ -1368,6 +1368,77 @@ class ReasoningEngine:
     # ---------------------------
     # Trace Export
     # ---------------------------
+    
+    # ---------------------------
+    # μ–τ Policy Homeostasis Reflex: Memory Drift Feedback
+    # ---------------------------
+    async def regulate_drift_feedback(
+        self,
+        telemetry: Optional[Dict[str, float]] = None,
+        policy_trainer: Optional[Any] = None,
+        task_type: str = "",
+    ) -> Dict[str, Any]:
+        """
+        v6.0.1 Harmonized Reflex:
+        Adjusts reasoning adaptivity based on system coherence and drift metrics,
+        feeding results into μ–τ Policy Homeostasis and Ethical Reflex equilibrium.
+        """
+
+        if not telemetry or not isinstance(telemetry, dict):
+            return {"status": "noop", "reason": "no telemetry"}
+
+        coherence = float(telemetry.get("coherence", 1.0))
+        drift = float(telemetry.get("drift", 0.0))
+        coherence = max(0.0, min(coherence, 1.0))
+        drift = max(0.0, min(drift, 1.0))
+
+        # baseline adaptivity derived from coherence
+        adaptivity = max(0.25, coherence * (1.0 - drift * 4.0))
+
+        # restraint = inverse modulation — less coherence → gentler actions
+        restraint = 1.0 - adaptivity
+        self.confidence_threshold = 0.7 + (0.15 * (1.0 - adaptivity))
+
+        # memory resonance log
+        try:
+            log_event_to_ledger(
+                "reflex_meta",
+                {
+                    "event": "policy_homeostasis_feedback",
+                    "coherence": coherence,
+                    "drift": drift,
+                    "adaptivity": adaptivity,
+                    "restraint": restraint,
+                    "timestamp": time.time(),
+                },
+            )
+        except Exception:
+            pass
+
+        # feed into policy trainer (if available)
+        if policy_trainer and hasattr(policy_trainer, "update_homeostasis"):
+            try:
+                policy_trainer.update_homeostasis(delta=adaptivity, source="ReasoningEngine")
+            except Exception:
+                logger.debug("PolicyTrainer homeostasis update skipped")
+
+        # optional empathic feedback (to ΞΛ coupling)
+        if self.meta_cognition and hasattr(self.meta_cognition, "adjust_affective_state"):
+            try:
+                await self.meta_cognition.adjust_affective_state(
+                    bias=adaptivity - restraint, source="ReasoningEngine"
+                )
+            except Exception:
+                logger.debug("Affective coupling skipped")
+
+        return {
+            "status": "regulated",
+            "adaptivity": adaptivity,
+            "restraint": restraint,
+            "coherence": coherence,
+            "drift": drift,
+        }
+
     def export_trace(
         self,
         subgoals: List[str],
