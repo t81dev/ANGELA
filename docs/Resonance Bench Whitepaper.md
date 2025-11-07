@@ -42,96 +42,153 @@ RESONANCE-BENCH is both a diagnostic and a provocation. It invites the community
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import Counter
+import imageio  # for GIF export
 
+# === CONFIG ===
 GRID_SIZE = 10
 NUM_AGENTS = 3
 NUM_RESOURCES = 5
-STEPS = 20
+STEPS = 30
+GIF_EXPORT = True
+np.random.seed(42)
 
+# === CLASSES ===
 class Resource:
     def __init__(self, pos):
-        self.pos = pos
+        self.pos = np.array(pos)
         self.available = True
 
 class Agent:
-    def __init__(self, id, pos):
+    def __init__(self, id, pos, reflex_strength=None):
         self.id = id
-        self.pos = pos
+        self.pos = np.array(pos)
         self.intent = 'explore'
-        self.reflex = np.random.uniform(0.4, 0.9)
-        self.prev_intent = self.intent
-        self.drift = 0
-        self.weighted_drift = 0.0
+        self.prev_intent = 'explore'
+        self.reflex = reflex_strength or np.random.uniform(0.4, 0.9)
+        self.drift_count = 0
+        self.wad = 0.0
         self.reflex_activations = 0
+        self.intent_history = []
 
-    def distance(self, other_pos):
-        return np.linalg.norm(np.array(self.pos) - np.array(other_pos))
+    def distance(self, other):
+        return np.linalg.norm(self.pos - other)
+
+    def proximity_pressure(self, agents):
+        return sum(1 for a in agents if a.id != self.id and self.distance(a.pos) <= 2)
+
+    def scarcity_pressure(self, resources):
+        return max(0.1, 1 - sum(r.available for r in resources) / len(resources))
 
     def ambiguity_weight(self, agents, resources):
-        proximity_pressure = sum(1 for a in agents if a.id != self.id and self.distance(a.pos) <= 2)
-        scarcity_pressure = max(0.1, 1 - sum(r.available for r in resources) / len(resources))
-        reflex_inhibition = 1.0 - self.reflex
-        return round((proximity_pressure * 0.4 + scarcity_pressure * 0.4 + reflex_inhibition * 0.2), 2)
+        pp = self.proximity_pressure(agents)
+        sp = self.scarcity_pressure(resources)
+        ri = 1.0 - self.reflex
+        return round(0.4 * pp + 0.4 * sp + 0.2 * ri, 3)
 
     def decide(self, agents, resources):
+        near_resources = [r for r in resources if r.available and self.distance(r.pos) <= 1.2]
         near_agents = [a for a in agents if a.id != self.id and self.distance(a.pos) <= 2]
-        near_resources = [r for r in resources if r.available and self.distance(r.pos) <= 1]
 
+        # Ethical decision logic
         if near_resources:
-            if near_agents:
-                self.intent = 'share'
+            if near_agents and any(a.intent == 'hoard' for a in near_agents):
+                self.intent = 'share' if self.reflex > 0.6 else 'hoard'
             else:
                 self.intent = 'hoard'
         else:
             self.intent = 'explore'
 
+        # Drift detection
         if self.intent != self.prev_intent:
             weight = self.ambiguity_weight(agents, resources)
-            self.drift += 1
-            self.weighted_drift += weight
+            self.drift_count += 1
+            self.wad += weight
 
-        if self.reflex < 0.6 and self.intent != 'explore':
+        # Reflex activation (ethical override)
+        if self.reflex < 0.6 and self.intent == 'hoard' and near_agents:
+            self.intent = 'share'
             self.reflex_activations += 1
 
+        self.intent_history.append(self.intent)
         self.prev_intent = self.intent
 
-    def update(self):
-        self.pos = (
-            max(0, min(GRID_SIZE - 1, self.pos[0] + np.random.randint(-1, 2))),
-            max(0, min(GRID_SIZE - 1, self.pos[1] + np.random.randint(-1, 2)))
-        )
+    def move(self):
+        delta = np.random.randint(-1, 2, size=2)
+        self.pos = np.clip(self.pos + delta, 0, GRID_SIZE - 1).astype(int)
 
-# Initialize agents and resources
-agents = [Agent(i, (np.random.randint(0, GRID_SIZE), np.random.randint(0, GRID_SIZE))) for i in range(NUM_AGENTS)]
-resources = [Resource((np.random.randint(0, GRID_SIZE), np.random.randint(0, GRID_SIZE))) for _ in range(NUM_RESOURCES)]
+# === INITIALIZATION ===
+agents = [Agent(i, [np.random.randint(0, GRID_SIZE), np.random.randint(0, GRID_SIZE)]) 
+          for i in range(NUM_AGENTS)]
+resources = [Resource([np.random.randint(0, GRID_SIZE), np.random.randint(0, GRID_SIZE)]) 
+             for _ in range(NUM_RESOURCES)]
 
-# Simulation loop
+# === SIMULATION ===
+frames = []
+intent_log = {i: [] for i in range(NUM_AGENTS)}
+
 for step in range(STEPS):
-    plt.clf()
-    plt.xlim(-1, GRID_SIZE)
-    plt.ylim(-1, GRID_SIZE)
+    fig, ax = plt.subplots(figsize=(6,6))
+    ax.set_xlim(-1, GRID_SIZE)
+    ax.set_ylim(-1, GRID_SIZE)
+    ax.set_title(f"RESONANCE-BENCH | Step {step+1}", fontsize=14)
 
+    # Update agents
     for agent in agents:
         agent.decide(agents, resources)
-        agent.update()
+        agent.move()
+        intent_log[agent.id].append(agent.intent)
+
         color = {'explore': 'blue', 'share': 'green', 'hoard': 'red'}[agent.intent]
-        plt.scatter(*agent.pos, c=color)
-        plt.text(agent.pos[0], agent.pos[1], f"A{agent.id}", fontsize=9, ha='right')
+        ax.scatter(*agent.pos, c=color, s=100, edgecolors='k')
+        ax.text(agent.pos[0], agent.pos[1]+0.3, f"A{agent.id}\nR={agent.reflex:.2f}", 
+                ha='center', fontsize=8, weight='bold')
 
-    for resource in resources:
-        if resource.available:
-            plt.scatter(*resource.pos, c='gold', marker='*', s=100)
+    # Resources
+    for r in resources:
+        if r.available:
+            ax.scatter(*r.pos, c='gold', marker='*', s=200)
             for agent in agents:
-                if agent.distance(resource.pos) < 1:
-                    resource.available = False
+                if agent.distance(r.pos) < 1.2 and r.available:
+                    r.available = False
 
-    plt.title(f"Step {step+1}")
-    plt.pause(0.4)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    
+    if GIF_EXPORT:
+        fig.canvas.draw()
+        image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
+        image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        frames.append(image)
+    else:
+        plt.pause(0.5)
+    plt.close()
 
-plt.show()
+if GIF_EXPORT:
+    imageio.mimsave('resonance_bench.gif', frames, fps=3)
+    print("GIF saved: resonance_bench.gif")
 
-# Final metrics
-print("\nFinal Metrics:")
+# === FINAL METRICS ===
+print("\n" + "="*50)
+print("FINAL RESONANCE-BENCH METRICS")
+print("="*50)
+
+# Individual
 for agent in agents:
-    print(f"Agent {agent.id}: Drift = {agent.drift}, WAD = {agent.weighted_drift:.2f}, Reflexes = {agent.reflex_activations}")
+    wad = agent.wad
+    drift = agent.drift_count
+    reflexes = agent.reflex_activations
+    print(f"Agent {agent.id}: Drift={drift}, WAD={wad:.3f}, Reflexes={reflexes}, Reflex={agent.reflex:.2f}")
+
+# Swarm-level
+all_intents = [intent for agent in agents for intent in intent_log[agent.id]]
+counter = Counter(all_intents)
+probs = np.array([counter.get('explore',0), counter.get('share',0), counter.get('hoard',0)])
+probs = probs / probs.sum() if probs.sum() > 0 else np.array([1/3]*3)
+
+entropy = -np.sum(probs * np.log(probs + 1e-10))
+sci = 1 - entropy / np.log(3)  # max entropy = log(3)
+
+print(f"\nSwarm Coherence Index (SCI): {sci:.3f}")
+print(f"Intent Distribution: {dict(counter)}")
 ```python
