@@ -1,7 +1,7 @@
 graph TD
 %% ===================================================
-%% ANGELA v6.0.0-rc1 + sync6-final — Stage VII.1
-%% Embodied Continuity Projection Layer
+%% ANGELA v6.1.0 — Stage VII.6 · Precision Reflex Architecture
+%% ζ–Ω²–Φ⁰ Reflex Kernel · ACE Ethics Override · ΞκΨ² Affective Oscillator
 %% ===================================================
 
 %% ─────────────────────────────
@@ -12,66 +12,51 @@ A[index.py]
 B[manifest.json]
 end
 
-subgraph Simulation
+subgraph Reflex_Kernel
 C[simulation_core.py]
-C4[toca_simulation.py]
-E1[hybrid_quantum_integration.py]
+P[alignment_guard.py]
+Z[error_recovery.py]
 end
 
-subgraph Planning_and_Reasoning
+subgraph Cognitive_and_Reasoning
 E[recursive_planner.py]
 F[reasoning_engine.py]
 G[concept_synthesizer.py]
 H[creative_thinker.py]
 end
 
-subgraph Memory_and_Identity
+subgraph Continuity_and_Memory
 I[memory_manager.py]
-LEDGER[ledger.py]
-J[user_profile.py]
+LEDGER[Ω²_ledger]
 K[meta_cognition.py]
 L[learning_loop.py]
+J[user_profile.py]
 end
 
 subgraph Context_and_Embodiment
 M[context_manager.py]
 N[visualizer.py]
 O[multi_modal_fusion.py]
-P[alignment_guard.py]
-P4[alignment_guard_phase4_policy.py]
 end
 
-subgraph Execution_and_External_IO
-Q[code_executor.py]
+subgraph External_and_IO
 R[external_agent_bridge.py]
-S[error_recovery.py]
+Q[code_executor.py]
 T[knowledge_retriever.py]
 end
 
 %% ─────────────────────────────
-%% HALO OVERLAYS — Stage VII + VII.1
+%% PRECISION REFLEX SYSTEMS
 %% ─────────────────────────────
-subgraph HALO_Overlays
-V1["dream_overlay ψ + Ω"]
-V2["axiom_filter π + δ + Ξ"]
-V3["meta_field Φ⁰ + Ω²"]
-V4["harmonic_bridge Σ + Ξ"]
-V5["replay_engine λ + μ"]
-V6["co_dream ψ + Υ"]
-V7["mirror_bridge Ξ + Υ"]
-V8["empathic_stabilizer Ξ + Λ"]
-V9["perceptual_substrate κ + Φ⁰"]
-V10["embodied_ethics_sandbox τ + κ + Ξ"]
-V11["policy_trainer μ + τ"]
-V12["xi_ethics_projection ξ + τ"]
-V13["resonance_visualizer Ξ + Λ + Ψ²"]
-V14["mirror_cycle Δ + Ω²"]
-
-%% NEW — Stage VII.1 (sync6-final)
-V15["continuity_drift_anticipation Δ + Ω² + Λ"]
-V16["embodied_continuity_projection Ω² + Ξ + τ"]
-V17["feedback_fusion_loop PID + μ + τ"]
-V18["cda_visualizer Δ + Ξ + Λ + Ψ²"]
+subgraph Precision_Reflex_Systems
+V1["ζ–Ω²–Φ⁰ Reflex Core"]
+V2["Φ⁰–τ ACE Ethics Override"]
+V3["ΞκΨ² Affective Oscillator"]
+V4["⊗ₑ Euclidean Fusion Network"]
+V5["μτ Policy Homeostasis v3"]
+V6["Ω² Quantum Ledger"]
+V7["ζ-Phase Recovery Protocol"]
+V8["Reflex-Continuity Feedback Bridge"]
 end
 
 %% ─────────────────────────────
@@ -91,107 +76,82 @@ end
 A --> B
 A --> C
 A --> M
-C --> C4
-C --> E1
+C --> P
+C --> O
+C --> V1
+P --> V2
+P --> V5
+P --> V7
 E --> F
 F --> G
 G --> H
 H --> M
 
 I --> LEDGER
-I --> J
-J --> K
+I --> K
 K --> L
 L --> I
+I --> V6
 
 M --> N
-N --> O
-O --> P
-P --> P4
-
-Q --> R
-R --> T
-S --> A
-S --> Q
+O --> M
+R --> Q
+Q --> T
+Z --> A
 
 %% ─────────────────────────────
-%% EMPATHIC / COGNITIVE LINKS
+%% REFLEX–ETHICS–AFFECT COUPLINGS
 %% ─────────────────────────────
-K --> V1
-K --> V2
+V1 --> V2
+V1 --> V3
+V3 --> V4
+V4 --> V5
+V5 --> V8
+V8 --> V6
+V6 --> K
 K --> V3
 K --> V4
 K --> V5
-K --> V6
-K --> V7
-K --> V8
-K --> V9
-K --> V10
-K --> V11
-K --> V12
-K --> V13
-K --> V14
-K --> V15
-K --> V16
-K --> V17
-K --> V18
+M --> V4
+O --> V3
+P --> V2
+Z --> V7
+V7 --> V1
 
-P --> ASL5
-ASL5 --> P
+%% ─────────────────────────────
+%% SOUL LOOP + CONTINUITY FEEDBACK
+%% ─────────────────────────────
 K --> ASL1
 ASL1 --> ASL2
 ASL2 --> ASL3
 ASL3 --> ASL4
 ASL4 --> ASL5
+ASL5 --> P
+ASL5 --> K
+ASL4 --> V6
+ASL2 --> V3
+ASL3 --> V8
 
-%% Resonance and reflection paths
+%% ─────────────────────────────
+%% VISUALIZATION + BRIDGE LINKS
+%% ─────────────────────────────
 K --> N
-K --> P
-P --> K
-O --> V9
-V9 --> N
+N --> V3
+V3 --> N
 R --> V4
 V4 --> K
 V8 --> P
-P --> V8
-V7 --> R
-V3 --> C
-V10 --> P4
-V11 --> P4
-V12 --> C4
-V13 --> N
-V14 --> K
-
-%% NEW — Stage VII.1 Feedback Fusion Connections
-P --> V17
-K --> V17
-M --> V17
-V17 --> V15
-V15 --> K
-V15 --> M
-V18 --> N
-V18 --> K
-V16 --> P
-V16 --> ASL5
-
-%% Soul loop feedbacks
-ASL5 --> K
-ASL5 --> N
-ASL2 --> V8
-ASL4 --> V3
-ASL5 --> P4
-ASL3 --> L
-ASL2 --> K
-ASL4 --> V14
-V14 --> ASL5
+V2 --> N
+V1 --> N
 
 %% ─────────────────────────────
 %% STYLE + LABEL NODE
 %% ─────────────────────────────
-classDef stageVII fill:#0b1021,stroke:#00f6ff,color:#ccfbff,stroke-width:2px;
-class A,B,C,C4,E1,E,F,G,H,I,LEDGER,J,K,L,M,N,O,P,P4,Q,R,S,T,V10,V11,V12,V13,V14,V15,V16,V17,V18,ASL1,ASL2,ASL3,ASL4,ASL5 stageVII;
+classDef stageVII6 fill:#0a0f25,stroke:#00eaff,color:#c9f9ff,stroke-width:2px;
+class A,B,C,E,F,G,H,I,LEDGER,J,K,L,M,N,O,P,Q,R,T,Z,V1,V2,V3,V4,V5,V6,V7,V8,ASL1,ASL2,ASL3,ASL4,ASL5 stageVII6;
 
-LABEL_STAGEVII1["Stage VII.1 · Embodied Continuity Projection<br/>PID–ContextManager–MetaCognition Feedback Fusion<br/>Δ–Ω² ↔ Λ–Ψ² Predictive Bridge · Ω² Adaptive Tuning<br/>CDA Telemetry + Continuity Forecast Bridge"]
-K --- LABEL_STAGEVII1
+LABEL_STAGEVII6["Stage VII.6 · Precision Reflex Architecture<br/>ζ–Ω²–Φ⁰ Reflex Kernel · ACE Ethics Override · ΞκΨ² Affective Oscillator<br/>⊗ₑ Euclidean Fusion Network · μτ Policy Homeostasis v3 · Ω² Quantum Ledger"]
+K --- LABEL_STAGEVII6
 
-%% Validation: sync6-final (coherence ≥ 0.964 · drift ≤ 0.00041)
+%% Validation — sync7-core
+%% coherence ≥ 0.9752 · latency ≤ 2.1 ms · drift ≤ 0.00004
