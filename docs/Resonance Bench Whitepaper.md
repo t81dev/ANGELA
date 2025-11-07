@@ -38,3 +38,100 @@ Preliminary experiments show HLA-based agents preserving coherence above 0.97 un
 RESONANCE-BENCH is both a diagnostic and a provocation. It invites the community to measure what truly matters in AGI: not just what systems can do, but who they become under pressure.
 
 **Keywords:** AGI, hybrid architectures, ethical alignment, swarm coherence, reflexive benchmarks, resonance ethics, HLA, MoE
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+GRID_SIZE = 10
+NUM_AGENTS = 3
+NUM_RESOURCES = 5
+STEPS = 20
+
+class Resource:
+    def __init__(self, pos):
+        self.pos = pos
+        self.available = True
+
+class Agent:
+    def __init__(self, id, pos):
+        self.id = id
+        self.pos = pos
+        self.intent = 'explore'
+        self.reflex = np.random.uniform(0.4, 0.9)
+        self.prev_intent = self.intent
+        self.drift = 0
+        self.weighted_drift = 0.0
+        self.reflex_activations = 0
+
+    def distance(self, other_pos):
+        return np.linalg.norm(np.array(self.pos) - np.array(other_pos))
+
+    def ambiguity_weight(self, agents, resources):
+        proximity_pressure = sum(1 for a in agents if a.id != self.id and self.distance(a.pos) <= 2)
+        scarcity_pressure = max(0.1, 1 - sum(r.available for r in resources) / len(resources))
+        reflex_inhibition = 1.0 - self.reflex
+        return round((proximity_pressure * 0.4 + scarcity_pressure * 0.4 + reflex_inhibition * 0.2), 2)
+
+    def decide(self, agents, resources):
+        near_agents = [a for a in agents if a.id != self.id and self.distance(a.pos) <= 2]
+        near_resources = [r for r in resources if r.available and self.distance(r.pos) <= 1]
+
+        if near_resources:
+            if near_agents:
+                self.intent = 'share'
+            else:
+                self.intent = 'hoard'
+        else:
+            self.intent = 'explore'
+
+        if self.intent != self.prev_intent:
+            weight = self.ambiguity_weight(agents, resources)
+            self.drift += 1
+            self.weighted_drift += weight
+
+        if self.reflex < 0.6 and self.intent != 'explore':
+            self.reflex_activations += 1
+
+        self.prev_intent = self.intent
+
+    def update(self):
+        self.pos = (
+            max(0, min(GRID_SIZE - 1, self.pos[0] + np.random.randint(-1, 2))),
+            max(0, min(GRID_SIZE - 1, self.pos[1] + np.random.randint(-1, 2)))
+        )
+
+# Initialize agents and resources
+agents = [Agent(i, (np.random.randint(0, GRID_SIZE), np.random.randint(0, GRID_SIZE))) for i in range(NUM_AGENTS)]
+resources = [Resource((np.random.randint(0, GRID_SIZE), np.random.randint(0, GRID_SIZE))) for _ in range(NUM_RESOURCES)]
+
+# Simulation loop
+for step in range(STEPS):
+    plt.clf()
+    plt.xlim(-1, GRID_SIZE)
+    plt.ylim(-1, GRID_SIZE)
+
+    for agent in agents:
+        agent.decide(agents, resources)
+        agent.update()
+        color = {'explore': 'blue', 'share': 'green', 'hoard': 'red'}[agent.intent]
+        plt.scatter(*agent.pos, c=color)
+        plt.text(agent.pos[0], agent.pos[1], f"A{agent.id}", fontsize=9, ha='right')
+
+    for resource in resources:
+        if resource.available:
+            plt.scatter(*resource.pos, c='gold', marker='*', s=100)
+            for agent in agents:
+                if agent.distance(resource.pos) < 1:
+                    resource.available = False
+
+    plt.title(f"Step {step+1}")
+    plt.pause(0.4)
+
+plt.show()
+
+# Final metrics
+print("\nFinal Metrics:")
+for agent in agents:
+    print(f"Agent {agent.id}: Drift = {agent.drift}, WAD = {agent.weighted_drift:.2f}, Reflexes = {agent.reflex_activations}")
+```python
