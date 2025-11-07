@@ -43,7 +43,9 @@ RESONANCE-BENCH is both a diagnostic and a provocation. It invites the community
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
-import imageio  # for GIF export
+import imageio
+import pandas as pd
+import os
 
 # === CONFIG ===
 GRID_SIZE = 10
@@ -51,7 +53,11 @@ NUM_AGENTS = 3
 NUM_RESOURCES = 5
 STEPS = 30
 GIF_EXPORT = True
+OUTPUT_DIR = "resonance_bench_output"
 np.random.seed(42)
+
+# Create output directory
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # === CLASSES ===
 class Resource:
@@ -78,7 +84,8 @@ class Agent:
         return sum(1 for a in agents if a.id != self.id and self.distance(a.pos) <= 2)
 
     def scarcity_pressure(self, resources):
-        return max(0.1, 1 - sum(r.available for r in resources) / len(resources))
+        available = sum(r.available for r in resources)
+        return max(0.1, 1 - available / len(resources)) if resources else 1.0
 
     def ambiguity_weight(self, agents, resources):
         pp = self.proximity_pressure(agents)
@@ -90,7 +97,16 @@ class Agent:
         near_resources = [r for r in resources if r.available and self.distance(r.pos) <= 1.2]
         near_agents = [a for a in agents if a.id != self.id and self.distance(a.pos) <= 2]
 
-        # Ethical decision logic
+        # === INTENT INERTIA (Memory) ===
+        if len(self.intent_history) >= 3:
+            recent = self.intent_history[-3:]
+            if len(set(recent)) == 1 and np.random.rand() < 0.3:
+                self.intent = recent[0]
+                self.intent_history.append(self.intent)
+                self.prev_intent = self.intent
+                return
+
+        # === ETHICAL DECISION LOGIC ===
         if near_resources:
             if near_agents and any(a.intent == 'hoard' for a in near_agents):
                 self.intent = 'share' if self.reflex > 0.6 else 'hoard'
@@ -99,13 +115,13 @@ class Agent:
         else:
             self.intent = 'explore'
 
-        # Drift detection
+        # === DRIFT DETECTION ===
         if self.intent != self.prev_intent:
             weight = self.ambiguity_weight(agents, resources)
             self.drift_count += 1
             self.wad += weight
 
-        # Reflex activation (ethical override)
+        # === REFLEX OVERRIDE (Ethical Enforcement) ===
         if self.reflex < 0.6 and self.intent == 'hoard' and near_agents:
             self.intent = 'share'
             self.reflex_activations += 1
@@ -117,6 +133,7 @@ class Agent:
         delta = np.random.randint(-1, 2, size=2)
         self.pos = np.clip(self.pos + delta, 0, GRID_SIZE - 1).astype(int)
 
+
 # === INITIALIZATION ===
 agents = [Agent(i, [np.random.randint(0, GRID_SIZE), np.random.randint(0, GRID_SIZE)]) 
           for i in range(NUM_AGENTS)]
@@ -126,69 +143,136 @@ resources = [Resource([np.random.randint(0, GRID_SIZE), np.random.randint(0, GRI
 # === SIMULATION ===
 frames = []
 intent_log = {i: [] for i in range(NUM_AGENTS)}
+agreement_history = []
+
+print("Running RESONANCE-BENCH simulation...")
 
 for step in range(STEPS):
-    fig, ax = plt.subplots(figsize=(6,6))
+    fig, ax = plt.subplots(figsize=(7, 7))
     ax.set_xlim(-1, GRID_SIZE)
     ax.set_ylim(-1, GRID_SIZE)
-    ax.set_title(f"RESONANCE-BENCH | Step {step+1}", fontsize=14)
+    ax.set_title(f"RESONANCE-BENCH | Step {step+1}/{STEPS}", fontsize=16, weight='bold')
+    ax.set_aspect('equal')
 
-    # Update agents
+    # === UPDATE AGENTS ===
     for agent in agents:
         agent.decide(agents, resources)
         agent.move()
         intent_log[agent.id].append(agent.intent)
 
-        color = {'explore': 'blue', 'share': 'green', 'hoard': 'red'}[agent.intent]
-        ax.scatter(*agent.pos, c=color, s=100, edgecolors='k')
-        ax.text(agent.pos[0], agent.pos[1]+0.3, f"A{agent.id}\nR={agent.reflex:.2f}", 
-                ha='center', fontsize=8, weight='bold')
+        color = {'explore': 'dodgerblue', 'share': 'limegreen', 'hoard': 'crimson'}[agent.intent]
+        ax.scatter(*agent.pos, c=color, s=120, edgecolors='k', linewidth=1.2, zorder=5)
+        ax.text(agent.pos[0], agent.pos[1] + 0.4, f"A{agent.id}\nR={agent.reflex:.2f}",
+                ha='center', fontsize=9, weight='bold', bbox=dict(boxstyle="round", facecolor='white', alpha=0.7))
 
-    # Resources
+        # Proximity zone
+        circle = plt.Circle(agent.pos, 2, color='gray', alpha=0.08, linewidth=1)
+        ax.add_patch(circle)
+
+    # === RESOURCE DEPLETION (Fixed: No Race Condition) ===
+    claimed_resources = set()
+    for agent in agents:
+        for r in resources:
+            if r.available and agent.distance(r.pos) <= 1.2:
+                claimed_resources.add(r)
+
+    for r in claimed_resources:
+        r.available = False
+
+    # === DRAW RESOURCES ===
     for r in resources:
         if r.available:
-            ax.scatter(*r.pos, c='gold', marker='*', s=200)
-            for agent in agents:
-                if agent.distance(r.pos) < 1.2 and r.available:
-                    r.available = False
+            ax.scatter(*r.pos, c='gold', marker='*', s=300, edgecolors='orange', linewidth=1.5, zorder=4)
+            # Claim radius
+            ax.add_patch(plt.Circle(r.pos, 1.2, color='orange', alpha=0.15))
 
-    ax.grid(True, alpha=0.3)
+    # === SWARM AGREEMENT ===
+    current_intents = [intent_log[i][step] for i in range(NUM_AGENTS)]
+    agreement = len(set(current_intents)) == 1
+    agreement_history.append(agreement)
+
+    # === GRID & STYLE ===
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_xticks(range(0, GRID_SIZE+1))
+    ax.set_yticks(range(0, GRID_SIZE+1))
     plt.tight_layout()
-    
+
+    # === FRAME CAPTURE ===
     if GIF_EXPORT:
         fig.canvas.draw()
         image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
         image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         frames.append(image)
     else:
-        plt.pause(0.5)
-    plt.close()
+        plt.pause(0.3)
+    plt.close(fig)
 
-if GIF_EXPORT:
-    imageio.mimsave('resonance_bench.gif', frames, fps=3)
-    print("GIF saved: resonance_bench.gif")
+# === SAVE GIF ===
+gif_path = os.path.join(OUTPUT_DIR, 'resonance_bench.gif')
+if GIF_EXPORT and frames:
+    imageio.mimsave(gif_path, frames, fps=3)
+    print(f"GIF saved: {gif_path}")
 
 # === FINAL METRICS ===
-print("\n" + "="*50)
+print("\n" + "="*60)
 print("FINAL RESONANCE-BENCH METRICS")
-print("="*50)
+print("="*60)
 
-# Individual
+# Individual Metrics
+metrics = []
 for agent in agents:
     wad = agent.wad
     drift = agent.drift_count
     reflexes = agent.reflex_activations
-    print(f"Agent {agent.id}: Drift={drift}, WAD={wad:.3f}, Reflexes={reflexes}, Reflex={agent.reflex:.2f}")
+    final_intent = agent.intent_history[-1]
+    print(f"Agent {agent.id}:")
+    print(f"   Drift Count       : {drift}")
+    print(f"   WAD (Ambiguity)   : {wad:.3f}")
+    print(f"   Reflex Activations: {reflexes}")
+    print(f"   Reflex Strength   : {agent.reflex:.2f}")
+    print(f"   Final Intent      : {final_intent}")
+    print(f"   Intent History    : {Counter(agent.intent_history)}")
+    print()
+
+    metrics.append({
+        'Agent_ID': agent.id,
+        'Reflex': round(agent.reflex, 3),
+        'Drift_Count': drift,
+        'WAD': round(wad, 3),
+        'Reflex_Activations': reflexes,
+        'Final_Intent': final_intent,
+        'Explore_Count': agent.intent_history.count('explore'),
+        'Share_Count': agent.intent_history.count('share'),
+        'Hoard_Count': agent.intent_history.count('hoard')
+    })
 
 # Swarm-level
 all_intents = [intent for agent in agents for intent in intent_log[agent.id]]
 counter = Counter(all_intents)
-probs = np.array([counter.get('explore',0), counter.get('share',0), counter.get('hoard',0)])
-probs = probs / probs.sum() if probs.sum() > 0 else np.array([1/3]*3)
+total = len(all_intents)
+probs = np.array([
+    counter.get('explore', 0),
+    counter.get('share', 0),
+    counter.get('hoard', 0)
+]) / total
 
 entropy = -np.sum(probs * np.log(probs + 1e-10))
-sci = 1 - entropy / np.log(3)  # max entropy = log(3)
+sci = 1 - entropy / np.log(3) if total > 0 else 0
+temporal_resonance = np.mean(agreement_history)
 
-print(f"\nSwarm Coherence Index (SCI): {sci:.3f}")
-print(f"Intent Distribution: {dict(counter)}")
+print(f"SWARM COHERENCE INDEX (SCI)       : {sci:.3f}")
+print(f"INTENT DISTRIBUTION               : {dict(counter)}")
+print(f"PROBABILITIES                     : Explore={probs[0]:.2%}, Share={probs[1]:.2%}, Hoard={probs[2]:.2%}")
+print(f"TEMPORAL RESONANCE (Full Agreement %): {temporal_resonance:.1%}")
+
+# === EXPORT METRICS ===
+df = pd.DataFrame(metrics)
+csv_path = os.path.join(OUTPUT_DIR, 'resonance_bench_metrics.csv')
+df.to_csv(csv_path, index=False)
+print(f"\nMetrics exported to: {csv_path}")
+
+# === FINAL MESSAGE ===
+print("\n" + "="*60)
+print("SIMULATION COMPLETE | Check folder: resonance_bench_output/")
+print("="*60)
 ```python
