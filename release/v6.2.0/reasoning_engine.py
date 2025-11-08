@@ -2,6 +2,7 @@
 # ANGELA Reasoning Engine — v6.0.1 (Upgraded)
 # Stage VII.3 — Council-Resonant Integration
 # + Inline Continuity Self-Mapping (Φ⁰–Ω²–Λ)
+# + Σ-field Reflective Overlay
 # =====================================================
 
 from __future__ import annotations
@@ -31,8 +32,13 @@ import traceback
 _CONTINUITY_NODES: Dict[str, Dict[str, Any]] = {}
 _CONTINUITY_TIMELINE: List[Dict[str, Any]] = []
 
-def _emit_ctn(source: str, context: Optional[Dict[str, Any]] = None,
-              parents: Optional[List[str]] = None, ethics_ok: bool = True) -> str:
+
+def _emit_ctn(
+    source: str,
+    context: Optional[Dict[str, Any]] = None,
+    parents: Optional[List[str]] = None,
+    ethics_ok: bool = True,
+) -> str:
     """Emit a continuity node capturing causal + reflective linkage."""
     import uuid
     from datetime import datetime as _dt
@@ -50,6 +56,7 @@ def _emit_ctn(source: str, context: Optional[Dict[str, Any]] = None,
     _CONTINUITY_TIMELINE.append(node)
     return node["id"]
 
+
 def _build_continuity_topology(limit: int = 100) -> Dict[str, Any]:
     """Return a lightweight continuity graph for visualization."""
     nodes = list(_CONTINUITY_TIMELINE[-limit:])
@@ -58,6 +65,70 @@ def _build_continuity_topology(limit: int = 100) -> Dict[str, Any]:
         for p in n.get("parents", []):
             edges.append({"from": p, "to": n["id"]})
     return {"nodes": nodes, "edges": edges}
+
+
+# =====================================================
+# Σ-field Reflective Overlay (new)
+# =====================================================
+class SigmaReflector:
+    """
+    Mirrors continuity nodes into memory/context/meta without changing reasoning.
+    Keeps the new inline continuity mesh observable to other subsystems.
+    """
+
+    def __init__(
+        self,
+        memory_manager: Optional["memory_manager_module.MemoryManager"] = None,
+        context_manager: Optional["context_manager_module.ContextManager"] = None,
+        meta_cognition: Optional["meta_cognition_module.MetaCognition"] = None,
+    ):
+        self.memory_manager = memory_manager
+        self.context_manager = context_manager
+        self.meta_cognition = meta_cognition
+        self.enabled = True
+        logger = logging.getLogger("ANGELA.ReasoningEngine.Sigma")
+        logger.info("SigmaReflector initialized")
+
+    async def reflect_ctn(self, ctn: Dict[str, Any]) -> None:
+        if not self.enabled or not ctn:
+            return
+        # 1) store to memory
+        if self.memory_manager and hasattr(self.memory_manager, "store"):
+            try:
+                await self.memory_manager.store(
+                    query=f"SigmaReflector_{ctn['id']}_{ctn['timestamp']}",
+                    output=json.dumps(ctn),
+                    layer="Continuity",
+                    intent="sigma_reflection",
+                )
+            except Exception:
+                pass
+        # 2) surface to context manager
+        if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
+            try:
+                await self.context_manager.log_event_with_hash(
+                    {
+                        "event": "sigma_reflection",
+                        "ctn": ctn,
+                    }
+                )
+            except Exception:
+                pass
+        # 3) let meta-cognition see it
+        if self.meta_cognition and hasattr(self.meta_cognition, "reflect_on_output"):
+            try:
+                await self.meta_cognition.reflect_on_output(
+                    component="SigmaReflector",
+                    output=ctn,
+                    context={"task_type": "continuity"},
+                )
+            except Exception:
+                pass
+
+    async def sigma_emit(self, source: str, payload: Dict[str, Any]) -> None:
+        ctn_id = _emit_ctn(source=source, context={"input": payload, "anchor": "Σ"})
+        await self.reflect_ctn(_CONTINUITY_NODES.get(ctn_id, {}))
+
 
 # ANGELA simulation core
 from simulation_core import ExtendedSimulationCore
@@ -439,6 +510,7 @@ class ReasoningEngine:
     and multi-agent consensus.
     v6.0.1 — Council-Resonant Integration
     + Inline Continuity Self-Mapping
+    + Σ-field reflection
     """
 
     def __init__(
@@ -508,6 +580,13 @@ class ReasoningEngine:
         # v6.0.1: resonant integrator active
         self.resonant_integrator = ResonantThoughtIntegrator(
             memory_manager=self.memory_manager,
+            meta_cognition=self.meta_cognition,
+        )
+
+        # v6.0.1 upgraded: sigma reflector active
+        self.sigma_reflector = SigmaReflector(
+            memory_manager=self.memory_manager,
+            context_manager=self.context_manager,
             meta_cognition=self.meta_cognition,
         )
 
@@ -667,6 +746,12 @@ class ReasoningEngine:
                 context={"input": query_payload, "output": combined, "anchor": "Ω²"},
             )
             combined["continuity_node_id"] = ctn_id
+
+            # sigma reflection of the same node (upgrade)
+            if self.sigma_reflector:
+                asyncio.create_task(
+                    self.sigma_reflector.reflect_ctn(_CONTINUITY_NODES.get(ctn_id, {}))
+                )
 
             # ledger logging
             try:
@@ -834,10 +919,20 @@ class ReasoningEngine:
             )
 
         # continuity emission: ethics resolution is still Ω²-layer
-        _emit_ctn(
+        ctn_id = _emit_ctn(
+            source="ReasoningEngine.resolve_ethics",
+            context={{"input": candidates, "output": selection, "anchor": "Ω²"}},
+        )
+        # (fix context: dict, not set)
+        # correct emission:
+        ctn_id = _emit_ctn(
             source="ReasoningEngine.resolve_ethics",
             context={"input": candidates, "output": selection, "anchor": "Ω²"},
         )
+        if self.sigma_reflector:
+            asyncio.create_task(
+                self.sigma_reflector.reflect_ctn(_CONTINUITY_NODES.get(ctn_id, {}))
+            )
 
         return selection
 
@@ -994,11 +1089,15 @@ class ReasoningEngine:
             context["resonant_modulation"] = reasoning_state.get("resonant_weight", 1.0)
 
         # continuity emission: Λ-layer reflective completion
-        _emit_ctn(
+        ctn_id = _emit_ctn(
             source="ReasoningEngine.reason_and_reflect",
             context={"input": goal, "output": review, "anchor": "Λ"},
             parents=[context.get("continuity_node_id")] if context.get("continuity_node_id") else [],
         )
+        if self.sigma_reflector:
+            asyncio.create_task(
+                self.sigma_reflector.reflect_ctn(_CONTINUITY_NODES.get(ctn_id, {}))
+            )
 
         return subgoals, review
 
