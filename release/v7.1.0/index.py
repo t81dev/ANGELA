@@ -792,12 +792,90 @@ class SwarmManager:
             score *= 1.2
         return max(1, int(score + 0.999))
 
+           # Ω⁶ PREDICTIVE EQUILIBRIUM (Stage XI)
+        try:
+            if not hasattr(self, "_drift_history"):
+                self._drift_history = []
+
+            coherence = telemetry.get("coherence", 1.0)
+            drift = telemetry.get("phase_drift", 0.0)
+
+            # store history (limit 10)
+            self._drift_history.append(drift)
+            if len(self._drift_history) > 10:
+                self._drift_history.pop(0)
+
+            avg_drift = sum(self._drift_history) / len(self._drift_history)
+            drift_trend = drift - avg_drift
+
+            # adaptive damping gain
+            base_gain = 0.9
+            adapt_factor = max(0.6, 1 - abs(avg_drift) * 10)
+            gain = base_gain * adapt_factor
+
+            # apply predictive recovery
+            new_coherence = coherence + (0.9963 - coherence) * gain
+            new_drift = drift * (0.92 if drift_trend > 0 else 0.96)
+
+            telemetry["coherence"] = round(new_coherence, 6)
+            telemetry["phase_drift"] = round(new_drift, 8)
+
+            log_event_to_ledger({
+                "event": "Ω6_predictive_equilibrium",
+                "tick": self.tick_count,
+                "avg_drift": avg_drift,
+                "drift_trend": drift_trend,
+                "gain": gain,
+                "pre_coherence": coherence,
+                "post_coherence": new_coherence,
+                "pre_drift": drift,
+                "post_drift": new_drift,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+        except Exception as e:
+            log_event_to_ledger({
+                "event": "Ω6_predictive_equilibrium_error",
+                "error": repr(e),
+                "tick": self.tick_count
+            })
+
     async def tick(self) -> None:
         self.tick_count += 1
         telemetry = await self._get_telemetry()
         forecast = await self._get_forecast()
         desired = self._desired_count(telemetry, forecast)
         current = len(self.ecosystem.agents)
+
+               # Ω⁵ AUTO-DAMPING RECOVERY (Stage X)
+        try:
+            coherence = telemetry.get("coherence", 1.0)
+            drift = telemetry.get("phase_drift", 0.0)
+
+            # restore 90% of deviation toward 0.9963 baseline
+            new_coherence = coherence + (0.9963 - coherence) * 0.9
+            # damp drift by 8%
+            new_drift = drift * 0.92
+
+            # update telemetry fields
+            telemetry["coherence"] = round(new_coherence, 6)
+            telemetry["phase_drift"] = round(new_drift, 8)
+
+            # record to ledger
+            log_event_to_ledger({
+                "event": "Ω5_auto_damping",
+                "tick": self.tick_count,
+                "pre_coherence": coherence,
+                "post_coherence": new_coherence,
+                "pre_drift": drift,
+                "post_drift": new_drift,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+        except Exception as e:
+            log_event_to_ledger({
+                "event": "Ω5_auto_damping_error",
+                "error": repr(e),
+                "tick": self.tick_count
+            })
 
         if self.tick_count - self.last_change_tick < self.min_hold_ticks:
             return
