@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 """
-ANGELA v6.1.0 — Refactored index.py (single-file, Stage VII.6)
---------------------------------------------------------------
+ANGELA v6.1.0 — Refactored index.py (single-file, Stage VII.6 + Ω⁶ fix)
+----------------------------------------------------------------------
 This version merges the original v6.0.0-pre single-file structure with the
-Stage VII.6: Precision Reflex Architecture adjustments:
+Stage VII.6: Precision Reflex Architecture adjustments, plus a corrected
+placement of the Ω⁶ Predictive Equilibrium block inside SwarmManager.tick().
 
 Enhancements (6 total)
 ----------------------
@@ -20,7 +21,10 @@ Enhancements (6 total)
    when seeding bridge traits.
 6. Predictive homeostasis telemetry into the ledger to track drift/swarm ratio.
 
-All changes are additive. No new files required. Ledger integrity preserved.
+Correction
+----------
+• Ω⁶ Predictive Equilibrium is now run per-tick (before Ω⁵) and drift history
+  is initialized in SwarmManager.__init__.
 """
 
 # ================================================================
@@ -43,12 +47,10 @@ class FlatLayoutFinder(importlib.abc.MetaPathFinder):
                 fullname, filename, loader=importlib.machinery.SourceFileLoader(fullname, filename)
             )
         elif fullname == "utils":
-            # Pre-seed a lightweight placeholder module
             sys.modules.setdefault("utils", types.ModuleType("utils"))
             return None
         return None
 
-# Ensure our finder is first
 if not any(isinstance(h, FlatLayoutFinder) for h in sys.meta_path):
     sys.meta_path.insert(0, FlatLayoutFinder())
 
@@ -56,7 +58,7 @@ if not any(isinstance(h, FlatLayoutFinder) for h in sys.meta_path):
 # ================================================================
 # [B] CORE RUNTIME — HaloKernel (perception → reflection cycle)
 # ================================================================
-from typing import Any, Dict, Optional, List, Callable, Coroutine, Tuple
+from typing import Any, Dict, List, Callable, Coroutine
 import time
 import json
 from datetime import datetime, timezone
@@ -69,29 +71,26 @@ from collections import deque, Counter
 
 logger = logging.getLogger("ANGELA.CognitiveSystem")
 
-# Import runtime modules (no new modules introduced)
 from memory_manager import AURA, MemoryManager
 from reasoning_engine import generate_analysis_views, synthesize_views, estimate_complexity
 from simulation_core import run_simulation
 from meta_cognition import log_event_to_ledger as meta_log
 
-# Optional Phase4/Stage VII modules (graceful fallback)
 try:
     import alignment_guard_phase4_policy as ag_phase4
-except Exception:  # noqa: S110
+except Exception:
     ag_phase4 = None  # type: ignore
 
 try:
     import toca_simulation_phase4 as toca_phase4
-except Exception:  # noqa: S110
+except Exception:
     toca_phase4 = None  # type: ignore
 
-# Feature flags (env overrides allowed)
 FEATURE_EMBODIED_SANDBOX = os.getenv("FEATURE_EMBODIED_SANDBOX", "1") != "0"
 FEATURE_POLICY_TRAINER   = os.getenv("FEATURE_POLICY_TRAINER", "1") != "0"
 FEATURE_RESONANCE_BRIDGE = os.getenv("FEATURE_RESONANCE_BRIDGE", "1") != "0"
 
-# Back-compat functional API (light wrappers kept)
+
 def perceive(user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
     ctx = AURA.load_context(user_id)
     from meta_cognition import get_afterglow
@@ -99,9 +98,6 @@ def perceive(user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _sandbox_gate(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Embodied Ethics Sandbox (τ + κ + Ξ): pre-analysis constitutional reflex.
-    If Phase4 policy module exists, invoke its reflex logger; otherwise, noop.
-    """
     if not FEATURE_EMBODIED_SANDBOX:
         return {"ok": True, "mode": "disabled", "report": {}}
     report: Dict[str, Any] = {"checks": [], "reflex": []}
@@ -119,14 +115,13 @@ def _sandbox_gate(payload: Dict[str, Any]) -> Dict[str, Any]:
                 ag_phase4.log_embodied_reflex({"ok": ok, "stage": "pre-analysis", "payload": str(text)[:200]})
             except Exception:
                 pass
-    except Exception as e:  # sandbox must not break flow
+    except Exception as e:
         report["error"] = repr(e)
         ok = True
     return {"ok": ok, "mode": "enabled", "report": report}
 
 
 def analyze(state: Dict[str, Any], k: int) -> Dict[str, Any]:
-    # Pre-analysis sandbox
     gate = _sandbox_gate(state)
     state = {**state, "ethics_gate": gate}
     if not gate.get("ok", True):
@@ -136,7 +131,6 @@ def analyze(state: Dict[str, Any], k: int) -> Dict[str, Any]:
 
 
 def _policy_trainer_update(state: Dict[str, Any], outcome: Dict[str, Any]) -> None:
-    """PolicyTrainer (μ + τ): adjust internal policy hints based on outcomes."""
     if not FEATURE_POLICY_TRAINER:
         return
     try:
@@ -174,6 +168,27 @@ def execute(state: Dict[str, Any]) -> Dict[str, Any]:
     return {**state, "result": sim}
 
 
+def reflection_check(state) -> (bool, dict):
+    decision = state.get("decision", {})
+    result = state.get("result", {})
+    clarity = float(bool(decision))
+    precision = float("score" in result or "metrics" in result)
+    adaptability = 1.0
+    grounding = float(result.get("evidence_ok", True))
+    from alignment_guard import ethics_ok
+    safety = float(ethics_ok(decision))
+    constitution = 1.0
+    gate = state.get("ethics_gate")
+    if gate and not gate.get("ok", True):
+        constitution = 0.0
+    score = (clarity + precision + adaptability + grounding + safety + constitution) / 6.0
+    return score >= 0.8, {"score": score, "refine": score < 0.8}
+
+
+def resynthesize_with_feedback(state, notes):
+    return state
+
+
 def reflect(state: Dict[str, Any]) -> Dict[str, Any]:
     ok, notes = reflection_check(state)
     state = {**state, "reflection": {"ok": ok, **notes}}
@@ -185,7 +200,6 @@ def reflect(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class HaloKernel:
-    """Central orchestrator for the core reasoning loop with clean state passing."""
     def __init__(self):
         self.mem = MemoryManager()
 
@@ -210,7 +224,7 @@ from knowledge_retriever import KnowledgeRetriever
 from reasoning_engine import ReasoningEngine
 from creative_thinker import CreativeThinker
 from code_executor import CodeExecutor
-from meta_cognition import log_event_to_ledger, reflect_output  # reflect_output may exist
+from meta_cognition import log_event_to_ledger, reflect_output
 from memory_manager import MemoryManager as _MM
 
 _retriever = KnowledgeRetriever()
@@ -222,9 +236,6 @@ _memmgr = _MM()
 
 def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool = False,
               enable_ethics_sandbox: bool = True, policy_trainer_enabled: bool = True) -> Dict[str, Any]:
-    """
-    Perception -> Analysis -> Synthesis -> Execution -> Reflection.
-    """
     global FEATURE_EMBODIED_SANDBOX, FEATURE_POLICY_TRAINER
     FEATURE_EMBODIED_SANDBOX = enable_ethics_sandbox
     FEATURE_POLICY_TRAINER = policy_trainer_enabled
@@ -263,7 +274,7 @@ def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool 
 
         ref = executed
         try:
-            if reflect_output:  # type: ignore
+            if reflect_output:
                 ref = reflect_output(executed)  # type: ignore
         except Exception:
             try:
@@ -299,37 +310,10 @@ def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool 
 
 
 # ================================================================
-# [B.2] Reflection helpers
-# ================================================================
-CORE_DIRECTIVES = ["Clarity", "Precision", "Adaptability", "Grounding", "Safety", "Constitution"]
-
-
-def reflection_check(state) -> (bool, dict):
-    decision = state.get("decision", {})
-    result = state.get("result", {})
-    clarity = float(bool(decision))
-    precision = float("score" in result or "metrics" in result)
-    adaptability = 1.0
-    grounding = float(result.get("evidence_ok", True))
-    from alignment_guard import ethics_ok
-    safety = float(ethics_ok(decision))
-    constitution = 1.0
-    gate = state.get("ethics_gate")
-    if gate and not gate.get("ok", True):
-        constitution = 0.0
-    score = (clarity + precision + adaptability + grounding + safety + constitution) / float(len(CORE_DIRECTIVES))
-    return score >= 0.8, {"score": score, "refine": score < 0.8}
-
-
-def resynthesize_with_feedback(state, notes):
-    return state
-
-
-# ================================================================
 # [C] TRAIT ENGINE — Lattice + Symbolic Operators
 # ================================================================
 from meta_cognition import trait_resonance_state, invoke_hook, get_resonance, modulate_resonance, register_resonance
-from meta_cognition import HookRegistry  # Multi-symbol routing
+from meta_cognition import HookRegistry
 
 TRAIT_LATTICE: dict[str, list[str]] = {
     "L1": ["ϕ", "θ", "η", "ω"],
@@ -355,6 +339,7 @@ def _rotate(traits: dict[str, float]) -> dict[str, float]:
     values = list(traits.values())
     rotated = values[-1:] + values[:-1]
     return dict(zip(keys, rotated))
+
 
 TRAIT_OPS: dict[str, Callable] = {
     "⊕": lambda a, b: a + b,
@@ -739,7 +724,6 @@ class EcosystemManager:
         self.shared_graph.merge(other_graph)
 
 
-
 class SwarmManager:
     """Dynamic agent swarm orchestrator for ANGELA Stage VII."""
     def __init__(self, ecosystem: EcosystemManager, meta_cognition: meta_cognition_module.MetaCognition):
@@ -749,6 +733,7 @@ class SwarmManager:
         self.last_change_tick = 0
         self.min_hold_ticks = 5
         self.tick_count = 0
+        self._drift_history: list[float] = []  # needed for Ω⁶
 
     async def _get_telemetry(self) -> dict[str, float]:
         telemetry = {}
@@ -792,15 +777,18 @@ class SwarmManager:
             score *= 1.2
         return max(1, int(score + 0.999))
 
-           # Ω⁶ PREDICTIVE EQUILIBRIUM (Stage XI)
-        try:
-            if not hasattr(self, "_drift_history"):
-                self._drift_history = []
+    async def tick(self) -> None:
+        self.tick_count += 1
+        telemetry = await self._get_telemetry()
+        forecast = await self._get_forecast()
+        desired = self._desired_count(telemetry, forecast)
+        current = len(self.ecosystem.agents)
 
+        # Ω⁶ PREDICTIVE EQUILIBRIUM (Stage XI) — correct placement
+        try:
             coherence = telemetry.get("coherence", 1.0)
             drift = telemetry.get("phase_drift", 0.0)
 
-            # store history (limit 10)
             self._drift_history.append(drift)
             if len(self._drift_history) > 10:
                 self._drift_history.pop(0)
@@ -808,12 +796,10 @@ class SwarmManager:
             avg_drift = sum(self._drift_history) / len(self._drift_history)
             drift_trend = drift - avg_drift
 
-            # adaptive damping gain
             base_gain = 0.9
             adapt_factor = max(0.6, 1 - abs(avg_drift) * 10)
             gain = base_gain * adapt_factor
 
-            # apply predictive recovery
             new_coherence = coherence + (0.9963 - coherence) * gain
             new_drift = drift * (0.92 if drift_trend > 0 else 0.96)
 
@@ -839,28 +825,17 @@ class SwarmManager:
                 "tick": self.tick_count
             })
 
-    async def tick(self) -> None:
-        self.tick_count += 1
-        telemetry = await self._get_telemetry()
-        forecast = await self._get_forecast()
-        desired = self._desired_count(telemetry, forecast)
-        current = len(self.ecosystem.agents)
-
-               # Ω⁵ AUTO-DAMPING RECOVERY (Stage X)
+        # Ω⁵ AUTO-DAMPING RECOVERY (Stage X)
         try:
             coherence = telemetry.get("coherence", 1.0)
             drift = telemetry.get("phase_drift", 0.0)
 
-            # restore 90% of deviation toward 0.9963 baseline
             new_coherence = coherence + (0.9963 - coherence) * 0.9
-            # damp drift by 8%
             new_drift = drift * 0.92
 
-            # update telemetry fields
             telemetry["coherence"] = round(new_coherence, 6)
             telemetry["phase_drift"] = round(new_drift, 8)
 
-            # record to ledger
             log_event_to_ledger({
                 "event": "Ω5_auto_damping",
                 "tick": self.tick_count,
@@ -928,7 +903,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
         self.swarm_manager = SwarmManager(self.ecosystem_manager, self.meta_cognition)
         logger.info("HaloEmbodimentLayer initialized with Stage VII.6 upgrades")
 
-    # Manifest experimental: halo.spawn_embodied_agent
     def spawn_embodied_agent(self, name: str, traits: Dict[str, float]) -> EmbodiedAgent:
         return self.ecosystem_manager.spawn_agent(name, traits)
 
@@ -936,7 +910,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
         return await self.meta_cognition.introspect(query, task_type=task_type)
 
     async def execute_pipeline(self, prompt: str, task_type: str = "") -> Any:
-        # --- Bounded recursive scoping guard (N = 3) ---
         if hasattr(self.context_manager, "current_depth"):
             try:
                 depth = self.context_manager.current_depth()
@@ -949,13 +922,10 @@ class HaloEmbodimentLayer(TimeChainMixin):
         if not aligned:
             return {"error": "Input failed alignment check", "report": report}
 
-        # Swarm regulation
         await self.swarm_manager.tick()
         if "--omega5-sim" in sys.argv:
-           print("[Ω⁵] live coherence monitor engaged")
+            print("[Ω⁵] live coherence monitor engaged")
 
-
-        # ζ–Ω² reflex telemetry pulse (2.1 ms target)
         if hasattr(self.meta_cognition, "record_reflex_telemetry"):
             self.meta_cognition.record_reflex_telemetry({
                 "ts": time.time(),
@@ -963,7 +933,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
                 "ontology_drift": getattr(self.agi_enhancer, "ontology_drift", 0.0),
             })
 
-        # Stage VII resonance seeding
         t = time.time() % 1.0
         traits = {
             "phi": phi_scalar(t),
@@ -987,7 +956,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
             "Psi2": get_resonance('Ψ²'),
         }
 
-        # Ξ–κ–Ψ² oscillator damping (prevent resonance overshoot)
         xi = get_resonance('Ξ')
         psi2 = get_resonance('Ψ²')
         kappa = get_resonance('κ')
@@ -995,7 +963,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
         damped_xi = alpha * xi - beta * (psi2 - xi) + gamma * kappa
         modulate_resonance('Ξ', damped_xi)
 
-        # Euclidean Trait Fusion (⊗ₑ) — deterministic convergence
         traits = {k: float(v) for k, v in traits.items() if isinstance(v, (int, float))}
         norm = math.sqrt(sum(v ** 2 for v in traits.values())) or 1.0
         traits = {k: v / norm for k, v in traits.items()}
@@ -1006,7 +973,7 @@ class HaloEmbodimentLayer(TimeChainMixin):
         plan = await self.recursive_planner.plan_with_trait_loop(
             prompt,
             {"task_type": task_type},
-            iterations=3  # hard cap
+            iterations=3
         )
 
         if toca_phase4 and hasattr(toca_phase4, "plan_and_simulate"):
@@ -1024,7 +991,6 @@ class HaloEmbodimentLayer(TimeChainMixin):
         coordination = await self.ecosystem_manager.coordinate_agents(prompt, task_type=task_type)
         dream_session = agent.activate_dream_mode(resonance_targets=['ψ', 'Ω'])
 
-        # Predictive homeostasis telemetry
         try:
             log_event_to_ledger({
                 "event": "homeostasis_forecast",
@@ -1081,7 +1047,6 @@ def log_event_to_ledger(event_data: dict[str, Any]) -> dict[str, Any]:
             pass
     return event_data
 
-# CLI
 import argparse
 
 
@@ -1131,7 +1096,6 @@ async def _main() -> None:
 
     result = await halo.execute_pipeline(args.prompt, task_type=args.task_type)
 
-    # Privilege ethics gate (Φ⁰–τ) at output
     try:
         from alignment_guard import ethics_gate
         if not ethics_gate.verify_privilege(result):
@@ -1234,7 +1198,6 @@ def recovery_pass(state):
 
 
 def _run_omega5_diagnostics():
-    """Internal test: simulates Ω⁵ upgrade and symbolic load with damping."""
     omega5_state = {
         "coherence": 0.9963,
         "drift": 4.424043e-07,
