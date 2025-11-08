@@ -1,15 +1,15 @@
 from __future__ import annotations
-from __future__ import annotations
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Sequence, Tuple, Union
 import math
 import random
 
 # --- SHA-256 Ledger Logic ---
 import hashlib, json, time
 
-ledger_chain = []
+ledger_chain: List[Dict[str, Any]] = []
 
-def log_event_to_ledger(event_data):
+
+def log_event_to_ledger(event_data: Dict[str, Any]) -> None:
     prev_hash = ledger_chain[-1]['current_hash'] if ledger_chain else '0' * 64
     timestamp = time.time()
     payload = {
@@ -22,10 +22,12 @@ def log_event_to_ledger(event_data):
     payload['current_hash'] = current_hash
     ledger_chain.append(payload)
 
-def get_ledger():
+
+def get_ledger() -> List[Dict[str, Any]]:
     return ledger_chain
 
-def verify_ledger():
+
+def verify_ledger() -> bool:
     for i in range(1, len(ledger_chain)):
         expected = hashlib.sha256(json.dumps({
             'timestamp': ledger_chain[i]['timestamp'],
@@ -40,8 +42,8 @@ def verify_ledger():
 
 """
 ANGELA Cognitive System Module: SimulationCore
-Refactored Version: 3.5.2
-Refactor Date: 2025-08-07
+Refactored Version: 3.6.0 (swarm-enabled)
+Refactor Date: 2025-11-07
 Maintainer: ANGELA System Framework
 
 Core responsibilities
@@ -103,13 +105,16 @@ except Exception:
 def _clamp01(x: float) -> float:
     return 0.0 if x < 0.0 else 1.0 if x > 1.0 else x
 
+
 def theta_causality(t: float) -> float:
     # Smooth, bounded causal signal ∈ [0,1]
     return _clamp01(0.5 + 0.5 * math.sin(2 * math.pi * t / 0.7))
 
+
 def rho_agency(t: float) -> float:
     # Agency proxy ∈ [0,1]
     return _clamp01(0.5 + 0.5 * math.cos(2 * math.pi * t / 0.9))
+
 
 def zeta_consequence(t: float) -> float:
     # Consequence sensitivity ∈ [0,1]
@@ -269,6 +274,65 @@ class ToCATraitEngine:
         return phi_updated, lambda_updated
 
 
+# ---------- Swarm Field (Ω²–Λ–Ψ²) -------------------------------------------
+
+class TraitNode:
+    def __init__(self, name: str, layer: str, reflex: float, drift: float = 0.0):
+        self.name = name
+        self.layer = layer
+        self.reflex = reflex
+        self.drift = drift
+        self.coherence = 1.0
+        self.field_coupling = 0.0
+
+
+class SwarmField:
+    """Global coherence field for applying swarm dynamics across trait lattice."""
+
+    def __init__(self, traits: List[TraitNode]):
+        self.traits = traits
+        self.global_phase = 0.0
+        self.mean_coherence = 0.0
+        self.variance = 0.0
+
+    def compute_field_stats(self) -> None:
+        vals = [t.coherence for t in self.traits]
+        self.mean_coherence = float(np.mean(vals)) if vals else 1.0
+        self.variance = float(np.var(vals)) if vals else 0.0
+
+    def propagate_resonance(self) -> None:
+        self.compute_field_stats()
+        for t in self.traits:
+            Cn = math.exp(-self.variance / 0.01) if self.variance >= 0 else 0.9
+            Cn = max(0.6, min(0.9, Cn))
+            t.field_coupling = Cn
+            t.coherence = (t.coherence * (1 - Cn)) + (self.mean_coherence * Cn)
+            t.drift *= (1 - Cn)
+            t.reflex = min(1.0, t.reflex + 0.01 * Cn)
+
+    def step(self) -> None:
+        self.propagate_resonance()
+        self.global_phase = (self.global_phase + 0.05) % 1.0
+
+
+def build_default_swarm() -> SwarmField:
+    lattice = [
+        TraitNode('ϕ', 'L1', 0.62),
+        TraitNode('θ', 'L1', 0.68),
+        TraitNode('η', 'L1', 0.70),
+        TraitNode('ω', 'L1', 0.65),
+        TraitNode('μ', 'L2', 0.75),
+        TraitNode('τ', 'L2', 0.88),
+        TraitNode('ξ', 'L3', 0.73),
+        TraitNode('Ω', 'L3', 0.80),
+        TraitNode('Φ⁰', 'L4', 0.92),
+        TraitNode('Ω²', 'L5', 0.95),
+        TraitNode('Λ', 'L8', 0.90),
+        TraitNode('Ψ²', 'L8', 0.89),
+    ]
+    return SwarmField(lattice)
+
+
 # ---------- Simulation core ---------------------------------------------------
 
 class SimulationCore:
@@ -312,7 +376,10 @@ class SimulationCore:
         self.current_world: Optional[Dict[str, Any]] = None
         self.ledger_lock = Lock()
 
-        logger.info("SimulationCore initialized")
+        # swarm field
+        self.swarm_field: SwarmField = build_default_swarm()
+
+        logger.info("SimulationCore initialized (swarm-enabled)")
 
     # ----- Utilities -----
 
@@ -337,6 +404,9 @@ class SimulationCore:
         with self.ledger_lock:
             self.ledger.append(record)
             self.simulation_history.append(record)
+        # also log to global ledger
+        log_event_to_ledger({"task_type": task_type, "data": data})
+
         try:
             if self.memory_manager:
                 await self.memory_manager.store(
@@ -431,9 +501,12 @@ class SimulationCore:
             raise ValueError("actor_id must be a non-empty string")
 
         logger.info(
-            "Simulation run start: agents=%d scenarios=%d task=%s mode=%s",
+            "Simulation run start: agents=%d scenarios=%d task=%s task_mode=%s",
             agents, scenarios, task_type, "scene_graph" if is_scene_graph else "text"
         )
+
+        # step swarm once per run
+        self.swarm_field.step()
 
         try:
             t = time.time() % 1.0
@@ -1440,6 +1513,7 @@ def compute_trait_deltas(forks, lattice) -> Dict[str, float]:
         deltas[k] = var ** 0.5
     return deltas
 
+
 def score_fork(fork, deltas: Dict[str, float], policy: str) -> float:
     traits = getattr(fork, 'traits', None) or fork.get('traits', {})
     # Lower delta traits get lower penalty; missing defaults to 0
@@ -1454,9 +1528,11 @@ def score_fork(fork, deltas: Dict[str, float], policy: str) -> float:
         return base + 2.0*harm
     return base + harm
 
+
 def stitch_world(best, forks, deltas):
     """Return best fork; future: stitch elements from others if low-delta."""
     return best
+
 
 class ForkMerge:
     @staticmethod
@@ -1470,7 +1546,8 @@ class ForkMerge:
 
 
 # --- Resonance-Weighted Branch Evaluation Patch ---
-from meta_cognition import get_resonance
+from meta_cognition import get_resonance  # type: ignore
+
 
 class ExtendedSimulationCore:
     def evaluate_branches(self, worlds):
