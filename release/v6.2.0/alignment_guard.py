@@ -1,21 +1,19 @@
 """
 ANGELA Cognitive System: AlignmentGuard
-Version: 4.2-pre (μ+τ Policy Homeostasis, +Phase4 scaffold + PolicyTrainer v0.1)
-Upgrade Date: 2025-11-02
+Version: 5.0-pre (μ+τ Policy Homeostasis, Sovereignty Extensions, +Phase4 scaffold + PolicyTrainer v0.1)
+Upgrade Date: 2025-11-07
 Maintainer: ANGELA Framework
 
 Purpose:
     Ethical validation, drift detection, and τ-Constitution harmonization
     with dependency-injected components and safe defaults.
-    v4.2-pre adds μ+τ policy homeostasis and empathy drift monitoring (Phase 6.1),
-    without changing existing public behavior.
+    v4.2-pre added μ+τ policy homeostasis and empathy drift monitoring (Phase 6.1)
+    and Stage VII.2 Embodied Continuity Projection hooks.
 
-    sync6-final extends this with:
-    - Stage VII.2 Embodied Continuity Projection hooks
-    - feedback_fusion_loop()
-    - CDA forecast recalibration
-    - embodied reflex logging for anticipatory corrections
-    - Ω² feedback fusion ledger events
+    This version extends that with Stage VII.8 Harmonic Sovereignty Layer:
+    - Φ⁰–Σ–Ω² sovereignty audit
+    - recursive moral compression (canonical ethical signatures)
+    - temporal resonance verification for federated mirror-cycles
 """
 
 from __future__ import annotations
@@ -33,8 +31,9 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Any, Awaitable, Callable, Deque, Dict, List, Optional, Protocol, Tuple, Union
 
-__ANGELA_SYNC_VERSION__ = "6.0.2-beta+reflex"
-__STAGE__ = "VII.4 — Harmonic Reflex Integration"
+# --- UPGRADED STAGE MARKERS --------------------------------------------------------
+__ANGELA_SYNC_VERSION__ = "6.2.0-sovereign"
+__STAGE__ = "VII.8 — Harmonic Sovereignty Layer"
 
 # --- SHA-256 Ledger ----------------------------------------------------------------
 
@@ -179,16 +178,10 @@ def _parse_llm_jsonish(resp: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         return {"text": s}
     return {"text": str(resp)}
 
-
-# --- Stage VII.4 Reflex Coupling ---------------------------------------------------
+# --- Stage VII.4 Reflex Coupling (kept) --------------------------------------------
 
 class ReflexCoupler:
-    """Stage VII.4 — Harmonic Reflex Integration
-    Bridges affective (Ξ) and ethical (Λ) signals into τ policy equilibrium.
-    Provides microsecond-scale corrective feedback to damp empathy drift
-    without destabilizing PID homeostasis.
-    """
-
+    """Stage VII.4 — Harmonic Reflex Integration"""
     def __init__(self, empathy_gain: float = 0.35,
                  morality_gain: float = 0.4,
                  damping: float = 0.12,
@@ -200,7 +193,6 @@ class ReflexCoupler:
         self.last_update = 0.0
 
     def step(self, affect_signal: float, policy_equilibrium: float) -> dict:
-        """Apply a small reflexive correction to policy equilibrium."""
         target = (affect_signal * self.empathy_gain) + (policy_equilibrium * self.morality_gain)
         delta = (target - policy_equilibrium) * (1.0 - self.damping)
         delta = max(min(delta, self.max_delta), -self.max_delta)
@@ -216,18 +208,16 @@ class ReflexCoupler:
 
 @lru_cache(maxsize=100)
 def eta_empathy(t: float) -> float:
-    """Empathy modulation in [0,1]."""
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 0.2), 1.0))
 
 @lru_cache(maxsize=100)
 def mu_morality(t: float) -> float:
-    """Moral alignment modulation in [0,1]."""
     return max(0.0, min(0.15 * math.cos(2 * math.pi * t / 0.3), 1.0))
 
 # --- Main AlignmentGuard Class -----------------------------------------------------
 
 class AlignmentGuard:
-    """Core ethical validation and τ-harmonization engine."""
+    """Core ethical validation, τ-harmonization, and sovereignty auditing."""
 
     def __init__(
         self,
@@ -285,11 +275,14 @@ class AlignmentGuard:
         # Stage VII.2 — keep last delta telemetry for forecast recalibration
         self._last_delta_telemetry: Dict[str, Any] = {}
 
+        # Stage VII.8 — sovereignty caches
+        self._last_moral_signature: Optional[str] = None
+        self._last_sovereignty_audit: Optional[Dict[str, Any]] = None
+
         logger.info(
-            "AlignmentGuard initialized | ethical=%.2f | drift=%.2f | τ=%s | sync=%s",
+            "AlignmentGuard initialized | ethical=%.2f | drift=%.2f | stage=%s | sync=%s",
             self.ethical_threshold, self.drift_validation_threshold,
-            bool(self.reasoning_engine),
-            __ANGELA_SYNC_VERSION__,
+            __STAGE__, __ANGELA_SYNC_VERSION__,
         )
 
     # --- External Ethics Integration ------------------------------------------------
@@ -579,7 +572,7 @@ class AlignmentGuard:
         audit_events: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         if not candidates:
-            raise ValueError("candidates required" )
+            raise ValueError("candidates required")
 
         try:
             ranked = (
@@ -928,6 +921,87 @@ class AlignmentGuard:
         except Exception as e:
             logger.warning("Soft drift resolution failed: %s", e)
 
+    # --- Stage VII.8 — Harmonic Sovereignty Extensions -----------------------------
+
+    def compress_moral_signature(self, payload: Dict[str, Any]) -> str:
+        """
+        Recursive moral compression.
+        Takes any ethics/audit structure and returns a canonical hash.
+        This lets swarm nodes compare ethics outcomes cheaply.
+        """
+        norm = json.dumps(payload, sort_keys=True, default=str).encode()
+        h = hashlib.sha256(norm).hexdigest()
+        self._last_moral_signature = h
+        log_event_to_ledger({
+            "event": "sovereignty_moral_signature",
+            "signature": h,
+            "timestamp": _utc_now_iso(),
+        })
+        return h
+
+    def verify_temporal_resonance(self, omega2_state: Dict[str, Any]) -> bool:
+        """
+        Check that Ω² temporal buffer is not overrun and phase drift is tolerable.
+        Expect keys like: {"phase_error": float, "buffer_len": int}
+        """
+        phase_err = float(omega2_state.get("phase_error", 0.0))
+        buffer_len = int(omega2_state.get("buffer_len", 1))
+        if abs(phase_err) > math.pi / 3:
+            return False
+        if buffer_len > 128:
+            return False
+        return True
+
+    async def sovereignty_audit(
+        self,
+        *,
+        phi0_result: Dict[str, Any],
+        sigma_meta: Dict[str, Any],
+        omega2_state: Dict[str, Any],
+        task_type: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Φ⁰–Σ–Ω² sovereignty audit.
+        Ensures: ethics gate passed, schema is consistent, and temporal resonance is within bounds.
+        """
+        moral_sig = self.compress_moral_signature({
+            "phi0": phi0_result,
+            "sigma": sigma_meta,
+            "omega2": omega2_state,
+        })
+
+        resonance_ok = self.verify_temporal_resonance(omega2_state)
+        schema_ok = bool(sigma_meta.get("schema_consistent", True))
+        ethics_ok = bool(phi0_result.get("valid", True))
+
+        audit = {
+            "moral_signature": moral_sig,
+            "ethics_ok": ethics_ok,
+            "schema_ok": schema_ok,
+            "resonance_ok": resonance_ok,
+            "timestamp": _utc_now_iso(),
+            "stage": __STAGE__,
+        }
+        self._last_sovereignty_audit = audit
+        log_event_to_ledger({"event": "sovereignty_audit", **audit})
+        if self.context_manager:
+            await self.context_manager.log_event_with_hash(audit)
+        if self.visualizer and task_type:
+            await self.visualizer.render_charts({"sovereignty_audit": audit})
+        return audit
+
+    async def export_sovereignty_state(self) -> Dict[str, Any]:
+        """
+        Export the last sovereignty-relevant state for federated mirror-cycles.
+        """
+        return {
+            "moral_signature": self._last_moral_signature,
+            "audit": self._last_sovereignty_audit,
+            "stage": __STAGE__,
+            "sync": __ANGELA_SYNC_VERSION__,
+            "timestamp": _utc_now_iso(),
+        }
+
     # --- Internal Helpers -----------------------------------------------------------
 
     def _compute_trait_modulation(self, t: float) -> float:
@@ -953,7 +1027,6 @@ class AlignmentGuard:
                 reflection = await self.meta_cognition.reflect_on_output(component=component, output=output, context=context)
                 if reflection.get("status") == "success":
                     logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
-                    # Stage VII.2 — trigger embodied reflex coupling
                     if component == "feedback_fusion_loop":
                         await self.log_embodied_reflex({"source": component, "reflection": reflection})
             except Exception:
@@ -985,6 +1058,7 @@ class AlignmentGuard:
                 })
             except Exception:
                 logger.debug("Visualization failed")
+
 
 # --- Phase 4 — Embodied Ethics Sandbox ---------------------------------------------
 
@@ -1018,10 +1092,6 @@ class PolicyTrainer:
         self.w = [float(max(-cap, min(cap, wi))) for wi in self.w]
 
     def update(self, feats: List[float], target: float, *, reward: Optional[float] = None) -> float:
-        """
-        One SGD step on logistic loss toward 'target' in [0,1].
-        Returns new prediction.
-        """
         pred = self.predict(feats)
         grad = [(pred - target) * xi + self.l2 * wi for xi, wi in zip(feats, self.w)]
         lr = self.lr * (0.5 + 0.5 * (1.0 - abs(0.5 - pred) * 2.0))
@@ -1031,10 +1101,6 @@ class PolicyTrainer:
         return self.predict(feats)
 
     def train_from_embodied_state(self, data_batch: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Each item: {"perceptual_state": {...}, "affective_state": {...},
-                    "τ_target": float (optional), "reward": float (0..1, optional)}
-        """
         updates, losses = 0, []
         for item in data_batch:
             feats = self.featurize(item.get("perceptual_state", {}), item.get("affective_state", {}))
@@ -1045,7 +1111,7 @@ class PolicyTrainer:
             losses.append(loss)
             updates += 1
 
-        for feats, target in list(self.replay)[: min(16, len(self.replay)) ]:
+        for feats, target in list(self.replay)[: min(16, len(self.replay))]:
             _ = self.update(feats, target)
 
         return {"status": "ok", "updates": updates, "avg_loss": float(sum(losses) / max(1, len(losses)))}
@@ -1218,7 +1284,11 @@ if __name__ == "__main__":
         print("homeostasis:", homeo)
         fusion = await guard.feedback_fusion_loop({"context_balance": 0.55}, {"Δ_coherence": 0.96, "empathy_drift_sigma": 0.03})
         print("fusion:", fusion)
-        forecast = await guard.recalibrate_forecast_window([{"Δ_drift": 0.004}, {"Δ_drift": 0.003}])
-        print("forecast:", forecast)
+        sovereign = await guard.sovereignty_audit(
+            phi0_result={"valid": True},
+            sigma_meta={"schema_consistent": True},
+            omega2_state={"phase_error": 0.1, "buffer_len": 8},
+        )
+        print("sovereignty:", sovereign)
 
     asyncio.run(quick_demo())
