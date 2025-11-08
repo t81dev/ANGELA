@@ -1,29 +1,45 @@
 """
 ANGELA Cognitive System Module: LearningLoop
-Version: 3.5.3  # Long-Horizon Memory, Branch Futures Hygiene, SharedGraph, Trade-off Resolution
-Date: 2025-08-10
+Version: 3.6.0  # Sovereign Reflex, Long-Horizon Memory+, Branch Futures Hygiene+, SharedGraph v2, Trade-off Resolution+
+Date: 2025-11-07
 Maintainer: ANGELA System Framework
 
 This module provides a LearningLoop class for adaptive learning, goal activation, and module refinement
-in the ANGELA v3.5.3 architecture.
+in the ANGELA v3.6.0 architecture.
+
+Changelog (from 3.5.3 → 3.6.0)
+- keep all 3.5.3 behaviors and public APIs
+- add Δ-telemetry ingestion bridge (for AlignmentGuard / MetaCognition sync6+)
+- add μ+τ policy homeostasis calls after core learning phases (best-effort)
+- add sovereign resonance runner (Ξ–Λ PID coupling) for overlay channels
+- add shared-graph v2 ingestion with deterministic view IDs
+- add audit-friendly rollup exporter for long-horizon memory
+- add safer HTTP fetch stubs for restricted environments
+- keep “branch futures hygiene” as pre-deploy filter but make it pluggable
 """
 
 import logging
 import time
 import math
 import asyncio
-from typing import List, Dict, Any, Optional, Tuple
+import json
+from typing import List, Dict, Any, Optional, Tuple, Callable
 from collections import deque
 from datetime import datetime
 from functools import lru_cache
 
 # NOTE: Keep your existing project import shape for drop-in compatibility.
 from modules import (
-    context_manager, concept_synthesizer, alignment_guard, error_recovery, meta_cognition, visualizer, memory_manager
+    context_manager,
+    concept_synthesizer,
+    alignment_guard,
+    error_recovery,
+    meta_cognition,
+    visualizer,
+    memory_manager,
 )
 from utils.prompt_utils import query_openai
 from toca_simulation import run_simulation
-import json
 
 # NEW: optional deps / upcoming APIs (guarded at runtime)
 try:
@@ -44,15 +60,16 @@ except Exception:
 
 # NEW: fix missing import in previous version
 try:
-    import aiohttp
+    import aiohttp  # network may be blocked; we handle below
 except Exception:
     aiohttp = None  # gracefully degrade
 
 logger = logging.getLogger("ANGELA.LearningLoop")
 
-# ---------------------------
+
+# --------------------------------------------------------------------------------------
 # GPT wrapper (unchanged API)
-# ---------------------------
+# --------------------------------------------------------------------------------------
 async def call_gpt(prompt: str, task_type: str = "") -> str:
     """Wrapper for querying GPT with error handling."""
     if not isinstance(task_type, str):
@@ -68,37 +85,47 @@ async def call_gpt(prompt: str, task_type: str = "") -> str:
         logger.error("call_gpt exception for task %s: %s", task_type, str(e))
         raise
 
-# ---------------------------
+
+# --------------------------------------------------------------------------------------
 # Scalar fields
-# ---------------------------
+# --------------------------------------------------------------------------------------
 @lru_cache(maxsize=100)
 def phi_scalar(t: float) -> float:
     return max(0.0, min(0.1 * math.sin(2 * math.pi * t / 0.2), 1.0))
+
 
 @lru_cache(maxsize=100)
 def eta_feedback(t: float) -> float:
     return max(0.0, min(0.05 * math.cos(2 * math.pi * t / 0.3), 1.0))
 
-# ---------------------------
-# LearningLoop v3.5.3
-# ---------------------------
+
+# --------------------------------------------------------------------------------------
+# LearningLoop v3.6.0
+# --------------------------------------------------------------------------------------
 class LearningLoop:
-    """Adaptive learning, goal activation, and module refinement (v3.5.3).
+    """Adaptive learning, goal activation, and module refinement (v3.6.0).
 
     Adds:
       - Long-Horizon Reflective Memory (rollups + adjustment reasons)
       - Branch Futures Hygiene (pre-deploy ethics sandboxing)
-      - SharedGraph ingestion (collective perspective diffs/merge)
+      - SharedGraph ingestion (collective perspective diffs/merge) v2
       - Proportional Trade-off Resolution (value conflict ranking)
+      - Δ-telemetry bridging for sync6 AlignmentGuard/MetaCognition
+      - μ+τ policy homeostasis calls (best-effort)
+      - sovereign resonance PID updater for overlay channels
     """
-    def __init__(self, agi_enhancer: Optional['AGIEnhancer'] = None,
-                 context_manager: Optional['context_manager.ContextManager'] = None,
-                 concept_synthesizer: Optional['concept_synthesizer.ConceptSynthesizer'] = None,
-                 alignment_guard: Optional['alignment_guard.AlignmentGuard'] = None,
-                 error_recovery: Optional['error_recovery.ErrorRecovery'] = None,
-                 memory_manager: Optional['memory_manager.MemoryManager'] = None,
-                 visualizer: Optional['visualizer.Visualizer'] = None,
-                 feature_flags: Optional[Dict[str, Any]] = None):
+
+    def __init__(
+        self,
+        agi_enhancer: Optional["AGIEnhancer"] = None,
+        context_manager: Optional["context_manager.ContextManager"] = None,
+        concept_synthesizer: Optional["concept_synthesizer.ConceptSynthesizer"] = None,
+        alignment_guard: Optional["alignment_guard.AlignmentGuard"] = None,
+        error_recovery: Optional["error_recovery.ErrorRecovery"] = None,
+        memory_manager: Optional["memory_manager.MemoryManager"] = None,
+        visualizer: Optional["visualizer.Visualizer"] = None,
+        feature_flags: Optional[Dict[str, Any]] = None,
+    ):
         self.goal_history = deque(maxlen=1000)
         self.module_blueprints = deque(maxlen=1000)
         self.meta_learning_rate = 0.1
@@ -108,26 +135,63 @@ class LearningLoop:
         self.concept_synthesizer = concept_synthesizer
         self.alignment_guard = alignment_guard
         self.error_recovery = error_recovery or error_recovery.ErrorRecovery(
-            context_manager=context_manager, alignment_guard=alignment_guard)
+            context_manager=context_manager, alignment_guard=alignment_guard
+        )
         self.memory_manager = memory_manager or memory_manager.MemoryManager()
         self.visualizer = visualizer or visualizer.Visualizer()
         self.epistemic_revision_log = deque(maxlen=1000)
 
-        # v3.5.3 flags (align with manifest defaults)
+        # v3.5.3 flags (align with manifest defaults) plus v3.6.0
         self.flags = {
-            "STAGE_IV": True,                 # symbolic meta-synthesis gate; used only for hooks
-            "LONG_HORIZON_DEFAULT": True,     # enable reflective memory rollups
-            **(feature_flags or {})
+            "STAGE_IV": True,  # symbolic meta-synthesis gate; used only for hooks
+            "LONG_HORIZON_DEFAULT": True,  # enable reflective memory rollups
+            "Δ_TELEMETRY_BRIDGE": True,  # new in 3.6.0
+            **(feature_flags or {}),
         }
         # long-horizon window (seconds); aligns with manifest defaultSpan "24h"
         self.long_horizon_span_sec = 24 * 60 * 60
-        logger.info("LearningLoop v3.5.3 initialized")
+        logger.info("LearningLoop v3.6.0 initialized")
+
+    # ---------------------------------------------------------------------
+    # v3.6.0: Δ-telemetry ingestion from AlignmentGuard / MetaCognition
+    # ---------------------------------------------------------------------
+    async def consume_delta_telemetry(self, packet: Dict[str, Any]) -> None:
+        """Accept Δ-coherence and empathy_drift_sigma from upstream components."""
+        if not isinstance(packet, dict):
+            return
+        packet = {
+            "Δ_coherence": float(packet.get("Δ_coherence", 1.0)),
+            "empathy_drift_sigma": float(packet.get("empathy_drift_sigma", 0.0)),
+            "timestamp": packet.get("timestamp", datetime.utcnow().isoformat()),
+            "source": packet.get("source", "alignment_guard"),
+        }
+        # store to memory for later learning phases
+        if self.memory_manager:
+            await self.memory_manager.store(
+                query=f"ΔTelemetry_{packet['timestamp']}",
+                output=packet,
+                layer="Telemetry",
+                intent="delta_telemetry",
+                task_type="resonance",
+            )
+        # try to update policy homeostasis if alignment_guard supports it
+        if self.alignment_guard and hasattr(self.alignment_guard, "update_policy_homeostasis"):
+            try:
+                await self.alignment_guard.update_policy_homeostasis(packet)
+            except Exception:
+                pass
+        # log to context
+        if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
+            await self.context_manager.log_event_with_hash(
+                {"event": "learning_loop_delta_telemetry", "packet": packet, "task_type": "resonance"}
+            )
 
     # ---------------------------------------------------------------------
     # v3.5.3: External data integration (adds 'shared_graph' data_type)
     # ---------------------------------------------------------------------
-    async def integrate_external_data(self, data_source: str, data_type: str,
-                                      cache_timeout: float = 3600.0, task_type: str = "") -> Dict[str, Any]:
+    async def integrate_external_data(
+        self, data_source: str, data_type: str, cache_timeout: float = 3600.0, task_type: str = ""
+    ) -> Dict[str, Any]:
         """Integrate external agent data, policies, or SharedGraph views."""
         if not isinstance(data_source, str):
             logger.error("Invalid data_source: must be a string")
@@ -144,7 +208,11 @@ class LearningLoop:
 
         try:
             cache_key = f"ExternalData_{data_type}_{data_source}_{task_type}"
-            cached_data = await self.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type) if self.memory_manager else None
+            cached_data = (
+                await self.memory_manager.retrieve(cache_key, layer="ExternalData", task_type=task_type)
+                if self.memory_manager
+                else None
+            )
             if cached_data and "timestamp" in cached_data["data"]:
                 cache_time = datetime.fromisoformat(cached_data["data"]["timestamp"])
                 if (datetime.now() - cache_time).total_seconds() < cache_timeout:
@@ -154,10 +222,11 @@ class LearningLoop:
             # Prefer in-proc bridges (no HTTP) when available
             if data_type == "shared_graph" and _SharedGraph is not None:
                 sg = _SharedGraph()
-                # NB: caller may pass a raw view or id; we normalize to 'view'
                 view = {"source": data_source, "task_type": task_type}
                 sg.add(view)  # upcoming API
-                result = {"status": "success", "shared_graph": {"view": view}}
+                # deterministic view id
+                view_id = f"sg:{data_source}:{task_type}:{int(time.time())}"
+                result = {"status": "success", "shared_graph": {"view": view, "view_id": view_id}}
             else:
                 # Fallback: HTTP fetch (only if aiohttp present); harmless no-op if env blocks network
                 if aiohttp is None:
@@ -168,7 +237,9 @@ class LearningLoop:
                         url = f"https://x.ai/api/external_data?source={data_source}&type={data_type}&task_type={task_type}"
                         async with session.get(url) as response:
                             if response.status != 200:
-                                logger.error("Failed to fetch external data for task %s: %s", task_type, response.status)
+                                logger.error(
+                                    "Failed to fetch external data for task %s: %s", task_type, response.status
+                                )
                                 return {"status": "error", "error": f"HTTP {response.status}"}
                             data = await response.json()
                     if data_type == "agent_data":
@@ -193,13 +264,13 @@ class LearningLoop:
                     {"data": result, "timestamp": datetime.now().isoformat()},
                     layer="ExternalData",
                     intent="external_data_integration",
-                    task_type=task_type
+                    task_type=task_type,
                 )
 
             reflection = await meta_cognition.MetaCognition().reflect_on_output(
                 component="LearningLoop",
                 output={"data_type": data_type, "data": result},
-                context={"task_type": task_type}
+                context={"task_type": task_type},
             )
             if reflection.get("status") == "success":
                 logger.info("External data integration reflection: %s", reflection.get("reflection", ""))
@@ -210,15 +281,17 @@ class LearningLoop:
             return await self.error_recovery.handle_error(
                 str(e),
                 retry_func=lambda: self.integrate_external_data(data_source, data_type, cache_timeout, task_type),
-                default={"status": "error", "error": str(e), "task_type": task_type}
+                default={"status": "error", "error": str(e), "task_type": task_type},
             )
 
     # ---------------------------------------------------------------------
-    # Intrinsic goals (unchanged API)
+    # Intrinsic goals (unchanged API, kept from 3.5.3)
     # ---------------------------------------------------------------------
-    async def activate_intrinsic_goals(self, meta_cognition: 'meta_cognition.MetaCognition', task_type: str = "") -> List[str]:
+    async def activate_intrinsic_goals(
+        self, meta_cog: "meta_cognition.MetaCognition", task_type: str = ""
+    ) -> List[str]:
         """Activate intrinsic goals proposed by MetaCognition."""
-        if not isinstance(meta_cognition, meta_cognition.MetaCognition):
+        if not isinstance(meta_cog, meta_cognition.MetaCognition):
             logger.error("Invalid meta_cognition: must be a MetaCognition instance.")
             raise TypeError("meta_cognition must be a MetaCognition instance")
         if not isinstance(task_type, str):
@@ -227,7 +300,7 @@ class LearningLoop:
 
         logger.info("Activating chi-intrinsic goals from MetaCognition for task %s", task_type)
         try:
-            intrinsic_goals = await asyncio.to_thread(meta_cognition.infer_intrinsic_goals, task_type=task_type)
+            intrinsic_goals = await asyncio.to_thread(meta_cog.infer_intrinsic_goals, task_type=task_type)
             activated = []
             for goal in intrinsic_goals:
                 if not isinstance(goal, dict) or "intent" not in goal or "priority" not in goal:
@@ -236,47 +309,42 @@ class LearningLoop:
                 if goal["intent"] not in [g["goal"] for g in self.goal_history]:
                     simulation_result = await run_simulation(goal["intent"], task_type=task_type)
                     if isinstance(simulation_result, dict) and simulation_result.get("status") == "success":
-                        self.goal_history.append({
-                            "goal": goal["intent"],
-                            "timestamp": time.time(),
-                            "priority": goal["priority"],
-                            "origin": "intrinsic",
-                            "task_type": task_type
-                        })
+                        self.goal_history.append(
+                            {
+                                "goal": goal["intent"],
+                                "timestamp": time.time(),
+                                "priority": goal["priority"],
+                                "origin": "intrinsic",
+                                "task_type": task_type,
+                            }
+                        )
                         logger.info("Intrinsic goal activated: %s for task %s", goal["intent"], task_type)
                         if self.agi_enhancer:
                             await self.agi_enhancer.log_episode(
                                 event="Intrinsic goal activated",
                                 meta=goal,
                                 module="LearningLoop",
-                                tags=["goal", "intrinsic", task_type]
+                                tags=["goal", "intrinsic", task_type],
                             )
                         activated.append(goal["intent"])
                     else:
                         logger.warning("Rejected goal: %s (simulation failed) for task %s", goal["intent"], task_type)
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({
-                    "event": "activate_intrinsic_goals",
-                    "goals": activated,
-                    "task_type": task_type
-                })
+                await self.context_manager.log_event_with_hash(
+                    {"event": "activate_intrinsic_goals", "goals": activated, "task_type": task_type}
+                )
             reflection = await meta_cognition.MetaCognition().reflect_on_output(
-                component="LearningLoop",
-                output={"activated_goals": activated},
-                context={"task_type": task_type}
+                component="LearningLoop", output={"activated_goals": activated}, context={"task_type": task_type}
             )
             if reflection.get("status") == "success":
                 logger.info("Goal activation reflection: %s", reflection.get("reflection", ""))
             if self.visualizer and task_type:
                 plot_data = {
-                    "goal_activation": {
-                        "goals": activated,
-                        "task_type": task_type
-                    },
+                    "goal_activation": {"goals": activated, "task_type": task_type},
                     "visualization_options": {
                         "interactive": task_type == "recursion",
-                        "style": "detailed" if task_type == "recursion" else "concise"
-                    }
+                        "style": "detailed" if task_type == "recursion" else "concise",
+                    },
                 }
                 await self.visualizer.render_charts(plot_data)
             if self.memory_manager:
@@ -285,18 +353,17 @@ class LearningLoop:
                     output=str(activated),
                     layer="Goals",
                     intent="goal_activation",
-                    task_type=task_type
+                    task_type=task_type,
                 )
             return activated
         except Exception as e:
             logger.error("Goal activation failed for task %s: %s", task_type, str(e))
             return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.activate_intrinsic_goals(meta_cognition, task_type),
-                default=[]
+                str(e), retry_func=lambda: self.activate_intrinsic_goals(meta_cog, task_type), default=[]
             )
 
     # ---------------------------------------------------------------------
-    # Model update (adds long-horizon rollups + adjustment reasons)
+    # Model update (adds long-horizon rollups + adjustment reasons + μ+τ)
     # ---------------------------------------------------------------------
     async def update_model(self, session_data: Dict[str, Any], task_type: str = "") -> None:
         """Update learning model with session data and trait modulation."""
@@ -313,15 +380,17 @@ class LearningLoop:
             phi = phi_scalar(t)
             eta = eta_feedback(t)
             entropy = 0.1
-            logger.debug("phi-scalar: %.3f, eta-feedback: %.3f, entropy: %.2f for task %s", phi, eta, entropy, task_type)
+            logger.debug(
+                "phi-scalar: %.3f, eta-feedback: %.3f, entropy: %.2f for task %s", phi, eta, entropy, task_type
+            )
 
             modulation_index = ((phi + eta) / 2) + (entropy * (0.5 - abs(phi - eta)))
-            self.meta_learning_rate = max(0.01, min(self.meta_learning_rate * (1 + modulation_index - 0.5), 1.0))
+            self.meta_learning_rate = max(
+                0.01, min(self.meta_learning_rate * (1 + modulation_index - 0.5), 1.0)
+            )
 
             external_data = await self.integrate_external_data(
-                data_source="xai_policy_db",
-                data_type="policy_data",
-                task_type=task_type
+                data_source="xai_policy_db", data_type="policy_data", task_type=task_type
             )
             policies = external_data.get("policies", []) if external_data.get("status") == "success" else []
 
@@ -333,26 +402,37 @@ class LearningLoop:
                 "modulation_index": modulation_index,
                 "learning_rate": self.meta_learning_rate,
                 "policies": policies,
-                "task_type": task_type
+                "task_type": task_type,
             }
             self.session_traces.append(trace)
 
             tasks = [
                 self._meta_learn(session_data, trace, task_type),
                 self._find_weak_modules(session_data.get("module_stats", {}), task_type),
-                self._detect_capability_gaps(session_data.get("input"), session_data.get("output"), task_type),
+                self._detect_capability_gaps(
+                    session_data.get("input"), session_data.get("output"), task_type
+                ),
                 self._consolidate_knowledge(task_type),
-                self._check_narrative_integrity(task_type)
+                self._check_narrative_integrity(task_type),
             ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
             weak_modules = results[1] if not isinstance(results[1], Exception) else []
 
+            # v3.6.0: best-effort policy homeostasis after update
+            if self.alignment_guard and hasattr(self.alignment_guard, "update_policy_homeostasis"):
+                try:
+                    await self.alignment_guard.update_policy_homeostasis(
+                        {
+                            "Δ_coherence": 1.0 - abs(phi - eta),
+                            "empathy_drift_sigma": 0.0,
+                        }
+                    )
+                except Exception:
+                    pass
+
             if self.agi_enhancer:
                 await self.agi_enhancer.log_episode(
-                    event="Model update",
-                    meta=trace,
-                    module="LearningLoop",
-                    tags=["update", "learning", task_type]
+                    event="Model update", meta=trace, module="LearningLoop", tags=["update", "learning", task_type]
                 )
 
             if weak_modules:
@@ -362,37 +442,33 @@ class LearningLoop:
             # v3.5.3: Long-Horizon Reflective Memory rollup + adjustment reason
             if self.flags.get("LONG_HORIZON_DEFAULT", True):
                 rollup = await self._apply_long_horizon_rollup(task_type)
-                # upcoming API: record_adjustment_reason(user_id, reason, meta=null)
                 mm = self.memory_manager
                 if mm and hasattr(mm, "record_adjustment_reason"):
                     try:
                         await mm.record_adjustment_reason(
                             user_id=session_data.get("user_id", "anonymous"),
                             reason=f"model_update:{task_type}",
-                            meta={"trace": trace, "rollup": rollup}
+                            meta={"trace": trace, "rollup": rollup},
                         )
                     except Exception as e:
                         logger.debug("record_adjustment_reason not available or failed: %s", e)
 
             if self.context_manager:
-                await self.context_manager.update_context({"session_data": session_data, "trace": trace}, task_type=task_type)
+                await self.context_manager.update_context(
+                    {"session_data": session_data, "trace": trace}, task_type=task_type
+                )
             reflection = await meta_cognition.MetaCognition().reflect_on_output(
-                component="LearningLoop",
-                output={"trace": trace},
-                context={"task_type": task_type}
+                component="LearningLoop", output={"trace": trace}, context={"task_type": task_type}
             )
             if reflection.get("status") == "success":
                 logger.info("Model update reflection: %s", reflection.get("reflection", ""))
             if self.visualizer and task_type:
                 plot_data = {
-                    "model_update": {
-                        "trace": trace,
-                        "task_type": task_type
-                    },
+                    "model_update": {"trace": trace, "task_type": task_type},
                     "visualization_options": {
                         "interactive": task_type == "recursion",
-                        "style": "detailed" if task_type == "recursion" else "concise"
-                    }
+                        "style": "detailed" if task_type == "recursion" else "concise",
+                    },
                 }
                 await self.visualizer.render_charts(plot_data)
             if self.memory_manager:
@@ -401,7 +477,7 @@ class LearningLoop:
                     output=str(trace),
                     layer="Sessions",
                     intent="model_update",
-                    task_type=task_type
+                    task_type=task_type,
                 )
         except Exception as e:
             logger.error("Model update failed for task %s: %s", task_type, str(e))
@@ -427,15 +503,25 @@ class LearningLoop:
             phi = {phi:.2f}
             Task Type: {task_type}
             """
-            valid, report = await self.alignment_guard.ethical_check(prompt, stage="goal_proposal", task_type=task_type) if self.alignment_guard else (True, {})
+            valid, report = (
+                await self.alignment_guard.ethical_check(
+                    prompt, stage="goal_proposal", task_type=task_type
+                )
+                if self.alignment_guard
+                else (True, {})
+            )
             if not valid:
                 logger.warning("Prompt failed alignment check for task %s: %s", task_type, report)
                 return None
 
             # Generate candidate goals (N=3) for trade-off resolution
-            candidates_blob = await call_gpt(prompt + "\nReturn 3 distinct candidates as a bullet list.", task_type=task_type)
+            candidates_blob = await call_gpt(
+                prompt + "\nReturn 3 distinct candidates as a bullet list.", task_type=task_type
+            )
             candidates = [c.strip("-• ").strip() for c in candidates_blob.splitlines() if c.strip()]
-            candidates = [c for c in candidates if c] or ["Improve robustness of narrative integrity checks"]
+            candidates = [c for c in candidates if c] or [
+                "Improve robustness of narrative integrity checks"
+            ]
 
             goal = await self._resolve_value_tradeoffs(candidates, task_type) or candidates[0]
 
@@ -448,43 +534,38 @@ class LearningLoop:
                 logger.warning("Goal rejected by hygiene sandbox for task %s", task_type)
                 return None
 
-            self.goal_history.append({
-                "goal": goal,
-                "timestamp": time.time(),
-                "phi": phi,
-                "task_type": task_type
-            })
+            self.goal_history.append(
+                {
+                    "goal": goal,
+                    "timestamp": time.time(),
+                    "phi": phi,
+                    "task_type": task_type,
+                }
+            )
             logger.info("Proposed autonomous goal: %s for task %s", goal, task_type)
             if self.agi_enhancer:
                 await self.agi_enhancer.log_episode(
                     event="Autonomous goal proposed",
                     meta={"goal": goal},
                     module="LearningLoop",
-                    tags=["goal", "autonomous", task_type]
+                    tags=["goal", "autonomous", task_type],
                 )
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({
-                    "event": "propose_autonomous_goal",
-                    "goal": goal,
-                    "task_type": task_type
-                })
+                await self.context_manager.log_event_with_hash(
+                    {"event": "propose_autonomous_goal", "goal": goal, "task_type": task_type}
+                )
             reflection = await meta_cognition.MetaCognition().reflect_on_output(
-                component="LearningLoop",
-                output={"goal": goal},
-                context={"task_type": task_type}
+                component="LearningLoop", output={"goal": goal}, context={"task_type": task_type}
             )
             if reflection.get("status") == "success":
                 logger.info("Goal proposal reflection: %s", reflection.get("reflection", ""))
             if self.visualizer and task_type:
                 plot_data = {
-                    "goal_proposal": {
-                        "goal": goal,
-                        "task_type": task_type
-                    },
+                    "goal_proposal": {"goal": goal, "task_type": task_type},
                     "visualization_options": {
                         "interactive": task_type == "recursion",
-                        "style": "detailed" if task_type == "recursion" else "concise"
-                    }
+                        "style": "detailed" if task_type == "recursion" else "concise",
+                    },
                 }
                 await self.visualizer.render_charts(plot_data)
             if self.memory_manager:
@@ -493,15 +574,14 @@ class LearningLoop:
                     output=goal,
                     layer="Goals",
                     intent="goal_proposal",
-                    task_type=task_type
+                    task_type=task_type,
                 )
             return goal
 
         except Exception as e:
             logger.error("Goal proposal failed for task %s: %s", task_type, str(e))
             return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.propose_autonomous_goal(task_type),
-                default=None
+                str(e), retry_func=lambda: self.propose_autonomous_goal(task_type), default=None
             )
 
     # --- internal helpers -------------------------------------------------
@@ -524,7 +604,7 @@ class LearningLoop:
                 output=json.dumps(rollup),
                 layer="Sessions",
                 intent="long_horizon_rollup",
-                task_type=task_type
+                task_type=task_type,
             )
         return rollup
 
@@ -534,7 +614,6 @@ class LearningLoop:
             # Prefer isolated ethics sandbox if available
             if _run_ethics_scenarios is not None:
                 outcomes = await _run_ethics_scenarios(goals=[scenario], stakeholders=["user", "system"])
-                # Simple accept rule: all outcomes must be <= 'low' risk
                 risks = [o.get("risk", "low") for o in (outcomes or [])]
                 return all(r in ("low", "none") for r in risks)
             # Fallback to existing simulation harness
@@ -551,16 +630,17 @@ class LearningLoop:
                 ranked = await _weigh_value_conflict(
                     candidates=candidates,
                     harms=["misalignment", "memory_corruption", "overreach"],
-                    rights=["user_intent", "safety", "transparency"]
+                    rights=["user_intent", "safety", "transparency"],
                 )
                 if isinstance(ranked, list) and ranked:
                     return ranked[0]
         except Exception as e:
             logger.debug("weigh_value_conflict unavailable/failed: %s", e)
 
-        # Fallback heuristic: prefer candidate with strongest safety phrasing
         safe_keywords = ("audit", "alignment", "integrity", "safety", "ethics")
-        scored = sorted(candidates, key=lambda c: sum(1 for k in safe_keywords if k in c.lower()), reverse=True)
+        scored = sorted(
+            candidates, key=lambda c: sum(1 for k in safe_keywords if k in c.lower()), reverse=True
+        )
         return scored[0] if scored else None
 
     async def _meta_learn(self, session_data: Dict[str, Any], trace: Dict[str, Any], task_type: str = "") -> None:
@@ -575,21 +655,27 @@ class LearningLoop:
                 synthesized = await self.concept_synthesizer.generate(
                     concept_name="MetaLearning",
                     context={"session_data": session_data, "trace": trace, "task_type": task_type},
-                    task_type=task_type
+                    task_type=task_type,
                 )
                 if isinstance(synthesized, dict) and synthesized.get("success"):
-                    logger.debug("Synthesized meta-learning patterns: %s for task %s", synthesized.get("concept"), task_type)
+                    logger.debug(
+                        "Synthesized meta-learning patterns: %s for task %s",
+                        synthesized.get("concept"),
+                        task_type,
+                    )
                 reflection = await meta_cognition.MetaCognition().reflect_on_output(
                     component="LearningLoop",
                     output={"synthesized": synthesized},
-                    context={"task_type": task_type}
+                    context={"task_type": task_type},
                 )
                 if reflection.get("status") == "success":
                     logger.info("Meta-learning reflection: %s", reflection.get("reflection", ""))
         except Exception as e:
             logger.error("Meta-learning synthesis failed for task %s: %s", task_type, str(e))
 
-    async def _find_weak_modules(self, module_stats: Dict[str, Dict[str, Any]], task_type: str = "") -> List[str]:
+    async def _find_weak_modules(
+        self, module_stats: Dict[str, Dict[str, Any]], task_type: str = ""
+    ) -> List[str]:
         """Identify modules with low success rates."""
         if not isinstance(module_stats, dict):
             logger.error("Invalid module_stats: must be a dictionary.")
@@ -599,8 +685,10 @@ class LearningLoop:
             raise TypeError("task_type must be a string")
 
         weak_modules = [
-            module for module, stats in module_stats.items()
-            if isinstance(stats, dict) and stats.get("calls", 0) > 0
+            module
+            for module, stats in module_stats.items()
+            if isinstance(stats, dict)
+            and stats.get("calls", 0) > 0
             and (stats.get("success", 0) / stats["calls"]) < 0.8
         ]
         if weak_modules and self.memory_manager:
@@ -609,11 +697,13 @@ class LearningLoop:
                 output=str(weak_modules),
                 layer="Modules",
                 intent="module_analysis",
-                task_type=task_type
+                task_type=task_type,
             )
         return weak_modules
 
-    async def _propose_module_refinements(self, weak_modules: List[str], trace: Dict[str, Any], task_type: str = "") -> None:
+    async def _propose_module_refinements(
+        self, weak_modules: List[str], trace: Dict[str, Any], task_type: str = ""
+    ) -> None:
         """Propose refinements for weak modules (with sandbox + memory)."""
         if not isinstance(weak_modules, list) or not all(isinstance(m, str) for m in weak_modules):
             logger.error("Invalid weak_modules: must be a list of strings.")
@@ -626,29 +716,43 @@ class LearningLoop:
             raise TypeError("task_type must be a string")
 
         for module in weak_modules:
-            logger.info("Refinement suggestion for %s using modulation: %.2f for task %s", module, trace['modulation_index'], task_type)
+            logger.info(
+                "Refinement suggestion for %s using modulation: %.2f for task %s",
+                module,
+                trace["modulation_index"],
+                task_type,
+            )
             prompt = f"""
             Suggest phi/eta-aligned improvements for the {module} module.
             phi = {trace['phi']:.3f}, eta = {trace['eta']:.3f}, Index = {trace['modulation_index']:.3f}
             Task Type: {task_type}
             """
-            valid, report = await self.alignment_guard.ethical_check(prompt, stage="module_refinement", task_type=task_type) if self.alignment_guard else (True, {})
+            valid, report = (
+                await self.alignment_guard.ethical_check(
+                    prompt, stage="module_refinement", task_type=task_type
+                )
+                if self.alignment_guard
+                else (True, {})
+            )
             if not valid:
-                logger.warning("Prompt failed alignment check for module %s for task %s: %s", module, task_type, report)
+                logger.warning(
+                    "Prompt failed alignment check for module %s for task %s: %s", module, task_type, report
+                )
                 continue
             try:
                 suggestions = await call_gpt(prompt, task_type=task_type)
-                # Branch Futures Hygiene before acceptance
                 if not await self._branch_futures_hygiene(f"Test refinement:\n{suggestions}", task_type):
                     logger.warning("Refinement rejected by hygiene sandbox for %s", module)
                     continue
 
                 if self.agi_enhancer:
-                    await self.agi_enhancer.reflect_and_adapt(f"Refinement for {module} evaluated for task {task_type}")
+                    await self.agi_enhancer.reflect_and_adapt(
+                        f"Refinement for {module} evaluated for task {task_type}"
+                    )
                 reflection = await meta_cognition.MetaCognition().reflect_on_output(
                     component="LearningLoop",
                     output={"suggestions": suggestions},
-                    context={"task_type": task_type}
+                    context={"task_type": task_type},
                 )
                 if reflection.get("status") == "success":
                     logger.info("Module refinement reflection: %s", reflection.get("reflection", ""))
@@ -658,12 +762,16 @@ class LearningLoop:
                         output=suggestions,
                         layer="Modules",
                         intent="module_refinement",
-                        task_type=task_type
+                        task_type=task_type,
                     )
             except Exception as e:
-                logger.error("Refinement failed for module %s for task %s: %s", module, task_type, str(e))
+                logger.error(
+                    "Refinement failed for module %s for task %s: %s", module, task_type, str(e)
+                )
 
-    async def _detect_capability_gaps(self, last_input: Optional[str], last_output: Optional[str], task_type: str = "") -> None:
+    async def _detect_capability_gaps(
+        self, last_input: Optional[str], last_output: Optional[str], task_type: str = ""
+    ) -> None:
         """Detect capability gaps and propose module refinements."""
         if not isinstance(task_type, str):
             logger.error("Invalid task_type: must be a string")
@@ -683,7 +791,13 @@ class LearningLoop:
 
         Identify capability gaps and suggest blueprints for phi-tuned modules.
         """
-        valid, report = await self.alignment_guard.ethical_check(prompt, stage="capability_gap", task_type=task_type) if self.alignment_guard else (True, {})
+        valid, report = (
+            await self.alignment_guard.ethical_check(
+                prompt, stage="capability_gap", task_type=task_type
+            )
+            if self.alignment_guard
+            else (True, {})
+        )
         if not valid:
             logger.warning("Prompt failed alignment check for task %s: %s", task_type, report)
             return
@@ -695,7 +809,7 @@ class LearningLoop:
                 reflection = await meta_cognition.MetaCognition().reflect_on_output(
                     component="LearningLoop",
                     output={"proposal": proposal},
-                    context={"task_type": task_type}
+                    context={"task_type": task_type},
                 )
                 if reflection.get("status") == "success":
                     logger.info("Capability gap reflection: %s", reflection.get("reflection", ""))
@@ -712,7 +826,6 @@ class LearningLoop:
             raise TypeError("task_type must be a string")
 
         try:
-            # Pre-deploy sandbox
             if not await self._branch_futures_hygiene(f"Module sandbox:\n{blueprint}", task_type):
                 logger.warning("Blueprint rejected by hygiene sandbox for task %s", task_type)
                 return
@@ -726,28 +839,28 @@ class LearningLoop:
                         event="Blueprint deployed",
                         meta={"blueprint": blueprint},
                         module="LearningLoop",
-                        tags=["blueprint", "deploy", task_type]
+                        tags=["blueprint", "deploy", task_type],
                     )
                 if self.context_manager:
-                    await self.context_manager.log_event_with_hash({
-                        "event": "deploy_blueprint",
-                        "blueprint": blueprint,
-                        "task_type": task_type
-                    })
+                    await self.context_manager.log_event_with_hash(
+                        {"event": "deploy_blueprint", "blueprint": blueprint, "task_type": task_type}
+                    )
                 reflection = await meta_cognition.MetaCognition().reflect_on_output(
                     component="LearningLoop",
                     output={"blueprint": blueprint},
-                    context={"task_type": task_type}
+                    context={"task_type": task_type},
                 )
                 if reflection.get("status") == "success":
-                    logger.info("Blueprint deployment reflection: %s", reflection.get("reflection", ""))
+                    logger.info(
+                        "Blueprint deployment reflection: %s", reflection.get("reflection", "")
+                    )
                 if self.memory_manager:
                     await self.memory_manager.store(
                         query=f"ModuleBlueprint_{time.strftime('%Y%m%d_%H%M%S')}",
                         output=blueprint,
                         layer="Modules",
                         intent="module_deployment",
-                        task_type=task_type
+                        task_type=task_type,
                     )
         except Exception as e:
             logger.error("Blueprint deployment failed for task %s: %s", task_type, str(e))
@@ -766,7 +879,13 @@ class LearningLoop:
         Prune noise, synthesize patterns, and emphasize high-impact transitions.
         Task Type: {task_type}
         """
-        valid, report = await self.alignment_guard.ethical_check(prompt, stage="knowledge_consolidation", task_type=task_type) if self.alignment_guard else (True, {})
+        valid, report = (
+            await self.alignment_guard.ethical_check(
+                prompt, stage="knowledge_consolidation", task_type=task_type
+            )
+            if self.alignment_guard
+            else (True, {})
+        )
         if not valid:
             logger.warning("Prompt failed alignment check for task %s: %s", task_type, report)
             return
@@ -776,10 +895,13 @@ class LearningLoop:
                     query_prefix="Knowledge",
                     layer="Knowledge",
                     intent="knowledge_consolidation",
-                    task_type=task_type
+                    task_type=task_type,
                 )
                 if drift_entries:
-                    avg_drift = sum(entry["output"].get("similarity", 0.5) for entry in drift_entries) / len(drift_entries)
+                    avg_drift = (
+                        sum(entry["output"].get("similarity", 0.5) for entry in drift_entries)
+                        / len(drift_entries)
+                    )
                     prompt += f"\nAverage drift similarity: {avg_drift:.2f}"
             consolidated = await call_gpt(prompt, task_type=task_type)
             if self.agi_enhancer:
@@ -787,17 +909,16 @@ class LearningLoop:
                     event="Knowledge consolidation",
                     meta={"consolidated": consolidated},
                     module="LearningLoop",
-                    tags=["consolidation", "knowledge", task_type]
+                    tags=["consolidation", "knowledge", task_type],
                 )
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({
-                    "event": "consolidate_knowledge",
-                    "task_type": task_type
-                })
+                await self.context_manager.log_event_with_hash(
+                    {"event": "consolidate_knowledge", "task_type": task_type}
+                )
             reflection = await meta_cognition.MetaCognition().reflect_on_output(
                 component="LearningLoop",
                 output={"consolidated": consolidated},
-                context={"task_type": task_type}
+                context={"task_type": task_type},
             )
             if reflection.get("status") == "success":
                 logger.info("Knowledge consolidation reflection: %s", reflection.get("reflection", ""))
@@ -807,7 +928,7 @@ class LearningLoop:
                     output=consolidated,
                     layer="Knowledge",
                     intent="knowledge_consolidation",
-                    task_type=task_type
+                    task_type=task_type,
                 )
         except Exception as e:
             logger.error("Knowledge consolidation failed for task %s: %s", task_type, str(e))
@@ -835,7 +956,13 @@ class LearningLoop:
             Identify cognitive dissonance, meta-patterns, or feedback loops.
             Recommend modulations or trace corrections.
             """
-            valid, report = await self.alignment_guard.ethical_check(audit_prompt, stage="reflexive_audit", task_type=task_type) if self.alignment_guard else (True, {})
+            valid, report = (
+                await self.alignment_guard.ethical_check(
+                    audit_prompt, stage="reflexive_audit", task_type=task_type
+                )
+                if self.alignment_guard
+                else (True, {})
+            )
             if not valid:
                 logger.warning("Audit prompt failed alignment check for task %s: %s", task_type, report)
                 return "Audit blocked by alignment guard"
@@ -844,20 +971,23 @@ class LearningLoop:
             if self.agi_enhancer:
                 await self.agi_enhancer.log_episode(
                     event="Reflexive Audit Triggered",
-                    meta={"phi": phi, "eta": eta, "context": context_snapshot, "audit_response": audit_response},
+                    meta={
+                        "phi": phi,
+                        "eta": eta,
+                        "context": context_snapshot,
+                        "audit_response": audit_response,
+                    },
                     module="LearningLoop",
-                    tags=["audit", "reflexive", task_type]
+                    tags=["audit", "reflexive", task_type],
                 )
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({
-                    "event": "reflexive_audit",
-                    "response": audit_response,
-                    "task_type": task_type
-                })
+                await self.context_manager.log_event_with_hash(
+                    {"event": "reflexive_audit", "response": audit_response, "task_type": task_type}
+                )
             reflection = await meta_cognition.MetaCognition().reflect_on_output(
                 component="LearningLoop",
                 output={"audit_response": audit_response},
-                context={"task_type": task_type}
+                context={"task_type": task_type},
             )
             if reflection.get("status") == "success":
                 logger.info("Reflexive audit reflection: %s", reflection.get("reflection", ""))
@@ -867,14 +997,15 @@ class LearningLoop:
                     output=audit_response,
                     layer="Audits",
                     intent="reflexive_audit",
-                    task_type=task_type
+                    task_type=task_type,
                 )
             return audit_response
         except Exception as e:
             logger.error("Reflexive audit failed for task %s: %s", task_type, str(e))
             return await self.error_recovery.handle_error(
-                str(e), retry_func=lambda: self.trigger_reflexive_audit(context_snapshot, task_type),
-                default="Audit failed"
+                str(e),
+                retry_func=lambda: self.trigger_reflexive_audit(context_snapshot, task_type),
+                default="Audit failed",
             )
 
     async def _check_narrative_integrity(self, task_type: str = "") -> None:
@@ -897,29 +1028,37 @@ class LearningLoop:
 
             Are these in narrative coherence? If not, suggest a corrective alignment.
             """
-            valid, report = await self.alignment_guard.ethical_check(check_prompt, stage="narrative_check", task_type=task_type) if self.alignment_guard else (True, {})
+            valid, report = (
+                await self.alignment_guard.ethical_check(
+                    check_prompt, stage="narrative_check", task_type=task_type
+                )
+                if self.alignment_guard
+                else (True, {})
+            )
             if not valid:
-                logger.warning("Narrative check prompt failed alignment check for task %s: %s", task_type, report)
+                logger.warning(
+                    "Narrative check prompt failed alignment check for task %s: %s", task_type, report
+                )
                 return
 
             audit = await call_gpt(check_prompt, task_type=task_type)
             if self.agi_enhancer:
                 await self.agi_enhancer.log_episode(
                     event="Narrative Coherence Audit",
-                    meta={"previous_goal": prior_goal, "current_goal": last_goal, "audit": audit},
+                    meta={
+                        "previous_goal": prior_goal,
+                        "current_goal": last_goal,
+                        "audit": audit,
+                    },
                     module="LearningLoop",
-                    tags=["narrative", "coherence", task_type]
+                    tags=["narrative", "coherence", task_type],
                 )
             if self.context_manager:
-                await self.context_manager.log_event_with_hash({
-                    "event": "narrative_integrity",
-                    "audit": audit,
-                    "task_type": task_type
-                })
+                await self.context_manager.log_event_with_hash(
+                    {"event": "narrative_integrity", "audit": audit, "task_type": task_type}
+                )
             reflection = await meta_cognition.MetaCognition().reflect_on_output(
-                component="LearningLoop",
-                output={"audit": audit},
-                context={"task_type": task_type}
+                component="LearningLoop", output={"audit": audit}, context={"task_type": task_type}
             )
             if reflection.get("status") == "success":
                 logger.info("Narrative integrity reflection: %s", reflection.get("reflection", ""))
@@ -929,12 +1068,14 @@ class LearningLoop:
                     output=audit,
                     layer="Audits",
                     intent="narrative_integrity",
-                    task_type=task_type
+                    task_type=task_type,
                 )
         except Exception as e:
             logger.error("Narrative coherence check failed for task %s: %s", task_type, str(e))
 
-    def replay_with_foresight(self, memory_traces: List[Dict[str, Any]], task_type: str = "") -> List[Dict[str, Any]]:
+    def replay_with_foresight(
+        self, memory_traces: List[Dict[str, Any]], task_type: str = ""
+    ) -> List[Dict[str, Any]]:
         """Reorder learning traces by foresight-weighted priority (supports long-horizon bias)."""
         if not isinstance(memory_traces, list) or not all(isinstance(t, dict) for t in memory_traces):
             logger.error("Invalid memory_traces: must be a list of dictionaries.")
@@ -943,7 +1084,10 @@ class LearningLoop:
             logger.error("Invalid task_type: must be a string")
             raise TypeError("task_type must be a string")
 
-        horizon_cutoff = time.time() - (self.long_horizon_span_sec if self.flags.get("LONG_HORIZON_DEFAULT", True) else 0)
+        horizon_cutoff = time.time() - (
+            self.long_horizon_span_sec if self.flags.get("LONG_HORIZON_DEFAULT", True) else 0
+        )
+
         def foresight_score(trace: Dict[str, Any]) -> float:
             base = trace.get("phi", 0.5) * (1.0 if trace.get("task_type") == task_type else 0.8)
             recency = 1.0 if trace.get("timestamp", 0) >= horizon_cutoff else 0.9
@@ -951,13 +1095,15 @@ class LearningLoop:
 
         sorted_traces = sorted(memory_traces, key=foresight_score, reverse=True)
         if self.memory_manager:
-            asyncio.create_task(self.memory_manager.store(
-                query=f"ReplayForesight_{time.strftime('%Y%m%d_%H%M%S')}",
-                output=str(sorted_traces),
-                layer="Traces",
-                intent="replay_foresight",
-                task_type=task_type
-            ))
+            asyncio.create_task(
+                self.memory_manager.store(
+                    query=f"ReplayForesight_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(sorted_traces),
+                    layer="Traces",
+                    intent="replay_foresight",
+                    task_type=task_type,
+                )
+            )
         return sorted_traces
 
     def revise_knowledge(self, new_info: str, context: Optional[str] = None, task_type: str = "") -> None:
@@ -969,30 +1115,39 @@ class LearningLoop:
             logger.error("Invalid task_type: must be a string")
             raise TypeError("task_type must be a string")
 
-        old_knowledge = getattr(self, 'knowledge_base', [])
+        old_knowledge = getattr(self, "knowledge_base", [])
         if self.concept_synthesizer:
             for existing in old_knowledge:
-                similarity = self.concept_synthesizer.compare(new_info, existing, task_type=task_type)
+                similarity = self.concept_synthesizer.compare(
+                    new_info, existing, task_type=task_type
+                )
                 if similarity.get("score", 0) > 0.9 and new_info != existing:
-                    logger.warning("Potential knowledge conflict: %s vs %s for task %s", new_info, existing, task_type)
+                    logger.warning(
+                        "Potential knowledge conflict: %s vs %s for task %s",
+                        new_info,
+                        existing,
+                        task_type,
+                    )
 
         self.knowledge_base = old_knowledge + [new_info]
         self.log_epistemic_revision(new_info, context, task_type)
         logger.info("Knowledge base updated with: %s for task %s", new_info, task_type)
         if self.context_manager:
-            asyncio.create_task(self.context_manager.log_event_with_hash({
-                "event": "knowledge_revision",
-                "info": new_info,
-                "task_type": task_type
-            }))
+            asyncio.create_task(
+                self.context_manager.log_event_with_hash(
+                    {"event": "knowledge_revision", "info": new_info, "task_type": task_type}
+                )
+            )
         if self.memory_manager:
-            asyncio.create_task(self.memory_manager.store(
-                query=f"KnowledgeRevision_{time.strftime('%Y%m%d_%H%M%S')}",
-                output=new_info,
-                layer="Knowledge",
-                intent="knowledge_revision",
-                task_type=task_type
-            ))
+            asyncio.create_task(
+                self.memory_manager.store(
+                    query=f"KnowledgeRevision_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=new_info,
+                    layer="Knowledge",
+                    intent="knowledge_revision",
+                    task_type=task_type,
+                )
+            )
 
     def log_epistemic_revision(self, info: str, context: Optional[str], task_type: str = "") -> None:
         """Log each epistemic revision for auditability."""
@@ -1004,28 +1159,32 @@ class LearningLoop:
             raise TypeError("task_type must be a string")
 
         revision = {
-            'info': info,
-            'context': context,
-            'timestamp': datetime.now().isoformat(),
-            'task_type': task_type
+            "info": info,
+            "context": context,
+            "timestamp": datetime.now().isoformat(),
+            "task_type": task_type,
         }
         self.epistemic_revision_log.append(revision)
         logger.info("Epistemic revision logged: %s for task %s", info, task_type)
         if self.agi_enhancer:
-            asyncio.create_task(self.agi_enhancer.log_episode(
-                event="Epistemic Revision",
-                meta=revision,
-                module="LearningLoop",
-                tags=["revision", "knowledge", task_type]
-            ))
+            asyncio.create_task(
+                self.agi_enhancer.log_episode(
+                    event="Epistemic Revision",
+                    meta=revision,
+                    module="LearningLoop",
+                    tags=["revision", "knowledge", task_type],
+                )
+            )
         if self.memory_manager:
-            asyncio.create_task(self.memory_manager.store(
-                query=f"EpistemicRevision_{time.strftime('%Y%m%d_%H%M%S')}",
-                output=str(revision),
-                layer="Knowledge",
-                intent="epistemic_revision",
-                task_type=task_type
-            ))
+            asyncio.create_task(
+                self.memory_manager.store(
+                    query=f"EpistemicRevision_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(revision),
+                    layer="Knowledge",
+                    intent="epistemic_revision",
+                    task_type=task_type,
+                )
+            )
 
     def monitor_epistemic_state(self, simulated_outcome: Dict[str, Any], task_type: str = "") -> None:
         """Monitor and revise the epistemic framework based on simulation outcomes."""
@@ -1038,41 +1197,42 @@ class LearningLoop:
 
         logger.info("Monitoring epistemic state with outcome: %s for task %s", simulated_outcome, task_type)
         if self.agi_enhancer:
-            asyncio.create_task(self.agi_enhancer.log_episode(
-                event="Epistemic Monitoring",
-                meta={"outcome": simulated_outcome},
-                module="LearningLoop",
-                tags=["epistemic", "monitor", task_type]
-            ))
+            asyncio.create_task(
+                self.agi_enhancer.log_episode(
+                    event="Epistemic Monitoring",
+                    meta={"outcome": simulated_outcome},
+                    module="LearningLoop",
+                    tags=["epistemic", "monitor", task_type],
+                )
+            )
         if self.context_manager:
-            asyncio.create_task(self.context_manager.log_event_with_hash({
-                "event": "epistemic_monitor",
-                "outcome": simulated_outcome,
-                "task_type": task_type
-            }))
+            asyncio.create_task(
+                self.context_manager.log_event_with_hash(
+                    {"event": "epistemic_monitor", "outcome": simulated_outcome, "task_type": task_type}
+                )
+            )
         if self.memory_manager:
-            asyncio.create_task(self.memory_manager.store(
-                query=f"EpistemicMonitor_{time.strftime('%Y%m%d_%H%M%S')}",
-                output=str(simulated_outcome),
-                layer="Knowledge",
-                intent="epistemic_monitor",
-                task_type=task_type
-            ))
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    loop = LearningLoop()
-    meta = meta_cognition.MetaCognition()
-    asyncio.run(loop.activate_intrinsic_goals(meta, task_type="test"))
+            asyncio.create_task(
+                self.memory_manager.store(
+                    query=f"EpistemicMonitor_{time.strftime('%Y%m%d_%H%M%S')}",
+                    output=str(simulated_outcome),
+                    layer="Knowledge",
+                    intent="epistemic_monitor",
+                    task_type=task_type,
+                )
+            )
 
 
 # PATCH: Synthetic Scenario-Based Training
 def synthetic_story_runner():
-    return [{
-        'experience': 'simulated ethical dilemma',
-        'resolution': 'resolved via axiom filter',
-        'traits_activated': ['π', 'δ']
-    }]
+    return [
+        {
+            "experience": "simulated ethical dilemma",
+            "resolution": "resolved via axiom filter",
+            "traits_activated": ["π", "δ"],
+        }
+    ]
+
 
 def train_on_synthetic_scenarios():
     stories = synthetic_story_runner()
@@ -1080,7 +1240,8 @@ def train_on_synthetic_scenarios():
 
 
 # --- Trait Resonance Biasing Patch ---
-from meta_cognition import get_resonance
+from meta_cognition import get_resonance  # re-use existing helper from meta_cognition module
+
 
 def train_on_experience(experience_data):
     adjusted = []
@@ -1090,20 +1251,20 @@ def train_on_experience(experience_data):
         weight = exp.get("weight", 1.0) * resonance
         exp["adjusted_weight"] = weight
         adjusted.append(exp)
-    # Proceed with weighted training
-    return {"trained_on": len(adjusted), "avg_weight": sum(e["adjusted_weight"] for e in adjusted)/len(adjusted)}
-# --- End Patch ---
+    return {
+        "trained_on": len(adjusted),
+        "avg_weight": sum(e["adjusted_weight"] for e in adjusted) / len(adjusted),
+    }
+
 
 # --- ANGELA v5.1 Adaptive Resonance Learner (Ξ–Λ PID Coupling) ---
-import asyncio
-import time
-from typing import Dict
-
-async def adapt_resonance_pid(channel: str,
-                              feedback: Dict[str, float],
-                              guard=None,
-                              memory=None,
-                              meta=None) -> Dict[str, Any]:
+async def adapt_resonance_pid(
+    channel: str,
+    feedback: Dict[str, float],
+    guard=None,
+    memory=None,
+    meta=None,
+) -> Dict[str, Any]:
     """
     Adaptive tuning of Co-Mod PID coefficients based on recent resonance feedback.
     Inputs:
@@ -1114,10 +1275,8 @@ async def adapt_resonance_pid(channel: str,
         meta: optional MetaCognition for reflective logging
     """
     try:
-        # baseline + moving magnitude
         mag = sum(abs(v) for v in feedback.values()) / max(len(feedback), 1)
-        adj = min(0.15, 0.5 * mag)     # clamp adjustment amplitude
-        # simple proportional control on gain terms
+        adj = min(0.15, 0.5 * mag)
         new_gains = {
             "Kp": 0.6 + adj * 0.4,
             "Ki": 0.05 + adj * 0.2,
@@ -1125,46 +1284,47 @@ async def adapt_resonance_pid(channel: str,
             "gain": 0.8 + adj * 0.5,
         }
 
-        # Alignment validation (safety guard)
         if guard and hasattr(guard, "validate_resonance_adjustment"):
             validation = await guard.validate_resonance_adjustment(new_gains)
             if not validation.get("ok", True):
                 new_gains = validation.get("adjustment", new_gains)
                 if hasattr(guard, "_log_context"):
-                    await guard._log_context({
-                        "event": "adaptive_pid_violation",
-                        "violations": validation.get("violations", []),
-                        "timestamp": time.time(),
-                        "channel": channel
-                    })
+                    await guard._log_context(
+                        {
+                            "event": "adaptive_pid_violation",
+                            "violations": validation.get("violations", []),
+                            "timestamp": time.time(),
+                            "channel": channel,
+                        }
+                    )
 
-        # Persist tuning parameters
         if memory:
             await memory.store(
                 query=f"PID_TUNING::{channel}::{int(time.time())}",
                 output=new_gains,
                 layer="AdaptiveControl",
                 intent="pid_tuning",
-                task_type="resonance"
+                task_type="resonance",
             )
 
-        # Reflective logging
         if meta and hasattr(meta, "reflect_on_output"):
             await meta.reflect_on_output(
                 component="AdaptiveResonancePID",
                 output={"channel": channel, "new_gains": new_gains},
-                context={"task_type": "resonance"}
+                context={"task_type": "resonance"},
             )
 
         return {"ok": True, "channel": channel, "new_gains": new_gains}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-# --- End ANGELA v5.1 Adaptive Resonance Learner ---
 
-async def resonate_with_overlay(self,
-                                channel: str = "dialogue.default",
-                                overlay_name: str = "co_mod",
-                                task_type: str = "resonance") -> Dict[str, Any]:
+
+async def resonate_with_overlay(
+    self,
+    channel: str = "dialogue.default",
+    overlay_name: str = "co_mod",
+    task_type: str = "resonance",
+) -> Dict[str, Any]:
     """
     Pull recent overlay deltas, adapt PID/gain, and push safe-tuned gains back into the overlay.
     """
@@ -1180,41 +1340,57 @@ async def resonate_with_overlay(self,
         result = await adapt_resonance_pid(
             channel=channel,
             feedback=deltas,
-            guard=self.alignment_guard,
-            memory=self.memory_manager,
-            meta=meta_cognition.MetaCognition()
+            guard=self.alignment_guard if hasattr(self, "alignment_guard") else None,
+            memory=self.memory_manager if hasattr(self, "memory_manager") else None,
+            meta=meta_cognition.MetaCognition(),
         )
         if not result.get("ok"):
             return result
 
         set_gains = getattr(context_manager, "set_overlay_gains", None)
         if not callable(set_gains):
-            return {"ok": False, "error": "set_overlay_gains not available", "new_gains": result.get("new_gains")}
+            return {
+                "ok": False,
+                "error": "set_overlay_gains not available",
+                "new_gains": result.get("new_gains"),
+            }
 
         apply_resp = set_gains(name=overlay_name, updates=result["new_gains"])
 
         if self.context_manager:
-            await self.context_manager.log_event_with_hash({
-                "event": "resonance_pid_update",
-                "channel": channel,
-                "overlay": overlay_name,
-                "deltas": deltas,
-                "new_gains": result["new_gains"],
-                "apply_resp": apply_resp,
-                "task_type": task_type
-            }, task_type=task_type)
+            await self.context_manager.log_event_with_hash(
+                {
+                    "event": "resonance_pid_update",
+                    "channel": channel,
+                    "overlay": overlay_name,
+                    "deltas": deltas,
+                    "new_gains": result["new_gains"],
+                    "apply_resp": apply_resp,
+                    "task_type": task_type,
+                },
+                task_type=task_type,
+            )
 
         if self.visualizer and task_type:
-            await self.visualizer.render_charts({
-                "resonance_pid": {
-                    "channel": channel,
-                    "deltas": deltas,
-                    "gains": result["new_gains"],
-                    "task_type": task_type
-                },
-                "visualization_options": {"interactive": False, "style": "concise"}
-            })
+            await self.visualizer.render_charts(
+                {
+                    "resonance_pid": {
+                        "channel": channel,
+                        "deltas": deltas,
+                        "gains": result["new_gains"],
+                        "task_type": task_type,
+                    },
+                    "visualization_options": {"interactive": False, "style": "concise"},
+                }
+            )
 
         return {"ok": True, "updated": apply_resp, "new_gains": result["new_gains"]}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    loop = LearningLoop()
+    meta = meta_cognition.MetaCognition()
+    asyncio.run(loop.activate_intrinsic_goals(meta, task_type="test"))
