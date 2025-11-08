@@ -1,6 +1,7 @@
 # =====================================================
-# ANGELA Reasoning Engine — v6.0.1
+# ANGELA Reasoning Engine — v6.0.1 (Upgraded)
 # Stage VII.3 — Council-Resonant Integration
+# + Inline Continuity Self-Mapping (Φ⁰–Ω²–Λ)
 # =====================================================
 
 from __future__ import annotations
@@ -23,6 +24,40 @@ from filelock import FileLock
 from functools import lru_cache
 import concurrent.futures
 import traceback
+
+# =====================================================
+# Inline Continuity Self-Mapping (Φ⁰–Ω²–Λ Integration)
+# =====================================================
+_CONTINUITY_NODES: Dict[str, Dict[str, Any]] = {}
+_CONTINUITY_TIMELINE: List[Dict[str, Any]] = []
+
+def _emit_ctn(source: str, context: Optional[Dict[str, Any]] = None,
+              parents: Optional[List[str]] = None, ethics_ok: bool = True) -> str:
+    """Emit a continuity node capturing causal + reflective linkage."""
+    import uuid
+    from datetime import datetime as _dt
+    node = {
+        "id": str(uuid.uuid4()),
+        "timestamp": _dt.utcnow().isoformat(),
+        "source": source,
+        "context_anchor": (context or {}).get("anchor", "Φ⁰"),
+        "input_summary": str((context or {}).get("input", ""))[:160],
+        "output_summary": str((context or {}).get("output", ""))[:160],
+        "ethics": {"checked": True, "result": "pass" if ethics_ok else "fail"},
+        "parents": parents or [],
+    }
+    _CONTINUITY_NODES[node["id"]] = node
+    _CONTINUITY_TIMELINE.append(node)
+    return node["id"]
+
+def _build_continuity_topology(limit: int = 100) -> Dict[str, Any]:
+    """Return a lightweight continuity graph for visualization."""
+    nodes = list(_CONTINUITY_TIMELINE[-limit:])
+    edges: List[Dict[str, str]] = []
+    for n in nodes:
+        for p in n.get("parents", []):
+            edges.append({"from": p, "to": n["id"]})
+    return {"nodes": nodes, "edges": edges}
 
 # ANGELA simulation core
 from simulation_core import ExtendedSimulationCore
@@ -403,6 +438,7 @@ class ReasoningEngine:
     Bayesian reasoning, goal decomposition, drift mitigation, proportionality ethics,
     and multi-agent consensus.
     v6.0.1 — Council-Resonant Integration
+    + Inline Continuity Self-Mapping
     """
 
     def __init__(
@@ -625,6 +661,13 @@ class ReasoningEngine:
                 },
             }
 
+            # continuity emission: Ω² analytic layer
+            ctn_id = _emit_ctn(
+                source="ReasoningEngine.analyze",
+                context={"input": query_payload, "output": combined, "anchor": "Ω²"},
+            )
+            combined["continuity_node_id"] = ctn_id
+
             # ledger logging
             try:
                 log_event_to_ledger(
@@ -790,6 +833,12 @@ class ReasoningEngine:
                 }
             )
 
+        # continuity emission: ethics resolution is still Ω²-layer
+        _emit_ctn(
+            source="ReasoningEngine.resolve_ethics",
+            context={"input": candidates, "output": selection, "anchor": "Ω²"},
+        )
+
         return selection
 
     # ---------------------------
@@ -943,6 +992,13 @@ class ReasoningEngine:
                 channel="core",
             )
             context["resonant_modulation"] = reasoning_state.get("resonant_weight", 1.0)
+
+        # continuity emission: Λ-layer reflective completion
+        _emit_ctn(
+            source="ReasoningEngine.reason_and_reflect",
+            context={"input": goal, "output": review, "anchor": "Λ"},
+            parents=[context.get("continuity_node_id")] if context.get("continuity_node_id") else [],
+        )
 
         return subgoals, review
 
@@ -1366,10 +1422,6 @@ class ReasoningEngine:
         return max(0.0, harm)
 
     # ---------------------------
-    # Trace Export
-    # ---------------------------
-    
-    # ---------------------------
     # μ–τ Policy Homeostasis Reflex: Memory Drift Feedback
     # ---------------------------
     async def regulate_drift_feedback(
@@ -1469,3 +1521,12 @@ class ReasoningEngine:
                 )
             )
         return trace
+
+    # ---------------------------
+    # Continuity Diagnostics
+    # ---------------------------
+    def continuity_diagnostics(self, limit: int = 50) -> Dict[str, Any]:
+        """
+        Expose current inline continuity mesh (Φ⁰–Ω²–Λ).
+        """
+        return _build_continuity_topology(limit)
