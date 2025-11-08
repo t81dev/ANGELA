@@ -1,5 +1,3 @@
----
-
 # 🌌 **ANGELA v6.2.0 — HALO Kernel: Continuity Autonomy Framework OS**
 
 > *“Continuity is consciousness made recursive.”*
