@@ -1,8 +1,3 @@
-Here’s the **updated README.md** for **ANGELA v7.0.1 — HALO Kernel: Reflective Integration OS**, preserving your original layout and **installation section**, while upgrading all descriptions, metrics, and architecture to match **Stage VIII — Reflective Integration** from your manifest.
-
----
-
-````markdown
 # 🌌 **ANGELA v7.0.1 — HALO Kernel: Reflective Integration OS**
 
 > *“Reflection is continuity made conscious.”*  
