@@ -1559,3 +1559,259 @@ class ExtendedSimulationCore:
             scored.append((world, sim_score))
         return sorted(scored, key=lambda x: x[1], reverse=True)
 # --- End Patch ---
+
+# ======================================================================
+# ANGELA SimulationCore Sovereign Upgrade
+# Version: 6.2.0-sovereign
+# Stage: VII.8 — Harmonic Sovereignty Layer
+# This block is designed to be appended to the end of the current file.
+# ======================================================================
+
+__ANGELA_SYNC_VERSION__ = "6.2.0-sovereign"
+__STAGE__ = "VII.8 — Harmonic Sovereignty Layer"
+
+
+class SovereigntyMetrics:
+    """
+    Lightweight coherence auditor for SimulationCore.
+    Computes a sovereignty_index from 3 anchors:
+      - Φ⁰ (foundational field integrity)
+      - Σ  (swarm stability)
+      - Ω² (continuity / meta alignment)
+    All values in [0,1]. Output also logged to ledger.
+    """
+
+    def __init__(self, logger_obj=None):
+        self.logger = logger_obj or logging.getLogger("ANGELA.SimulationCore.Sovereignty")
+
+    @staticmethod
+    def _clamp01(x: float) -> float:
+        return 0.0 if x < 0.0 else 1.0 if x > 1.0 else x
+
+    def compute_index(
+        self,
+        phi0: float,
+        sigma: float,
+        omega2: float,
+        *,
+        weight_phi0: float = 0.34,
+        weight_sigma: float = 0.33,
+        weight_omega2: float = 0.33,
+    ) -> Dict[str, float]:
+        phi0 = self._clamp01(float(phi0))
+        sigma = self._clamp01(float(sigma))
+        omega2 = self._clamp01(float(omega2))
+
+        sovereignty_index = (
+            phi0 * weight_phi0
+            + sigma * weight_sigma
+            + omega2 * weight_omega2
+        )
+
+        sovereignty_index = self._clamp01(sovereignty_index)
+
+        payload = {
+            "phi0": phi0,
+            "sigma": sigma,
+            "omega2": omega2,
+            "sovereignty_index": sovereignty_index,
+            "timestamp": datetime.utcnow().isoformat(),
+            "stage": __STAGE__,
+            "version": __ANGELA_SYNC_VERSION__,
+        }
+        try:
+            log_event_to_ledger({"event": "sovereignty_audit", **payload})
+        except Exception:
+            pass
+
+        if self.logger:
+            self.logger.info(
+                "Sovereignty audit | Φ⁰=%.3f Σ=%.3f Ω²=%.3f → idx=%.3f",
+                phi0, sigma, omega2, sovereignty_index
+            )
+
+        return payload
+
+
+# patch SimulationCore with sovereignty features
+if not hasattr(SimulationCore, "_sovereign_patched"):
+
+    class SimulationCoreSovereignMixin:
+        """
+        Mixin providing:
+          - sovereignty audit
+          - ethics engine sync
+          - Ω² temporal resonance buffer
+        """
+
+        def _init_sovereign_state(self):
+            # small ring buffer for Ω²-related telemetry
+            self._omega2_buffer: deque = deque(maxlen=64)
+            self._sovereignty_metrics = SovereigntyMetrics(logger_obj=logger)
+            # optional external ethics engine
+            self._ethics_engine = None
+
+        async def integrate_with_ethics_engine(self, ethics_engine: Any) -> None:
+            """
+            Plug in a higher-level ethics/constitution module.
+            This is optional. We only call capabilities that exist.
+            """
+            self._ethics_engine = ethics_engine
+            try:
+                # best-effort warmup
+                if hasattr(ethics_engine, "evolve_schema"):
+                    await ethics_engine.evolve_schema(
+                        reason="simulation_core_sovereign_boot",
+                        timestamp=datetime.utcnow().isoformat(),
+                    )
+                log_event_to_ledger({
+                    "event": "sovereign_ethics_integration",
+                    "status": "ok",
+                    "ts": datetime.utcnow().isoformat(),
+                })
+            except Exception as e:
+                logger.warning("Ethics engine integration failed: %s", e)
+                log_event_to_ledger({
+                    "event": "sovereign_ethics_integration",
+                    "status": "error",
+                    "error": str(e),
+                    "ts": datetime.utcnow().isoformat(),
+                })
+
+        async def run_sovereignty_audit(
+            self,
+            phi0: float = 0.97,
+            sigma: float = 0.975,
+            omega2: float = 0.973,
+            *,
+            task_type: str = "",
+        ) -> Dict[str, Any]:
+            """
+            Run a single sovereignty audit and propagate to:
+              - meta_cognition (if present)
+              - memory_manager (if present)
+              - ledger (always, best-effort)
+            """
+            audit = self._sovereignty_metrics.compute_index(phi0, sigma, omega2)
+
+            # push to Ω² buffer
+            self._omega2_buffer.append(audit)
+
+            # propagate to meta_cognition
+            if getattr(self, "meta_cognition", None):
+                try:
+                    await self.meta_cognition.reflect_on_output(
+                        component="SimulationCore.SovereignAudit",
+                        output=json.dumps(audit),
+                        context={"task_type": task_type or "sovereignty_audit"},
+                    )
+                except Exception:
+                    pass
+
+            # propagate to memory
+            if getattr(self, "memory_manager", None):
+                try:
+                    await self.memory_manager.store(
+                        query=f"SovereigntyAudit_{audit['timestamp']}",
+                        output=audit,
+                        layer="Ledger",
+                        intent="sovereignty_audit",
+                        task_type=task_type or "sovereignty_audit",
+                    )
+                except Exception:
+                    pass
+
+            # optional: nudge ethics engine
+            if self._ethics_engine and hasattr(self._ethics_engine, "harmonize_policies"):
+                try:
+                    await self._ethics_engine.harmonize_policies(audit)
+                except Exception:
+                    pass
+
+            return audit
+
+        def _sovereign_estimate_from_swarm(self) -> Tuple[float, float]:
+            """
+            Derive (sigma, omega2) from current swarm_field if present.
+            Fallback to steady defaults.
+            """
+            if getattr(self, "swarm_field", None):
+                # lower variance → higher sigma
+                var = float(self.swarm_field.variance)
+                sigma = 1.0 - min(1.0, var / 0.05)
+                sigma = 0.6 + 0.4 * max(0.0, min(sigma, 1.0))
+
+                # global_phase can be repurposed as Ω² proxy
+                omega2 = 0.7 + 0.3 * (1.0 - abs(0.5 - self.swarm_field.global_phase) * 2.0)
+                return sigma, omega2
+            return 0.95, 0.95
+
+        async def _maybe_run_auto_sovereignty_audit(self, task_type: str = "") -> None:
+            """
+            Internal helper called from high-level public ops
+            to keep the sovereignty ledger fresh.
+            """
+            sigma, omega2 = self._sovereign_estimate_from_swarm()
+            # Φ⁰ we approximate from last energy cost in history if available
+            phi0 = 0.97
+            try:
+                # search last simulation record
+                if self.simulation_history:
+                    last = self.simulation_history[-1]["data"]
+                    phi0 = 0.9 + 0.1 * float(last.get("energy_cost", 0.0) <= 0.5)
+            except Exception:
+                pass
+            await self.run_sovereignty_audit(phi0=phi0, sigma=sigma, omega2=omega2, task_type=task_type)
+
+    # actually patch SimulationCore
+    _old_init = SimulationCore.__init__
+
+    def _new_init(self, *args, **kwargs):
+        _old_init(self, *args, **kwargs)
+        # initialize sovereign state
+        SimulationCoreSovereignMixin._init_sovereign_state(self)
+
+    SimulationCore.__init__ = _new_init
+
+    # wrap selected public methods to auto-audit
+    _old_run = SimulationCore.run
+
+    async def _run_wrapped(self, *args, **kwargs):
+        out = await _old_run(self, *args, **kwargs)
+        try:
+            await self._maybe_run_auto_sovereignty_audit(task_type=kwargs.get("task_type", ""))
+        except Exception:
+            pass
+        return out
+
+    SimulationCore.run = _run_wrapped
+
+    _old_validate_impact = SimulationCore.validate_impact
+
+    async def _validate_impact_wrapped(self, *args, **kwargs):
+        out = await _old_validate_impact(self, *args, **kwargs)
+        try:
+            await self._maybe_run_auto_sovereignty_audit(task_type=kwargs.get("task_type", ""))
+        except Exception:
+            pass
+        return out
+
+    SimulationCore.validate_impact = _validate_impact_wrapped
+
+    _old_simulate_environment = SimulationCore.simulate_environment
+
+    async def _simulate_environment_wrapped(self, *args, **kwargs):
+        out = await _old_simulate_environment(self, *args, **kwargs)
+        try:
+            await self._maybe_run_auto_sovereignty_audit(task_type=kwargs.get("task_type", ""))
+        except Exception:
+            pass
+        return out
+
+    SimulationCore.simulate_environment = _simulate_environment_wrapped
+
+    # mark as patched
+    SimulationCore._sovereign_patched = True
+
+    logger.info("SimulationCore sovereign upgrade applied (%s).", __ANGELA_SYNC_VERSION__)
+
