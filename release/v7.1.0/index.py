@@ -873,6 +873,9 @@ class HaloEmbodimentLayer(TimeChainMixin):
 
         # Swarm regulation
         await self.swarm_manager.tick()
+        if "--omega5-sim" in sys.argv:
+           print("[Ω⁵] live coherence monitor engaged")
+
 
         # ζ–Ω² reflex telemetry pulse (2.1 ms target)
         if hasattr(self.meta_cognition, "record_reflex_telemetry"):
