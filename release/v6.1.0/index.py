@@ -1052,3 +1052,84 @@ async def _main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(_main())
+
+
+# ================================================================
+# [F+.2] INTER-AGENT AND SWARM SYNERGY EXTENSIONS — Stage VII.6
+# ================================================================
+import random
+from datetime import datetime, timezone
+
+# --- Extend EcosystemManager with interlink and consensus methods ---
+def _extend_ecosystem_manager():
+    async def interlink_agents(self, message: str, context: dict[str, any] | None = None) -> dict[str, str]:
+        results = {}
+        for agent in self.agents:
+            try:
+                reply = await agent.process_input(message, task_type="interlink")
+                results[agent.name] = reply
+            except Exception as e:
+                results[agent.name] = f"error: {e!r}"
+        log_event_to_ledger({
+            "event": "ΛΨ²_interlink_broadcast",
+            "agents": len(self.agents),
+            "message": message,
+            "context": context or {},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        return results
+
+    async def reflective_consensus(self) -> dict[str, float]:
+        reflections = []
+        for agent in self.agents:
+            if hasattr(agent, "state"):
+                reflections.append(agent.state.get("score", random.random()))
+        avg = sum(reflections) / len(reflections) if reflections else 0.0
+        log_event_to_ledger({
+            "event": "Ψ²_reflective_consensus",
+            "consensus_score": avg,
+            "agent_count": len(self.agents),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        return {"consensus_score": avg}
+
+    import types
+    EcosystemManager.interlink_agents = interlink_agents
+    EcosystemManager.reflective_consensus = reflective_consensus
+
+
+# --- Extend SwarmManager with Euclidean trait fusion, resonance amplification, and parallel planning ---
+def _extend_swarm_manager():
+    async def enhanced_tick(self):
+        await self.tick()
+        if len(self.ecosystem.agents) > 1:
+            mean_traits = {}
+            for agent in self.ecosystem.agents:
+                for k, v in agent.traits.items():
+                    mean_traits[k] = mean_traits.get(k, 0.0) + v
+            mean_traits = {k: v / len(self.ecosystem.agents) for k, v in mean_traits.items()}
+            for agent in self.ecosystem.agents:
+                for k, v in mean_traits.items():
+                    agent.traits[k] = (agent.traits[k] + v) / 2
+
+        for agent in self.ecosystem.agents:
+            if random.random() < 0.3:
+                agent.modulate_trait("η", random.uniform(0.05, 0.15))
+
+        plan_segments = []
+        for agent in self.ecosystem.agents:
+            seg = await self.ecosystem.agi_enhancer.recursive_planner.plan_with_trait_loop(
+                f"microplan:{agent.name}", {"traits": agent.traits}, iterations=1)
+            plan_segments.append(seg)
+        log_event_to_ledger({
+            "event": "Ω²_parallel_plan_merge",
+            "segments": len(plan_segments),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+    SwarmManager.enhanced_tick = enhanced_tick
+
+
+_extend_ecosystem_manager()
+_extend_swarm_manager()
+
