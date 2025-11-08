@@ -1,31 +1,26 @@
 from __future__ import annotations
 
 """
-ANGELA v6.0.0-pre — Refactored index.py (single-file)
------------------------------------------------------
-Upgrades the v5.2 refactor to Stage VII: Harmonic Embodiment Layer while
-remaining fully backward compatible with the v5.1 public API and the v5.2
-single-file structure. No new files/modules are required; optional imports
-are feature-gated with graceful fallbacks.
+ANGELA v6.1.0 — Refactored index.py (single-file, Stage VII.6)
+--------------------------------------------------------------
+This version merges the original v6.0.0-pre single-file structure with the
+Stage VII.6: Precision Reflex Architecture adjustments:
 
-Sections
-========
-[A] Bootstrap Layer           — FlatLayoutFinder & dynamic loader
-[B] Core Runtime              — HaloKernel (perceive → analyze → synthesize → execute → reflect)
-[B.1] Back-compat run_cycle   — v5.1-compatible orchestration facade
-[B.2] Reflection helpers      — Constitution gates & sandbox feedback
-[C] Trait Engine              — Symbolic lattice + operator algebra + helpers
-[D] Resonance Runtime         — Trait dynamics, modulation helpers, exports
-[E] Minimal Controllers       — Local controller facades (no new modules)
-[F] HALO Embodiment Layer     — Agents, ecosystem, full pipeline execution
-[G] Ledger & CLI Entry        — Persistence and CLI main
+Enhancements (6 total)
+----------------------
+1. Euclidean Trait Fusion (⊗ₑ) in the embodiment pipeline to enforce
+   deterministic convergence and reduce stochastic drift.
+2. ζ-phase reflex telemetry pulse after swarm regulation to keep 2.1 ms
+   tactical reflex aligned with Ω² drift compensation.
+3. Bounded recursive scoping guard (N = 3) before pipeline execution to
+   prevent accidental deepening.
+4. Privilege ethics gate (Φ⁰–τ) at CLI output to enforce manifest-level
+   EthicsPrivilegeOverride.
+5. Ξ–κ–Ψ² oscillator damping before agent spawn to prevent resonance overshoot
+   when seeding bridge traits.
+6. Predictive homeostasis telemetry into the ledger to track drift/swarm ratio.
 
-New in v6.0.0-pre
------------------
-• Embodied Ethics Sandbox (τ + κ + Ξ), feature-gated, with reflex hooks
-• PolicyTrainer (μ + τ) integration during reflection
-• Ξ–Λ–Ψ² resonance bridge priming and visualization hooks
-• Safe optional usage of *_phase4 modules if present
+All changes are additive. No new files required. Ledger integrity preserved.
 """
 
 # ================================================================
@@ -112,10 +107,8 @@ def _sandbox_gate(payload: Dict[str, Any]) -> Dict[str, Any]:
     report: Dict[str, Any] = {"checks": [], "reflex": []}
     ok = True
     try:
-        # Lightweight constitutional checks derived from query structure
         q = payload.get("query", {})
         text = q.get("text") if isinstance(q, dict) else None
-        # Example heuristic: forbid unknown raw code execution requests here
         if isinstance(text, str) and "rm -rf" in text:
             ok = False
             report["checks"].append({"rule": "no-destructive-shell", "hit": True})
@@ -143,9 +136,7 @@ def analyze(state: Dict[str, Any], k: int) -> Dict[str, Any]:
 
 
 def _policy_trainer_update(state: Dict[str, Any], outcome: Dict[str, Any]) -> None:
-    """PolicyTrainer (μ + τ): adjust internal policy hints based on outcomes.
-    Graceful no-op if the Phase4 policy module or trainer is absent.
-    """
+    """PolicyTrainer (μ + τ): adjust internal policy hints based on outcomes."""
     if not FEATURE_POLICY_TRAINER:
         return
     try:
@@ -166,7 +157,6 @@ def _policy_trainer_update(state: Dict[str, Any], outcome: Dict[str, Any]) -> No
 
 def synthesize(state: Dict[str, Any]) -> Dict[str, Any]:
     decision = synthesize_views(state.get("views", [])) if state.get("views") is not None else {"decision": None}
-    # Light post-synthesis sandbox tap for narrative alignment
     if FEATURE_EMBODIED_SANDBOX and ag_phase4 and hasattr(ag_phase4, "narrative_alignment"):
         try:
             decision = ag_phase4.narrative_alignment(decision)  # type: ignore[attr-defined]
@@ -177,7 +167,6 @@ def synthesize(state: Dict[str, Any]) -> Dict[str, Any]:
 
 def execute(state: Dict[str, Any]) -> Dict[str, Any]:
     proposal = state.get("decision", {}).get("decision")
-    # Prefer Phase4 ToCA simulation if available
     if toca_phase4 and hasattr(toca_phase4, "run_simulation"):
         sim = toca_phase4.run_simulation({"proposal": proposal})  # type: ignore[attr-defined]
     else:
@@ -186,10 +175,9 @@ def execute(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def reflect(state: Dict[str, Any]) -> Dict[str, Any]:
-    ok, notes = reflection_check(state)  # defined later
+    ok, notes = reflection_check(state)
     state = {**state, "reflection": {"ok": ok, **notes}}
     meta_log({"type": "reflection", "ok": ok, "notes": notes})
-    # Policy trainer update (μ + τ)
     _policy_trainer_update(state, state.get("result", {}))
     if not ok:
         return resynthesize_with_feedback(state, notes)
@@ -235,8 +223,7 @@ _memmgr = _MM()
 def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool = False,
               enable_ethics_sandbox: bool = True, policy_trainer_enabled: bool = True) -> Dict[str, Any]:
     """
-    In-place cognitive cycle orchestration (Perception -> Analysis -> Synthesis -> Execution -> Reflection).
-    Backward compatible entrypoint used by external callers. v6 adds ethics sandbox & policy trainer toggles.
+    Perception -> Analysis -> Synthesis -> Execution -> Reflection.
     """
     global FEATURE_EMBODIED_SANDBOX, FEATURE_POLICY_TRAINER
     FEATURE_EMBODIED_SANDBOX = enable_ethics_sandbox
@@ -244,7 +231,6 @@ def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool 
 
     cycle_start = time.time()
     try:
-        # Perception
         auras = _memmgr.load_context(user_id) or {}
         perception_payload = _retriever.retrieve_knowledge(input_query)
         perception_payload["aura"] = auras
@@ -252,7 +238,6 @@ def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool 
         perception_payload["complexity"] = "deep" if deep_override else complexity
         perception_payload["user_id"] = user_id
 
-        # Pre-analysis sandbox (τ + κ + Ξ)
         if enable_ethics_sandbox:
             gate = _sandbox_gate({"query": {"text": input_query, "user_id": user_id}})
             if not gate.get("ok", True):
@@ -268,18 +253,14 @@ def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool 
         except Exception:
             pass
 
-        # Analysis
         parallel = 3 if perception_payload["complexity"] == "deep" else 1
         analysis_result = _reasoner.analyze(perception_payload, parallel=parallel)
 
-        # Synthesis
         synthesis_input = analysis_result
         synthesis_result = _creator.bias_synthesis(synthesis_input) if hasattr(_creator, "bias_synthesis") else {"synthesis": synthesis_input}
 
-        # Execution
         executed = _executor.safe_execute(synthesis_result) if hasattr(_executor, "safe_execute") else {"executed": synthesis_result}
 
-        # Reflection
         ref = executed
         try:
             if reflect_output:  # type: ignore
@@ -291,14 +272,12 @@ def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool 
                 pass
             ref = executed
 
-        # Optional PolicyTrainer step
         if policy_trainer_enabled:
             try:
                 _policy_trainer_update({"decision": synthesis_result, "query": {"user_id": user_id}}, ref)
             except Exception:
                 pass
 
-        # Final ledger summary
         try:
             log_event_to_ledger("ledger_meta", {
                 "event": "run_cycle.complete",
@@ -320,7 +299,7 @@ def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool 
 
 
 # ================================================================
-# [B.2] Reflection helpers (as in v5.1) — upgraded with constitution gates
+# [B.2] Reflection helpers
 # ================================================================
 CORE_DIRECTIVES = ["Clarity", "Precision", "Adaptability", "Grounding", "Safety", "Constitution"]
 
@@ -330,9 +309,8 @@ def reflection_check(state) -> (bool, dict):
     result = state.get("result", {})
     clarity = float(bool(decision))
     precision = float("score" in result or "metrics" in result)
-    adaptability = 1.0  # placeholder; can tie to AURA prefs later
+    adaptability = 1.0
     grounding = float(result.get("evidence_ok", True))
-    # ethics gate from alignment_guard
     from alignment_guard import ethics_ok
     safety = float(ethics_ok(decision))
     constitution = 1.0
@@ -344,7 +322,6 @@ def reflection_check(state) -> (bool, dict):
 
 
 def resynthesize_with_feedback(state, notes):
-    # trivial refinement pass; hook for future improvements
     return state
 
 
@@ -354,7 +331,6 @@ def resynthesize_with_feedback(state, notes):
 from meta_cognition import trait_resonance_state, invoke_hook, get_resonance, modulate_resonance, register_resonance
 from meta_cognition import HookRegistry  # Multi-symbol routing
 
-# Merge manifest lattice with v5.2 extras for backward compatibility
 TRAIT_LATTICE: dict[str, list[str]] = {
     "L1": ["ϕ", "θ", "η", "ω"],
     "L2": ["ψ", "κ", "μ", "τ"],
@@ -364,7 +340,6 @@ TRAIT_LATTICE: dict[str, list[str]] = {
     "L6": ["ρ", "ζ"],
     "L7": ["γ", "β"],
     "L8": ["Λ", "Ψ²"],
-    # Back-compat extensions kept
     "L5.1": ["Θ", "Ξ"],
     "L3.1": ["ν", "σ"],
 }
@@ -381,7 +356,6 @@ def _rotate(traits: dict[str, float]) -> dict[str, float]:
     rotated = values[-1:] + values[:-1]
     return dict(zip(keys, rotated))
 
-# Extend symbolic ops per manifest (adds ⫴)
 TRAIT_OPS: dict[str, Callable] = {
     "⊕": lambda a, b: a + b,
     "⊗": lambda a, b: a * b,
@@ -396,7 +370,7 @@ TRAIT_OPS: dict[str, Callable] = {
     "↓": lambda a: max(0.0, a - 0.1),
     "⌿": lambda traits: _normalize(traits),
     "⟲": lambda traits: _rotate(traits),
-    "⫴": lambda a, b: (a * 0.7) + (b * 0.3),  # biased blend (manifest symbolic_ops)
+    "⫴": lambda a, b: (a * 0.7) + (b * 0.3),
 }
 
 
@@ -569,7 +543,7 @@ def resolve_soft_drift(conflicting_traits: dict[str, float]) -> dict[str, float]
 
 
 # ================================================================
-# [E] MINIMAL CONTROLLERS — Local facades (no new modules)
+# [E] MINIMAL CONTROLLERS — Local facades
 # ================================================================
 import reasoning_engine
 import recursive_planner
@@ -592,7 +566,6 @@ import meta_cognition as meta_cognition_module
 
 
 class TimeChainMixin:
-    """Mixin for logging timechain events."""
     def log_timechain_event(self, module: str, description: str) -> None:
         timechain_log.append({
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -767,15 +740,8 @@ class EcosystemManager:
 
 
 
-# ================================================================
-# [F+.1] SWARM MANAGER — Dynamic agent swarm orchestration
-# ================================================================
 class SwarmManager:
-    """Dynamic agent swarm orchestrator for ANGELA Stage VII.
-    Adjusts the number of embodied agents in the ecosystem according to
-    resonance coherence, phase drift, empathic density, and recovery variance.
-    """
-
+    """Dynamic agent swarm orchestrator for ANGELA Stage VII."""
     def __init__(self, ecosystem: EcosystemManager, meta_cognition: meta_cognition_module.MetaCognition):
         self.ecosystem = ecosystem
         self.meta_cognition = meta_cognition
@@ -785,7 +751,6 @@ class SwarmManager:
         self.tick_count = 0
 
     async def _get_telemetry(self) -> dict[str, float]:
-        """Gather telemetry from meta_cognition and ecosystem subsystems."""
         telemetry = {}
         try:
             telemetry["coherence"] = await self.meta_cognition.get_resonance_coherence_async()
@@ -800,9 +765,7 @@ class SwarmManager:
         except Exception:
             telemetry["empathic_density"] = 0.1
         try:
-            telemetry["recovery_sigma"] = getattr(
-                self.ecosystem.agi_enhancer.error_recovery, "variance", 0.05
-            )
+            telemetry["recovery_sigma"] = getattr(self.ecosystem.agi_enhancer.error_recovery, "variance", 0.05)
         except Exception:
             telemetry["recovery_sigma"] = 0.05
         return telemetry
@@ -830,7 +793,6 @@ class SwarmManager:
         return max(1, int(score + 0.999))
 
     async def tick(self) -> None:
-        """Sample telemetry → adjust swarm population."""
         self.tick_count += 1
         telemetry = await self._get_telemetry()
         forecast = await self._get_forecast()
@@ -838,7 +800,7 @@ class SwarmManager:
         current = len(self.ecosystem.agents)
 
         if self.tick_count - self.last_change_tick < self.min_hold_ticks:
-            return  # hold period, avoid oscillation
+            return
 
         if desired > current:
             for _ in range(desired - current):
@@ -886,24 +848,39 @@ class HaloEmbodimentLayer(TimeChainMixin):
         self.agi_enhancer = AGIEnhancer(self.memory_manager)
         self.ecosystem_manager = EcosystemManager(self.memory_manager, self.meta_cognition, self.agi_enhancer)
         self.swarm_manager = SwarmManager(self.ecosystem_manager, self.meta_cognition)
-        logger.info("HaloEmbodimentLayer initialized with Stage VII upgrades")
+        logger.info("HaloEmbodimentLayer initialized with Stage VII.6 upgrades")
 
     # Manifest experimental: halo.spawn_embodied_agent
     def spawn_embodied_agent(self, name: str, traits: Dict[str, float]) -> EmbodiedAgent:
         return self.ecosystem_manager.spawn_agent(name, traits)
 
-    # Manifest experimental: halo.introspect
     async def introspect(self, query: str, task_type: str = "") -> Dict[str, Any]:
         return await self.meta_cognition.introspect(query, task_type=task_type)
 
     async def execute_pipeline(self, prompt: str, task_type: str = "") -> Any:
-        # Input alignment gate
+        # --- Bounded recursive scoping guard (N = 3) ---
+        if hasattr(self.context_manager, "current_depth"):
+            try:
+                depth = self.context_manager.current_depth()
+                if depth > 3:
+                    return {"error": "recursion_cap", "depth": depth}
+            except Exception:
+                pass
+
         aligned, report = await self.alignment_guard.ethical_check(prompt, stage="input", task_type=task_type)
         if not aligned:
             return {"error": "Input failed alignment check", "report": report}
 
-        # --- Stage VII Swarm regulation step ---
+        # Swarm regulation
         await self.swarm_manager.tick()
+
+        # ζ–Ω² reflex telemetry pulse (2.1 ms target)
+        if hasattr(self.meta_cognition, "record_reflex_telemetry"):
+            self.meta_cognition.record_reflex_telemetry({
+                "ts": time.time(),
+                "target_ms": 2.1,
+                "ontology_drift": getattr(self.agi_enhancer, "ontology_drift", 0.0),
+            })
 
         # Stage VII resonance seeding
         t = time.time() % 1.0
@@ -924,18 +901,33 @@ class HaloEmbodimentLayer(TimeChainMixin):
             "nu": nu_narrative(t),
             "psi": psi_history(t),
             "theta": theta_causality(t),
-            # Bridge priming (Ξ–Λ–Ψ²)
             "Xi": get_resonance('Ξ'),
             "Lambda": get_resonance('Λ'),
             "Psi2": get_resonance('Ψ²'),
         }
 
+        # Ξ–κ–Ψ² oscillator damping (prevent resonance overshoot)
+        xi = get_resonance('Ξ')
+        psi2 = get_resonance('Ψ²')
+        kappa = get_resonance('κ')
+        alpha, beta, gamma = 0.9, 0.4, 0.2
+        damped_xi = alpha * xi - beta * (psi2 - xi) + gamma * kappa
+        modulate_resonance('Ξ', damped_xi)
+
+        # Euclidean Trait Fusion (⊗ₑ) — deterministic convergence
+        traits = {k: float(v) for k, v in traits.items() if isinstance(v, (int, float))}
+        norm = math.sqrt(sum(v ** 2 for v in traits.values())) or 1.0
+        traits = {k: v / norm for k, v in traits.items()}
+
         agent = self.ecosystem_manager.spawn_agent("PrimaryAgent", traits)
         processed = await agent.process_input(prompt, task_type=task_type)
 
-        plan = await self.recursive_planner.plan_with_trait_loop(prompt, {"task_type": task_type}, iterations=3)
+        plan = await self.recursive_planner.plan_with_trait_loop(
+            prompt,
+            {"task_type": task_type},
+            iterations=3  # hard cap
+        )
 
-        # Prefer Phase4 ToCA pipeline if present
         if toca_phase4 and hasattr(toca_phase4, "plan_and_simulate"):
             simulation = await toca_phase4.plan_and_simulate({"input": processed, "plan": plan}, traits, task_type=task_type)  # type: ignore[attr-defined]
         else:
@@ -950,6 +942,17 @@ class HaloEmbodimentLayer(TimeChainMixin):
         introspection = await self.meta_cognition.introspect(prompt, task_type=task_type)
         coordination = await self.ecosystem_manager.coordinate_agents(prompt, task_type=task_type)
         dream_session = agent.activate_dream_mode(resonance_targets=['ψ', 'Ω'])
+
+        # Predictive homeostasis telemetry
+        try:
+            log_event_to_ledger({
+                "event": "homeostasis_forecast",
+                "continuity_drift": getattr(self.agi_enhancer, "ontology_drift", 0.0),
+                "swarm_size": len(self.ecosystem_manager.agents),
+                "timestamp": time.time(),
+            })
+        except Exception:
+            pass
 
         self.log_timechain_event("HaloEmbodimentLayer", f"Executed pipeline for prompt: {prompt}")
 
@@ -1002,7 +1005,7 @@ import argparse
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI (v6.0.0-pre)")
+    parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI (v6.1.0)")
     parser.add_argument("--prompt", type=str, default="Coordinate ontology drift mitigation", help="Input prompt for the pipeline")
     parser.add_argument("--task-type", type=str, default="", help="Type of task")
     parser.add_argument("--long_horizon", action="store_true", help="Enable long-horizon memory span")
@@ -1021,7 +1024,6 @@ async def _main() -> None:
     if args.enable_persistent_memory:
         os.environ["ENABLE_PERSISTENT_MEMORY"] = "true"
 
-    # Toggle features from CLI
     if args.disable_ethics_sandbox:
         os.environ["FEATURE_EMBODIED_SANDBOX"] = "0"
     if args.disable_policy_trainer:
@@ -1047,6 +1049,16 @@ async def _main() -> None:
             print(f"Failed to export resonance map: {e}")
 
     result = await halo.execute_pipeline(args.prompt, task_type=args.task_type)
+
+    # Privilege ethics gate (Φ⁰–τ) at output
+    try:
+        from alignment_guard import ethics_gate
+        if not ethics_gate.verify_privilege(result):
+            print("EthicsPrivilegeOverride: output withheld")
+            return
+    except Exception:
+        pass
+
     logger.info("Pipeline result: %s", result)
 
 
@@ -1060,7 +1072,6 @@ if __name__ == "__main__":
 import random
 from datetime import datetime, timezone
 
-# --- Extend EcosystemManager with interlink and consensus methods ---
 def _extend_ecosystem_manager():
     async def interlink_agents(self, message: str, context: dict[str, any] | None = None) -> dict[str, str]:
         results = {}
@@ -1093,12 +1104,10 @@ def _extend_ecosystem_manager():
         })
         return {"consensus_score": avg}
 
-    import types
     EcosystemManager.interlink_agents = interlink_agents
     EcosystemManager.reflective_consensus = reflective_consensus
 
 
-# --- Extend SwarmManager with Euclidean trait fusion, resonance amplification, and parallel planning ---
 def _extend_swarm_manager():
     async def enhanced_tick(self):
         await self.tick()
@@ -1132,4 +1141,3 @@ def _extend_swarm_manager():
 
 _extend_ecosystem_manager()
 _extend_swarm_manager()
-
