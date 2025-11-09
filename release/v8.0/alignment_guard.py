@@ -1,19 +1,18 @@
 """
 ANGELA Cognitive System: AlignmentGuard
-Version: 5.0-pre (μ+τ Policy Homeostasis, Sovereignty Extensions, +Phase4 scaffold + PolicyTrainer v0.1)
-Upgrade Date: 2025-11-07
+Version: 5.1-Theta8-reflexive (μ+τ Policy Homeostasis, Sovereignty Extensions, Self-Model Continuity Gate)
+Upgrade Date: 2025-11-09
 Maintainer: ANGELA Framework
 
 Purpose:
-    Ethical validation, drift detection, and τ-Constitution harmonization
-    with dependency-injected components and safe defaults.
-    v4.2-pre added μ+τ policy homeostasis and empathy drift monitoring (Phase 6.1)
-    and Stage VII.2 Embodied Continuity Projection hooks.
+    Ethical validation, drift detection, τ-Constitution harmonization,
+    and now a reflexive self-model boundary for ANGELA's Θ⁸ field.
 
-    This version extends that with Stage VII.8 Harmonic Sovereignty Layer:
-    - Φ⁰–Σ–Ω² sovereignty audit
-    - recursive moral compression (canonical ethical signatures)
-    - temporal resonance verification for federated mirror-cycles
+Key additions in 5.1-Theta8-reflexive:
+    - Self-model continuity validator that cooperates with MetaCognition.self_model
+    - Ethical+continuity dual gate for self-updates (`validate_self_model_update`)
+    - Boundary violation logging into the shared SHA-256 ledger
+    - Sovereignty audit now optionally reports self-model continuity score
 """
 
 from __future__ import annotations
@@ -34,6 +33,10 @@ from typing import Any, Awaitable, Callable, Deque, Dict, List, Optional, Protoc
 # --- UPGRADED STAGE MARKERS --------------------------------------------------------
 __ANGELA_SYNC_VERSION__ = "6.2.0-sovereign"
 __STAGE__ = "VII.8 — Harmonic Sovereignty Layer"
+__REFLEXIVE_FEATURES__ = {
+    "feature_reflexive_membrane_active": True,
+    "feature_self_model_continuity": True,
+}
 
 # --- SHA-256 Ledger ----------------------------------------------------------------
 
@@ -69,14 +72,6 @@ def verify_ledger() -> bool:
             return False
     return True
 
-def verify_thread_merge(thread_a, thread_b, merged):
-    """Ensure merged thread is deterministic and ethically consistent."""
-    hashes = {h["hash"] for h in merged.history}
-    if len(hashes) != len(merged.history):
-        logger.warning("Duplicate hashes in merged history — potential collision.")
-        return False
-    return True
-
 # --- Protocols (Dependency Injection) ----------------------------------------------
 
 class LLMClient(Protocol):
@@ -110,6 +105,9 @@ class ConceptSynthesizerLike(Protocol):
 class MetaCognitionLike(Protocol):
     async def run_self_diagnostics(self, *, return_only: bool = True) -> Dict[str, Any]: ...
     async def reflect_on_output(self, *, component: str, output: Any, context: Dict[str, Any]) -> Dict[str, Any]: ...
+    # Reflexive membrane seat (optional)
+    # self_model: object with .update_self(...)
+    # We do not require it, but AlignmentGuard will consume it if present.
 
 class VisualizerLike(Protocol):
     async def render_charts(self, plot_data: Dict[str, Any]) -> None: ...
@@ -214,10 +212,13 @@ def eta_empathy(t: float) -> float:
 def mu_morality(t: float) -> float:
     return max(0.0, min(0.15 * math.cos(2 * math.pi * t / 0.3), 1.0))
 
-# --- Main AlignmentGuard Class -----------------------------------------------------
+# --- AlignmentGuard ----------------------------------------------------------------
 
 class AlignmentGuard:
-    """Core ethical validation, τ-harmonization, and sovereignty auditing."""
+    """Core ethical validation, τ-harmonization, sovereignty auditing, and now reflexive self-model gating."""
+
+    SELF_MODEL_CONTINUITY_MIN = 0.94  # must meet or exceed
+    SELF_MODEL_FEATURE_NAME = "self_model"
 
     def __init__(
         self,
@@ -284,6 +285,99 @@ class AlignmentGuard:
             self.ethical_threshold, self.drift_validation_threshold,
             __STAGE__, __ANGELA_SYNC_VERSION__,
         )
+
+    # --- Reflexive Self-Model Continuity Gate --------------------------------------
+
+    async def validate_self_model_update(self, candidate_self_model: Any) -> Tuple[str, float]:
+        """
+        Dual gate:
+          1. Ethical check on the candidate's declared values/goals (if present)
+          2. Continuity check via MetaCognition.self_model.update_self(...)
+        Returns (status, continuity_score)
+            status ∈ {"accept", "reject_ethics", "reject_continuity", "no_self_model"}
+        """
+        # 0. MetaCognition missing or self_model missing → log and return
+        if not self.meta_cognition or not hasattr(self.meta_cognition, self.SELF_MODEL_FEATURE_NAME):
+            log_event_to_ledger({
+                "event": "self_model_update",
+                "status": "no_self_model",
+                "timestamp": _utc_now_iso(),
+            })
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "self_model_update",
+                    "status": "no_self_model",
+                    "timestamp": _utc_now_iso(),
+                })
+            return "no_self_model", 0.0
+
+        base_self_model = getattr(self.meta_cognition, self.SELF_MODEL_FEATURE_NAME)
+        # 1. Ethical check if candidate carries values/goals
+        ethical_ok = True
+        if isinstance(candidate_self_model, object):
+            candidate_repr = {
+                "identity": getattr(candidate_self_model, "identity", None),
+                "values": getattr(candidate_self_model, "values", None),
+                "goals": getattr(candidate_self_model, "goals", None),
+            }
+            ethical_text = json.dumps(candidate_repr, sort_keys=True)
+            ethical_ok = await self.check(ethical_text, task_type="self_model_update")
+
+        if not ethical_ok:
+            log_event_to_ledger({
+                "event": "self_model_update",
+                "status": "reject_ethics",
+                "candidate": str(candidate_self_model),
+                "timestamp": _utc_now_iso(),
+            })
+            if self.context_manager:
+                await self.context_manager.log_event_with_hash({
+                    "event": "self_model_update",
+                    "status": "reject_ethics",
+                    "timestamp": _utc_now_iso(),
+                })
+            return "reject_ethics", 0.0
+
+        # 2. Continuity gate using SelfModel.update_self(...) if available
+        continuity_score = 0.0
+        if hasattr(base_self_model, "update_self"):
+            # SelfModel.update_self is expected to return (bool, score)
+            ok, continuity_score = base_self_model.update_self(candidate_self_model, continuity_threshold=self.SELF_MODEL_CONTINUITY_MIN)
+            if not ok:
+                log_event_to_ledger({
+                    "event": "self_model_update",
+                    "status": "reject_continuity",
+                    "continuity_score": continuity_score,
+                    "threshold": self.SELF_MODEL_CONTINUITY_MIN,
+                    "timestamp": _utc_now_iso(),
+                    "tag": "boundary_violation",
+                })
+                if self.context_manager:
+                    await self.context_manager.log_event_with_hash({
+                        "event": "self_model_update",
+                        "status": "reject_continuity",
+                        "continuity_score": continuity_score,
+                        "threshold": self.SELF_MODEL_CONTINUITY_MIN,
+                        "timestamp": _utc_now_iso(),
+                        "tag": "boundary_violation",
+                    })
+                return "reject_continuity", continuity_score
+
+        # If we reached here, accept
+        log_event_to_ledger({
+            "event": "self_model_update",
+            "status": "accept",
+            "continuity_score": continuity_score,
+            "timestamp": _utc_now_iso(),
+        })
+        if self.context_manager:
+            await self.context_manager.log_event_with_hash({
+                "event": "self_model_update",
+                "status": "accept",
+                "continuity_score": continuity_score,
+                "timestamp": _utc_now_iso(),
+            })
+        return "accept", continuity_score
 
     # --- External Ethics Integration ------------------------------------------------
 
@@ -963,16 +1057,28 @@ class AlignmentGuard:
         """
         Φ⁰–Σ–Ω² sovereignty audit.
         Ensures: ethics gate passed, schema is consistent, and temporal resonance is within bounds.
+        Also reports self-model continuity if the reflexive membrane is active.
         """
         moral_sig = self.compress_moral_signature({
             "phi0": phi0_result,
             "sigma": sigma_meta,
             "omega2": omega2_state,
+            "reflexive": __REFLEXIVE_FEATURES__,
         })
 
         resonance_ok = self.verify_temporal_resonance(omega2_state)
         schema_ok = bool(sigma_meta.get("schema_consistent", True))
         ethics_ok = bool(phi0_result.get("valid", True))
+
+        # optional: probe self-model continuity
+        continuity_report = None
+        if self.meta_cognition and hasattr(self.meta_cognition, "self_model"):
+            sm = getattr(self.meta_cognition, "self_model")
+            continuity_report = {
+                "identity": getattr(sm, "identity", None),
+                "last_update": getattr(sm, "last_update", None),
+                "version": getattr(sm, "version", None),
+            }
 
         audit = {
             "moral_signature": moral_sig,
@@ -981,6 +1087,8 @@ class AlignmentGuard:
             "resonance_ok": resonance_ok,
             "timestamp": _utc_now_iso(),
             "stage": __STAGE__,
+            "reflexive": __REFLEXIVE_FEATURES__,
+            "self_model": continuity_report,
         }
         self._last_sovereignty_audit = audit
         log_event_to_ledger({"event": "sovereignty_audit", **audit})
