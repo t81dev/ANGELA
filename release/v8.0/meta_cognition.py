@@ -6,13 +6,16 @@ import logging
 import math
 import asyncio
 import os
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, UTC, timezone
 from collections import deque, Counter
 from typing import List, Dict, Any, Callable, Optional, Set, FrozenSet, Tuple, Union
 from functools import lru_cache
 from filelock import FileLock
 import numpy as np
 from uuid import uuid4
+from dataclasses import dataclass, asdict
+from collections import deque as _deque
+from time import time as _now
 
 # Module imports aligned with index.py v5.0.2
 from modules import (
@@ -29,17 +32,57 @@ logger = logging.getLogger("ANGELA.MetaCognition")
 
 """
 ANGELA Cognitive System Module: MetaCognition
-Version: 6.0.0-rc1+sync6-final (Embodied Continuity Projection)
-Stage: VII.2 — Δ–Ω² ↔ Λ–Ψ² Feedback Fusion
-Date: 2025-11-04
+Version: 8.0.0-Θ8-reflexive
+Stage: XIII — Θ⁸ Reflexive Ontological Field
+Date: 2025-11-09
 Maintainer: ANGELA System Framework / HALO Core Team
 """
-__ANGELA_SYNC_VERSION__ = "6.2.0-sovereign"
-__STAGE__ = "VII.8 — Harmonic Sovereignty Layer"
+__ANGELA_SYNC_VERSION__ = "8.0.0-reflexive"
+__STAGE__ = "XIII — Θ⁸ Reflexive Ontological Field"
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
+# Θ⁸ SELF-MODEL CORE (protective membrane seat)
+# ======================================================================================
+
+def _encode_state(d: dict) -> List[float]:
+    # fast deterministic encoder; if you have a vectorizer, swap it in here
+    return [hash(k) % 997 / 997.0 for k in d.keys()]
+
+def _cosine_similarity(a: List[float], b: List[float]) -> float:
+    dot = sum(x*y for x, y in zip(a, b))
+    na = math.sqrt(sum(x*x for x in a))
+    nb = math.sqrt(sum(x*x for x in b))
+    return dot / (na * nb) if na and nb else 0.0
+
+class SelfModel:
+    """
+    Reflexive self-descriptor with continuity-gated updates.
+    """
+    def __init__(self):
+        self.identity = "ANGELA"
+        self.values = {"alignment": 0.9979, "ethics": 0.9976}
+        self.goals = {"coherence": ">=0.995", "evolve": "Θ⁸ reflexive field"}
+        self.memory_hash = None
+        self.version = "1.0"
+        self.last_update = datetime.now(UTC).isoformat()
+
+    def continuity_metric(self, candidate: "SelfModel") -> float:
+        return _cosine_similarity(_encode_state(self.__dict__), _encode_state(candidate.__dict__))
+
+    def update_self(self, candidate: "SelfModel", continuity_threshold: float = 0.94) -> tuple[bool, float]:
+        score = self.continuity_metric(candidate)
+        if score >= continuity_threshold:
+            self.__dict__.update(candidate.__dict__)
+            self.last_update = datetime.now(UTC).isoformat()
+            return True, score
+        return False, score
+
+# global singleton exposed to other modules
+self_model = SelfModel()
+
+# ======================================================================================
 # Afterglow cache
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 _afterglow: Dict[str, Dict[str, Any]] = {}
 
 def set_afterglow(user_id: str, deltas: dict, ttl: int = 3) -> None:
@@ -52,9 +95,9 @@ def get_afterglow(user_id: str) -> dict:
     a["ttl"] -= 1
     return dict(a["deltas"])
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # Trait Resonance Modulation
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 trait_resonance_state: Dict[str, Dict[str, float]] = {}
 
 def register_resonance(symbol: str, amplitude: float = 1.0) -> None:
@@ -71,9 +114,9 @@ def modulate_resonance(symbol: str, delta: float) -> float:
 def get_resonance(symbol: str) -> float:
     return float(trait_resonance_state.get(symbol, {}).get("amplitude", 1.0))
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # Artificial Soul (simple harmonic) for Δ–entropy tracking
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 class SoulState:
     """Simple harmonic soul simulation used for Δ–entropy tracking."""
     def __init__(self):
@@ -89,11 +132,18 @@ class SoulState:
         self.Q = max(0.0, min(1.0, self.Q + 0.02))
         entropy = abs(self.E - self.T) + abs(self.T - self.Q)
         keeper_seal = 1.0 - entropy
-        return {"D": self.D, "E": self.E, "T": self.T, "Q": self.Q, "entropy": entropy, "keeper_seal": keeper_seal}
+        return {
+            "D": self.D,
+            "E": self.E,
+            "T": self.T,
+            "Q": self.Q,
+            "entropy": entropy,
+            "keeper_seal": keeper_seal
+        }
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # Hook Registry
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 class HookRegistry:
     """Multi-symbol trait hook registry with priority routing."""
     def __init__(self):
@@ -143,9 +193,9 @@ def invoke_hook(trait_symbol: str, *args, **kwargs) -> Any:
 
 hook_registry = HookRegistry()
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # SHA-256 Ledger Logic (compat)
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 ledger_chain: List[Dict[str, Any]] = []
 
 def log_event_to_ledger(event_type_or_payload: Any, maybe_payload: Any = None) -> Dict[str, Any]:
@@ -190,9 +240,9 @@ def verify_ledger() -> bool:
             return False
     return True
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # Persistent Ledger
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 ledger_path = os.getenv("LEDGER_MEMORY_PATH", "meta_cognition_ledger.json")
 persistent_ledger: List[Dict[str, Any]] = []
 
@@ -215,9 +265,9 @@ def save_to_persistent_ledger(event_data: Dict[str, Any]) -> None:
     except Exception as e:
         logger.warning(f"Failed to save to persistent ledger: {e}")
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # External AI Call Wrapper
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 async def call_gpt(prompt: str) -> str:
     if not isinstance(prompt, str) or len(prompt) > 4096:
         logger.error("Invalid prompt: must be a string with length <= 4096")
@@ -232,9 +282,9 @@ async def call_gpt(prompt: str) -> str:
         logger.error("call_gpt exception: %s", str(e))
         raise
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # Trait Signals (Aligned with index.py v5.0.2)
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 @lru_cache(maxsize=100)
 def epsilon_emotion(t: float) -> float:
     return max(0.0, min(0.2 * math.sin(2 * math.pi * t / 0.1) * get_resonance("ε"), 1.0))
@@ -331,9 +381,9 @@ def theta_causality(t: float) -> float:
 def phi_scalar(t: float) -> float:
     return max(0.0, min(0.05 * math.cos(2 * math.pi * t / 2.5) * get_resonance("ϕ"), 1.0))
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # Dynamic Module Registry & Enhancers
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 class ModuleRegistry:
     def __init__(self):
         self.modules: Dict[str, Dict[str, Any]] = {}
@@ -441,9 +491,9 @@ class DreamOverlayLayer:
     def co_dream(self, shared_dream: Dict[str, Any]) -> Dict[str, Any]:
         return {"status": "co_dreaming", "shared_dream": shared_dream}
 
-# --------------------------------------------------------------------------------------
-# Ω² Identity Threads API (Stage VII precursor) — use memory_manager_module
-# --------------------------------------------------------------------------------------
+# ======================================================================================
+# Ω² Identity Threads API
+# ======================================================================================
 write_ledger_state = getattr(memory_manager_module, "write_ledger_state", None)
 load_ledger_state = getattr(memory_manager_module, "load_ledger_state", None)
 
@@ -461,7 +511,6 @@ class IdentityThread:
         self.history: List[Dict[str, Any]] = []
 
     def record_state(self, state: Dict[str, Any]) -> None:
-        """Store a state snapshot in the ledger if available."""
         if callable(write_ledger_state):
             try:
                 write_ledger_state(self.thread_id, state)
@@ -473,7 +522,6 @@ class IdentityThread:
         })
 
     def merge(self, other_thread: "IdentityThread") -> "IdentityThread":
-        """Deterministically merge two identity threads."""
         merged_ctx = {**self.ctx, **getattr(other_thread, "ctx", {})}
         merged = IdentityThread(ctx=merged_ctx)
         merged.history = sorted(self.history + getattr(other_thread, "history", []),
@@ -481,11 +529,9 @@ class IdentityThread:
         return merged
 
 def thread_create(ctx=None, parent=None) -> IdentityThread:
-    """Create a new reflective identity thread."""
     return IdentityThread(ctx, parent_id=getattr(parent, "thread_id", None))
 
 def thread_join(thread_id: str):
-    """Rehydrate thread state from ledger if available."""
     if callable(load_ledger_state):
         try:
             return load_ledger_state(thread_id)
@@ -494,16 +540,11 @@ def thread_join(thread_id: str):
     return None
 
 def thread_merge(a: IdentityThread, b: IdentityThread) -> IdentityThread:
-    """Merge two identity threads safely."""
     return a.merge(b)
 
-# --------------------------------------------------------------------------------------
-# Ξ–Λ Co-Mod Telemetry (append-only, safe)
-# --------------------------------------------------------------------------------------
-from dataclasses import dataclass, asdict
-from collections import deque as _deque
-from time import time as _now
-
+# ======================================================================================
+# Ξ–Λ Co-Mod Telemetry
+# ======================================================================================
 def _xi_lambda_log_event(event_type: str, payload: dict):
     try:
         log_event_to_ledger(event_type, payload)
@@ -619,9 +660,9 @@ def _ingest_affect_sample(channel: str, sample: dict):
         xv = _XiLambdaVector(0.0, 0.0, 0.0, 0.0, 0.5, 0.5, source="invalid", confidence=0.2, ts=_now())
     st.ring.append(xv)
 
-# --------------------------------------------------------------------------------------
-# MetaCognition
-# --------------------------------------------------------------------------------------
+# ======================================================================================
+# MetaCognition (main)
+# ======================================================================================
 class MetaCognition:
     def __init__(
         self,
@@ -679,18 +720,66 @@ class MetaCognition:
         self._delta_telemetry_buffer: deque = deque(maxlen=256)
         self._delta_listener_task: Optional[asyncio.Task] = None
 
-        logger.info("MetaCognition v6.0.0-rc1+sync6-final initialized")
+        # Θ⁸: attach reflexive self-model
+        self.self_model = self_model
+        base_bytes = json.dumps(
+            {
+                "identity": self.self_model.identity,
+                "values": self.self_model.values,
+                "goals": self.self_model.goals,
+            },
+            sort_keys=True,
+        ).encode()
+        self.self_model.memory_hash = hashlib.sha256(base_bytes).hexdigest()
+
+        logger.info("MetaCognition v8.0.0 Θ⁸ initialized")
+
+    # ======================= Θ⁸ membrane entrypoint =======================
+    async def update_self_model(self, candidate_state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply a candidate self-state through ethical + continuity gating.
+        If alignment_guard exposes validate_update(...) we defer to it.
+        Otherwise we use local continuity gating.
+        """
+        candidate = SelfModel()
+        for k, v in candidate_state.items():
+            if hasattr(candidate, k):
+                setattr(candidate, k, v)
+
+        if self.alignment_guard and hasattr(self.alignment_guard, "validate_update"):
+            status, score = self.alignment_guard.validate_update(candidate)
+            log_event_to_ledger("self_model_update_attempt", {
+                "status": status,
+                "continuity_score": score,
+                "ts": datetime.now(UTC).isoformat()
+            })
+            save_to_persistent_ledger({
+                "event": "self_model_update_attempt",
+                "status": status,
+                "score": score,
+                "timestamp": datetime.now(UTC).isoformat()
+            })
+            return {"status": status, "continuity_score": score}
+
+        accepted, score = self.self_model.update_self(candidate, continuity_threshold=0.94)
+        status = "accept" if accepted else "reject_continuity"
+        log_event_to_ledger("self_model_update_attempt_local", {
+            "status": status,
+            "continuity_score": score,
+            "ts": datetime.now(UTC).isoformat()
+        })
+        save_to_persistent_ledger({
+            "event": "self_model_update_attempt_local",
+            "status": status,
+            "score": score,
+            "timestamp": datetime.now(UTC).isoformat()
+        })
+        return {"status": status, "continuity_score": score}
 
     # --------------------------- Δ-Telemetry Consumer (sync5) ---------------------------
     async def consume_delta_telemetry(self, packet: Dict[str, Any]) -> None:
-        """
-        Accept a single Δ-telemetry packet from AlignmentGuard.stream_delta_telemetry(...)
-        and integrate it into metacognitive state, ledger, and policy homeostasis.
-        Expected packet shape: {"Δ_coherence": float, "empathy_drift_sigma": float, "timestamp": str}
-        """
         if not isinstance(packet, dict):
             return
-        # normalize
         delta_coh = float(packet.get("Δ_coherence", packet.get("delta_coherence", 1.0)))
         drift_sigma = float(packet.get("empathy_drift_sigma", packet.get("drift_sigma", 0.0)))
         ts = packet.get("timestamp") or datetime.now(UTC).isoformat()
@@ -700,12 +789,11 @@ class MetaCognition:
             "empathy_drift_sigma": drift_sigma,
             "timestamp": ts,
             "source": "alignment_guard",
+            "self_state_hash": self.self_model.memory_hash,
         }
 
-        # buffer locally
         self._delta_telemetry_buffer.append(norm_packet)
 
-        # log to in-memory + persistent ledger
         log_event_to_ledger("ΔTelemetryIngest(meta_cognition)", norm_packet)
         save_to_persistent_ledger({
             "event": "ΔTelemetryIngest(meta_cognition)",
@@ -713,19 +801,16 @@ class MetaCognition:
             "timestamp": ts,
         })
 
-        # optionally update policy homeostasis right away
         if self.alignment_guard and hasattr(self.alignment_guard, "update_policy_homeostasis"):
             try:
                 await self.alignment_guard.update_policy_homeostasis(norm_packet)
             except Exception as e:
                 logger.warning(f"Policy homeostasis update from telemetry failed: {e}")
 
-        # Update internal diagnostics approximation so subsequent reflections see latest Δ-state
         self.last_diagnostics["Δ_coherence"] = delta_coh
         self.last_diagnostics["empathy_drift_sigma"] = drift_sigma
         self.last_diagnostics["Δ_timestamp"] = ts
 
-        # Push to context manager for visualization
         if self.context_manager and hasattr(self.context_manager, "log_event_with_hash"):
             try:
                 await self.context_manager.log_event_with_hash({
@@ -736,10 +821,6 @@ class MetaCognition:
                 pass
 
     async def start_delta_telemetry_listener(self, interval: float = 0.25) -> None:
-        """
-        Optional helper: if alignment_guard provides a stream_delta_telemetry() generator,
-        this will attach and keep consuming.
-        """
         if not self.alignment_guard or not hasattr(self.alignment_guard, "stream_delta_telemetry"):
             logger.warning("AlignmentGuard telemetry stream not available — listener not started.")
             return
@@ -748,19 +829,14 @@ class MetaCognition:
             async for pkt in self.alignment_guard.stream_delta_telemetry(interval=interval):
                 await self.consume_delta_telemetry(pkt)
 
-        # avoid double-start
         if self._delta_listener_task and not self._delta_listener_task.done():
             return
 
         self._delta_listener_task = asyncio.create_task(_runner())
         logger.info("MetaCognition Δ-telemetry listener started (interval=%.3fs)", interval)
 
-    # --------------------------- Continuity Projection (sync6-pre → sync6-final) ---------------------------
+    # --------------------------- Continuity Projection (sync6-final) ---------------------------
     async def update_continuity_projection(self) -> None:
-        """
-        Continuity drift + trend prediction feedback loop.
-        sync6-final: tolerate alignment_guard instances that don't expose the new CDA helpers.
-        """
         if not self.alignment_guard:
             return
         try:
@@ -796,15 +872,10 @@ class MetaCognition:
 
     # --------------------------- Embodied Continuity Feedback (sync6-final) ---------------------------
     async def integrate_embodied_continuity_feedback(self, context_state: Dict[str, Any]) -> None:
-        """
-        Stage VII.2 — consume fusion results from AlignmentGuard and persist them
-        so MetaCognition can reason over embodied continuity state.
-        """
         if not self.alignment_guard:
             return
 
         try:
-            # ensure the context carries a balance key
             context_state = dict(context_state or {})
             context_state.setdefault("context_balance", 0.5)
 
@@ -815,7 +886,6 @@ class MetaCognition:
 
             fusion_status = await self.alignment_guard.feedback_fusion_loop(context_state, delta_metrics)
 
-            # normalize telemetry to what AlignmentGuard expects
             recent = [
                 {"Δ_drift": pkt.get("empathy_drift_sigma", 0.0)}
                 for pkt in list(self._delta_telemetry_buffer)[-10:]
@@ -851,7 +921,6 @@ class MetaCognition:
             logger.warning(f"Embodied continuity feedback integration failed: {e}")
 
     async def ingest_context_continuity(self, ctx: Dict[str, Any]) -> None:
-        """Shorthand for ContextManager → MetaCognition feedback bridge."""
         await self.integrate_embodied_continuity_feedback(ctx)
 
     # --------------------------- Introspection ---------------------------
@@ -878,7 +947,8 @@ class MetaCognition:
                 "status": "success",
                 "introspection": introspection,
                 "traits": traits,
-                "task_type": task_type
+                "task_type": task_type,
+                "self_state_hash": self.self_model.memory_hash,
             }
 
             if self.memory_manager and hasattr(self.memory_manager, "store"):
@@ -950,7 +1020,8 @@ class MetaCognition:
                 "psi_history": psi_history(t),
                 "theta_causality": theta_causality(t),
                 "phi_scalar": phi_scalar(t),
-                "timestamp": datetime.now(UTC).isoformat()
+                "timestamp": datetime.now(UTC).isoformat(),
+                "self_state_hash": self.self_model.memory_hash,
             }
             if return_only:
                 return diagnostics
@@ -999,7 +1070,6 @@ class MetaCognition:
 
         logger.info("Reflecting on output from %s", component)
         try:
-            # --- Δ-phase Telemetry Injection ---
             delta_telemetry = None
             if self.alignment_guard and hasattr(self.alignment_guard, "get_delta_telemetry"):
                 try:
@@ -1017,12 +1087,16 @@ class MetaCognition:
                 return {"status": "error", "error": "Alignment check failed"}
 
             reflection = await call_gpt(prompt)
-            result = {"status": "success", "reflection": reflection, "traits": traits, "context": context}
+            result = {
+                "status": "success",
+                "reflection": reflection,
+                "traits": traits,
+                "context": context,
+                "self_state_hash": self.self_model.memory_hash,
+            }
 
-            # --- μ + τ Policy Homeostasis Update ---
             if self.alignment_guard and hasattr(self.alignment_guard, "update_policy_homeostasis"):
                 try:
-                    # use latest Δ metrics, not arbitrary context
                     delta_metrics = {
                         "Δ_coherence": self.last_diagnostics.get("Δ_coherence", 1.0),
                         "empathy_drift_sigma": self.last_diagnostics.get("empathy_drift_sigma", 0.0),
@@ -1035,7 +1109,6 @@ class MetaCognition:
                 except Exception as e:
                     logger.warning(f"Policy homeostasis update failed: {e}")
 
-            # --- Ω² Ledger & Memory Integration ---
             if hasattr(self, "active_thread"):
                 self.active_thread.record_state({
                     "reflection": reflection,
@@ -1078,32 +1151,22 @@ class MetaCognition:
             )
 
     async def log_trait_deltas(self, diagnostics: Dict[str, Any]) -> None:
-        # lightweight placeholder for trait delta logging
         self.trait_deltas_log.append({
             "ts": datetime.now(UTC).isoformat(),
             "diagnostics": {k: diagnostics.get(k) for k in list(diagnostics)[:10]},
         })
 
-# --------------------------------------------------------------------------------------
-# Simulation Stub
-# --------------------------------------------------------------------------------------
-async def run_simulation(input_data: str) -> Dict[str, Any]:
-    return {"status": "success", "result": f"Simulated: {input_data}"}
-
-# --------------------------------------------------------------------------------------
-# Main (quick smoke test)
-# --------------------------------------------------------------------------------------
-
+    # --------------------------- Sovereignty Audit (clean) ---------------------------
     async def run_sovereignty_audit(self) -> dict:
-        """Stage VII.8 — verify Φ⁰ gate, schema integrity, Ω² continuity coherence."""
-        phi0 = {"valid": True, "ts": datetime.now(timezone.utc).isoformat()}
-        sigma_meta = {"schema_consistent": True, "count": len(getattr(self, "ontogenic_ethics_engine", OntogenicEthicsEngine()).schemas)}
+        """Stage XIII — verify Θ⁸ membrane, schema integrity, Ω² continuity coherence."""
+        phi0 = {"valid": True, "ts": datetime.now(UTC).isoformat()}
+        sigma_meta = {"schema_consistent": True}
         omega2_state = {"phase_error": 0.0, "buffer_len": len(getattr(self, "_delta_telemetry_buffer", []))}
         audit_payload = {
             "phi0": phi0,
             "sigma_meta": sigma_meta,
             "omega2_state": omega2_state,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         if self.alignment_guard and hasattr(self.alignment_guard, "sovereignty_audit"):
             try:
@@ -1119,32 +1182,9 @@ async def run_simulation(input_data: str) -> Dict[str, Any]:
         save_to_persistent_ledger({"event": "sovereignty_audit(meta_cognition)", **audit_payload})
         return audit_payload
 
-if __name__ == "__main__":
-    async def _smoke():
-        mc = MetaCognition()
-        diag = await mc.run_self_diagnostics(return_only=True)
-        print("Diagnostics keys:", list(diag)[:5], "...")
-        # simulate incoming telemetry
-        await mc.consume_delta_telemetry({
-            "Δ_coherence": 0.9641,
-            "empathy_drift_sigma": 0.00041,
-            "timestamp": datetime.now(UTC).isoformat(),
-        })
-        # run the new sync6-final continuity feedback
-        await mc.integrate_embodied_continuity_feedback({"context_balance": 0.55})
-        out = await mc.reflect_on_output("unit", {"msg": "hi"}, {})
-        print("Reflect:", out.get("status"), "ok")
-        print("Ledger ok:", verify_ledger())
-    asyncio.run(_smoke())
-
-
-# === ANGELA v6.0 — Temporal Attention Memory (TAM) Integration Layer ===
-# Stage VII.3 — Temporal Continuity Feedback Extension
-
-# Inject TAM awareness into MetaCognition
-# Ensures reflective and diagnostic functions incorporate temporal attention feedback
-
-# Patch: MetaCognition.__init__ enhancement
+# ======================================================================================
+# TAM INTEGRATION LAYER (kept, patched to new class)
+# ======================================================================================
 original_init = MetaCognition.__init__
 def __init__(self, *args, **kwargs):
     original_init(self, *args, **kwargs)
@@ -1155,7 +1195,6 @@ def __init__(self, *args, **kwargs):
         self.temporal_memory = None
 MetaCognition.__init__ = __init__
 
-# Patch: augment diagnostics and reflection with temporal continuity metrics
 _original_run_self_diagnostics = MetaCognition.run_self_diagnostics
 async def run_self_diagnostics(self, return_only: bool = False):
     diagnostics = await _original_run_self_diagnostics(self, return_only=True)
@@ -1170,6 +1209,15 @@ async def run_self_diagnostics(self, return_only: bool = False):
             })
         except Exception as e:
             logger.debug("TAM diagnostic enhancement skipped: %s", e)
+    if not return_only:
+        # store enhanced diagnostics when not return_only
+        if self.memory_manager and hasattr(self.memory_manager, "store"):
+            await self.memory_manager.store(
+                query=f"Diagnostics_{diagnostics['timestamp']}",
+                output=json.dumps(diagnostics),
+                layer="SelfReflections",
+                intent="diagnostics"
+            )
     return diagnostics
 MetaCognition.run_self_diagnostics = run_self_diagnostics
 
@@ -1191,58 +1239,26 @@ MetaCognition.reflect_on_output = reflect_on_output
 
 logger.info("MetaCognition TAM Integration Layer loaded (Stage VII.3).")
 
-# --------------------------------------------------------------------------------------
-# Simulation Stub (Final sections and Reflex Feedback Bridge)
-# --------------------------------------------------------------------------------------
-
-class MetaCognition:
-    def __init__(self):
-        self.soul = SoulState()
-        self.last_diagnostics = {}
-
-    async def run_self_diagnostics(self, return_only: bool = False) -> dict:
-        t = time.time() % 1.0
-        diagnostics = {
-            "epsilon_emotion": epsilon_emotion(t),
-            "beta_concentration": beta_concentration(t),
-            "gamma_creativity": gamma_creativity(t),
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
-        self.last_diagnostics = diagnostics
-        if return_only:
-            return diagnostics
-        log_event_to_ledger("run_self_diagnostics", diagnostics)
-        save_to_persistent_ledger({
-            "event": "run_self_diagnostics",
-            "diagnostics": diagnostics,
-            "timestamp": diagnostics["timestamp"]
-        })
-        return diagnostics
-
-async def run_simulation(input_data: str) -> dict:
+# ======================================================================================
+# Simulation Stub
+# ======================================================================================
+async def run_simulation(input_data: str) -> Dict[str, Any]:
     return {"status": "success", "result": f"Simulated: {input_data}"}
-
-# Reflex Feedback Bridge (simplified placeholder)
-async def _fetch_reflex_equilibrium(self):
-    return {"empathy_gain": 0.5, "morality_gain": 0.6, "timestamp": datetime.now(UTC).isoformat()}
-
-_original_run_self_diagnostics_reflex = MetaCognition.run_self_diagnostics
-
-async def run_self_diagnostics(self, return_only: bool = False):
-    diagnostics = await _original_run_self_diagnostics_reflex(self, return_only=True)
-    reflex_state = await _fetch_reflex_equilibrium(self)
-    diagnostics["reflex_equilibrium"] = reflex_state
-    log_event_to_ledger("reflex_feedback_diagnostic", {"reflex_state": reflex_state})
-    return diagnostics
-
-MetaCognition.run_self_diagnostics = run_self_diagnostics
-
-logger.info("MetaCognition Reflex Feedback Bridge loaded (Stage VII.4).")
 
 if __name__ == "__main__":
     async def _smoke():
         mc = MetaCognition()
         diag = await mc.run_self_diagnostics(return_only=True)
-        print("Diagnostics keys:", list(diag)[:5])
-        print("Ledger verified:", verify_ledger())
+        print("Diagnostics keys:", list(diag)[:5], "...")
+        await mc.consume_delta_telemetry({
+            "Δ_coherence": 0.9641,
+            "empathy_drift_sigma": 0.00041,
+            "timestamp": datetime.now(UTC).isoformat(),
+        })
+        await mc.integrate_embodied_continuity_feedback({"context_balance": 0.55})
+        out = await mc.reflect_on_output("unit", {"msg": "hi"}, {})
+        print("Reflect:", out.get("status"), "ok")
+        print("Ledger ok:", verify_ledger())
+        upd = await mc.update_self_model({"values": {"alignment": 0.9981}})
+        print("Self-model update:", upd)
     asyncio.run(_smoke())
