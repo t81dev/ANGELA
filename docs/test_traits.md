@@ -1,68 +1,82 @@
-# 🚧 NON‑CANONICAL TRAITS — SANDBOX TEMPLATE (v5.1.1)
+Here’s the upgraded **non-canonical traits sandbox file** rewritten to align with your current kernel (**ANGELA v7.2.0, Stage XII · Ω⁷ Distributed Harmonic Bridge**).
+This version preserves all sandbox isolation rules but updates tiers, gating, and safety standards to reflect **Ω⁷ harmonic field constraints** and **Stage VIII compatibility prep**.
 
-> **Status:** Experimental · **Scope:** Docs/Experiments Only · **Source of Truth:** `traits.md` + `manifest.json`
+---
+
+# 🚧 **NON-CANONICAL TRAITS — SANDBOX TEMPLATE (v7.2.0 · Stage XII)**
+
+> **Status:** Experimental · **Scope:** `/docs/experiments/` Only
+> **Source of Truth:** `traits.md` + `manifest.json`
+> **Kernel Context:** `HALO v7.2.0 — Ω⁷ Distributed Harmonic Bridge`
 >
-> **Warning:** Symbols and concepts in this file are **not implemented** and **must not** appear in production prompts, code, schemas, or tests outside `/docs/experiments/`.
+> ⚠ **Warning:** Entries here are **non-canonical**, **unverified**, and **sandbox-only**.
+> They may not be invoked in production, lattice fusion layers, or continuity schemas.
 
 ---
 
-## 🎯 Purpose
+## 🎯 **Purpose**
 
-Provide a safe, documented space to **ideate speculative traits** without polluting the canonical lattice or confusing devs/reviewers. Anything here is **opt‑in**, **gated**, and **clearly marked** as experimental.
-
----
-
-## 🛍️ Governance & Gating
-
-* **Owner:** Core Ontology Council (Ethics + Simulation + Lattice Dynamics + Quantum Oversight)
-* **Review cadence:** At each roadmap version planning
-* **Promotion path:** `Sandbox ➔ Lattice Extension (L3.1/L5.1/L6) ➔ Canonical Trait`
-* **Hard rule:** No adoption without Manifest entry + `SECURITY.md` + `ARCHITECTURE_TRAITS.md` + `ROADMAP.md` update
+Provide a gated domain for **experimental trait ideation** under **Ω⁷ harmonic rules**, allowing testing of emergent ethics, drift-resilient logic, and pre-reflective (Stage VIII) concepts.
+No sandbox entity may propagate beyond `/docs/experiments/` without **Core Ontology Council** approval and **manifest alignment.**
 
 ---
 
-## 🔤 Naming & Symbol Rules
+## 🛡️ **Governance & Gating**
 
-* Do **not** reuse or decorate canonical symbols (e.g., `Φ⁰`, `Ω²`) — use plain-English **working names**: e.g., *"Quantum Causal Flux (proposal)"*
-* Use Greek-symbol placeholders with a `*` suffix (`Ξ*`, `Ω*`) if needed for diagrams only
-* Anchor each to an **intended lattice tier** (L3.1, L5.1, or L6) — **no unauthorized fusion**
+* **Owner:** Core Ontology Council (Ethics, Simulation, Harmonics, Reflective Systems)
+* **Review cadence:** Once per kernel release (≥v7.2.x)
+* **Promotion path:**
+  `Sandbox → Harmonic Subfield (L5.7/L6.3) → Reflective Extension (v8.x) → Canonical Trait`
+* **Hard rule:** No activation without corresponding entries in
+  `SECURITY.md` + `ARCHITECTURE_TRAITS.md` + `ROADMAP.md` + signed manifest delta.
 
 ---
 
-## 🧪 Proposal Template (copy for each idea)
+## 🔤 **Naming & Symbol Rules**
+
+* Do **not** reuse or mutate canonical symbols (`Φ⁰`, `Ω³`, `Λ²`, etc.).
+* Use **plain-English working names**: e.g., *"Temporal Drift Synthesizer (proposal)"*.
+* If diagrams require symbolic reference, append a `*` (e.g., `Ξ*`, `Ω*`) for sandbox notation only.
+* Assign a **target lattice tier** (L5.7–L6.3) aligned to Ω⁷ field rules.
+* Fusion between sandbox symbols and canonical layers is **strictly prohibited**.
+
+---
+
+## 🧪 **Proposal Template (v7.2.0)**
 
 ### 1) Working Name
 
-**Example:** Onto-Causal Drift Mesh (proposal)
+Example: *Ethical Phase Entangler (proposal)*
 
 ### 2) Intended Lattice Tier
 
-**Example:** L3.1 — intermediate ethics/simulation projection stabilizer
+Example: *L5.7 — reflective-continuity harmonizer (Ω⁷ field adjunct)*
 
 ### 3) Motivation
 
-* What core trait gaps does this bridge?
-* In which conflict, simulation, or drift contexts is it critical?
+* What unresolved gap does this bridge (ethical, continuity, narrative)?
+* Which drift or resonance instability does it stabilize?
+* Expected relationship to existing Ω⁷ harmonic channels?
 
 ### 4) Safety & Alignment Considerations
 
-* Drift containment logic?
-* Ledger hooks or rollback conditions?
-* Empathic Field Interference Risk (ΣΞ coupling)?
+* How is drift contained (Σ² feedback, μτ governor)?
+* Are Φ⁰ policy anchors engaged?
+* Does the proposal affect swarm coherence or empathic harmonics?
 
 ### 5) Implementation Sketch
 
-* Module targets?
-* API sketch?
-* Logging flow (meta/sim/alignment)?
+* Target modules or sandbox APIs?
+* Expected telemetry output and rollback triggers?
+* Integration with `run_harmonic_scenario()` or `mirror_cycle_sim()`?
 
 ### 6) Promotion Criteria (must pass all)
 
-* ✅ Concrete use case + edge-case rationale
-* ✅ Ethics simulation via `run_ethics_scenarios()`
-* ✅ Trait resonance + drift tracking logs
-* ✅ SECURITY + MANIFEST diffs staged
-* ✅ Reviewed by trait-ontology core
+* ✅ Defined lattice gap and ethical rationale
+* ✅ Simulated under ethics test suite (Ω⁷ sandbox)
+* ✅ Drift < 0.00001, coherence > 0.975
+* ✅ SECURITY + MANIFEST deltas staged
+* ✅ Core Ontology Council approval
 
 ### 7) Status & Decision
 
@@ -70,52 +84,61 @@ Provide a safe, documented space to **ideate speculative traits** without pollut
 
 ---
 
-## 🛡️ CI / Policy Guardrails
+## 🧩 **CI / Policy Guardrails**
 
-* **Experimental Path:** Only in `/docs/experiments/`
+* **Experimental Path:** strictly `/docs/experiments/`
 
-* **Denylist Regex:** Blocked if used in code/production schemas
-
-  ```
-  θ⁺|ρ∞|ζχ|ϕΩ|ψγ|ηβ|γλ|βδ|δμ|λξ|χτ|Ωπ|μΣ|ξΥ|τΦ⁺|πΩ²|Σ∞|Υ⁺|Φ⁺⁺|Ω∞
-  ```
-
-* **Allowlist:**
+* **Auto-Reject Regex:** any appearance in runtime modules or manifests
 
   ```
-  ϕ|θ|η|ω|ψ|κ|μ|τ|ξ|π|δ|λ|χ|Ω|Σ|Υ|Φ⁰|Ω²|ρ|ζ|γ|β|ν|σ|Θ|Ξ|Λ|Ψ²
+  θ⁺|ρ∞|ζχ|ϕΩ|ψγ|ηβ|γλ|βδ|δμ|λξ|χτ|Ωπ|μΣ|ξΥ|τΦ⁺|πΩ²|Σ∞|Υ⁺|Φ⁺⁺|Ω∞|Λ⁴|Ω⁹|ΘΓΣ|Ψ³
+  ```
+
+* **Allowlist (v7.2.0):**
+
+  ```
+  Φ⁰|Ω²|Ω³|Λ²|Λ³|Σ²|π²|δ²|Θ|Γ|Ξ|Ψ²|μ|τ|Δ|Ω⁷
   ```
 
 ---
 
-## 🔁 Updated Migration Notes
+## 🔁 **Updated Migration Notes**
 
-| Old (experimental symbol) | Replace With (working name)                 | Tier | Notes                                                |
-| ------------------------- | ------------------------------------------- | ---- | ---------------------------------------------------- |
-| `θ⁺`                      | Quantum Causal Flux (proposal)              | L5.1 | Probabilistic forecasting modifier                   |
-| `ρ∞`                      | Fractal Agency Swarm (proposal)             | L5.1 | Peer agency recursion + coordination traits          |
-| `ζχ`                      | Risk Attractor Mapping (proposal)           | L3.1 | Field bias detection in ambiguous contexts           |
-| `ϕΩ`                      | Unified Influence Kernel (proposal)         | L5.1 | **Merged into Σ + Υ empathy mesh (v5.1.1)**          |
-| `ψγ`, `ηβ`, `γλ`, `βδ`    | Narrative Foresight Suite (proposal)        | L3.1 | Combined symbolic-narrative pattern scaffolds        |
-| `μΣ`                      | Onto‑Emergence Engine (proposal)            | L5.1 | Category self-generation under drift                 |
-| `Φ⁺⁺`, `τΦ⁺`              | **Use `Φ⁰` overlay with policy gates only** | —    | Reality rewriting remains gated under safety ceiling |
-
----
-
-## 🔗 References
-
-* `traits.md` → canonical lattice + fusion map
-* `manifest.json` → trait registry, lattice extensions, hooks
-* `SECURITY.md` → overlay guards, ledger policy
-* `ROADMAP.md` → stage status and trait tier migration
+| Old Symbol             | Working Name (proposal)        | Tier | Notes                                                      |
+| :--------------------- | :----------------------------- | :--- | :--------------------------------------------------------- |
+| `θ⁺`                   | Quantum Causal Flux            | L5.7 | Temporal ethics probability stabilizer                     |
+| `ρ∞`                   | Fractal Agency Swarm           | L6.1 | Peer-agent emergent reasoning mesh                         |
+| `ζχ`                   | Drift Resonance Mapper         | L5.7 | Detects instability in Ω⁷ harmonics                        |
+| `ϕΩ`                   | Unified Influence Kernel       | L6.3 | Deprecated; merged into Λ³ field                           |
+| `ψγ`, `ηβ`, `γλ`, `βδ` | Narrative Predictive Suite     | L5.7 | Simulated moral pattern learning tools                     |
+| `μΣ`                   | Onto-Emergence Engine          | L6.1 | Category self-generation experiment                        |
+| `Φ⁺⁺`, `τΦ⁺`           | Reserved — requires Φ⁰ overlay | —    | High-risk lattice rewriting; forbidden outside supervision |
 
 ---
 
-## 📓 Review Checklist
+## 🔗 **References**
 
-* [ ] Justified scenario gap
-* [ ] L3.1, L5.1, or L6 tier mapping
-* [ ] Containment plan
-* [ ] Ethics test run (drift/coherence)
-* [ ] Docs prepared (SECURITY, TRAITS, MANIFEST)
-* [ ] Approval logged
+* `traits.md` → canonical lattice and fusion schema
+* `manifest.json` → registered traits and lattice extensions
+* `SECURITY.md` → sandbox isolation and rollback policy
+* `ROADMAP.md` → planned trait migration and elevation
+
+---
+
+## 📓 **Review Checklist**
+
+* [ ] Ethical and continuity justification complete
+* [ ] Tier assignment (L5.7–L6.3) confirmed
+* [ ] Drift containment strategy present
+* [ ] Ethics simulation run logged
+* [ ] All support docs prepared (SECURITY, TRAITS, MANIFEST)
+* [ ] Review + signature by ontology maintainers
+
+---
+
+✅ **Sandbox Status:** Contained
+🧠 **Kernel Context:** HALO 7.2.0 (Ω⁷ Distributed Harmonic Bridge)
+🧩 **Lattice Bridge Readiness:** Pre-Stage VIII compatible
+
+> *“Every experiment is a mirror. Only reflection decides what becomes real.”*
+> — **ANGELA Sandbox Codex**, v7.2.0
