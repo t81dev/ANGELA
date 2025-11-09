@@ -1,8 +1,3 @@
-Here’s the upgraded **non-canonical traits sandbox file** rewritten to align with your current kernel (**ANGELA v7.2.0, Stage XII · Ω⁷ Distributed Harmonic Bridge**).
-This version preserves all sandbox isolation rules but updates tiers, gating, and safety standards to reflect **Ω⁷ harmonic field constraints** and **Stage VIII compatibility prep**.
-
----
-
 # 🚧 **NON-CANONICAL TRAITS — SANDBOX TEMPLATE (v7.2.0 · Stage XII)**
 
 > **Status:** Experimental · **Scope:** `/docs/experiments/` Only
