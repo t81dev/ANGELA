@@ -1,15 +1,19 @@
 """
 ANGELA Cognitive System: ContextManager
-Version: 4.2-sync6-final (+ Δ–Ω² continuity drift intake, embodied continuity handoff, inline co_mod overlay v5.1 preserved)
-Date: 2025-11-04
+Version: 5.0-Theta8-reflexive (Δ–Ω² continuity drift intake, embodied continuity handoff, inline co_mod overlay v5.1 preserved, Θ⁸ self-model provenance tagging)
+Date: 2025-11-09
 Maintainer: ANGELA Framework
 
-Adds (sync6-final):
-  • Δ–Ω² telemetry intake from AlignmentGuard / MetaCognition (unchanged from sync6-pre)
+Adds (Theta8):
+  • self-model provenance tagging on all ingress events
+  • Δ/Ω² packets carry meta_cognition.self_model.memory_hash when available
+  • context continuity handoff keeps self-state hash for reflexive membrane auditing
+
+Keeps (from 4.2-sync6-final):
+  • Δ–Ω² telemetry intake from AlignmentGuard / MetaCognition
   • Embodied continuity intake → forwards to MetaCognition.integrate_embodied_continuity_feedback(...)
   • Ω²-prefixed continuity events for Stage VII.2
-Keeps:
-  • Υ SharedGraph hooks (synchronous)
+  • Υ SharedGraph hooks
   • Self-healing pathways
   • Φ⁰ reality sculpting (env-gated)
   • Safe external context (pluggable providers)
@@ -121,7 +125,6 @@ except ImportError:  # pragma: no cover
 # --- Trait Helpers -----------------------------------------------------------------
 @lru_cache(maxsize=100)
 def eta_context_stability(t: float) -> float:
-    # Bound to [0,1]
     return max(0.0, min(0.1 * math.cos(2 * math.pi * t / 0.2), 1.0))
 
 # --- Env Flags ---------------------------------------------------------------------
@@ -144,11 +147,36 @@ CONSULT_BUDGET = {"timeout_s": 2.0, "max_depth": 1}
 CONTEXT_LAYERS = ["local", "societal", "planetary"]
 
 # ===================================================================================
+# Small Θ⁸ helpers
+# ===================================================================================
+
+def _current_self_hash(meta_cog) -> str:
+    try:
+        if meta_cog and hasattr(meta_cog, "self_model") and getattr(meta_cog.self_model, "memory_hash", None):
+            return meta_cog.self_model.memory_hash
+    except Exception:
+        pass
+    # fallback: try module-level self_model
+    try:
+        if meta_cognition_module and hasattr(meta_cognition_module, "self_model"):
+            return getattr(meta_cognition_module.self_model, "memory_hash", "") or ""
+    except Exception:
+        pass
+    return ""
+
+def _tag_with_self_hash(payload: Dict[str, Any], meta_cog) -> Dict[str, Any]:
+    tagged = dict(payload)
+    h = _current_self_hash(meta_cog)
+    if h:
+        tagged.setdefault("self_state_hash", h)
+    return tagged
+
+# ===================================================================================
 # ContextManager
 # ===================================================================================
 
 class ContextManager:
-    """Context management with reconciliation, healing, and gated hooks."""
+    """Context management with reconciliation, healing, and gated hooks. Θ⁸ provenance aware."""
 
     def __init__(
         self,
@@ -160,8 +188,8 @@ class ContextManager:
         visualizer: Optional["visualizer_module.Visualizer"] = None,
         error_recovery: Optional["error_recovery_module.ErrorRecovery"] = None,
         recursive_planner: Optional["recursive_planner_module.RecursivePlanner"] = None,
-        shared_graph: Optional[Any] = None,  # external_agent_bridge_module.SharedGraph if present
-        knowledge_retriever: Optional[Any] = None,  # knowledge_retriever_module.KnowledgeRetriever if present
+        shared_graph: Optional[Any] = None,
+        knowledge_retriever: Optional[Any] = None,
         context_path: str = "context_store.json",
         event_log_path: str = "event_log.json",
         coordination_log_path: str = "coordination_log.json",
@@ -196,13 +224,12 @@ class ContextManager:
         self.shared_graph = shared_graph
         self.knowledge_retriever = knowledge_retriever
 
-        # sync6-pre: Δ–Ω² telemetry buffer + optional listener
         self._delta_telemetry_buffer: deque[Dict[str, Any]] = deque(maxlen=256)
         self._delta_listener_task: Optional[asyncio.Task] = None
 
         self._load_state()
         logger.info(
-            "ContextManager v4.2-sync6-final | rollback=%.2f | Υ=%s | Φ⁰=%s",
+            "ContextManager v5.0-Theta8-reflexive | rollback=%.2f | Υ=%s | Φ⁰=%s",
             rollback_threshold, bool(shared_graph), STAGE_IV
         )
 
@@ -241,13 +268,9 @@ class ContextManager:
         self._persist_json(self.event_log_path, list(self.event_log))
         self._persist_json(self.coordination_log_path, list(self.coordination_log))
 
-    # --- Δ–Ω² Telemetry Intake (sync6-pre) ------------------------------------------
+    # --- Δ–Ω² Telemetry Intake (with Θ⁸ tagging) ------------------------------------
 
     async def ingest_delta_telemetry_update(self, packet: Dict[str, Any], *, task_type: str = "") -> None:
-        """
-        Accept a Δ telemetry packet and stash it for continuity drift analytics.
-        Shape: {"Δ_coherence": float, "empathy_drift_sigma": float, "timestamp": str, ...}
-        """
         if not isinstance(packet, dict):
             return
         norm = {
@@ -256,18 +279,16 @@ class ContextManager:
             "timestamp": packet.get("timestamp") or datetime.utcnow().isoformat(),
             "source": packet.get("source", "unknown"),
         }
+        # Θ⁸ provenance
+        norm = _tag_with_self_hash(norm, self.meta_cognition)
+
         self._delta_telemetry_buffer.append(norm)
-        # log as event so it’s chained into context ledger
         await self.log_event_with_hash(
             {"event": "delta_telemetry_update", "packet": norm},
             task_type=task_type or "telemetry"
         )
 
     async def start_delta_telemetry_listener(self, interval: float = 0.25) -> None:
-        """
-        If alignment_guard is present and exposes stream_delta_telemetry(), attach and keep consuming.
-        This mirrors MetaCognition’s listener so context stays in sync.
-        """
         if self._delta_listener_task and not self._delta_listener_task.done():
             return
         if not (self.alignment_guard and hasattr(self.alignment_guard, "stream_delta_telemetry")):
@@ -281,20 +302,16 @@ class ContextManager:
         self._delta_listener_task = asyncio.create_task(_runner())
         logger.info("ContextManager Δ-telemetry listener started (interval=%.3fs)", interval)
 
-    # --- Embodied Continuity Intake (sync6-final) -----------------------------------
+    # --- Embodied Continuity Intake (Θ⁸-aware) --------------------------------------
 
     async def ingest_context_continuity(self, context_state: Dict[str, Any], *, task_type: str = "continuity") -> None:
-        """
-        Stage VII.2 handoff:
-          ContextManager → MetaCognition.integrate_embodied_continuity_feedback(...)
-        so the metacog layer can run the fusion loop alongside Δ–Ω² metrics.
-        """
         if not isinstance(context_state, dict):
             return
 
-        # keep a local view for dashboards
         snapshot = dict(context_state)
         snapshot.setdefault("timestamp", datetime.utcnow().isoformat())
+        snapshot = _tag_with_self_hash(snapshot, self.meta_cognition)
+
         await self.log_event_with_hash(
             {"event": "Ω²_context_continuity_ingest", "continuity": snapshot},
             task_type=task_type
@@ -302,15 +319,11 @@ class ContextManager:
 
         if self.meta_cognition and hasattr(self.meta_cognition, "integrate_embodied_continuity_feedback"):
             try:
-                await self.meta_cognition.integrate_embodied_continuity_feedback(context_state)
+                await self.meta_cognition.integrate_embodied_continuity_feedback(snapshot)
             except Exception as e:
                 logger.warning(f"Context continuity handoff failed: {e}")
 
     def analyze_continuity_drift(self, window: int = 20) -> Dict[str, Any]:
-        """
-        Quick, synchronous drift view for dashboards / visualizer.
-        Returns averages over last `window` packets.
-        """
         packets = list(self._delta_telemetry_buffer)[-max(2, window):]
         if not packets:
             return {"n": 0, "Δ_mean": 1.0, "drift_mean": 0.0, "status": "empty"}
@@ -343,7 +356,6 @@ class ContextManager:
 
         cache_key = f"CtxData::{data_type}::{data_source}::{task_type}"
         try:
-            # Cache (normalized schema: {"data": <payload>, "timestamp": <iso>})
             if self.meta_cognition and getattr(self.meta_cognition, "memory_manager", None):
                 cached = await self.meta_cognition.memory_manager.retrieve(
                     cache_key, layer="ExternalData", task_type=task_type
@@ -356,14 +368,12 @@ class ContextManager:
                     except Exception:
                         pass
 
-            # Fetch
             data: Dict[str, Any] = {}
             if callable(self.external_context_provider):
                 data = self.external_context_provider(data_source, data_type, task_type)
             elif self.knowledge_retriever and hasattr(self.knowledge_retriever, "fetch"):
                 data = await self.knowledge_retriever.fetch(data_source, data_type, task_type=task_type)
 
-            # Normalize
             if data_type == "context_policies":
                 policies = data.get("policies", [])
                 result = {"status": "success", "policies": policies} if policies else {"status": "error", "error": "empty"}
@@ -373,7 +383,6 @@ class ContextManager:
             else:
                 result = {"status": "error", "error": f"unknown: {data_type}"}
 
-            # Store cache
             if self.meta_cognition and getattr(self.meta_cognition, "memory_manager", None):
                 await self.meta_cognition.memory_manager.store(
                     cache_key,
@@ -403,13 +412,12 @@ class ContextManager:
             raise TypeError("task_type must be str")
 
         try:
-            # Modulation
             t = time.time() % 1.0
             stability = eta_context_stability(t)
             new_context = dict(new_context)
             new_context["stability"] = stability
+            new_context = _tag_with_self_hash(new_context, self.meta_cognition)
 
-            # Alignment check (if available)
             if self.alignment_guard and hasattr(self.alignment_guard, "ethical_check"):
                 valid, report = await self.alignment_guard.ethical_check(
                     json.dumps(new_context), stage="pre", task_type=task_type
@@ -417,12 +425,10 @@ class ContextManager:
                 if not valid:
                     return {"status": "error", "error": "Ethical check failed", "report": report}
 
-            # History + persist
             self.context_history.append(dict(self.current_context))
             self.current_context.update(new_context)
             self._persist_json(self.context_path, self.current_context)
 
-            # Hooks
             await self._reality_sculpt_hook("update_context", new_context)
             self._push_to_shared_graph(task_type)
             await self.log_event_with_hash({"event": "context_update", "keys": list(new_context.keys())}, task_type=task_type)
@@ -455,8 +461,8 @@ class ContextManager:
                     "coherence": phi_coherence(list(layer_ctx.values())),
                 }
 
-            # include latest Δ drift glance
             summary["delta_drift"] = self.analyze_continuity_drift()
+            summary["self_state_hash"] = _current_self_hash(self.meta_cognition)
 
             await self.log_event_with_hash({"event": "context_summary", "layers": list(summary["layers"].keys())}, task_type=task_type)
             await self._reflect("summarize_context", summary, task_type)
@@ -483,6 +489,7 @@ class ContextManager:
             evt = dict(event)
             evt["timestamp"] = datetime.now().isoformat()
             evt["task_type"] = task_type
+            evt = _tag_with_self_hash(evt, self.meta_cognition)
             prev_hash = self.last_hash or "genesis"
             payload = json.dumps(evt, sort_keys=True).encode("utf-8")
             evt["hash"] = hashlib.sha256(payload + prev_hash.encode("utf-8")).hexdigest()
@@ -494,7 +501,6 @@ class ContextManager:
             await self._reality_sculpt_hook("log_event", evt)
             await self._reflect("log_event", evt, task_type)
 
-            # if this was an external delta_telemetry_update coming through log path, keep buffer in sync
             if evt.get("event") == "delta_telemetry_update" and isinstance(evt.get("packet"), dict):
                 self._delta_telemetry_buffer.append(evt["packet"])
 
@@ -520,6 +526,7 @@ class ContextManager:
             evt = dict(event)
             evt["timestamp"] = datetime.now().isoformat()
             evt["task_type"] = task_type
+            evt = _tag_with_self_hash(evt, self.meta_cognition)
             self.coordination_log.append(evt)
             self._persist_json(self.coordination_log_path, list(self.coordination_log))
 
@@ -651,6 +658,7 @@ class ContextManager:
                         "goal_id": self.current_context.get("goal_id"),
                         "task_type": task_type,
                         "timestamp": datetime.now().isoformat(),
+                        "self_state_hash": _current_self_hash(self.meta_cognition),
                     }
                 ],
                 "edges": [],
@@ -720,7 +728,6 @@ class ContextManager:
                 plan = await self.recursive_planner.propose_recovery_plan(err=err, context=self.current_context, task_type=task_type)
 
             if self.error_recovery:
-                # merge diagnostics cleanly if present
                 diag = dict(diagnostics or {})
                 if plan is not None:
                     diag["plan"] = plan
@@ -741,7 +748,6 @@ class ContextManager:
         if not isinstance(query, dict):
             raise TypeError("query must be dict")
 
-        # soft imports inside to keep module-light
         try:
             if consultant == Mode.CREATIVE:
                 from creative_thinker import brainstorm_options
@@ -753,7 +759,6 @@ class ContextManager:
                 from reasoning_engine import quick_alt_view
                 advice = quick_alt_view(query)
 
-            # meta ledger (optional)
             try:
                 from meta_cognition import log_event_to_ledger as meta_log  # type: ignore
                 meta_log({
@@ -788,7 +793,9 @@ class ContextManager:
             return
         try:
             reflection = await self.meta_cognition.reflect_on_output(
-                component=component, output=output, context={"task_type": task_type}
+                component=component,
+                output=output,
+                context={"task_type": task_type, "self_state_hash": _current_self_hash(self.meta_cognition)}
             )
             if isinstance(reflection, dict) and reflection.get("status") == "success":
                 logger.info("%s reflection: %s", component, reflection.get("reflection", ""))
@@ -830,7 +837,6 @@ class ContextManager:
             from index import construct_trait_view, TRAIT_LATTICE  # type: ignore
             view["trait_field"] = construct_trait_view(TRAIT_LATTICE)
         except Exception:
-            # keep silent if trait lattice is not available
             pass
 
     # --- Safe Snapshot --------------------------------------------------------------
@@ -844,6 +850,7 @@ class ContextManager:
             "rollback_threshold": self.rollback_threshold,
             "flags": {"STAGE_IV": STAGE_IV},
             "delta_drift": self.analyze_continuity_drift(),
+            "self_state_hash": _current_self_hash(self.meta_cognition),
         }
 
 # ===================================================================================
@@ -853,7 +860,6 @@ class ContextManager:
 import time as _time
 from dataclasses import dataclass as _dataclass
 
-# Soft imports so this file works even if modules are not yet present
 try:
     import modules.meta_cognition as _meta
 except Exception:  # pragma: no cover
@@ -873,31 +879,22 @@ class CoModConfig:
     Kd: float = 0.2
     damping: float = 0.35
     gain: float = 0.8
-    max_step: float = 0.08     # clamp per-tick delta on each axis
-    window_ms: int = 200       # averaging window for stream_affect
+    max_step: float = 0.08
+    window_ms: int = 200
 
-# Runtime registry
 __co_mod_tasks: Dict[str, asyncio.Task] = {}
 __co_mod_cfgs: Dict[str, CoModConfig] = {}
-__last_deltas: Dict[str, Dict[str, float]] = {}  # channel -> last delta applied
+__last_deltas: Dict[str, Dict[str, float]] = {}
 
 def _clamp(x, lo, hi):
     return max(lo, min(hi, x))
 
 async def _co_mod_loop(cfg: CoModConfig, guard: Optional[Any] = None):
-    """
-    Minimal PID-like loop:
-      - read self Ξ mean (meta.stream_affect)
-      - read last peer sample from bridge status (if any)
-      - compute consensus + small error correction
-      - apply delta via bridge.apply_bridge_delta (which calls set_affective_setpoint)
-    """
     if not (_meta and hasattr(_meta, "stream_affect") and hasattr(_meta, "set_affective_setpoint")):
         return
     if not (_bridge and hasattr(_bridge, "get_bridge_status") and hasattr(_bridge, "apply_bridge_delta")):
         return
 
-    # Ensure channel exists in both modules
     try:
         if hasattr(_meta, "register_resonance_channel"):
             _meta.register_resonance_channel(cfg.channel, cadence_hz=cfg.cadence_hz, window_ms=1000)
@@ -909,7 +906,6 @@ async def _co_mod_loop(cfg: CoModConfig, guard: Optional[Any] = None):
     except Exception:
         pass
 
-    # PID accumulators
     axes = ("valence", "arousal", "certainty", "empathy_bias", "trust", "safety")
     I = {k: 0.0 for k in axes}
     prev_err = {k: 0.0 for k in axes}
@@ -918,20 +914,16 @@ async def _co_mod_loop(cfg: CoModConfig, guard: Optional[Any] = None):
 
     while True:
         t0 = _time.time()
-        # 1) Self mean
         self_vec = (_meta.stream_affect(cfg.channel, window_ms=cfg.window_ms) or {}).get("vector", {})  # type: ignore[func-returns-value]
-        # 2) Peer (last packet) if available
         try:
             bstat = _bridge.get_bridge_status(cfg.channel)  # type: ignore[attr-defined]
             peer = bstat.get("last_peer_sample", {}) if isinstance(bstat, dict) else {}
         except Exception:
             peer = {}
 
-        # 3) Consensus (simple weighted average; could be replaced later)
         w_self, w_peer = 0.5, 0.5
         target = {k: w_self * float(self_vec.get(k, 0.0)) + w_peer * float(peer.get(k, 0.0)) for k in axes}
 
-        # 4) Error and PID-ish control
         delta: Dict[str, float] = {}
         for k in axes:
             x = float(self_vec.get(k, 0.0))
@@ -946,7 +938,6 @@ async def _co_mod_loop(cfg: CoModConfig, guard: Optional[Any] = None):
             u = cfg.gain * u
             delta[k] = _clamp(u, -cfg.max_step, cfg.max_step)
 
-        # 5) Validate + apply delta as a new setpoint suggestion (bridge forwards to meta)
         try:
             if guard is not None and hasattr(guard, "validate_resonance_adjustment"):
                 validation = await guard.validate_resonance_adjustment(delta)  # type: ignore[attr-defined]
@@ -960,7 +951,6 @@ async def _co_mod_loop(cfg: CoModConfig, guard: Optional[Any] = None):
                             "channel": cfg.channel
                         })
 
-            # Remember last deltas for observability helpers
             __last_deltas[cfg.channel] = dict(delta)
 
             _bridge.apply_bridge_delta(cfg.channel, {  # type: ignore[attr-defined]
@@ -974,10 +964,8 @@ async def _co_mod_loop(cfg: CoModConfig, guard: Optional[Any] = None):
                 "source": "co_mod"
             }, ttl_ms=int(1000 * period))
         except Exception:
-            # Silent-by-design: overlay should not crash on downstream issues
             pass
 
-        # 6) Sleep for the remaining period
         elapsed = _time.time() - t0
         await asyncio.sleep(max(0.0, period - elapsed))
 
@@ -986,7 +974,6 @@ def is_overlay_running(name: str = "co_mod") -> bool:
     return bool(task and not task.done())
 
 async def start_overlay(name: str = "co_mod", cfg: Optional[dict] = None, guard: Optional[Any] = None):
-    """Start the continuous Ξ–Λ co-mod overlay."""
     if is_overlay_running(name):
         return {"ok": True, "running": True, "note": "already running"}
     c = CoModConfig(**(cfg or {})) if cfg else CoModConfig()
@@ -996,7 +983,6 @@ async def start_overlay(name: str = "co_mod", cfg: Optional[dict] = None, guard:
     return {"ok": True, "running": True, "cfg": c.__dict__}
 
 async def stop_overlay(name: str = "co_mod"):
-    """Stop the overlay if running."""
     task = __co_mod_tasks.get(name)
     if task and not task.done():
         task.cancel()
@@ -1008,22 +994,15 @@ async def stop_overlay(name: str = "co_mod"):
     return {"ok": True, "running": False}
 
 def get_overlay_status(name: str = "co_mod") -> Dict[str, Any]:
-    """Return config + running state for observability."""
     return {
         "running": is_overlay_running(name),
         "cfg": (__co_mod_cfgs.get(name).__dict__ if name in __co_mod_cfgs else None)
     }
 
 def get_last_deltas(channel: str = "dialogue.default") -> Dict[str, float]:
-    """Return the most recent per-axis delta suggested by the overlay loop."""
     return dict(__last_deltas.get(channel, {}))
 
 def set_overlay_gains(name: str = "co_mod", updates: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
-    """
-    Update overlay PID/gain parameters at runtime.
-    Allowed keys: Kp, Ki, Kd, damping, gain, max_step, cadence_hz, window_ms
-    Values are clamped to safe ranges aligned with AlignmentGuard.validate_resonance_adjustment().
-    """
     updates = updates or {}
     cfg = __co_mod_cfgs.get(name)
     if not cfg:
@@ -1049,7 +1028,6 @@ def set_overlay_gains(name: str = "co_mod", updates: Optional[Dict[str, float]] 
 _collective_state: Dict[str, Dict[str, float]] = {}
 
 async def start_collective_overlay(name: str = "collective", cadence_hz: int = 10):
-    """Start the multi-peer Ξ–Υ resonance overlay (Collective Resonance Mode)."""
     if name in __co_mod_tasks and not __co_mod_tasks[name].done():
         return {"ok": True, "running": True, "note": "already running"}
 
@@ -1057,7 +1035,6 @@ async def start_collective_overlay(name: str = "collective", cadence_hz: int = 1
         period = 1.0 / max(1, cadence_hz)
         while True:
             try:
-                # Gather local affective & epistemic samples
                 xi_val = 0.5
                 ups_val = 0.5
                 if _meta and hasattr(_meta, "stream_affect"):
@@ -1072,7 +1049,6 @@ async def start_collective_overlay(name: str = "collective", cadence_hz: int = 1
                     "phase": _time.time() % (2 * math.pi),
                 }
 
-                # Compute aggregates
                 xi_mean = sum(v["Ξ"] for v in _collective_state.values()) / len(_collective_state)
                 ups_mean = sum(v["Υ"] for v in _collective_state.values()) / len(_collective_state)
                 phase_mean = sum(v["phase"] for v in _collective_state.values()) / len(_collective_state)
@@ -1085,13 +1061,11 @@ async def start_collective_overlay(name: str = "collective", cadence_hz: int = 1
                     "timestamp": datetime.now().isoformat(),
                 }
 
-                # Broadcast to Φ⁰ overlay and SharedGraph if available
                 if _meta and hasattr(_meta, "log_event_to_ledger"):
                     _meta.log_event_to_ledger({"event": "collective_overlay_update", "overlay": overlay_snapshot})
                 if _bridge and hasattr(_bridge, "broadcast_overlay_state"):
                     _bridge.broadcast_overlay_state("collective", overlay_snapshot)
 
-                # Optional: Log locally for observability
                 __last_deltas["collective"] = {"Ξ_avg": xi_mean, "Υ_avg": ups_mean, "phase_mean": phase_mean}
 
             except Exception as e:
@@ -1104,7 +1078,6 @@ async def start_collective_overlay(name: str = "collective", cadence_hz: int = 1
     return {"ok": True, "running": True, "name": name}
 
 async def stop_collective_overlay(name: str = "collective"):
-    """Stop the Ξ–Υ collective overlay."""
     task = __co_mod_tasks.get(name)
     if task and not task.done():
         task.cancel()
@@ -1116,7 +1089,6 @@ async def stop_collective_overlay(name: str = "collective"):
     return {"ok": True, "running": False}
 
 def get_collective_overlay_state() -> Dict[str, Any]:
-    """Return aggregate Ξ–Υ resonance metrics for all peers."""
     if not _collective_state:
         return {"Ξ_avg": 0.0, "Υ_avg": 0.0, "phase_mean": 0.0, "peers": 0}
     xi_mean = sum(v["Ξ"] for v in _collective_state.values()) / len(_collective_state)
@@ -1138,7 +1110,6 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.INFO)
         mgr = ContextManager()
         await mgr.update_context({"intent": "demo", "goal_id": "demo123", "layer": "local"}, task_type="demo")
-        # show continuity path too
         await mgr.ingest_context_continuity({"context_balance": 0.57}, task_type="demo")
         print(json.dumps(await mgr.summarize_context(task_type="demo"), indent=2))
     asyncio.run(demo())
