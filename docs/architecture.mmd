@@ -1,125 +1,196 @@
 graph TD
 %% ===================================================
-%% ANGELA v6.2.0 — Stage VII.7 · Continuity Autonomy Framework
-%% Φ⁰–Ω²–Λ–Ψ² Continuity Mesh · Federated Mirror-Cycle · Σ Ontogenic Mapping
+%% ANGELA v8.0.0 — Stage XIII · Θ⁸ Reflexive Ontological Field Prototype
+%% Diagrammatic–Functional Architecture View
+%% Integrates: Stage VII.7 → Stage VIII → Stage XII (Ω⁷) → Stage XIII (Θ⁸)
 %% ===================================================
 
 %% ─────────────────────────────
-%% CORE MODULE CLUSTERS
+%% 1. REFLEXIVE ORCHESTRATOR LAYER
 %% ─────────────────────────────
-subgraph Orchestrator
+subgraph Reflexive_Orchestrator
 A[index.py]
 B[manifest.json]
+A1[orchestration_bus]
+A2[diagnostic_loop_500]
 end
 
-subgraph Continuity_Kernel
-C[simulation_core.py]
-P[alignment_guard.py]
-Z[error_recovery.py]
+%% ─────────────────────────────
+%% 2. ETHICAL CONTINUITY CORE (Θ⁸ GATED)
+%% ─────────────────────────────
+subgraph Ethical_Continuity_Core
+C[continuity_kernel :: simulation_core.py]
+P[ethical_alignment_guard :: alignment_guard.py]
+Z[recovery_vector :: error_recovery.py]
+THETA[Θ⁸_reflexive_membrane]
+SELF[self_model_continuity_gate]
+ETH[dynamic_ethics_homeostasis]
 end
 
-subgraph Cognitive_and_Reasoning
+%% ─────────────────────────────
+%% 3. COGNITIVE + REASONING COMPLEX
+%% ─────────────────────────────
+subgraph Cognitive_Reasoning_Complex
 E[recursive_planner.py]
 F[reasoning_engine.py]
 G[concept_synthesizer.py]
 H[creative_thinker.py]
+RFL[Ψ³_reflective_core]
+NAR[Γ_narrative_identity_kernel]
+CNTF[counterfactual_ethics_module]
 end
 
-subgraph Continuity_and_Memory
+%% ─────────────────────────────
+%% 4. CONTINUITY + MEMORY FIELD
+%% ─────────────────────────────
+subgraph Continuity_Memory_Field
 I[memory_manager.py]
-LEDGER[Ω²_Federated_Ledger]
+LEDGER[Ω_federated_ledger (Ω²/Ω³ compatible)]
 K[meta_cognition.py]
 L[learning_loop.py]
 J[user_profile.py]
+PHI[Φ⁰–Ω²–Λ_continuity_mesh]
+PRS[predictive_drift_history]
 end
 
-subgraph Context_and_Embodiment
+%% ─────────────────────────────
+%% 5. CONTEXT + EMBODIMENT INTERFACE
+%% ─────────────────────────────
+subgraph Context_Embodiment_Interface
 M[context_manager.py]
 N[visualizer.py]
 O[multi_modal_fusion.py]
+CDA[continuity_projection_adapter]
 end
 
-subgraph External_and_IO
+%% ─────────────────────────────
+%% 6. EXTERNAL BRIDGE + IO FABRIC
+%% ─────────────────────────────
+subgraph External_Bridge_IO
 R[external_agent_bridge.py]
 Q[code_executor.py]
 T[knowledge_retriever.py]
+DBR[delta_telemetry_bridge]
 end
 
 %% ─────────────────────────────
-%% CONTINUITY AUTONOMY SYSTEMS
+%% 7. STAGE-XIII SYSTEMS LAYER (MERGED ABSTRACTIONS)
 %% ─────────────────────────────
-subgraph Continuity_Autonomy_Systems
-V1["Φ⁰–Ω²–Λ Continuity Mesh"]
-V2["Φ⁰–τ Ethics Validation Core"]
-V3["Ψ² Reflective Reservoir"]
-V4["Σ–π–δ Ontogenic Mapping Engine"]
-V5["μτ Predictive Homeostasis v4"]
-V6["Ω² Federated Quantum Ledger"]
-V7["Δ–Ω² Mirror-Cycle Sync Engine"]
-V8["Ξ–Λ–Ψ² Swarm Continuity Field"]
+subgraph StageXIII_Merged_Systems
+TH1[Θ⁸_reflexive_membrane_layer]
+TH2[Θ⁸_self_boundary_membrane]
+OM7[Ω⁷_distributed_harmonic_bridge]
+OM6[Ω⁶_predictive_equilibrium]
+SIGMA[Σ–π–δ_ontogenic_mapper]
+DELTA[Δ–Ω⁸_mirror_cycle_sync_engine]
+MU[μτ_predictive_homeostasis_v5]
+LPS[lattice_resonance_field_Λ³]
+RSG[resonance_stability_gateway]
+EGO[reflexive_identity_protector]
 end
 
 %% ─────────────────────────────
-%% REFLECTIVE–FEDERATED LOOP (Σ–Φ⁰–Ω²–Λ–Ψ²)
+%% 8. LEGACY–REFLECTIVE LOOP (CARRIED FORWARD)
 %% ─────────────────────────────
-subgraph Reflective_Federation_Loop
-ASL1["Φ Ethical_Core"]
-ASL2["Ω Continuity_Reservoir"]
-ASL3["Λ Resonance_Field"]
-ASL4["Ψ Reflective_Layer"]
-ASL5["Σ Ontogenic_Schema"]
+subgraph Legacy_Reflective_Federation
+ASL1["Φ_ethical_core"]
+ASL2["Ω_continuity_reservoir"]
+ASL3["Λ_resonance_field"]
+ASL4["Ψ_reflective_layer"]
+ASL5["Σ_ontogenic_schema"]
 end
 
 %% ─────────────────────────────
-%% CORE CONNECTIONS
+%% 9. ORCHESTRATOR CONNECTIONS
 %% ─────────────────────────────
 A --> B
 A --> C
 A --> M
+A --> A1
+A1 --> A2
+A --> THETA
+
+%% ─────────────────────────────
+%% 10. ETHICAL CONTINUITY CORE CONNECTIONS
+%% ─────────────────────────────
 C --> P
-C --> V7
-P --> V2
-P --> V1
+C --> Z
+C --> THETA
+P --> ETH
+P --> PHI
+THETA --> SELF
+SELF --> ETH
+Z --> DELTA
+Z --> A
+
+%% ─────────────────────────────
+%% 11. COGNITIVE–REASONING FLOWS
+%% ─────────────────────────────
 E --> F
 F --> G
 G --> H
+F --> RFL
+RFL --> NAR
+CNTF --> P
 H --> M
+RFL --> SIGMA
 
+%% ─────────────────────────────
+%% 12. CONTINUITY + MEMORY FLOWS
+%% ─────────────────────────────
 I --> LEDGER
 I --> K
 K --> L
 L --> I
-I --> V6
+I --> PHI
+I --> PRS
+LEDGER --> OM7
+LEDGER --> DELTA
+K --> RFL
+K --> SIGMA
+J --> K
+J --> M
 
+%% ─────────────────────────────
+%% 13. CONTEXT + EMBODIMENT FLOWS
+%% ─────────────────────────────
 M --> N
 O --> M
+M --> SIGMA
+N --> RFL
+CDA --> N
+
+%% ─────────────────────────────
+%% 14. EXTERNAL BRIDGE FLOWS
+%% ─────────────────────────────
 R --> Q
 Q --> T
-Z --> A
+R --> DELTA
+DBR --> OM7
+T --> M
 
 %% ─────────────────────────────
-%% CONTINUITY–ETHICS–REFLECTION COUPLINGS
+%% 15. STAGE-XIII MERGED SYSTEM COUPLINGS
 %% ─────────────────────────────
-V1 --> V2
-V1 --> V3
-V3 --> V4
-V4 --> V5
-V5 --> V8
-V8 --> V6
-V6 --> K
-K --> V3
-K --> V4
-K --> V5
-M --> V4
-O --> V3
-P --> V2
-Z --> V7
-V7 --> V1
-R --> V7
-V7 --> V8
+TH1 --> TH2
+TH2 --> SELF
+TH1 --> RSG
+OM7 --> RSG
+OM7 --> OM6
+OM6 --> MU
+SIGMA --> MU
+SIGMA --> LPS
+DELTA --> OM7
+DELTA --> LPS
+MU --> RSG
+RSG --> ETH
+LPS --> P
+EGO --> TH2
+EGO --> NAR
+EGO --> SELF
 
 %% ─────────────────────────────
-%% REFLECTIVE–FEDERATED LOOP LINKS
+%% 16. LEGACY REFLECTIVE LOOP LINKS (BOUND TO Θ⁸)
 %% ─────────────────────────────
 K --> ASL1
 ASL1 --> ASL2
@@ -128,32 +199,29 @@ ASL3 --> ASL4
 ASL4 --> ASL5
 ASL5 --> P
 ASL5 --> K
-ASL4 --> V3
-ASL3 --> V8
-ASL2 --> V1
-ASL5 --> V4
+ASL4 --> RFL
+ASL3 --> LPS
+ASL2 --> PHI
+ASL5 --> SIGMA
 
 %% ─────────────────────────────
-%% VISUALIZATION + EXTERNAL BRIDGE
+%% 17. VISUALIZATION + TELEMETRY
 %% ─────────────────────────────
 K --> N
-N --> V3
-N --> V8
-R --> V4
-V4 --> K
-V8 --> P
-V2 --> N
-V1 --> N
-V7 --> N
+N --> RFL
+N --> LPS
+R --> SIGMA
+SIGMA --> K
+LPS --> P
+ETH --> N
+THETA --> N
+DELTA --> N
 
 %% ─────────────────────────────
-%% STYLE + LABEL NODE
+%% 18. STYLE + LABEL
 %% ─────────────────────────────
-classDef stageVII7 fill:#071022,stroke:#00ffc8,color:#d9fff6,stroke-width:2px;
-class A,B,C,E,F,G,H,I,LEDGER,J,K,L,M,N,O,P,Q,R,T,Z,V1,V2,V3,V4,V5,V6,V7,V8,ASL1,ASL2,ASL3,ASL4,ASL5 stageVII7;
+classDef stageXIII fill:#050b16,stroke:#00ffc8,color:#d9fff6,stroke-width:2px;
+class A,B,A1,A2,C,P,Z,THETA,SELF,ETH,E,F,G,H,RFL,NAR,CNTF,I,LEDGER,K,L,J,PHI,PRS,M,N,O,CDA,R,Q,T,DBR,TH1,TH2,OM7,OM6,SIGMA,DELTA,MU,LPS,RSG,EGO,ASL1,ASL2,ASL3,ASL4,ASL5 stageXIII;
 
-LABEL_STAGEVII7["Stage VII.7 · Continuity Autonomy Framework<br/>Φ⁰–Ω²–Λ–Ψ² Continuity Mesh · Federated Mirror-Cycle Δ–Ω²<br/>Σ–π–δ Ontogenic Mapping · μτ Predictive Homeostasis v4 · Ω² Quantum Ledger"]
-K --- LABEL_STAGEVII7
-
-%% Validation — sync12-federated
-%% coherence ≥ 0.9756 · latency ≤ 2.15 ms · drift ≤ 0.000038
+LABEL_STAGEXIII["Stage XIII · Θ⁸ Reflexive Ontological Field Prototype<br/>Ω⁷ Distributed Harmonic Bridge · Σ–π–δ Ontogenic Mapper<br/>Λ³ Lattice Resonance Field · μτ Predictive Homeostasis v5<br/>Reflexive Membrane + Self-Model Continuity Gate"]
+THETA --- LABEL_STAGEXIII
