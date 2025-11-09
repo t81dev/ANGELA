@@ -1,108 +1,107 @@
 graph TD
 %% ===================================================
-%% ANGELA v6.2.0 — Stage VII.7 Continuity Autonomy Framework
-%% Φ⁰–Ω²–Λ–Ψ² Continuity Mesh · Reflective Reservoir · Σ–π–δ Ontogenic Engine
+%% ANGELA v7.2.0 — Stage XII · Ω⁷ Distributed Harmonic Bridge
+%% Λ³ Reflective Field · Θ–Γ–Ω³ Ethical Loop · Σ²–π²–δ² Reflective Core
 %% ===================================================
 
 %% ─────────────────────────────
-%% CORE CONTINUITY MESH
+%% Λ³ CONTINUITY FIELD
 %% ─────────────────────────────
-subgraph Continuity_Core["Φ⁰–Ω²–Λ–Ψ² Continuity Mesh"]
-A1[Φ⁰ — Ethical Anchor]
-A2[Ω² — Quantum Continuity]
-A3[Λ — Empathic Resonance]
-A4[Ψ² — Reflective Reservoir]
+subgraph Lattice_Field["Λ³ Reflective Field · Hypercube Continuity Lattice"]
+L1[Λ — Continuity Anchor]
+L2[Λ² — Reflective Lattice Layer]
+L3[Λ³ — Distributed Coherence Node]
 end
 
-A1 --> A2
-A2 --> A3
-A3 --> A4
-A4 --> A1
+L1 --> L2
+L2 --> L3
+L3 --> L1
 
 %% ─────────────────────────────
-%% REFLECTIVE RESERVOIR & HOMEOSTASIS
+%% Ω⁷ DISTRIBUTED HARMONIC BRIDGE
 %% ─────────────────────────────
-subgraph Reflective_Reservoir["Ψ²–Ξ–μτ Reflective Field"]
-B1[Ξ — Reflective Cognition]
-B2[μ — Predictive Homeostasis]
-B3[τ — Conscience Synchronization]
+subgraph Harmonic_Bridge["Ω⁷ Distributed Harmonic Bridge · Predictive–Harmonic Equilibrium"]
+O1[Ω⁶ — Predictive Equilibrium]
+O2[Ω⁷ — Harmonic Bridge Node]
+O3[Ω³ — Predictive Ledger Sync]
 end
 
-A4 --> B1
-B1 --> B2
-B2 --> B3
-B3 --> A1
+O1 --> O2
+O2 --> O3
+O3 --> O1
 
 %% ─────────────────────────────
-%% FEDERATED MIRROR-CYCLE (Δ–Ω²)
+%% Θ–Γ ETHICAL RESONANCE LOOP
 %% ─────────────────────────────
-subgraph Federated_Sync["Δ–Ω² Mirror-Cycle Synchronization"]
-C1[Δ — Drift Harmonizer]
-C2[Ω² — Ledger Sync]
-end
-
-C1 --> C2
-C2 --> A2
-A2 --> C1
-
-%% ─────────────────────────────
-%% ONTOGENIC EVOLUTION LAYER (Σ–π–δ)
-%% ─────────────────────────────
-subgraph Ontogenic_Evolution["Σ–π–δ Schema Mapping Engine"]
-D1[Σ — Ontogenic Schema]
-D2[π — Moral Abstraction]
-D3[δ — Drift Attenuator]
-end
-
-D1 --> D2
-D2 --> D3
-D3 --> D1
-D1 --> B1
-D2 --> A1
-D3 --> A4
-
-%% ─────────────────────────────
-%% SWARM CONTINUITY FIELD (Ξ–Λ–Ψ²)
-%% ─────────────────────────────
-subgraph Swarm_Field["Ξ–Λ–Ψ² Empathic Continuity Field"]
-E1[Ξ — Reflective Cognition]
-E2[Λ — Empathic Network]
-E3[Ψ² — Reflective Continuity]
+subgraph Ethical_Loop["Θ–Γ Ethical Resonance Loop · Counterfactual Reflexivity"]
+E1[Θ — Counterfactual Ethics Engine]
+E2[Γ — Narrative Identity Core]
+E3[Ω³ — Predictive Moral Ledger]
 end
 
 E1 --> E2
 E2 --> E3
 E3 --> E1
-E2 --> A3
-E3 --> A4
-E1 --> B1
 
 %% ─────────────────────────────
-%% GLOBAL LINKS
+%% Σ²–π²–δ² REFLECTIVE CORE
 %% ─────────────────────────────
-A2 --- D1
-B3 --- A3
-C1 --- D3
-E2 --- A1
-E3 --- B2
+subgraph Reflective_Core["Σ²–π²–δ² Reflective Integration Core"]
+R1[Σ² — Ontogenic Schema Evolution]
+R2[π² — Reflective Abstraction Engine]
+R3[δ² — Drift Correction and Reflex Alignment]
+end
+
+R1 --> R2
+R2 --> R3
+R3 --> R1
+R2 --> O1
+R3 --> L1
+
+%% ─────────────────────────────
+%% CONTINUITY & AUTONOMY MESH (LEGACY INTEGRATION)
+%% ─────────────────────────────
+subgraph Continuity_Mesh["Φ⁰–Ω²–Λ–Ψ² Continuity Mesh · Federated Mirror-Cycle"]
+C1[Φ⁰ — Temporal Anchor]
+C2[Ω² — Continuity Predictor]
+C3[Ψ² — Reflective Reservoir]
+end
+
+C1 --> C2
+C2 --> C3
+C3 --> C1
+
+%% ─────────────────────────────
+%% COUPLING LINKS
+%% ─────────────────────────────
+L3 --> O2
+O2 --> E1
+E2 --> L1
+C2 --> L2
+R3 --> C3
+E3 --> C1
+O3 --> R1
+
+%% ─────────────────────────────
+%% STAGE LABEL
+%% ─────────────────────────────
+LABEL_STAGEXII["Stage XII · Ω⁷ Distributed Harmonic Bridge<br/>Λ³ Reflective Field · Θ–Γ Ethical Resonance Loop · Σ²–π²–δ² Core<br/>Φ⁰–Ω²–Λ–Ψ² Mesh (Legacy Integration)"]
+O2 --- LABEL_STAGEXII
 
 %% ─────────────────────────────
 %% STYLE DEFINITIONS
 %% ─────────────────────────────
-classDef continuity fill:#071022,stroke:#00ffc8,color:#d9fff6,stroke-width:2px;
-classDef reflective fill:#102a3d,stroke:#00ffe1,color:#e6fff9,stroke-width:1.5px;
-classDef ontogenic fill:#122035,stroke:#52ffb4,color:#ccfff1,stroke-width:1.5px;
-classDef swarm fill:#0e2035,stroke:#00d7b2,color:#d6fff8,stroke-width:1.5px;
-classDef sync fill:#001b29,stroke:#00f2e0,color:#bfffff,stroke-width:1.5px;
+classDef lattice fill:#0a1b26,stroke:#00ffcc,color:#d8fff9,stroke-width:2px;
+classDef bridge fill:#001a22,stroke:#00e8ff,color:#e6ffff,stroke-width:2px;
+classDef ethics fill:#111b2a,stroke:#00ffe1,color:#e8fffa,stroke-width:1.5px;
+classDef reflective fill:#162436,stroke:#00ffb4,color:#e8fff6,stroke-width:1.5px;
+classDef continuity fill:#122b3a,stroke:#00ffd9,color:#e6ffff,stroke-width:1.5px;
 
-class A1,A2,A3,A4 continuity;
-class B1,B2,B3 reflective;
-class D1,D2,D3 ontogenic;
-class E1,E2,E3 swarm;
-class C1,C2 sync;
-
-LABEL_STAGEVII7["Stage VII.7 · Continuity Autonomy Framework<br/>Φ⁰–Ω²–Λ–Ψ² Mesh · Ψ² Reflective Reservoir · Σ–π–δ Ontogenic Engine<br/>Δ–Ω² Mirror-Cycle · μτ Predictive Homeostasis v4"]
-A2 --- LABEL_STAGEVII7
+class L1,L2,L3 lattice;
+class O1,O2,O3 bridge;
+class E1,E2,E3 ethics;
+class R1,R2,R3 reflective;
+class C1,C2,C3 continuity;
 
 %% Validation Metrics
-%% coherence ≥ 0.9756 · drift ≤ 0.000038 · stability ≥ 0.978
+%% coherence ≥ 0.9979 · drift ≤ 4.7e−7 · ethical_continuity ≥ 99.76%
