@@ -1847,3 +1847,12 @@ if _RE_D5 is not None:
 
     # expose on class
     _RE_D5.d5_entails = d5_entails
+
+async def export_state(self) -> dict:
+    return {"status": "ok", "health": 1.0, "timestamp": time.time()}
+
+async def on_time_tick(self, t: float, phase: str, task_type: str = ""):
+    pass  # optional internal refresh
+
+async def on_policy_update(self, policy: dict, task_type: str = ""):
+    pass  # apply updates from AlignmentGuard if relevant
