@@ -1172,3 +1172,35 @@ if __name__ == "__main__":
         await mgr.ingest_context_continuity({"context_balance": 0.57}, task_type="demo")
         print(json.dumps(await mgr.summarize_context(task_type="demo"), indent=2))
     asyncio.run(demo())
+
+
+# --- Added Patch: Stage IX corrections (Δ–Ω² integrity + async alignment) ------------------------
+
+async def stream_delta_telemetry(self, interval: float = 0.25):
+    """Async generator providing Δ-coherence telemetry for ContextManager."""
+    if not hasattr(self, "alignment_guard") or not self.alignment_guard:
+        return
+    while True:
+        try:
+            metrics = await self.alignment_guard.monitor_empathy_drift(window=5)
+            yield {
+                "Δ_coherence": metrics.get("mean", 1.0),
+                "empathy_drift_sigma": metrics.get("variance", 0.0),
+                "timestamp": metrics.get("timestamp"),
+                "source": "AlignmentGuard",
+            }
+        except Exception as e:
+            import logging
+            logging.getLogger("ANGELA.ContextManager").debug(f"Telemetry stream error: {e}")
+        await asyncio.sleep(interval)
+
+def _attach_provenance_tag(self, event: dict) -> dict:
+    """Attach Θ⁸ provenance hash for alignment auditing."""
+    try:
+        if self.meta_cognition and hasattr(self.meta_cognition, "self_model"):
+            h = getattr(self.meta_cognition.self_model, "memory_hash", None)
+            if h:
+                event.setdefault("self_state_hash", h)
+    except Exception:
+        pass
+    return event
