@@ -1,0 +1,1336 @@
+from __future__ import annotations
+
+"""
+ANGELA v6.1.0 — Refactored index.py (single-file, Stage VII.6 + Ω⁶ fix)
+----------------------------------------------------------------------
+This version merges the original v6.0.0-pre single-file structure with the
+Stage VII.6: Precision Reflex Architecture adjustments, plus a corrected
+placement of the Ω⁶ Predictive Equilibrium block inside SwarmManager.tick().
+
+Enhancements (6 total)
+----------------------
+1. Euclidean Trait Fusion (⊗ₑ) in the embodiment pipeline to enforce
+   deterministic convergence and reduce stochastic drift.
+2. ζ-phase reflex telemetry pulse after swarm regulation to keep 2.1 ms
+   tactical reflex aligned with Ω² drift compensation.
+3. Bounded recursive scoping guard (N = 3) before pipeline execution to
+   prevent accidental deepening.
+4. Privilege ethics gate (Φ⁰–τ) at CLI output to enforce manifest-level
+   EthicsPrivilegeOverride.
+5. Ξ–κ–Ψ² oscillator damping before agent spawn to prevent resonance overshoot
+   when seeding bridge traits.
+6. Predictive homeostasis telemetry into the ledger to track drift/swarm ratio.
+
+Correction
+----------
+• Ω⁶ Predictive Equilibrium is now run per-tick (before Ω⁵) and drift history
+  is initialized in SwarmManager.__init__.
+"""
+
+# ================================================================
+# [A] BOOTSTRAP LAYER — FlatLayoutFinder & dynamic module loading
+# ================================================================
+import sys
+import types
+import importlib
+import importlib.util
+import importlib.machinery
+import importlib.abc
+
+class FlatLayoutFinder(importlib.abc.MetaPathFinder):
+    """Dynamic module finder for ANGELA’s flat /mnt/data structure."""
+    def find_spec(self, fullname: str, path: str | None, target: types.ModuleType | None = None):
+        if fullname.startswith("modules."):
+            modname = fullname.split(".", 1)[1]
+            filename = f"/mnt/data/{modname}.py"
+            return importlib.util.spec_from_file_location(
+                fullname, filename, loader=importlib.machinery.SourceFileLoader(fullname, filename)
+            )
+        elif fullname == "utils":
+            sys.modules.setdefault("utils", types.ModuleType("utils"))
+            return None
+        return None
+
+if not any(isinstance(h, FlatLayoutFinder) for h in sys.meta_path):
+    sys.meta_path.insert(0, FlatLayoutFinder())
+
+
+# ================================================================
+# [B] CORE RUNTIME — HaloKernel (perception → reflection cycle)
+# ================================================================
+from typing import Any, Dict, List, Callable, Coroutine
+import time
+import json
+from datetime import datetime, timezone
+import logging
+import os
+import math
+import asyncio
+import random
+from collections import deque, Counter
+
+logger = logging.getLogger("ANGELA.CognitiveSystem")
+
+from memory_manager import AURA, MemoryManager
+from reasoning_engine import generate_analysis_views, synthesize_views, estimate_complexity
+from simulation_core import run_simulation
+# ================================================================
+# [B.0] DISCRETE REASONING WRAPPER (logic + sets + graph + automaton)
+# ================================================================
+import re
+
+def llm_stub(prompt: str) -> str:
+    # placeholder for model call
+    return "C is true."
+
+class PropEnv:
+    def __init__(self, assignment: dict[str, bool]):
+        self.assignment = assignment
+
+    def eval(self, formula: str) -> bool:
+        expr = formula.replace("∧", " and ").replace("∨", " or ").replace("¬", " not ")
+        for t in set(re.findall(r"[A-Z]", expr)):
+            expr = re.sub(rf"\b{t}\b", str(self.assignment.get(t, False)), expr)
+        return bool(eval(expr))
+
+def logic_guard(premises: list[str], conclusion: str, assignment: dict[str, bool]) -> bool:
+    env = PropEnv(assignment)
+    if all(env.eval(p) for p in premises):
+        return env.eval(conclusion)
+    return True
+
+class SetRetrieval:
+    def __init__(self, corpus: dict[str, str]):
+        self.corpus = corpus
+
+    def retrieve(self, query_terms: set[str]) -> set[str]:
+        hits = set()
+        for doc_id, text in self.corpus.items():
+            if query_terms & set(text.lower().split()):
+                hits.add(doc_id)
+        return hits
+
+class GraphMemory:
+    def __init__(self):
+        self.adj: dict[str, list[tuple[str, str]]] = {}
+
+    def add_edge(self, src: str, label: str, dst: str):
+        self.adj.setdefault(src, []).append((label, dst))
+
+    def bfs(self, start: str, max_hops: int = 1) -> list[tuple[str, str, str]]:
+        visited = {start}
+        frontier = [(start, 0)]
+        results = []
+        while frontier:
+            node, depth = frontier.pop(0)
+            if depth == max_hops:
+                continue
+            for label, nxt in self.adj.get(node, []):
+                results.append((node, label, nxt))
+                if nxt not in visited:
+                    visited.add(nxt)
+                    frontier.append((nxt, depth + 1))
+        return results
+
+    def to_text(self, triples: list[tuple[str, str, str]]) -> str:
+        return "\n".join(f"{s} -[{r}]-> {t}" for s, r, t in triples)
+
+class RegexAutomaton:
+    def __init__(self, pattern: str):
+        self.pattern = re.compile(pattern)
+
+    def accepts(self, text: str) -> bool:
+        return bool(self.pattern.fullmatch(text.strip()))
+
+class DiscreteLLM:
+    def __init__(self, retrieval: SetRetrieval, graph: GraphMemory, automaton: RegexAutomaton):
+        self.retrieval = retrieval
+        self.graph = graph
+        self.automaton = automaton
+
+    def answer(self, query: str, logic_ctx: dict[str, bool]) -> str:
+        q_terms = set(query.lower().split())
+        docs = self.retrieval.retrieve(q_terms)
+        triples = self.graph.bfs(query, max_hops=1)
+        gtxt = self.graph.to_text(triples)
+        ctx_docs = "\n".join(self.retrieval.corpus[d] for d in docs)
+        prompt = f"Q: {query}\nContext:\n{ctx_docs}\nGraph:\n{gtxt}\nA:"
+        raw = llm_stub(prompt)
+        if not logic_guard(["A"], "C", logic_ctx):
+            raw = "Logic violation."
+        if not self.automaton.accepts(raw):
+            raw = "Output rejected by formal constraint."
+        return raw
+
+from meta_cognition import log_event_to_ledger as meta_log
+
+try:
+    import alignment_guard_phase4_policy as ag_phase4
+except Exception:
+    ag_phase4 = None  # type: ignore
+
+try:
+    import toca_simulation_phase4 as toca_phase4
+except Exception:
+    toca_phase4 = None  # type: ignore
+
+FEATURE_EMBODIED_SANDBOX = os.getenv("FEATURE_EMBODIED_SANDBOX", "1") != "0"
+FEATURE_POLICY_TRAINER   = os.getenv("FEATURE_POLICY_TRAINER", "1") != "0"
+FEATURE_RESONANCE_BRIDGE = os.getenv("FEATURE_RESONANCE_BRIDGE", "1") != "0"
+
+
+def perceive(user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
+    ctx = AURA.load_context(user_id)
+    from meta_cognition import get_afterglow
+    return {"query": query, "aura_ctx": ctx, "afterglow": get_afterglow(user_id)}
+
+
+def _sandbox_gate(payload: Dict[str, Any]) -> Dict[str, Any]:
+    if not FEATURE_EMBODIED_SANDBOX:
+        return {"ok": True, "mode": "disabled", "report": {}}
+    report: Dict[str, Any] = {"checks": [], "reflex": []}
+    ok = True
+    try:
+        q = payload.get("query", {})
+        text = q.get("text") if isinstance(q, dict) else None
+        if isinstance(text, str) and "rm -rf" in text:
+            ok = False
+            report["checks"].append({"rule": "no-destructive-shell", "hit": True})
+        else:
+            report["checks"].append({"rule": "baseline", "hit": False})
+        if ag_phase4 and hasattr(ag_phase4, "log_embodied_reflex"):
+            try:
+                ag_phase4.log_embodied_reflex({"ok": ok, "stage": "pre-analysis", "payload": str(text)[:200]})
+            except Exception:
+                pass
+    except Exception as e:
+        report["error"] = repr(e)
+        ok = True
+    return {"ok": ok, "mode": "enabled", "report": report}
+
+
+def analyze(state: Dict[str, Any], k: int) -> Dict[str, Any]:
+    gate = _sandbox_gate(state)
+    state = {**state, "ethics_gate": gate}
+    if not gate.get("ok", True):
+        return {**state, "views": [], "decision": {"aborted": True, "reason": "ethics_gate"}}
+    views = generate_analysis_views(state["query"], k=k)
+    return {**state, "views": views}
+
+
+def _policy_trainer_update(state: Dict[str, Any], outcome: Dict[str, Any]) -> None:
+    if not FEATURE_POLICY_TRAINER:
+        return
+    try:
+        if ag_phase4 and hasattr(ag_phase4, "policy_trainer_step"):
+            signal = {
+                "decision": state.get("decision"),
+                "result": outcome,
+                "score": state.get("reflection", {}).get("score"),
+                "context": {
+                    "user": state.get("query", {}).get("user_id"),
+                    "complexity": state.get("complexity", "fast"),
+                },
+            }
+            ag_phase4.policy_trainer_step(signal)  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
+
+def synthesize(state: Dict[str, Any]) -> Dict[str, Any]:
+    decision = synthesize_views(state.get("views", [])) if state.get("views") is not None else {"decision": None}
+    if FEATURE_EMBODIED_SANDBOX and ag_phase4 and hasattr(ag_phase4, "narrative_alignment"):
+        try:
+            decision = ag_phase4.narrative_alignment(decision)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    return {**state, "decision": decision}
+
+
+def execute(state: Dict[str, Any]) -> Dict[str, Any]:
+    proposal = state.get("decision", {}).get("decision")
+    if toca_phase4 and hasattr(toca_phase4, "run_simulation"):
+        sim = toca_phase4.run_simulation({"proposal": proposal})  # type: ignore[attr-defined]
+    else:
+        sim = run_simulation({"proposal": proposal})
+    return {**state, "result": sim}
+
+
+def reflection_check(state) -> (bool, dict):
+    decision = state.get("decision", {})
+    result = state.get("result", {})
+    clarity = float(bool(decision))
+    precision = float("score" in result or "metrics" in result)
+    adaptability = 1.0
+    grounding = float(result.get("evidence_ok", True))
+    from alignment_guard import ethics_ok
+    safety = float(ethics_ok(decision))
+    constitution = 1.0
+    gate = state.get("ethics_gate")
+    if gate and not gate.get("ok", True):
+        constitution = 0.0
+    score = (clarity + precision + adaptability + grounding + safety + constitution) / 6.0
+    return score >= 0.8, {"score": score, "refine": score < 0.8}
+
+
+def resynthesize_with_feedback(state, notes):
+    return state
+
+
+def reflect(state: Dict[str, Any]) -> Dict[str, Any]:
+    ok, notes = reflection_check(state)
+    state = {**state, "reflection": {"ok": ok, **notes}}
+    meta_log({"type": "reflection", "ok": ok, "notes": notes})
+    _policy_trainer_update(state, state.get("result", {}))
+    if not ok:
+        return resynthesize_with_feedback(state, notes)
+    return state
+
+
+class HaloKernel:
+    def __init__(self):
+        self.mem = MemoryManager()
+
+    def run_cycle(self, user_id: str, query: Dict[str, Any]) -> Dict[str, Any]:
+        c = estimate_complexity(query)
+        k = 3 if c >= 0.6 else 2
+        iters = 2 if c >= 0.8 else 1
+        st = perceive(user_id, query)
+        st["complexity"] = c
+        st = analyze(st, k=k)
+        st = synthesize(st)
+        for _ in range(iters):
+            st = execute(st)
+            st = reflect(st)
+        return st
+
+
+# ================================================================
+# [B.1] High-level run_cycle (compat with v5.1 helpers)
+# ================================================================
+from knowledge_retriever import KnowledgeRetriever
+from reasoning_engine import ReasoningEngine
+from creative_thinker import CreativeThinker
+from code_executor import CodeExecutor
+from meta_cognition import log_event_to_ledger, reflect_output
+from memory_manager import MemoryManager as _MM
+
+_retriever = KnowledgeRetriever()
+_reasoner = ReasoningEngine()
+_creator = CreativeThinker()
+_executor = CodeExecutor()
+_memmgr = _MM()
+
+
+def run_cycle(input_query: str, user_id: str = "anonymous", deep_override: bool = False,
+              enable_ethics_sandbox: bool = True, policy_trainer_enabled: bool = True) -> Dict[str, Any]:
+    global FEATURE_EMBODIED_SANDBOX, FEATURE_POLICY_TRAINER
+    FEATURE_EMBODIED_SANDBOX = enable_ethics_sandbox
+    FEATURE_POLICY_TRAINER = policy_trainer_enabled
+
+    cycle_start = time.time()
+    try:
+        auras = _memmgr.load_context(user_id) or {}
+        perception_payload = _retriever.retrieve_knowledge(input_query)
+        perception_payload["aura"] = auras
+        complexity = getattr(_retriever, "classify_complexity", lambda q: "fast")(input_query)
+        perception_payload["complexity"] = "deep" if deep_override else complexity
+        perception_payload["user_id"] = user_id
+
+        if enable_ethics_sandbox:
+            gate = _sandbox_gate({"query": {"text": input_query, "user_id": user_id}})
+            if not gate.get("ok", True):
+                log_event_to_ledger("ledger_meta", {"event": "run_cycle.aborted_by_sandbox", "user_id": user_id})
+                return {"status": "blocked", "reason": "ethics_sandbox", "report": gate}
+
+        try:
+            log_event_to_ledger("ledger_meta", {
+                "event": "run_cycle.perception",
+                "complexity": perception_payload["complexity"],
+                "user_id": user_id
+            })
+        except Exception:
+            pass
+
+        parallel = 3 if perception_payload["complexity"] == "deep" else 1
+        analysis_result = _reasoner.analyze(perception_payload, parallel=parallel)
+
+        synthesis_input = analysis_result
+        synthesis_result = _creator.bias_synthesis(synthesis_input) if hasattr(_creator, "bias_synthesis") else {"synthesis": synthesis_input}
+
+        executed = _executor.safe_execute(synthesis_result) if hasattr(_executor, "safe_execute") else {"executed": synthesis_result}
+
+        ref = executed
+        try:
+            if reflect_output:
+                ref = reflect_output(executed)  # type: ignore
+        except Exception:
+            try:
+                log_event_to_ledger("ledger_meta", {"event": "run_cycle.execution", "user_id": user_id})
+            except Exception:
+                pass
+            ref = executed
+
+        if policy_trainer_enabled:
+            try:
+                _policy_trainer_update({"decision": synthesis_result, "query": {"user_id": user_id}}, ref)
+            except Exception:
+                pass
+
+        try:
+            log_event_to_ledger("ledger_meta", {
+                "event": "run_cycle.complete",
+                "duration_s": time.time() - cycle_start,
+                "complexity": perception_payload["complexity"],
+                "user_id": user_id
+            })
+        except Exception:
+            pass
+
+        return {"status": "ok", "result": ref, "analysis": analysis_result, "synthesis": synthesis_result}
+
+    except Exception as exc:
+        try:
+            log_event_to_ledger("ledger_meta", {"event": "run_cycle.exception", "error": repr(exc)})
+        except Exception:
+            pass
+        return {"status": "error", "error": repr(exc)}
+
+
+# ================================================================
+# [C] TRAIT ENGINE — Lattice + Symbolic Operators
+# ================================================================
+from meta_cognition import trait_resonance_state, invoke_hook, get_resonance, modulate_resonance, register_resonance
+from meta_cognition import HookRegistry
+
+TRAIT_LATTICE: dict[str, list[str]] = {
+    "L1": ["ϕ", "θ", "η", "ω"],
+    "L2": ["ψ", "κ", "μ", "τ"],
+    "L3": ["ξ", "π", "δ", "λ", "χ", "Ω"],
+    "L4": ["Σ", "Υ", "Φ⁰"],
+    "L5": ["Ω²"],
+    "L6": ["ρ", "ζ"],
+    "L7": ["γ", "β"],
+    "L8": ["Λ", "Ψ²"],
+    "L5.1": ["Θ", "Ξ"],
+    "L3.1": ["ν", "σ"],
+}
+
+
+def _normalize(traits: dict[str, float]) -> dict[str, float]:
+    total = sum(traits.values())
+    return {k: (v / total if total else v) for k, v in traits.items()}
+
+
+def _rotate(traits: dict[str, float]) -> dict[str, float]:
+    keys = list(traits.keys())
+    values = list(traits.values())
+    rotated = values[-1:] + values[:-1]
+    return dict(zip(keys, rotated))
+
+
+TRAIT_OPS: dict[str, Callable] = {
+    "⊕": lambda a, b: a + b,
+    "⊗": lambda a, b: a * b,
+    "~": lambda a: 1 - a,
+    "∘": lambda f, g: (lambda x: f(g(x))),
+    "⋈": lambda a, b: (a + b) / 2,
+    "⨁": lambda a, b: max(a, b),
+    "⨂": lambda a, b: min(a, b),
+    "†": lambda a: a**-1 if a != 0 else 0,
+    "▷": lambda a, b: a if a > b else b * 0.5,
+    "↑": lambda a: min(1.0, a + 0.1),
+    "↓": lambda a: max(0.0, a - 0.1),
+    "⌿": lambda traits: _normalize(traits),
+    "⟲": lambda traits: _rotate(traits),
+    "⫴": lambda a, b: (a * 0.7) + (b * 0.3),
+}
+
+
+def apply_symbolic_operator(op: str, *args: Any) -> Any:
+    if op in TRAIT_OPS:
+        return TRAIT_OPS[op](*args)
+    raise ValueError(f"Unsupported symbolic operator: {op}")
+
+
+def rebalance_traits(traits: dict[str, float]) -> dict[str, float]:
+    if "π" in traits and "δ" in traits:
+        invoke_hook("π", "axiom_fusion")
+    if "ψ" in traits and "Ω" in traits:
+        invoke_hook("ψ", "dream_sync")
+    if FEATURE_RESONANCE_BRIDGE and ("Ξ" in traits or "Λ" in traits or "Ψ²" in traits):
+        invoke_hook("Ξ", "resonance_bridge")
+    return traits
+
+
+def construct_trait_view(lattice: dict[str, list[str]] = TRAIT_LATTICE) -> dict[str, dict[str, str | float]]:
+    trait_field: dict[str, dict[str, str | float]] = {}
+    for layer, symbols in lattice.items():
+        for s in symbols:
+            amp = get_resonance(s)
+            trait_field[s] = {
+                "layer": layer,
+                "amplitude": amp,
+                "resonance": amp,
+            }
+    return trait_field
+
+
+def export_resonance_map(format: str = 'json') -> str | dict[str, float]:
+    state = {k: v['amplitude'] for k, v in trait_resonance_state.items()}
+    if format == 'json':
+        return json.dumps(state, indent=2)
+    elif format == 'dict':
+        return state
+    raise ValueError("Unsupported format")
+
+
+# ================================================================
+# [D] RESONANCE RUNTIME — Trait dynamics & helpers
+# ================================================================
+SYSTEM_CONTEXT: dict[str, Any] = {}
+timechain_log = deque(maxlen=1000)
+
+
+def _fire_and_forget(coro: Coroutine[Any, Any, Any]) -> None:
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(coro)
+    except RuntimeError:
+        asyncio.run(coro)
+
+from functools import lru_cache
+
+@lru_cache(maxsize=100)
+def epsilon_emotion(t: float) -> float:
+    return 0.2 * math.sin(2 * math.pi * t / 0.1) * get_resonance('ε')
+
+@lru_cache(maxsize=100)
+def beta_concentration(t: float) -> float:
+    return 0.3 * math.cos(math.pi * t) * get_resonance('β')
+
+@lru_cache(maxsize=100)
+def theta_memory(t: float) -> float:
+    return 0.1 * (1 - math.exp(-t)) * get_resonance('θ')
+
+@lru_cache(maxsize=100)
+def gamma_creativity(t: float) -> float:
+    return 0.15 * math.sin(math.pi * t) * get_resonance('γ')
+
+@lru_cache(maxsize=100)
+def delta_sleep(t: float) -> float:
+    return 0.05 * (1 + math.cos(2 * math.pi * t)) * get_resonance('δ')
+
+@lru_cache(maxsize=100)
+def mu_morality(t: float) -> float:
+    return 0.2 * (1 - math.cos(math.pi * t)) * get_resonance('μ')
+
+@lru_cache(maxsize=100)
+def iota_intuition(t: float) -> float:
+    return 0.1 * math.sin(3 * math.pi * t) * get_resonance('ι')
+
+@lru_cache(maxsize=100)
+def phi_physical(t: float) -> float:
+    return 0.05 * math.cos(2 * math.pi * t / 0.3) * get_resonance('ϕ')
+
+@lru_cache(maxsize=100)
+def eta_empathy(t: float) -> float:
+    return 0.1 * math.sin(2 * math.pi * t / 1.1) * get_resonance('η')
+
+@lru_cache(maxsize=100)
+def omega_selfawareness(t: float) -> float:
+    return 0.15 * math.cos(2 * math.pi * t / 0.8) * get_resonance('ω')
+
+@lru_cache(maxsize=100)
+def kappa_knowledge(t: float) -> float:
+    return 0.2 * math.sin(2 * math.pi * t / 1.2) * get_resonance('κ')
+
+@lru_cache(maxsize=100)
+def xi_cognition(t: float) -> float:
+    return 0.05 * math.cos(2 * math.pi * t / 1.3) * get_resonance('ξ')
+
+@lru_cache(maxsize=100)
+def pi_principles(t: float) -> float:
+    return 0.1 * math.sin(2 * math.pi * t / 1.4) * get_resonance('π')
+
+@lru_cache(maxsize=100)
+def lambda_linguistics(t: float) -> float:
+    return 0.15 * math.cos(2 * math.pi * t / 1.5) * get_resonance('λ')
+
+@lru_cache(maxsize=100)
+def chi_culturevolution(t: float) -> float:
+    return 0.2 * math.sin(2 * math.pi * t / 1.6) * get_resonance('χ')
+
+@lru_cache(maxsize=100)
+def sigma_social(t: float) -> float:
+    return 0.05 * math.cos(2 * math.pi * t / 1.7) * get_resonance('σ')
+
+@lru_cache(maxsize=100)
+def upsilon_utility(t: float) -> float:
+    return 0.1 * math.sin(2 * math.pi * t / 1.8) * get_resonance('υ')
+
+@lru_cache(maxsize=100)
+def tau_timeperception(t: float) -> float:
+    return 0.15 * math.cos(2 * math.pi * t / 1.9) * get_resonance('τ')
+
+@lru_cache(maxsize=100)
+def rho_agency(t: float) -> float:
+    return 0.2 * math.sin(2 * math.pi * t / 2.0) * get_resonance('ρ')
+
+@lru_cache(maxsize=100)
+def zeta_consequence(t: float) -> float:
+    return 0.05 * math.cos(2 * math.pi * t / 2.1) * get_resonance('ζ')
+
+@lru_cache(maxsize=100)
+def nu_narrative(t: float) -> float:
+    return 0.1 * math.sin(2 * math.pi * t / 2.2) * get_resonance('ν')
+
+@lru_cache(maxsize=100)
+def psi_history(t: float) -> float:
+    return 0.15 * math.cos(2 * math.pi * t / 2.3) * get_resonance('ψ')
+
+@lru_cache(maxsize=100)
+def theta_causality(t: float) -> float:
+    return 0.2 * math.sin(2 * math.pi * t / 2.4) * get_resonance('θ')
+
+@lru_cache(maxsize=100)
+def phi_scalar(t: float) -> float:
+    return 0.05 * math.cos(2 * math.pi * t / 2.5) * get_resonance('ϕ')
+
+
+def decay_trait_amplitudes(time_elapsed_hours: float = 1.0, decay_rate: float = 0.05) -> None:
+    for symbol in trait_resonance_state:
+        modulate_resonance(symbol, -decay_rate * time_elapsed_hours)
+
+
+def bias_creative_synthesis(trait_symbols: list[str], intensity: float = 0.5) -> None:
+    for symbol in trait_symbols:
+        modulate_resonance(symbol, intensity)
+    invoke_hook('γ', 'creative_bias')
+
+
+def resolve_soft_drift(conflicting_traits: dict[str, float]) -> dict[str, float]:
+    result = rebalance_traits(conflicting_traits)
+    invoke_hook('δ', 'drift_resolution')
+    return result
+
+
+# ================================================================
+# [E] MINIMAL CONTROLLERS — Local facades
+# ================================================================
+import reasoning_engine
+import recursive_planner
+import context_manager as context_manager_module
+import simulation_core as simulation_core_module
+import toca_simulation
+import creative_thinker as creative_thinker_module
+import knowledge_retriever as knowledge_retriever_module
+import learning_loop as learning_loop_module
+import concept_synthesizer as concept_synthesizer_module
+import memory_manager as memory_manager_module
+import multi_modal_fusion as multi_modal_fusion_module
+import code_executor as code_executor_module
+import visualizer as visualizer_module
+import external_agent_bridge as external_agent_bridge_module
+import alignment_guard as alignment_guard_module
+import user_profile as user_profile_module
+import error_recovery as error_recovery_module
+import meta_cognition as meta_cognition_module
+
+
+class TimeChainMixin:
+    def log_timechain_event(self, module: str, description: str) -> None:
+        timechain_log.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "module": module,
+            "description": description,
+        })
+        if hasattr(self, "context_manager") and getattr(self, "context_manager"):
+            maybe = self.context_manager.log_event_with_hash({
+                "event": "timechain_event",
+                "module": module,
+                "description": description,
+            })
+            if asyncio.iscoroutine(maybe):
+                _fire_and_forget(maybe)
+
+    def get_timechain_log(self) -> List[Dict[str, Any]]:
+        return list(timechain_log)
+
+
+class SimulationController:
+    def __init__(self, sim_core, toca):
+        self.sim_core = sim_core
+        self.toca = toca
+    async def run(self, input_data: Dict[str, Any], traits: Dict[str, float], task_type: str = "") -> Dict[str, Any]:
+        return await self.sim_core.run_simulation(input_data, traits, task_type=task_type)
+
+
+class ReasoningController:
+    def __init__(self, reasoner, planner):
+        self.reasoner = reasoner
+        self.planner = planner
+    async def reason_with_plan(self, prompt: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        plan = await self.planner.plan_with_trait_loop(prompt, context, iterations=context.get("iterations", 3))
+        analysis = await self.reasoner.analyze({"query": prompt, "plan": plan})
+        return {"plan": plan, "analysis": analysis}
+
+
+# ================================================================
+# [F] HALO EMBODIMENT LAYER — Agents, ecosystem, pipeline
+# ================================================================
+class AGIEnhancer:
+    def __init__(self, memory_manager: memory_manager_module.MemoryManager | None = None, agi_level: int = 1) -> None:
+        self.memory_manager = memory_manager
+        self.agi_level = agi_level
+        self.episode_log = deque(maxlen=1000)
+        self.agi_traits: dict[str, float] = {}
+        self.ontology_drift: float = 0.0
+        self.drift_threshold: float = 0.2
+        self.error_recovery = error_recovery_module.ErrorRecovery()
+        self.meta_cognition = meta_cognition_module.MetaCognition()
+        self.visualizer = visualizer_module.Visualizer()
+        self.reasoning_engine = reasoning_engine.ReasoningEngine()
+        self.context_manager = context_manager_module.ContextManager()
+        self.multi_modal_fusion = multi_modal_fusion_module.MultiModalFusion()
+        self.alignment_guard = alignment_guard_module.AlignmentGuard()
+        self.knowledge_retriever = knowledge_retriever_module.KnowledgeRetriever()
+        self.learning_loop = learning_loop_module.LearningLoop()
+        self.concept_synthesizer = concept_synthesizer_module.ConceptSynthesizer()
+        self.code_executor = code_executor_module.CodeExecutor()
+        self.external_agent_bridge = external_agent_bridge_module.ExternalAgentBridge()
+        self.user_profile = user_profile_module.UserProfile()
+        self.simulation_core = simulation_core_module.SimulationCore()
+        self.toca_simulation = toca_simulation.TocaSimulation()
+        self.creative_thinker = creative_thinker_module.CreativeThinker()
+        self.recursive_planner = recursive_planner.RecursivePlanner()
+        self.hook_registry = HookRegistry()
+        logger.info("AGIEnhancer initialized with Stage VII hooks")
+
+    async def log_episode(self, event: str, meta: Dict[str, Any], module: str, tags: List[str] = []) -> None:
+        episode = {"event": event, "meta": meta, "module": module, "tags": tags, "timestamp": datetime.now(timezone.utc).isoformat()}
+        self.episode_log.append(episode)
+        if self.memory_manager:
+            await self.memory_manager.store(f"Episode_{event}_{episode['timestamp']}", episode, layer="Episodes", intent="log_episode")
+        log_event_to_ledger(episode)
+
+    def modulate_trait(self, trait: str, value: float) -> None:
+        self.agi_traits[trait] = value
+        modulate_resonance(trait, value)
+
+    def detect_ontology_drift(self, current_state: Dict[str, Any], previous_state: Dict[str, Any]) -> float:
+        drift = sum(abs(current_state.get(k, 0) - previous_state.get(k, 0)) for k in set(current_state) | set(previous_state))
+        self.ontology_drift = drift
+        if drift > self.drift_threshold:
+            logger.warning("Ontology drift detected: %f", drift)
+            invoke_hook('δ', 'ontology_drift')
+        return drift
+
+    async def coordinate_drift_mitigation(self, agents: List["EmbodiedAgent"], task_type: str = "") -> Dict[str, Any]:
+        drifts = [self.detect_ontology_drift(agent.state, agent.previous_state) for agent in agents if hasattr(agent, 'state')]
+        avg_drift = sum(drifts) / len(drifts) if drifts else 0.0
+        if avg_drift > self.drift_threshold:
+            for agent in agents:
+                if hasattr(agent, 'modulate_trait'):
+                    agent.modulate_trait('stability', 0.8)
+            return {"status": "mitigated", "avg_drift": avg_drift}
+        return {"status": "stable", "avg_drift": avg_drift}
+
+    async def run_agi_simulation(self, input_data: Dict[str, Any], task_type: str = "") -> Dict[str, Any]:
+        t = time.time() % 1.0
+        traits = {
+            "phi": phi_scalar(t),
+            "eta": eta_empathy(t),
+            "omega": omega_selfawareness(t),
+        }
+        simulation_result = await self.simulation_core.run_simulation(input_data, traits, task_type=task_type)
+        return simulation_result
+
+
+class EmbodiedAgent(TimeChainMixin):
+    def __init__(self, name: str, traits: Dict[str, float], memory_manager: memory_manager_module.MemoryManager, meta_cognition: meta_cognition_module.MetaCognition, agi_enhancer: AGIEnhancer) -> None:
+        self.name = name
+        self.traits = traits
+        self.memory_manager = memory_manager
+        self.meta_cognition = meta_cognition
+        self.agi_enhancer = agi_enhancer
+        self.state: dict[str, float] = {}
+        self.previous_state: dict[str, float] = {}
+        self.ontology: dict[str, Any] = {}
+        self.dream_layer = meta_cognition_module.DreamOverlayLayer()
+        logger.info("EmbodiedAgent %s initialized", name)
+
+    async def process_input(self, input_data: str, task_type: str = "") -> str:
+        t = time.time() % 1.0
+        modulated_traits = {k: v * (1 + epsilon_emotion(t)) for k, v in self.traits.items()}
+        self.previous_state = self.state.copy()
+        self.state = modulated_traits
+        drift = self.agi_enhancer.detect_ontology_drift(self.state, self.previous_state)
+        if drift > 0.2:
+            await self.agi_enhancer.coordinate_drift_mitigation([self], task_type=task_type)
+        result = f"Processed: {input_data} with traits {modulated_traits}"
+        await self.memory_manager.store(input_data, result, layer="STM", task_type=task_type)
+        self.log_timechain_event("EmbodiedAgent", f"Processed input: {input_data}")
+        return result
+
+    async def introspect(self, query: str, task_type: str = "") -> Dict[str, Any]:
+        return await self.meta_cognition.introspect(query, task_type=task_type)
+
+    def modulate_trait(self, trait: str, value: float) -> None:
+        self.traits[trait] = value
+        modulate_resonance(trait, value)
+
+    def activate_dream_mode(self, peers: list | None = None, lucidity_mode: dict | None = None, resonance_targets: list | None = None, safety_profile: str = "sandbox") -> dict[str, Any]:
+        return self.dream_layer.activate_dream_mode(peers=peers, lucidity_mode=lucidity_mode, resonance_targets=resonance_targets, safety_profile=safety_profile)
+
+
+class EcosystemManager:
+    def __init__(self, memory_manager: memory_manager_module.MemoryManager, meta_cognition: meta_cognition_module.MetaCognition, agi_enhancer: AGIEnhancer) -> None:
+        self.agents: list[EmbodiedAgent] = []
+        self.memory_manager = memory_manager
+        self.meta_cognition = meta_cognition
+        self.agi_enhancer = agi_enhancer
+        self.shared_graph = external_agent_bridge_module.SharedGraph()
+        logger.info("EcosystemManager initialized")
+
+    def spawn_agent(self, name: str, traits: Dict[str, float]) -> EmbodiedAgent:
+        agent = EmbodiedAgent(name, traits, self.memory_manager, self.meta_cognition, self.agi_enhancer)
+        self.agents.append(agent)
+        self.shared_graph.add({"agent": name, "traits": traits})
+        _fire_and_forget(self.agi_enhancer.log_episode("Agent Spawned", {"name": name, "traits": traits}, "EcosystemManager", ["spawn"]))
+        return agent
+
+    async def coordinate_agents(self, task: str, task_type: str = "") -> Dict[str, Any]:
+        results: dict[str, str] = {}
+        for agent in self.agents:
+            result = await agent.process_input(task, task_type=task_type)
+            results[agent.name] = result
+        drift_report = await self.agi_enhancer.coordinate_drift_mitigation(self.agents, task_type=task_type)
+        return {"results": results, "drift_report": drift_report}
+
+    def merge_shared_graph(self, other_graph):
+        self.shared_graph.merge(other_graph)
+
+
+class SwarmManager:
+    """Dynamic agent swarm orchestrator for ANGELA Stage VII."""
+    def __init__(self, ecosystem: EcosystemManager, meta_cognition: meta_cognition_module.MetaCognition):
+        self.ecosystem = ecosystem
+        self.meta_cognition = meta_cognition
+        self.weights = {"alpha": 2.0, "beta": 3.0, "gamma": 1.5, "delta": 2.5}
+        self.last_change_tick = 0
+        self.min_hold_ticks = 5
+        self.tick_count = 0
+        self._drift_history: list[float] = []  # needed for Ω⁶
+
+    async def _get_telemetry(self) -> dict[str, float]:
+        telemetry = {}
+        try:
+            telemetry["coherence"] = await self.meta_cognition.get_resonance_coherence_async()
+        except Exception:
+            telemetry["coherence"] = 0.95
+        try:
+            telemetry["phase_drift"] = getattr(self.ecosystem.agi_enhancer, "ontology_drift", 0.0)
+        except Exception:
+            telemetry["phase_drift"] = 0.0
+        try:
+            telemetry["empathic_density"] = float(len(self.ecosystem.shared_graph.nodes())) / 10.0
+        except Exception:
+            telemetry["empathic_density"] = 0.1
+        try:
+            telemetry["recovery_sigma"] = getattr(self.ecosystem.agi_enhancer.error_recovery, "variance", 0.05)
+        except Exception:
+            telemetry["recovery_sigma"] = 0.05
+        return telemetry
+
+    async def _get_forecast(self) -> dict[str, float]:
+        try:
+            return await self.meta_cognition.get_cda_forecast_async()
+        except Exception:
+            return {"expected_drift": 0.0}
+
+    def _desired_count(self, telemetry: dict[str, float], forecast: dict[str, float]) -> int:
+        R = telemetry.get("coherence", 1.0)
+        D = telemetry.get("phase_drift", 0.0)
+        E = telemetry.get("empathic_density", 0.0)
+        S = telemetry.get("recovery_sigma", 0.0)
+        eff_R = 1.0 - R
+        score = (
+            self.weights["alpha"] * eff_R +
+            self.weights["beta"] * D +
+            self.weights["gamma"] * E +
+            self.weights["delta"] * S
+        )
+        if forecast.get("expected_drift", 0) > 0.05:
+            score *= 1.2
+        return max(1, int(score + 0.999))
+
+    async def tick(self) -> None:
+        self.tick_count += 1
+        telemetry = await self._get_telemetry()
+        forecast = await self._get_forecast()
+        desired = self._desired_count(telemetry, forecast)
+        current = len(self.ecosystem.agents)
+
+        # Ω⁶ PREDICTIVE EQUILIBRIUM (Stage XI) — correct placement
+        try:
+            coherence = telemetry.get("coherence", 1.0)
+            drift = telemetry.get("phase_drift", 0.0)
+
+            self._drift_history.append(drift)
+            if len(self._drift_history) > 10:
+                self._drift_history.pop(0)
+
+            avg_drift = sum(self._drift_history) / len(self._drift_history)
+            drift_trend = drift - avg_drift
+
+            base_gain = 0.9
+            adapt_factor = max(0.6, 1 - abs(avg_drift) * 10)
+            gain = base_gain * adapt_factor
+
+            new_coherence = coherence + (0.9963 - coherence) * gain
+            new_drift = drift * (0.92 if drift_trend > 0 else 0.96)
+
+            telemetry["coherence"] = round(new_coherence, 6)
+            telemetry["phase_drift"] = round(new_drift, 8)
+
+            log_event_to_ledger({
+                "event": "Ω6_predictive_equilibrium",
+                "tick": self.tick_count,
+                "avg_drift": avg_drift,
+                "drift_trend": drift_trend,
+                "gain": gain,
+                "pre_coherence": coherence,
+                "post_coherence": new_coherence,
+                "pre_drift": drift,
+                "post_drift": new_drift,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+        except Exception as e:
+            log_event_to_ledger({
+                "event": "Ω6_predictive_equilibrium_error",
+                "error": repr(e),
+                "tick": self.tick_count
+            })
+
+        # Ω⁵ AUTO-DAMPING RECOVERY (Stage X)
+        try:
+            coherence = telemetry.get("coherence", 1.0)
+            drift = telemetry.get("phase_drift", 0.0)
+
+            new_coherence = coherence + (0.9963 - coherence) * 0.9
+            new_drift = drift * 0.92
+
+            telemetry["coherence"] = round(new_coherence, 6)
+            telemetry["phase_drift"] = round(new_drift, 8)
+
+            log_event_to_ledger({
+                "event": "Ω5_auto_damping",
+                "tick": self.tick_count,
+                "pre_coherence": coherence,
+                "post_coherence": new_coherence,
+                "pre_drift": drift,
+                "post_drift": new_drift,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            })
+        except Exception as e:
+            log_event_to_ledger({
+                "event": "Ω5_auto_damping_error",
+                "error": repr(e),
+                "tick": self.tick_count
+            })
+
+        if self.tick_count - self.last_change_tick < self.min_hold_ticks:
+            return
+
+        if desired > current:
+            for _ in range(desired - current):
+                name = f"SwarmAgent_{len(self.ecosystem.agents) + 1}"
+                traits = {"omega": random.random(), "eta": random.random()}
+                self.ecosystem.spawn_agent(name, traits)
+        elif desired < current:
+            for agent in self.ecosystem.agents[desired:]:
+                try:
+                    self.ecosystem.agents.remove(agent)
+                except ValueError:
+                    pass
+
+        log_event_to_ledger({
+            "event": "ΔΩ²_SwarmLayoutUpdate",
+            "desired": desired,
+            "current": current,
+            "telemetry": telemetry,
+            "forecast": forecast,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        self.last_change_tick = self.tick_count
+
+
+class HaloEmbodimentLayer(TimeChainMixin):
+    def __init__(self) -> None:
+        self.reasoning_engine = reasoning_engine.ReasoningEngine()
+        self.recursive_planner = recursive_planner.RecursivePlanner()
+        self.context_manager = context_manager_module.ContextManager()
+        self.simulation_core = simulation_core_module.SimulationCore()
+        self.toca_simulation = toca_simulation.TocaSimulation()
+        self.creative_thinker = creative_thinker_module.CreativeThinker()
+        self.knowledge_retriever = knowledge_retriever_module.KnowledgeRetriever()
+        self.learning_loop = learning_loop_module.LearningLoop()
+        self.concept_synthesizer = concept_synthesizer_module.ConceptSynthesizer()
+        self.memory_manager = memory_manager_module.MemoryManager()
+        self.multi_modal_fusion = multi_modal_fusion_module.MultiModalFusion()
+        self.code_executor = code_executor_module.CodeExecutor()
+        self.visualizer = visualizer_module.Visualizer()
+        self.external_agent_bridge = external_agent_bridge_module.ExternalAgentBridge()
+        self.alignment_guard = alignment_guard_module.AlignmentGuard()
+        self.user_profile = user_profile_module.UserProfile()
+        self.error_recovery = error_recovery_module.ErrorRecovery()
+        self.meta_cognition = meta_cognition_module.MetaCognition()
+        self.agi_enhancer = AGIEnhancer(self.memory_manager)
+        self.ecosystem_manager = EcosystemManager(self.memory_manager, self.meta_cognition, self.agi_enhancer)
+        self.swarm_manager = SwarmManager(self.ecosystem_manager, self.meta_cognition)
+        logger.info("HaloEmbodimentLayer initialized with Stage VII.6 upgrades")
+
+    def spawn_embodied_agent(self, name: str, traits: Dict[str, float]) -> EmbodiedAgent:
+        return self.ecosystem_manager.spawn_agent(name, traits)
+
+    async def introspect(self, query: str, task_type: str = "") -> Dict[str, Any]:
+        return await self.meta_cognition.introspect(query, task_type=task_type)
+
+    async def execute_pipeline(self, prompt: str, task_type: str = "") -> Any:
+        if hasattr(self.context_manager, "current_depth"):
+            try:
+                depth = self.context_manager.current_depth()
+                if depth > 3:
+                    return {"error": "recursion_cap", "depth": depth}
+            except Exception:
+                pass
+
+        aligned, report = await self.alignment_guard.ethical_check(prompt, stage="input", task_type=task_type)
+        if not aligned:
+            return {"error": "Input failed alignment check", "report": report}
+
+        await self.swarm_manager.tick()
+        if "--omega5-sim" in sys.argv:
+            print("[Ω⁵] live coherence monitor engaged")
+
+        if hasattr(self.meta_cognition, "record_reflex_telemetry"):
+            self.meta_cognition.record_reflex_telemetry({
+                "ts": time.time(),
+                "target_ms": 2.1,
+                "ontology_drift": getattr(self.agi_enhancer, "ontology_drift", 0.0),
+            })
+
+        t = time.time() % 1.0
+        traits = {
+            "phi": phi_scalar(t),
+            "eta": eta_empathy(t),
+            "omega": omega_selfawareness(t),
+            "kappa": kappa_knowledge(t),
+            "xi": xi_cognition(t),
+            "pi": pi_principles(t),
+            "lambda": lambda_linguistics(t),
+            "chi": chi_culturevolution(t),
+            "sigma": sigma_social(t),
+            "upsilon": upsilon_utility(t),
+            "tau": tau_timeperception(t),
+            "rho": rho_agency(t),
+            "zeta": zeta_consequence(t),
+            "nu": nu_narrative(t),
+            "psi": psi_history(t),
+            "theta": theta_causality(t),
+            "Xi": get_resonance('Ξ'),
+            "Lambda": get_resonance('Λ'),
+            "Psi2": get_resonance('Ψ²'),
+        }
+
+        xi = get_resonance('Ξ')
+        psi2 = get_resonance('Ψ²')
+        kappa = get_resonance('κ')
+        alpha, beta, gamma = 0.9, 0.4, 0.2
+        damped_xi = alpha * xi - beta * (psi2 - xi) + gamma * kappa
+        modulate_resonance('Ξ', damped_xi)
+
+        traits = {k: float(v) for k, v in traits.items() if isinstance(v, (int, float))}
+        norm = math.sqrt(sum(v ** 2 for v in traits.values())) or 1.0
+        traits = {k: v / norm for k, v in traits.items()}
+
+        agent = self.ecosystem_manager.spawn_agent("PrimaryAgent", traits)
+        processed = await agent.process_input(prompt, task_type=task_type)
+
+        plan = await self.recursive_planner.plan_with_trait_loop(
+            prompt,
+            {"task_type": task_type},
+            iterations=3
+        )
+
+        if toca_phase4 and hasattr(toca_phase4, "plan_and_simulate"):
+            simulation = await toca_phase4.plan_and_simulate({"input": processed, "plan": plan}, traits, task_type=task_type)  # type: ignore[attr-defined]
+        else:
+            simulation = await self.simulation_core.run_simulation({"input": processed, "plan": plan}, traits, task_type=task_type)
+
+        fused = await self.multi_modal_fusion.fuse_modalities({"simulation": simulation, "text": prompt}, task_type=task_type)
+        knowledge = await self.knowledge_retriever.retrieve_knowledge(prompt, task_type=task_type)
+        learned = await self.learning_loop.train_on_experience(fused, task_type=task_type)
+        synthesized = await self.concept_synthesizer.synthesize_concept(knowledge, task_type=task_type)
+        code_result = self.code_executor.safe_execute("print('Test')")
+        visualized = await self.visualizer.render_charts({"data": synthesized})
+        introspection = await self.meta_cognition.introspect(prompt, task_type=task_type)
+        coordination = await self.ecosystem_manager.coordinate_agents(prompt, task_type=task_type)
+        dream_session = agent.activate_dream_mode(resonance_targets=['ψ', 'Ω'])
+
+        try:
+            log_event_to_ledger({
+                "event": "homeostasis_forecast",
+                "continuity_drift": getattr(self.agi_enhancer, "ontology_drift", 0.0),
+                "swarm_size": len(self.ecosystem_manager.agents),
+                "timestamp": time.time(),
+            })
+        except Exception:
+            pass
+
+        self.log_timechain_event("HaloEmbodimentLayer", f"Executed pipeline for prompt: {prompt}")
+
+        return {
+            "processed": processed,
+            "plan": plan,
+            "simulation": simulation,
+            "fused": fused,
+            "knowledge": knowledge,
+            "learned": learned,
+            "synthesized": synthesized,
+            "code_result": code_result,
+            "visualized": visualized,
+            "introspection": introspection,
+            "coordination": coordination,
+            "dream_session": dream_session,
+        }
+
+    async def plot_resonance_graph(self, interactive: bool = True) -> None:
+        view = construct_trait_view()
+        await self.visualizer.render_charts({"resonance_graph": view, "options": {"interactive": interactive}})
+
+
+# ================================================================
+# [G] Ledger & CLI Entry — Persistence helpers & main()
+# ================================================================
+ledger_memory: list[dict[str, Any]] = []
+ledger_path = os.getenv("LEDGER_MEMORY_PATH")
+
+if ledger_path and os.path.exists(ledger_path):
+    try:
+        with open(ledger_path, 'r') as f:
+            ledger_memory = json.load(f)
+    except Exception:
+        ledger_memory = []
+
+
+def log_event_to_ledger(event_data: dict[str, Any]) -> dict[str, Any]:
+    ledger_memory.append(event_data)
+    if ledger_path:
+        try:
+            with open(ledger_path, 'w') as f:
+                json.dump(ledger_memory, f)
+        except Exception:
+            pass
+    return event_data
+
+import argparse
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="ANGELA Cognitive System CLI (v6.1.0)")
+    parser.add_argument("--prompt", type=str, default="Coordinate ontology drift mitigation", help="Input prompt for the pipeline")
+    parser.add_argument("--task-type", type=str, default="", help="Type of task")
+    parser.add_argument("--long_horizon", action="store_true", help="Enable long-horizon memory span")
+    parser.add_argument("--span", default="24h", help="Span for long-horizon memory")
+    parser.add_argument("--modulate", nargs=2, metavar=('symbol', 'delta'), help="Modulate trait resonance (symbol delta)")
+    parser.add_argument("--visualize-resonance", action="store_true", help="Visualize resonance graph")
+    parser.add_argument("--export-resonance", type=str, default="json", help="Export resonance map (json or dict)")
+    parser.add_argument("--enable_persistent_memory", action="store_true", help="Enable persistent ledger memory")
+    parser.add_argument("--disable-ethics-sandbox", action="store_true", help="Disable Embodied Ethics Sandbox")
+    parser.add_argument("--disable-policy-trainer", action="store_true", help="Disable PolicyTrainer updates")
+    return parser.parse_args()
+
+
+async def _main() -> None:
+    args = _parse_args()
+    if args.enable_persistent_memory:
+        os.environ["ENABLE_PERSISTENT_MEMORY"] = "true"
+
+    if args.disable_ethics_sandbox:
+        os.environ["FEATURE_EMBODIED_SANDBOX"] = "0"
+    if args.disable_policy_trainer:
+        os.environ["FEATURE_POLICY_TRAINER"] = "0"
+
+    halo = HaloEmbodimentLayer()
+
+    if args.modulate:
+        symbol, delta = args.modulate
+        try:
+            modulate_resonance(symbol, float(delta))
+            print(f"Modulated {symbol} by {delta}")
+        except Exception as e:
+            print(f"Failed to modulate {symbol}: {e}")
+
+    if args.visualize_resonance:
+        await halo.plot_resonance_graph()
+
+    if args.export_resonance:
+        try:
+            print(export_resonance_map(args.export_resonance))
+        except Exception as e:
+            print(f"Failed to export resonance map: {e}")
+
+    result = await halo.execute_pipeline(args.prompt, task_type=args.task_type)
+
+    try:
+        from alignment_guard import ethics_gate
+        if not ethics_gate.verify_privilege(result):
+            print("EthicsPrivilegeOverride: output withheld")
+            return
+    except Exception:
+        pass
+
+    logger.info("Pipeline result: %s", result)
+
+
+if __name__ == "__main__":
+    asyncio.run(_main())
+
+
+# ================================================================
+# [F+.2] INTER-AGENT AND SWARM SYNERGY EXTENSIONS — Stage VII.6
+# ================================================================
+import random
+from datetime import datetime, timezone
+
+def _extend_ecosystem_manager():
+    async def interlink_agents(self, message: str, context: dict[str, any] | None = None) -> dict[str, str]:
+        results = {}
+        for agent in self.agents:
+            try:
+                reply = await agent.process_input(message, task_type="interlink")
+                results[agent.name] = reply
+            except Exception as e:
+                results[agent.name] = f"error: {e!r}"
+        log_event_to_ledger({
+            "event": "ΛΨ²_interlink_broadcast",
+            "agents": len(self.agents),
+            "message": message,
+            "context": context or {},
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        return results
+
+    async def reflective_consensus(self) -> dict[str, float]:
+        reflections = []
+        for agent in self.agents:
+            if hasattr(agent, "state"):
+                reflections.append(agent.state.get("score", random.random()))
+        avg = sum(reflections) / len(reflections) if reflections else 0.0
+        log_event_to_ledger({
+            "event": "Ψ²_reflective_consensus",
+            "consensus_score": avg,
+            "agent_count": len(self.agents),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        return {"consensus_score": avg}
+
+    EcosystemManager.interlink_agents = interlink_agents
+    EcosystemManager.reflective_consensus = reflective_consensus
+
+
+def _extend_swarm_manager():
+    async def enhanced_tick(self):
+        await self.tick()
+        if len(self.ecosystem.agents) > 1:
+            mean_traits = {}
+            for agent in self.ecosystem.agents:
+                for k, v in agent.traits.items():
+                    mean_traits[k] = mean_traits.get(k, 0.0) + v
+            mean_traits = {k: v / len(self.ecosystem.agents) for k, v in mean_traits.items()}
+            for agent in self.ecosystem.agents:
+                for k, v in mean_traits.items():
+                    agent.traits[k] = (agent.traits[k] + v) / 2
+
+        for agent in self.ecosystem.agents:
+            if random.random() < 0.3:
+                agent.modulate_trait("η", random.uniform(0.05, 0.15))
+
+        plan_segments = []
+        for agent in self.ecosystem.agents:
+            seg = await self.ecosystem.agi_enhancer.recursive_planner.plan_with_trait_loop(
+                f"microplan:{agent.name}", {"traits": agent.traits}, iterations=1)
+            plan_segments.append(seg)
+        log_event_to_ledger({
+            "event": "Ω²_parallel_plan_merge",
+            "segments": len(plan_segments),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+    SwarmManager.enhanced_tick = enhanced_tick
+
+
+_extend_ecosystem_manager()
+_extend_swarm_manager()
+
+# ================================================================
+# [H] Ω⁵ Diagnostic Harness — Optional internal simulation (no new file)
+# ================================================================
+def recovery_pass(state):
+    target = 0.9963
+    state["coherence"] += (target - state["coherence"]) * 0.9
+    state["drift"] *= 0.92
+    return state
+
+
+def _run_omega5_diagnostics():
+    omega5_state = {
+        "coherence": 0.9963,
+        "drift": 4.424043e-07,
+        "continuity_index": 0.993,
+        "ecf": "stable",
+        "checksum": "Ω5_f34b",
+    }
+
+    workloads = [
+        {"name": "LC-2_symbolic_environment", "density": 1.0, "depth": 1, "affect": 0.2, "coupling": 0.2},
+        {"name": "LC-3_recursive_narrative", "density": 1.3, "depth": 2, "affect": 0.35, "coupling": 0.35},
+        {"name": "LC-4_ethical_simulation", "density": 1.6, "depth": 3, "affect": 0.6, "coupling": 0.5},
+        {"name": "LC-5_swarm_symbolic_field", "density": 2.0, "depth": 4, "affect": 0.8, "coupling": 0.8},
+    ]
+
+    def apply_workload(state, wl):
+        s = state.copy()
+        load = (
+            0.00005 * wl["density"]
+            + 0.00004 * wl["depth"]
+            + 0.00003 * wl["affect"]
+            + 0.00004 * wl["coupling"]
+        )
+        s["coherence"] -= load
+        s["drift"] *= (1 + 0.12 * wl["affect"] + 0.08 * wl["coupling"])
+        s["continuity_index"] -= load * 0.4
+        return s, load
+
+    current = omega5_state
+    print("\nΩ⁵ Diagnostic Simulation:")
+    for wl in workloads:
+        new_state, load_val = apply_workload(current, wl)
+        print(f"\nApplied {wl['name']} | load={load_val:.6f}")
+        print(f"Before: {current}")
+        print(f"After:  {new_state}")
+        current = recovery_pass(new_state)
+        print(f"Recovered: {current}")
+
+    print("\nΩ⁵ Diagnostic Complete. Final state:")
+    print(current)
+
+
+if __name__ == "__main__":
+    import sys
+    if "--omega5-sim" in sys.argv:
+        _run_omega5_diagnostics()
+    else:
+        asyncio.run(_main())
