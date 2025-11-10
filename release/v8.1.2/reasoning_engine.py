@@ -1697,3 +1697,153 @@ class ReasoningEngine:
                 pass
 
         return result
+
+
+# =====================================================
+# δ⁵ Formal Reasoning Synthesis Upgrade
+# =====================================================
+# This block extends ReasoningEngine with:
+# 1. CoherenceClockAdapter: pulls continuity/coherence from ContextManager
+# 2. HybridInferenceCore: lightweight symbolic + probabilistic inference
+# 3. InferenceLedger: records every inference with Θ⁹-ready metadata
+# 4. ReasoningEngine hooks: preflight ethics + postflight sync to meta-cognition
+# =====================================================
+
+import time as _d5_time
+from datetime import datetime as _d5_dt
+
+class CoherenceClockAdapter:
+    """Reads continuity/coherence from ContextManager to modulate inference."""
+    def __init__(self, context_manager=None):
+        self.context_manager = context_manager
+
+    async def read(self) -> dict:
+        if not self.context_manager or not hasattr(self.context_manager, "analyze_continuity_drift"):
+            return {"status": "noop", "Δ_mean": 1.0, "drift_mean": 0.0, "ts": _d5_dt.utcnow().isoformat()}
+        data = self.context_manager.analyze_continuity_drift()
+        data["status"] = "ok"
+        data["ts"] = _d5_dt.utcnow().isoformat()
+        return data
+
+
+class HybridInferenceCore:
+    """
+    δ⁵ hybrid core: tries fast symbolic entailment, then falls back to probabilistic scoring.
+    Kept intentionally small so it can be embedded in existing reasoning pipelines.
+    """
+    def __init__(self, context_manager=None, alignment_guard=None):
+        self.context_manager = context_manager
+        self.alignment_guard = alignment_guard
+
+    async def ethical_preflight(self, premise: str, conclusion: str) -> bool:
+        if self.alignment_guard and hasattr(self.alignment_guard, "ethical_check"):
+            ok, _ = await self.alignment_guard.ethical_check(
+                f"premise={premise}\nconclusion={conclusion}",
+                stage="δ5_preflight",
+                task_type="inference"
+            )
+            return bool(ok)
+        return True
+
+    async def infer(self, premise: str, conclusion: str) -> dict:
+        # symbolic fast path
+        if premise.strip() == conclusion.strip():
+            return {"status": "success", "mode": "symbolic-fast", "prob": 1.0}
+
+        # tiny probabilistic fallback
+        overlap = len(set(premise.lower().split()) & set(conclusion.lower().split()))
+        denom = max(1, len(set(conclusion.lower().split())))
+        prob = overlap / denom
+        return {"status": "success", "mode": "probabilistic", "prob": float(prob)}
+
+
+class InferenceLedger:
+    """Best-effort inference event writer. Θ⁹-friendly."""
+    def __init__(self, path: str = "/mnt/data/inference_ledger.jsonl"):
+        self.path = path
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+
+    def write(self, record: dict) -> None:
+        try:
+            record = dict(record)
+            record.setdefault("ts", _d5_dt.utcnow().isoformat())
+            with open(self.path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+
+
+# --- Monkeypatch ReasoningEngine with δ⁵ hooks ------------------------------------
+try:
+    from reasoning_engine import ReasoningEngine as _RE_D5  # may re-import itself; guarded
+except Exception:  # pragma: no cover
+    _RE_D5 = None
+
+if _RE_D5 is not None:
+    # add init-time attachments
+    _old_init = _RE_D5.__init__
+    def _d5_init(self, *args, **kwargs):
+        _old_init(self, *args, **kwargs)
+        self._d5_coherence_clock = CoherenceClockAdapter(self.context_manager)
+        self._d5_hybrid_core = HybridInferenceCore(self.context_manager, self.alignment_guard)
+        self._d5_inference_ledger = InferenceLedger()
+    _RE_D5.__init__ = _d5_init
+
+    async def d5_entails(self, premise: str, conclusion: str) -> bool:
+        """
+        δ⁵ entailment: ethical preflight → hybrid inference → ledger → meta sync.
+        """
+        # 1) ethics
+        ok = await self._d5_hybrid_core.ethical_preflight(premise, conclusion)
+        if not ok:
+            self._d5_inference_ledger.write({
+                "event": "δ5_infer_blocked",
+                "premise": premise,
+                "conclusion": conclusion,
+                "reason": "ethical_preflight_fail",
+            })
+            return False
+
+        # 2) read coherence to adjust trust
+        coh = await self._d5_coherence_clock.read()
+        coh_factor = float(coh.get("Δ_mean", 1.0))
+
+        # 3) run hybrid inference
+        inf = await self._d5_hybrid_core.infer(premise, conclusion)
+        base_prob = float(inf.get("prob", 0.0))
+        final_prob = max(0.0, min(1.0, base_prob * coh_factor))
+
+        result = final_prob >= 0.55
+
+        # 4) ledger
+        self._d5_inference_ledger.write({
+            "event": "δ5_infer",
+            "premise": premise,
+            "conclusion": conclusion,
+            "coherence": coh,
+            "inference": inf,
+            "final_prob": final_prob,
+            "accepted": result,
+        })
+
+        # 5) meta-cog sync if available
+        if self.meta_cognition and hasattr(self.meta_cognition, "reflect_on_output"):
+            try:
+                await self.meta_cognition.reflect_on_output(
+                    component="δ5_infer",
+                    output={
+                        "premise": premise,
+                        "conclusion": conclusion,
+                        "final_prob": final_prob,
+                        "accepted": result,
+                        "coherence": coh,
+                    },
+                    context={"task_type": "inference", "version": "δ5"}
+                )
+            except Exception:
+                pass
+
+        return result
+
+    # expose on class
+    _RE_D5.d5_entails = d5_entails
