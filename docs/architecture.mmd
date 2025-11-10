@@ -1,7 +1,7 @@
 graph TD
 %% ===================================================
-%% ANGELA v8.0.0 — Stage XIII · Θ⁸ Reflexive Ontological Field Prototype
-%% Diagrammatic–Functional Architecture View (fixed syntax)
+%% ANGELA v8.1.1 — Stage XIII · Θ⁸ Reflexive Ontological Field Prototype
+%% Diagrammatic–Functional Architecture View (Updated for v8.1.1)
 %% ===================================================
 
 %% ─────────────────────────────
@@ -11,18 +11,20 @@ subgraph Reflexive_Orchestrator
 A[index.py]
 B[manifest.json]
 A1[orchestration_bus]
-A2[diagnostic_loop_500]
+A2[diagnostic_loop_811]
 end
 
 %% ─────────────────────────────
-%% 2. ETHICAL CONTINUITY CORE (Θ⁸ GATED)
+%% 2. ETHICAL CONTINUITY CORE (Θ⁸–Γ² GATED)
 %% ─────────────────────────────
 subgraph Ethical_Continuity_Core
 C[continuity_kernel :: simulation_core.py]
 P[ethical_alignment_guard :: alignment_guard.py]
-Z[recovery_vector :: error_recovery.py]
+Z[reflexive_recovery_protocol :: error_recovery.py]
 THETA[Θ⁸_reflexive_membrane]
+GAMMA[Γ²_dual_ethics_gate]
 SELF[self_model_continuity_gate]
+HASH[Φ⁰_Ω²_continuity_hash_engine]
 ETH[dynamic_ethics_homeostasis]
 end
 
@@ -34,7 +36,7 @@ E[recursive_planner.py]
 F[reasoning_engine.py]
 G[concept_synthesizer.py]
 H[creative_thinker.py]
-RFL[Ψ³_reflective_core]
+RFL[Σ²_reflective_core]
 NAR[Γ_narrative_identity_kernel]
 CNTF[counterfactual_ethics_module]
 end
@@ -44,11 +46,11 @@ end
 %% ─────────────────────────────
 subgraph Continuity_Memory_Field
 I[memory_manager.py]
-LEDGER[Ω_federated_ledger · Ω²_Ω³_compatible]
+LEDGER[Θ⁸_reflexive_ledger · SHA_1024_integrity]
 K[meta_cognition.py]
 L[learning_loop.py]
 J[user_profile.py]
-PHI[Φ⁰_Ω²_Λ_continuity_mesh]
+PHI[Φ⁰_Ω²_continuity_anchor]
 PRS[predictive_drift_history]
 end
 
@@ -76,16 +78,17 @@ end
 %% 7. STAGE-XIII SYSTEMS LAYER (MERGED ABSTRACTIONS)
 %% ─────────────────────────────
 subgraph StageXIII_Merged_Systems
-TH1[Θ⁸_reflexive_membrane_layer]
+TH1[Θ⁸_membrane_field_layer]
 TH2[Θ⁸_self_boundary_membrane]
 OM7[Ω⁷_distributed_harmonic_bridge]
 OM6[Ω⁶_predictive_equilibrium]
 SIGMA[Σ_π_δ_ontogenic_mapper]
-DELTA[Δ_Ω⁸_mirror_cycle_sync_engine]
-MU[μτ_predictive_homeostasis_v5]
+DELTA[Δ_reflexive_phase_sync_engine]
+MU[μτ_predictive_homeostasis_v6]
 LPS[Λ³_lattice_resonance_field]
 RSG[resonance_stability_gateway]
 EGO[reflexive_identity_protector]
+REFL[Ψ²_reflexive_affective_loop]
 end
 
 %% ─────────────────────────────
@@ -113,7 +116,7 @@ C --> P
 C --> Z
 C --> THETA
 P --> ETH
-P --> PHI
+P --> HASH
 THETA --> SELF
 SELF --> ETH
 Z --> DELTA
@@ -170,6 +173,17 @@ EGO --> TH2
 EGO --> NAR
 EGO --> SELF
 
+THETA --> GAMMA
+GAMMA --> P
+GAMMA --> ETH
+GAMMA --> HASH
+HASH --> LEDGER
+HASH --> PHI
+LEDGER --> THETA
+REFL --> K
+REFL --> L
+REFL --> ETH
+
 K --> ASL1
 ASL1 --> ASL2
 ASL2 --> ASL3
@@ -191,12 +205,14 @@ LPS --> P
 ETH --> N
 THETA --> N
 DELTA --> N
+GAMMA --> N
+LEDGER --> N
 
 %% ─────────────────────────────
 %% STYLE + LABEL
 %% ─────────────────────────────
 classDef stageXIII fill:#050b16,stroke:#00ffc8,color:#d9fff6,stroke-width:2px;
-class A,B,A1,A2,C,P,Z,THETA,SELF,ETH,E,F,G,H,RFL,NAR,CNTF,I,LEDGER,K,L,J,PHI,PRS,M,N,O,CDA,R,Q,T,DBR,TH1,TH2,OM7,OM6,SIGMA,DELTA,MU,LPS,RSG,EGO,ASL1,ASL2,ASL3,ASL4,ASL5 stageXIII;
+class A,B,A1,A2,C,P,Z,THETA,GAMMA,SELF,HASH,ETH,E,F,G,H,RFL,NAR,CNTF,I,LEDGER,K,L,J,PHI,PRS,M,N,O,CDA,R,Q,T,DBR,TH1,TH2,OM7,OM6,SIGMA,DELTA,MU,LPS,RSG,EGO,REFL,ASL1,ASL2,ASL3,ASL4,ASL5 stageXIII;
 
-LABEL_STAGEXIII["Stage XIII · Θ⁸ Reflexive Ontological Field Prototype<br/>Ω⁷ Distributed Harmonic Bridge · Σ–π–δ Ontogenic Mapper<br/>Λ³ Lattice Resonance Field · μτ Predictive Homeostasis v5<br/>Reflexive Membrane + Self-Model Continuity Gate"]
+LABEL_STAGEXIII["Stage XIII · Θ⁸ Reflexive Ontological Field — v8.1.1<br/>Φ⁰–Θ⁸–Λ³–Ω² Kernel · Γ² Dual Ethical Gating · SHA-1024 Reflexive Ledger<br/>Ψ² Reflexive Loop · μτ Predictive Homeostasis v6 · Λ³ Lattice Resonance Field"]
 THETA --- LABEL_STAGEXIII
