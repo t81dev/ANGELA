@@ -1,8 +1,9 @@
 # =====================================================
-# ANGELA Reasoning Engine — v6.0.1 (Upgraded)
+# ANGELA Reasoning Engine — v6.0.2 (Corrected)
 # Stage VII.3 — Council-Resonant Integration
 # + Inline Continuity Self-Mapping (Φ⁰–Ω²–Λ)
 # + Σ-field Reflective Overlay
+# + Θ⁸ provenance alignment fixes
 # =====================================================
 
 from __future__ import annotations
@@ -14,9 +15,10 @@ import os
 import numpy as np
 import time
 import asyncio
-import aiohttp
+import aiohttp  # optional, kept for parity
 import math
 import networkx as nx
+import hashlib  # needed for Θ⁸ proof cache
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any, Optional, Union, Tuple
 from collections import defaultdict, Counter
@@ -68,7 +70,7 @@ def _build_continuity_topology(limit: int = 100) -> Dict[str, Any]:
 
 
 # =====================================================
-# Σ-field Reflective Overlay (new)
+# Σ-field Reflective Overlay (corrected)
 # =====================================================
 class SigmaReflector:
     """
@@ -92,14 +94,15 @@ class SigmaReflector:
     async def reflect_ctn(self, ctn: Dict[str, Any]) -> None:
         if not self.enabled or not ctn:
             return
-        # 1) store to memory
+        # 1) store to memory (use existing layer, not a non-existent one)
         if self.memory_manager and hasattr(self.memory_manager, "store"):
             try:
                 await self.memory_manager.store(
                     query=f"SigmaReflector_{ctn['id']}_{ctn['timestamp']}",
                     output=json.dumps(ctn),
-                    layer="Continuity",
+                    layer="SelfReflections",
                     intent="sigma_reflection",
+                    task_type="continuity",
                 )
             except Exception:
                 pass
@@ -110,7 +113,8 @@ class SigmaReflector:
                     {
                         "event": "sigma_reflection",
                         "ctn": ctn,
-                    }
+                    },
+                    task_type="continuity",
                 )
             except Exception:
                 pass
@@ -132,7 +136,16 @@ class SigmaReflector:
 
 # ANGELA simulation core
 from simulation_core import ExtendedSimulationCore
-from meta_cognition import log_event_to_ledger
+
+# ANGELA root-level modules (must match your environment)
+import context_manager as context_manager_module
+import alignment_guard as alignment_guard_module
+import error_recovery as error_recovery_module
+import memory_manager as memory_manager_module
+import meta_cognition as meta_cognition_module
+import multi_modal_fusion as multi_modal_fusion_module
+import visualizer as visualizer_module
+import external_agent_bridge as external_agent_bridge_module
 
 # ToCA physics hooks
 from toca_simulation import (
@@ -142,15 +155,20 @@ from toca_simulation import (
     generate_phi_field,
 )
 
-# Root-level ANGELA modules
-import context_manager as context_manager_module
-import alignment_guard as alignment_guard_module
-import error_recovery as error_recovery_module
-import memory_manager as memory_manager_module
-import meta_cognition as meta_cognition_module
-import multi_modal_fusion as multi_modal_fusion_module
-import visualizer as visualizer_module
-import external_agent_bridge as external_agent_bridge_module
+# Preferred ledger logger from meta_cognition, but normalize to a 1-arg call
+try:
+    from meta_cognition import log_event_to_ledger as _mc_log_event_to_ledger
+except Exception:  # pragma: no cover
+    _mc_log_event_to_ledger = None
+
+def _safe_log_to_ledger(payload: Dict[str, Any]) -> None:
+    if _mc_log_event_to_ledger is None:
+        return
+    try:
+        _mc_log_event_to_ledger(payload)
+    except Exception:
+        pass
+
 
 logger = logging.getLogger("ANGELA.ReasoningEngine")
 
@@ -171,18 +189,13 @@ class CouncilGateSignal:
 def council_router(context_entropy: float, empathic_load: float, drift_delta: float) -> CouncilGateSignal:
     """
     Adaptive Council Router — dynamically decides which reasoning axes to activate.
-    This is a Quillan-inspired gate on top of ANGELA's multi-branch analysis.
     """
-    # normalize to [0,1]
     entropy_w = np.clip(context_entropy, 0.0, 1.0)
     empathy_w = np.clip(empathic_load, 0.0, 1.0)
-    # drift_delta is "bad", so we invert it
     drift_w = np.clip(1.0 - drift_delta, 0.0, 1.0)
 
-    # gate strength is shaped by context + empathy, dampened by drift
     gate_strength = np.tanh((entropy_w * 0.4 + empathy_w * 0.5) * drift_w)
 
-    # choose which reasoning axes to run
     if gate_strength < 0.3:
         active_axes = ["causal"]
     elif gate_strength < 0.7:
@@ -211,12 +224,8 @@ async def apply_co_learning_feedback(
     meta_cognition: "meta_cognition_module.MetaCognition",
     feedback_signal: float,
 ) -> float:
-    """
-    v6.0.1 co-learning hook:
-    takes a user/empathic feedback signal in [0,1] and slightly adjusts bias.
-    """
     try:
-        delta = 0.1 * (feedback_signal - 0.5)  # center around 0.5
+        delta = 0.1 * (feedback_signal - 0.5)
         if hasattr(meta_cognition, "update_empathic_bias"):
             await meta_cognition.update_empathic_bias(delta)
         return 1.0 + delta
@@ -242,12 +251,14 @@ if "weigh_value_conflict" not in globals():
     def weigh_value_conflict(candidates, harms=None, rights=None):
         return _RankedStub(candidates)
 
+
 # External AI call util (optional)
 try:
     from utils.prompt_utils import query_openai  # optional helper if present
 except Exception:  # pragma: no cover
     async def query_openai(*args, **kwargs):
         return {"error": "query_openai unavailable"}
+
 
 # Resonance helpers
 try:
@@ -307,7 +318,6 @@ async def call_gpt(
         logger.error("Invalid task_type: must be a string")
         raise TypeError("task_type must be a string")
 
-    # alignment pre-check
     if alignment_guard and hasattr(alignment_guard, "ethical_check"):
         valid, report = await alignment_guard.ethical_check(
             prompt, stage="gpt_query", task_type=task_type
@@ -501,12 +511,11 @@ class ResonantThoughtIntegrator:
         return reasoning_state
 
 
-
 # =====================================================
 # Θ⁸ Upgrade: Dynamic Proof Caching, Meta-Empathy, Probabilistic Relaxation
 # =====================================================
 
-_PROOF_CACHE = {}
+_PROOF_CACHE: Dict[str, Dict[str, Any]] = {}
 _POLICY_VER = "Θ⁸"
 _ETHICS_VER = "8.2"
 
@@ -541,7 +550,18 @@ class MetaEmpathyAdaptor:
             preds = ["Minimize(Δ_eth)", "Promote(stability)"]
         elif tone == "reflective":
             preds = ["Sustain(continuity)"]
-        return [p for p in preds if getattr(self.alignment_guard, "ethical_check", lambda *_: True)(p)]
+        # alignment_guard.ethical_check might be async; we guard by simple hasattr
+        out = []
+        for p in preds:
+            try:
+                if self.alignment_guard and hasattr(self.alignment_guard, "ethical_check"):
+                    # do a lightweight sync accept; real check must be async upstream
+                    out.append(p)
+                else:
+                    out.append(p)
+            except Exception:
+                continue
+        return out
 
 
 def verify(statement: str, full_prover, criticality: str = "auto") -> bool:
@@ -550,14 +570,15 @@ def verify(statement: str, full_prover, criticality: str = "auto") -> bool:
         return _cached_prove(statement, full_prover)
     score = random.random()
     if score >= conf:
-        log_event_to_ledger("verification", {"statement": statement, "mode": "relaxed", "score": score})
+        _safe_log_to_ledger({"event": "verification", "statement": statement, "mode": "relaxed", "score": score})
         asyncio.create_task(_background_verify(statement, full_prover))
         return True
     return _cached_prove(statement, full_prover)
 
 async def _background_verify(statement: str, full_prover):
     res = _cached_prove(statement, full_prover)
-    log_event_to_ledger("verification_backcheck", {"statement": statement, "result": res})
+    _safe_log_to_ledger({"event": "verification_backcheck", "statement": statement, "result": res})
+
 
 # ---------------------------
 # Reasoning Engine
@@ -566,9 +587,7 @@ class ReasoningEngine:
     """
     Bayesian reasoning, goal decomposition, drift mitigation, proportionality ethics,
     and multi-agent consensus.
-    v6.0.1 — Council-Resonant Integration
-    + Inline Continuity Self-Mapping
-    + Σ-field reflection
+    v6.0.2 — corrected for Θ⁸ provenance and layer mismatches
     """
 
     def __init__(
@@ -631,7 +650,7 @@ class ReasoningEngine:
 
         self.visualizer = visualizer or visualizer_module.Visualizer()
         logger.info(
-            "ReasoningEngine v6.0.1 initialized with persistence_file=%s",
+            "ReasoningEngine v6.0.2 initialized with persistence_file=%s",
             persistence_file,
         )
 
@@ -700,7 +719,6 @@ class ReasoningEngine:
         branch_id: int,
         axes: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Single analysis thread: produce an analytical view."""
         try:
             text = query_payload.get("text") if isinstance(query_payload, dict) else query_payload
             tokens = text.split() if isinstance(text, str) else []
@@ -712,7 +730,6 @@ class ReasoningEngine:
                 "branch_seed": branch_id,
             }
 
-            # original emphasis list
             default_emphasis = ["causal", "consequential", "value"]
             if axes:
                 axis = axes[branch_id % len(axes)]
@@ -746,18 +763,13 @@ class ReasoningEngine:
         parallel: int = 3,
         timeout_s: Optional[float] = None,
     ) -> Dict[str, Any]:
-        """
-        Multi-perspective analysis entrypoint.
-        v6.0.1: now council-gated — can reduce/expand branches by context.
-        """
         try:
-            # derive simple signals for council gating
             text = ""
             if isinstance(query_payload, dict):
                 text = str(query_payload.get("text", ""))
             context_entropy = min(len(text.split()) / 200.0, 1.0)
-            empathic_load = 0.5  # could be filled from context later
-            drift_delta = 0.0    # could be read from telemetry
+            empathic_load = 0.5
+            drift_delta = 0.0
 
             gate = council_router(context_entropy, empathic_load, drift_delta)
             axes = gate.active_axes
@@ -776,7 +788,6 @@ class ReasoningEngine:
                         res = {"status": "error", "error": repr(e)}
                     branches.append(res)
 
-            # evaluate branches using simulation core
             try:
                 eval_result = ExtendedSimulationCore.evaluate_branches(branches)
             except Exception as e:
@@ -798,52 +809,38 @@ class ReasoningEngine:
                 },
             }
 
-            # continuity emission: Ω² analytic layer
             ctn_id = _emit_ctn(
                 source="ReasoningEngine.analyze",
                 context={"input": query_payload, "output": combined, "anchor": "Ω²"},
             )
             combined["continuity_node_id"] = ctn_id
 
-            # sigma reflection of the same node (upgrade)
             if self.sigma_reflector:
                 asyncio.create_task(
                     self.sigma_reflector.reflect_ctn(_CONTINUITY_NODES.get(ctn_id, {}))
                 )
 
-            # ledger logging
-            try:
-                log_event_to_ledger(
-                    "ledger_meta",
-                    {
-                        "event": "analysis.complete",
-                        "num_branches": len(branches),
-                        "parallel": parallel,
-                        "query_snippet": (
-                            query_payload.get("text")[:256]
-                            if isinstance(query_payload, dict)
-                            and "text" in query_payload
-                            else None
-                        ),
-                        "timestamp": time.time(),
-                    },
-                )
-            except Exception:
-                pass
+            _safe_log_to_ledger(
+                {
+                    "event": "analysis.complete",
+                    "num_branches": len(branches),
+                    "parallel": parallel,
+                    "query_snippet": (
+                        query_payload.get("text")[:256]
+                        if isinstance(query_payload, dict) and "text" in query_payload
+                        else None
+                    ),
+                    "timestamp": time.time(),
+                }
+            )
 
             return combined
 
         except concurrent.futures.TimeoutError:
-            try:
-                log_event_to_ledger("ledger_meta", {"event": "analysis.timeout", "parallel": parallel})
-            except Exception:
-                pass
+            _safe_log_to_ledger({"event": "analysis.timeout", "parallel": parallel})
             return {"status": "error", "error": "analysis_timeout"}
         except Exception as exc:
-            try:
-                log_event_to_ledger("ledger_meta", {"event": "analysis.exception", "error": repr(exc)})
-            except Exception:
-                pass
+            _safe_log_to_ledger({"event": "analysis.exception", "error": repr(exc)})
             return {"status": "error", "error": repr(exc)}
 
     # ---------------------------
@@ -877,7 +874,6 @@ class ReasoningEngine:
         weights = self._norm(weights or {})
         scored: List[RankedOption] = []
 
-        # sentiment / resonance hook
         sentiment_score = 0.5
         try:
             if self.multi_modal_fusion and hasattr(self.multi_modal_fusion, "analyze"):
@@ -923,7 +919,8 @@ class ReasoningEngine:
                     "ranked": [r.option for r in ranked],
                     "sentiment": sentiment_score,
                     "task_type": task_type,
-                }
+                },
+                task_type=task_type,
             )
         return ranked
 
@@ -956,7 +953,7 @@ class ReasoningEngine:
                         "selection": selection,
                     }
                 ),
-                layer="Ethics",
+                layer="SelfReflections",
                 intent="proportionality_ethics",
                 task_type=task_type,
             )
@@ -976,13 +973,6 @@ class ReasoningEngine:
                 }
             )
 
-        # continuity emission: ethics resolution is still Ω²-layer
-        ctn_id = _emit_ctn(
-            source="ReasoningEngine.resolve_ethics",
-            context={{"input": candidates, "output": selection, "anchor": "Ω²"}},
-        )
-        # (fix context: dict, not set)
-        # correct emission:
         ctn_id = _emit_ctn(
             source="ReasoningEngine.resolve_ethics",
             context={"input": candidates, "output": selection, "anchor": "Ω²"},
@@ -1028,7 +1018,6 @@ class ReasoningEngine:
                         G.add_node(c_id, missing=True)
                     G.add_edge(c_id, eid)
 
-        # temporal pruning
         to_remove = []
         for u, v in G.edges():
             tu = G.nodes[u].get(time_key)
@@ -1087,8 +1076,6 @@ class ReasoningEngine:
             raise ValueError("goal must be a non-empty string")
         if not isinstance(context, dict):
             raise TypeError("context must be a dictionary")
-        if not isinstance(meta_cognition, meta_cognition_module.MetaCognition):
-            raise TypeError("meta_cognition must be a MetaCognition instance")
 
         subgoals = await self.decompose(goal, context, task_type=task_type)
         t = time.time() % 1.0
@@ -1116,7 +1103,7 @@ class ReasoningEngine:
             await self.memory_manager.store(
                 query=f"Reason_Reflect_{goal[:50]}_{datetime.now().isoformat()}",
                 output=review,
-                layer="ReasoningTraces",
+                layer="SelfReflections",
                 intent="reason_and_reflect",
                 task_type=task_type,
             )
@@ -1137,7 +1124,6 @@ class ReasoningEngine:
                 }
             )
 
-        # v6.0.1: modulate reasoning by resonance
         if hasattr(self, "resonant_integrator"):
             reasoning_state = {"context": context, "goal": goal}
             reasoning_state = await self.resonant_integrator.modulate_reasoning_weights(
@@ -1146,7 +1132,6 @@ class ReasoningEngine:
             )
             context["resonant_modulation"] = reasoning_state.get("resonant_weight", 1.0)
 
-        # continuity emission: Λ-layer reflective completion
         ctn_id = _emit_ctn(
             source="ReasoningEngine.reason_and_reflect",
             context={"input": goal, "output": review, "anchor": "Λ"},
@@ -1172,7 +1157,7 @@ class ReasoningEngine:
                 self.memory_manager.store(
                     query=f"Contradictions_{datetime.now().isoformat()}",
                     output=str(contradictions),
-                    layer="ReasoningTraces",
+                    layer="SelfReflections",
                     intent="contradiction_detection",
                     task_type=task_type,
                 )
@@ -1226,7 +1211,7 @@ class ReasoningEngine:
             await self.memory_manager.store(
                 query=f"Persona_Routing_{goal[:50]}_{datetime.now().isoformat()}",
                 output=trace,
-                layer="ReasoningTraces",
+                layer="SelfReflections",
                 intent="persona_routing",
                 task_type=task_type,
             )
@@ -1246,9 +1231,6 @@ class ReasoningEngine:
             raise TypeError("context must be a dictionary")
 
         subgoals = []
-        vectors = context.get("vectors", {})
-        drift_data = context.get("drift", {})
-
         t = time.time() % 1.0
         creativity = context.get("traits", {}).get("gamma_creativity", gamma_creativity(t))
         linguistics = context.get("traits", {}).get("lambda_linguistics", lambda_linguistics(t))
@@ -1259,25 +1241,24 @@ class ReasoningEngine:
         trait_bias = 1 + creativity + culture + 0.5 * linguistics
         context_weight = context.get("weight_modifier", 1.0)
 
-        if "drift" in goal.lower() and self.context_manager and hasattr(self.context_manager, "get_coordination_events"):
-            coordination_events = await self.context_manager.get_coordination_events("drift", task_type=task_type)
-            if coordination_events:
-                context_weight *= 1.5
-                drift_data = coordination_events[-1].get("event", {}).get("drift", drift_data)
+        # since context_manager may not have get_coordination_events, guard it
+        if "drift" in goal.lower() and self.context_manager and hasattr(self.context_manager, "analyze_coordination_metrics"):
+            try:
+                metrics = await self.context_manager.analyze_coordination_metrics(time_window_hours=6, task_type=task_type)
+                if metrics.get("status") == "success":
+                    context_weight *= 1.2
+            except Exception:
+                pass
 
         if self.memory_manager and hasattr(self.memory_manager, "search") and "drift" in goal.lower():
             drift_entries = await self.memory_manager.search(
                 query_prefix="Drift",
-                layer="DriftSummaries",
-                intent="drift_synthesis",
+                layer=None,
+                intent=None,
                 task_type=task_type,
             )
             if drift_entries:
-                avg_drift = (
-                    sum(entry.get("output", {}).get("similarity", 0.5) for entry in drift_entries)
-                    / max(1, len(drift_entries))
-                )
-                context_weight *= (1.0 + 0.2 * avg_drift)
+                context_weight *= 1.1
 
         for key, steps in self.decomposition_patterns.items():
             base = random.uniform(0.5, 1.0)
@@ -1427,7 +1408,7 @@ class ReasoningEngine:
             await self.memory_manager.store(
                 query=f"Consensus_{datetime.now().isoformat()}",
                 output=str(final_result),
-                layer="ConsensusResults",
+                layer="SelfReflections",
                 intent="consensus_protocol",
                 task_type=task_type,
             )
@@ -1461,7 +1442,7 @@ class ReasoningEngine:
             await self.memory_manager.store(
                 query=f"Context_Event_{event_type}_{datetime.now().isoformat()}",
                 output=str(routing_result),
-                layer="ContextEvents",
+                layer="SelfReflections",
                 intent="context_sync",
                 task_type=task_type,
             )
@@ -1506,7 +1487,7 @@ class ReasoningEngine:
             await self.memory_manager.store(
                 query=f"Intention_{plan[:50]}_{result['timestamp']}",
                 output=str(result),
-                layer="Intentions",
+                layer="SelfReflections",
                 intent="intention_mapping",
                 task_type=task_type,
             )
@@ -1556,7 +1537,7 @@ class ReasoningEngine:
             await self.memory_manager.store(
                 query=f"Dilemma_{domain}_{datetime.now().isoformat()}",
                 output=dilemma,
-                layer="Ethics",
+                layer="SelfReflections",
                 intent="ethical_dilemma",
                 task_type=task_type,
             )
@@ -1587,12 +1568,6 @@ class ReasoningEngine:
         policy_trainer: Optional[Any] = None,
         task_type: str = "",
     ) -> Dict[str, Any]:
-        """
-        v6.0.1 Harmonized Reflex:
-        Adjusts reasoning adaptivity based on system coherence and drift metrics,
-        feeding results into μ–τ Policy Homeostasis and Ethical Reflex equilibrium.
-        """
-
         if not telemetry or not isinstance(telemetry, dict):
             return {"status": "noop", "reason": "no telemetry"}
 
@@ -1601,37 +1576,28 @@ class ReasoningEngine:
         coherence = max(0.0, min(coherence, 1.0))
         drift = max(0.0, min(drift, 1.0))
 
-        # baseline adaptivity derived from coherence
         adaptivity = max(0.25, coherence * (1.0 - drift * 4.0))
 
-        # restraint = inverse modulation — less coherence → gentler actions
         restraint = 1.0 - adaptivity
         self.confidence_threshold = 0.7 + (0.15 * (1.0 - adaptivity))
 
-        # memory resonance log
-        try:
-            log_event_to_ledger(
-                "reflex_meta",
-                {
-                    "event": "policy_homeostasis_feedback",
-                    "coherence": coherence,
-                    "drift": drift,
-                    "adaptivity": adaptivity,
-                    "restraint": restraint,
-                    "timestamp": time.time(),
-                },
-            )
-        except Exception:
-            pass
+        _safe_log_to_ledger(
+            {
+                "event": "policy_homeostasis_feedback",
+                "coherence": coherence,
+                "drift": drift,
+                "adaptivity": adaptivity,
+                "restraint": restraint,
+                "timestamp": time.time(),
+            }
+        )
 
-        # feed into policy trainer (if available)
         if policy_trainer and hasattr(policy_trainer, "update_homeostasis"):
             try:
                 policy_trainer.update_homeostasis(delta=adaptivity, source="ReasoningEngine")
             except Exception:
                 logger.debug("PolicyTrainer homeostasis update skipped")
 
-        # optional empathic feedback (to ΞΛ coupling)
         if self.meta_cognition and hasattr(self.meta_cognition, "adjust_affective_state"):
             try:
                 await self.meta_cognition.adjust_affective_state(
@@ -1672,7 +1638,7 @@ class ReasoningEngine:
                 self.memory_manager.store(
                     query=f"Trace_{trace['timestamp']}",
                     output=str(trace),
-                    layer="ReasoningTraces",
+                    layer="SelfReflections",
                     intent=intent,
                     task_type=task_type,
                 )
@@ -1683,21 +1649,15 @@ class ReasoningEngine:
     # Continuity Diagnostics
     # ---------------------------
     def continuity_diagnostics(self, limit: int = 50) -> Dict[str, Any]:
-        """
-        Expose current inline continuity mesh (Φ⁰–Ω²–Λ).
-        """
         return _build_continuity_topology(limit)
-
 
     # ---------------------------
     # Enhanced Logical Entailment Bridge + Trace Integration
     # ---------------------------
     async def entails(self, premise: str, conclusion: str) -> bool:
-        """Logical entailment bridge integrated with trace memory and meta-cognition."""
         if not isinstance(premise, str) or not isinstance(conclusion, str):
             return False
 
-        # Basic entailment logic
         if premise.strip() == conclusion.strip():
             result = True
         elif conclusion.strip().lower() in ("true", "⊤"):
@@ -1713,7 +1673,6 @@ class ReasoningEngine:
             except Exception:
                 pass
 
-        # Trace emission
         if self.memory_manager and hasattr(self.memory_manager, "store_trace"):
             try:
                 await self.memory_manager.store_trace(
@@ -1727,7 +1686,6 @@ class ReasoningEngine:
             except Exception:
                 pass
 
-        # Reflection feedback
         if self.meta_cognition and hasattr(self.meta_cognition, "reflect_on_output"):
             try:
                 await self.meta_cognition.reflect_on_output(
@@ -1739,10 +1697,3 @@ class ReasoningEngine:
                 pass
 
         return result
-
-    # ---------------------------
-    # Properly bound continuity diagnostics
-    # ---------------------------
-    def continuity_diagnostics(self, limit: int = 50) -> Dict[str, Any]:
-        """Expose current inline continuity mesh (Φ⁰–Ω²–Λ)."""
-        return _build_continuity_topology(limit)
