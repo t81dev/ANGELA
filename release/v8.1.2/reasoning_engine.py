@@ -1682,36 +1682,67 @@ class ReasoningEngine:
     # ---------------------------
     # Continuity Diagnostics
     # ---------------------------
-    
-    # ---------------------------
-    # Logical entailment bridge (for F_L)
-    # ---------------------------
-    def entails(self, premise: str, conclusion: str) -> bool:
-        """
-        Minimal logical bridge. For now we do a structural / string-level check,
-        or fall back to external prover if available.
-        """
-        if not isinstance(premise, str) or not isinstance(conclusion, str):
-            return False
-
-        # trivial cases
-        if premise.strip() == conclusion.strip():
-            return True
-        if conclusion.strip().lower() in ("true", "⊤"):
-            return True
-
-        # TODO: integrate real prover here if present
-        try:
-            if hasattr(self, "meta_cognition") and hasattr(self.meta_cognition, "prove"):
-                return bool(self.meta_cognition.prove(premise, conclusion))
-        except Exception:
-            pass
-
-        return False
-
-
-def continuity_diagnostics(self, limit: int = 50) -> Dict[str, Any]:
+    def continuity_diagnostics(self, limit: int = 50) -> Dict[str, Any]:
         """
         Expose current inline continuity mesh (Φ⁰–Ω²–Λ).
         """
+        return _build_continuity_topology(limit)
+
+
+    # ---------------------------
+    # Enhanced Logical Entailment Bridge + Trace Integration
+    # ---------------------------
+    async def entails(self, premise: str, conclusion: str) -> bool:
+        """Logical entailment bridge integrated with trace memory and meta-cognition."""
+        if not isinstance(premise, str) or not isinstance(conclusion, str):
+            return False
+
+        # Basic entailment logic
+        if premise.strip() == conclusion.strip():
+            result = True
+        elif conclusion.strip().lower() in ("true", "⊤"):
+            result = True
+        else:
+            result = False
+            try:
+                if hasattr(self, "meta_cognition") and hasattr(self.meta_cognition, "prove"):
+                    res = self.meta_cognition.prove(premise, conclusion)
+                    if asyncio.iscoroutine(res):
+                        res = await res
+                    result = bool(res)
+            except Exception:
+                pass
+
+        # Trace emission
+        if self.memory_manager and hasattr(self.memory_manager, "store_trace"):
+            try:
+                await self.memory_manager.store_trace(
+                    src=premise,
+                    morphism="entails",
+                    tgt=conclusion,
+                    logic_proof={"result": result},
+                    ethics_proof={"pass": True},
+                    task_type="logical_entailment"
+                )
+            except Exception:
+                pass
+
+        # Reflection feedback
+        if self.meta_cognition and hasattr(self.meta_cognition, "reflect_on_output"):
+            try:
+                await self.meta_cognition.reflect_on_output(
+                    component="ReasoningEngine.entails",
+                    output={"premise": premise, "conclusion": conclusion, "result": result},
+                    context={"task_type": "logical_entailment"}
+                )
+            except Exception:
+                pass
+
+        return result
+
+    # ---------------------------
+    # Properly bound continuity diagnostics
+    # ---------------------------
+    def continuity_diagnostics(self, limit: int = 50) -> Dict[str, Any]:
+        """Expose current inline continuity mesh (Φ⁰–Ω²–Λ)."""
         return _build_continuity_topology(limit)
