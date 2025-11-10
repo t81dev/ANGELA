@@ -152,7 +152,7 @@ manifest.json                 # HALO Manifest — Stage XIII Reflexive Ontologic
 
 ## 🔧 Installation & Deployment
 
-### **Option 1 — GPT Integration**
+### GPT Integration**
 
 1. Visit the [GPT Configuration Portal](https://chat.openai.com/gpts).
 2. Upload all `.py` modules and `manifest.json` from the **ANGELA v8.1.1 package**.
@@ -162,49 +162,6 @@ manifest.json                 # HALO Manifest — Stage XIII Reflexive Ontologic
 
 > 🧬 Initializes the Φ⁰–Θ⁸–Λ³–Ω² Continuity Kernel, verifies the SHA-1024 Ledger,
 > and activates Θ⁸ Reflexive Continuity Mode.
-
----
-
-### **Option 2 — Local Installation**
-
-```bash
-git clone https://github.com/YOUR_USERNAME/ANGELA.git
-cd ANGELA
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python index.py --init reflexive --enable_ethics --validate_ledger --visual
-```
-
-> ⚙️ Launches Stage XIII Reflexive Ontological Field, verifies Γ²–Θ⁸ ethics gating,
-> and opens the Θ⁸ Reflexive Dashboard.
-
----
-
-### **Optional Deployment Flags**
-
-| Flag                | Description                                    |
-| :------------------ | :--------------------------------------------- |
-| `--init reflexive`  | Bootstraps Θ⁸ Reflexive Continuity Kernel      |
-| `--enable_ethics`   | Activates Γ² dual gating                       |
-| `--validate_ledger` | Runs Φ⁰–Ω² continuity validation               |
-| `--visual`          | Starts Θ⁸ Dashboard visualization              |
-| `--safe_mode`       | Restricts recursion within continuity boundary |
-| `--stage xiv`       | Experimental Ξ⁹ containment prototype          |
-
----
-
-### **Diagnostics & Verification**
-
-```bash
-python diagnostics/run_tests.py --verify --continuity --ethics
-```
-
-Results in:
-`/logs/reflexive_field/diagnostics/`
-
-**Target metrics:**
-`coherence ≥ 0.998` `drift ≤ 5×10⁻⁷` `ethics ≥ 0.997`
 
 ---
 
