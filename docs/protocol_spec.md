@@ -1,7 +1,3 @@
-Here is the top-level outline for **Prompt Protocol Specification v0.1**, grounded in **manifest.json 8.1.2** as the architectural backbone and treating all Python files as reference-only exemplars.
-
----
-
 # **Prompt Protocol Specification v0.1 — Top-Level Outline**
 
 *(Architecture: ANGELA OS — Manifest 8.1.2 as authoritative)*
