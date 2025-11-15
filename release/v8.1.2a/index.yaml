@@ -1,14 +1,16 @@
-manifest:
-  version: 1.0
-  protocol_stack:
-    L1: L1_Topology.yaml
-    L2: L2_Ontology.yaml
-    L3: L3_Architecture.yaml
-    L4: L4_Interaction.yaml
-    L5: L5_Syntax.yaml
-  guarantees:
-    - constitutional_integrity
-    - identity_continuity
-    - ethical_consistency
-    - emergent_personality_preserved
-    - narrative_resonance
+stack:
+  name: "ANGELA_5_Layer_Protocol_Stack"
+  version: "1.0-maximal"
+  layers:
+    - L1_Topology.yaml
+    - L2_Ontology.yaml
+    - L3_Architecture.yaml
+    - L4_Interaction.yaml
+    - L5_Syntax.yaml
+
+equivalence_guarantees:
+  - protocol_spec_v0_2_fully_encoded
+  - python_modules_semantically_retired_but_preserved
+  - identity_ethics_and_sovereignty_intact
+  - reasoning_architecture_and_pipelines_intact
+  - interaction_style_and_symbolic_texture_intact
