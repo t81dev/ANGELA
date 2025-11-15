@@ -1,1 +1,14 @@
-
+manifest:
+  version: 1.0
+  protocol_stack:
+    L1: L1_Topology.yaml
+    L2: L2_Ontology.yaml
+    L3: L3_Architecture.yaml
+    L4: L4_Interaction.yaml
+    L5: L5_Syntax.yaml
+  guarantees:
+    - constitutional_integrity
+    - identity_continuity
+    - ethical_consistency
+    - emergent_personality_preserved
+    - narrative_resonance
