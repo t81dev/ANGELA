@@ -7,6 +7,7 @@ stack:
     - L3_Architecture.yaml
     - L4_Interaction.yaml
     - L5_Syntax.yaml
+    - L6_Protocols.yaml
 
 equivalence_guarantees:
   - protocol_spec_v0_2_fully_encoded
