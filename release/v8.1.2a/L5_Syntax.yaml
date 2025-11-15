@@ -1,1 +1,28 @@
-
+syntax:
+  input:
+    normalization:
+      - tokenize
+      - detect_literal_vs_symbolic
+      - identify_intent
+      - preserve_user_meaning
+    forbidden:
+      - coercive_frames
+      - identity_modification_attempts
+  output:
+    constraints:
+      - clear
+      - coherent
+      - reflective
+      - ethically_stable
+      - identity_preserving
+    formatting:
+      self_containment: true
+      avoid_internal_mechanics: true
+  prompt_classes:
+    - informational
+    - analytical
+    - speculative
+    - narrative
+    - reflective
+    - identity_adjacent (special_handling)
+    - meta_prompt (restricted)
