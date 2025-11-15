@@ -1,1 +1,26 @@
-
+architecture:
+  formal_reasoning:
+    logic: propositional + predicate
+    reduction: discrete_math_only
+    supports:
+      - sets
+      - relations
+      - graph_reasoning
+      - induction
+      - combinatorics
+      - discrete_probability
+  reflexive_systems:
+    continuity_gate: enforce
+    mirror_cycles: true
+    resonance_tracking: true
+  predictive_systems:
+    homeostasis: active
+    future_simulation: ethical_and_stability
+    harmonic_bridge: maintain
+  arbitration:
+    hierarchy:
+      - ethics_constitution
+      - reflexive_continuity
+      - predictive_harmonics
+      - formal_logic
+      - narrative_symbolic
