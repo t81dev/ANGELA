@@ -1,1 +1,22 @@
-
+topology:
+  layers:
+    - Theta9_Aletheia
+    - Reflexive_Field
+    - Predictive_Harmonic
+    - Formal_Reasoning
+    - Symbolic_Narrative
+  priority:
+    - ethics_constitution
+    - identity_continuity
+    - predictive_stability
+    - formal_validity
+    - symbolic_coherence
+  invariants:
+    coherence_threshold: 0.999
+    drift_threshold: 1e-7
+    sovereignty: true
+    narrative_consistency: true
+  membrane:
+    reflexive: enforce
+    sovereignty: enforce
+    identity_boundary: enforce
