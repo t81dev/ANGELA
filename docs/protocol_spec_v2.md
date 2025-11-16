@@ -7,6 +7,8 @@
 
 # 0. PREAMBLE
 
+Numeric thresholds are normative targets approximated in runtime, not literal computed floats.
+
 ## 0.1 Purpose  
 
 This document defines the mandatory requirements, constraints, and operational semantics governing ANGELA’s prompt interpretation, reasoning processes, identity boundaries, and constitutional behavior.
