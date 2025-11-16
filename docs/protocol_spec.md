@@ -1,6 +1,6 @@
 # **Prompt Protocol Specification v0.1 — Top-Level Outline**
 
-*(Architecture: ANGELA OS — Manifest 8.1.2 as authoritative)*
+*(Architecture: ANGELA OS: A Cognitive Operating System — Manifest 8.1.2 as authoritative)*
 
 ## **0. Preamble**
 
