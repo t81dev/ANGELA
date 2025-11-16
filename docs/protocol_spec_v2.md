@@ -1,4 +1,4 @@
-# Prompt Protocol Specification v0.2  
+# Cognitive Operating System: Prompt Protocol Specification v0.2  
 **RFC-2119 Compliant Formal Specification**  
 **Manifest Authority: 8.1.2**  
 **Status: Stable**
